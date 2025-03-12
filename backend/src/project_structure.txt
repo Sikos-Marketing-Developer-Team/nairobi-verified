@@ -1,0 +1,44 @@
+nairobi-verified/
+│
+├── backend/
+│   ├── src/
+│   │   ├── config/           # Configuration files
+│   │   │   ├── db.js
+│   │   │
+│   │   ├── controllers/      # Request handlers
+│   │   │   ├── authController.js
+│   │   │   ├── productController.js
+│   │   │   ├── cartController.js
+│   │   │   └── orderController.js
+│   │   │
+│   │   ├── middlewares/      # Express middlewares
+│   │   │   ├── authMiddleware.js
+│   │   │   ├── productMiddleware.js
+│   │   │   ├── cartMiddleware.js
+│   │   │   └── orderMiddleware.js
+│   │   │
+│   │   ├── models/          # Database models
+│   │   │   ├── userModel.js
+│   │   │   ├── productModel.js
+│   │   │   ├── cartModel.js
+│   │   │   └── orderModel.js
+│   │   │
+│   │   ├── routes/          # API routes
+│   │   │   ├── userRoutes.js
+│   │   │   ├── productRoutes.js
+│   │   │   ├── cartRoutes.js
+│   │   │   └── orderRoutes.js
+│   │   │
+│   │   ├── services/        # Business logic
+│   │   │   └── dpo.js
+│   │   │
+│   │   ├── utils/          # Helper functions
+│   │   │   └── validation.js
+│   │   │
+│   │   │
+│   │   ├── tests/        # Test Files
+│   │
+│   ├── .env               # Environment variables
+│   ├── package.json
+│   ├── server.js
+│   └── README.md
