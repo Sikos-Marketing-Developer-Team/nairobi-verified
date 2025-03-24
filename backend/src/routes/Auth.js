@@ -24,3 +24,6 @@ router.get('/user', (req, res) => {
       photo: req.user.photo,
     });
   });
+
+
+module.exports = router;
