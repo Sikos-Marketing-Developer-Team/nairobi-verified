@@ -28,7 +28,7 @@ export default function SignIn() {
     try {
       // Try to sign in with email/password
       const result = await signIn("credentials", {
-        email: formData.username, // Allow username or email
+        username: formData.username,
         password: formData.password,
         redirect: false,
       });
@@ -38,9 +38,20 @@ export default function SignIn() {
         return;
       }
 
-      router.push("/");
+      // Successful login
+      router.push("/dashboard"); // Redirect to dashboard or home page
     } catch (error) {
       setError("An error occurred during login");
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const result = await signIn("google", {
+        callbackUrl: "/dashboard", // Redirect to dashboard after Google sign-in
+      });
+    } catch (error) {
+      setError("An error occurred during Google sign-in");
     }
   };
 
@@ -82,7 +93,7 @@ export default function SignIn() {
           <div className="mt-4">
             <button
               type="button"
-              onClick={() => signIn("google", { callbackUrl: "/" })}
+              onClick={handleGoogleSignIn}
               className="google-btn"
             >
               <Image
