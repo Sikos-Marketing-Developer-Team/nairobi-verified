@@ -2,22 +2,89 @@
 
 import { signIn } from "next-auth/react";
 import Image from "next/image";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SignIn() {
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+  });
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    
+    try {
+      // Try to sign in with email/password
+      const result = await signIn("credentials", {
+        email: formData.username, // Allow username or email
+        password: formData.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Invalid credentials");
+        return;
+      }
+
+      router.push("/");
+    } catch (error) {
+      setError("An error occurred during login");
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-        </div>
-        <div className="mt-8 space-y-6">
-          <button
-            onClick={() => signIn("google", { callbackUrl: "/" })}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+    <div className="wrapper">
+      <div className="form-box login">
+        <h2 className="title">Login</h2>
+        <form onSubmit={handleLogin}>
+          <div className="input-box">
+            <input 
+              type="text" 
+              name="username"
+              value={formData.username}
+              onChange={handleInputChange}
+              required 
+            />
+            <label>Username or Email</label>
+            <i className="bx bxs-user"></i>
+          </div>
+
+          <div className="input-box">
+            <input 
+              type="password" 
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              required 
+            />
+            <label>Password</label>
+            <i className="bx bxs-lock-alt"></i>
+          </div>
+
+          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+
+          <button type="submit" className="btn">
+            Login
+          </button>
+
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => signIn("google", { callbackUrl: "/" })}
+              className="google-btn"
+            >
               <Image
                 src="/google.svg"
                 alt="Google logo"
@@ -25,11 +92,72 @@ export default function SignIn() {
                 height={20}
                 className="h-5 w-5"
               />
-            </span>
-            Sign in with Google
-          </button>
-        </div>
+              Sign in with Google
+            </button>
+          </div>
+        </form>
       </div>
+
+      <div className="info-text login">
+        <h2>Welcome Back!</h2>
+        <p>Nairobi Verified, where Security is ensured.</p>
+      </div>
+
+      {/* Registration form commented out
+      <div className={`form-box register ${isActive ? 'active' : ''}`}>
+        <h2 className="title">Sign Up</h2>
+        <form onSubmit={handleRegister}>
+          <div className="input-box">
+            <input 
+              type="text" 
+              name="username"
+              value={formData.username}
+              onChange={handleInputChange}
+              required 
+            />
+            <label>Username</label>
+            <i className="bx bxs-user"></i>
+          </div>
+
+          <div className="input-box">
+            <input 
+              type="email" 
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              required 
+            />
+            <label>Email</label>
+            <i className="bx bxs-envelope"></i>
+          </div>
+
+          <div className="input-box">
+            <input 
+              type="password" 
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              required 
+            />
+            <label>Password</label>
+            <i className="bx bxs-lock-alt"></i>
+          </div>
+
+          <button type="submit" className="btn">
+            Sign Up
+          </button>
+
+          <div className="linkTxt">
+            <p>Already have an account? <a href="#" className="login-link" onClick={(e) => { e.preventDefault(); setIsActive(false); }}>Login</a></p>
+          </div>
+        </form>
+      </div>
+
+      <div className={`info-text register ${isActive ? 'active' : ''}`}>
+        <h2>Welcome Back!</h2>
+        <p>Nairobi Verified, where Security is ensured.</p>
+      </div>
+      */}
     </div>
   );
 } 
