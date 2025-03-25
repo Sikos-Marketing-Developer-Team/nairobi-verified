@@ -1,8 +1,11 @@
+// Authentication routes
 const express = require('express');
 const router = express.Router();
 const passport = require('../config/passport');
+const { login, signUp } = require('../controllers/authController');
 require('dotenv').config();
 
+// Google Authentication routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: true }));
 
 router.get(
@@ -23,7 +26,10 @@ router.get('/user', (req, res) => {
       displayName: req.user.displayName,
       photo: req.user.photo,
     });
-  });
+});
 
+// Local Authentication routes
+router.post('/login', login);
+router.post('/signup', signUp);
 
 module.exports = router;
