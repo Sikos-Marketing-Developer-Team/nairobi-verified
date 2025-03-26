@@ -5,11 +5,13 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const User = require("../models/User");
 const passport = require('passport');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/emailService');
+const crypto = require('crypto');
 
 
 const login = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, rememberMe } = req.body;
 
     // Find user by username or email
     const user = await User.findOne({
@@ -20,11 +22,20 @@ const login = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      return res.status(401).json({ message: 'Please verify your email first' });
+    }
+
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    // Set remember me
+    user.rememberMe = rememberMe;
+    await user.save();
 
     // Log user in
     req.logIn(user, (err) => {
@@ -84,6 +95,112 @@ const signUp = async (req, res) => {
   }
 };
 
+// Request password reset
+const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const resetToken = user.generatePasswordResetToken();
+    await user.save();
+
+    await sendPasswordResetEmail(email, resetToken);
+
+    res.status(200).json({ message: 'Password reset email sent' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error sending password reset email' });
+  }
+};
+
+// Reset password
+const resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successful' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error resetting password' });
+  }
+};
+
+// Send verification email
+const sendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({ message: 'Email already verified' });
+    }
+
+    const verificationToken = user.generateEmailVerificationToken();
+    await user.save();
+
+    await sendVerificationEmail(email, verificationToken);
+
+    res.status(200).json({ message: 'Verification email sent' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error sending verification email' });
+  }
+};
+
+// Verify email
+const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired verification token' });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'Email verified successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error verifying email' });
+  }
+};
+
 // Google authentication
 const googleAuth = passport.authenticate('google', {
   scope: ['profile', 'email']
@@ -132,9 +249,71 @@ const getCurrentUser = (req, res) => {
     user: {
       id: req.user._id,
       username: req.user.username,
-      email: req.user.email
+      email: req.user.email,
+      isEmailVerified: req.user.isEmailVerified
     }
   });
 };
 
-module.exports = { login, signUp, googleAuth, googleCallback, logout, getCurrentUser };
+const handleGoogleAuth = async (req, res) => {
+  try {
+    const { email, name, picture, googleId } = req.body;
+
+    // Find or create user
+    let user = await User.findOne({ 
+      $or: [
+        { email },
+        { 'google.id': googleId }
+      ]
+    });
+
+    if (!user) {
+      // Create new user if doesn't exist
+      user = await User.create({
+        email,
+        name,
+        picture,
+        google: {
+          id: googleId,
+          email,
+          name,
+          picture
+        },
+        isEmailVerified: true, // Google emails are pre-verified
+        role: 'user'
+      });
+    } else {
+      // Update existing user's Google info
+      user.google = {
+        id: googleId,
+        email,
+        name,
+        picture
+      };
+      await user.save();
+    }
+
+    // Generate JWT token
+    const token = generateToken(user);
+
+    res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        picture: user.picture
+      },
+      token
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to authenticate with Google'
+    });
+  }
+};
+
+module.exports = { login, signUp, requestPasswordReset, resetPassword, sendVerificationEmail, verifyEmail, googleAuth, googleCallback, logout, getCurrentUser, handleGoogleAuth };

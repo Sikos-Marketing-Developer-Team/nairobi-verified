@@ -4,51 +4,59 @@ import { signIn } from "next-auth/react";
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function SignIn() {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
+    rememberMe: false,
   });
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
+    setIsLoading(true);
     
     try {
-      // Try to sign in with email/password
       const result = await signIn("credentials", {
         username: formData.username,
         password: formData.password,
+        rememberMe: formData.rememberMe,
         redirect: false,
       });
 
       if (result?.error) {
-        setError("Invalid credentials");
+        setError(result.error);
         return;
       }
 
-      // Successful login
-      router.push("/dashboard"); // Redirect to dashboard or home page
+      setSuccess("Login successful! Redirecting...");
+      router.push("/dashboard");
     } catch (error) {
       setError("An error occurred during login");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
     try {
-      const result = await signIn("google", {
-        callbackUrl: "/dashboard", // Redirect to dashboard after Google sign-in
+      await signIn("google", {
+        callbackUrl: "/dashboard",
       });
     } catch (error) {
       setError("An error occurred during Google sign-in");
@@ -84,10 +92,34 @@ export default function SignIn() {
             <i className="bx bxs-lock-alt"></i>
           </div>
 
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+          <div className="flex items-center justify-between mb-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                name="rememberMe"
+                checked={formData.rememberMe}
+                onChange={handleInputChange}
+                className="mr-2"
+              />
+              Remember me
+            </label>
+            <Link 
+              href="/auth/forgot-password"
+              className="text-sm text-primary hover:text-primary-dark"
+            >
+              Forgot Password?
+            </Link>
+          </div>
 
-          <button type="submit" className="btn">
-            Login
+          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+          {success && <p className="text-green-500 text-sm mb-4">{success}</p>}
+
+          <button 
+            type="submit" 
+            className="btn"
+            disabled={isLoading}
+          >
+            {isLoading ? "Logging in..." : "Login"}
           </button>
 
           <div className="mt-4">
@@ -95,6 +127,7 @@ export default function SignIn() {
               type="button"
               onClick={handleGoogleSignIn}
               className="google-btn"
+              disabled={isLoading}
             >
               <Image
                 src="/google.svg"
@@ -106,6 +139,18 @@ export default function SignIn() {
               Sign in with Google
             </button>
           </div>
+
+          <div className="mt-4 text-center">
+            <p className="text-sm">
+              Don't have an account?{" "}
+              <Link 
+                href="/auth/register"
+                className="text-primary hover:text-primary-dark"
+              >
+                Sign up
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
 
@@ -113,62 +158,6 @@ export default function SignIn() {
         <h2>Welcome Back!</h2>
         <p>Nairobi Verified, where Security is ensured.</p>
       </div>
-
-      {/* Registration form commented out
-      <div className={`form-box register ${isActive ? 'active' : ''}`}>
-        <h2 className="title">Sign Up</h2>
-        <form onSubmit={handleRegister}>
-          <div className="input-box">
-            <input 
-              type="text" 
-              name="username"
-              value={formData.username}
-              onChange={handleInputChange}
-              required 
-            />
-            <label>Username</label>
-            <i className="bx bxs-user"></i>
-          </div>
-
-          <div className="input-box">
-            <input 
-              type="email" 
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              required 
-            />
-            <label>Email</label>
-            <i className="bx bxs-envelope"></i>
-          </div>
-
-          <div className="input-box">
-            <input 
-              type="password" 
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required 
-            />
-            <label>Password</label>
-            <i className="bx bxs-lock-alt"></i>
-          </div>
-
-          <button type="submit" className="btn">
-            Sign Up
-          </button>
-
-          <div className="linkTxt">
-            <p>Already have an account? <a href="#" className="login-link" onClick={(e) => { e.preventDefault(); setIsActive(false); }}>Login</a></p>
-          </div>
-        </form>
-      </div>
-
-      <div className={`info-text register ${isActive ? 'active' : ''}`}>
-        <h2>Welcome Back!</h2>
-        <p>Nairobi Verified, where Security is ensured.</p>
-      </div>
-      */}
     </div>
   );
 } 
