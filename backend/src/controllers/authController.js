@@ -45,8 +45,7 @@ const signUp = async (req, res) => {
 };
 
 const logout = (req, res) => {
-  // For JWT, no server-side session to clear—client discards token
-  if (req.isAuthenticated()) { // Google session
+  if (req.isAuthenticated()) {
     req.logout((err) => {
       if (err) return res.status(500).json({ message: 'Error logging out' });
       return res.status(200).json({ message: 'Logged out successfully' });
@@ -56,23 +55,4 @@ const logout = (req, res) => {
   }
 };
 
-const getCurrentUser = (req, res) => {
-  if (req.isAuthenticated()) { // Google session
-    return res.status(200).json({
-      user: { id: req.user._id, username: req.user.username, email: req.user.email, photo: req.user.photo }
-    });
-  }
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) return res.status(401).json({ message: 'Not authenticated' });
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ message: 'Invalid token' });
-    User.findById(decoded.userId).then(user => {
-      if (!user) return res.status(404).json({ message: 'User not found' });
-      res.status(200).json({
-        user: { id: user._id, username: user.username, email: user.email }
-      });
-    });
-  });
-};
-
-module.exports = { login, signUp, logout, getCurrentUser };
+module.exports = { login, signUp, logout };
