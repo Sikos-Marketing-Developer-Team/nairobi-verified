@@ -84,34 +84,6 @@ const signUp = async (req, res) => {
   }
 };
 
-// Google authentication
-const googleAuth = passport.authenticate('google', {
-  scope: ['profile', 'email']
-});
-
-const googleCallback = (req, res, next) => {
-  passport.authenticate('google', (err, user) => {
-    if (err) {
-      return next(err);
-    }
-    if (!user) {
-      return res.status(401).json({ message: 'Google authentication failed' });
-    }
-    req.logIn(user, (err) => {
-      if (err) {
-        return next(err);
-      }
-      return res.status(200).json({
-        message: 'Google login successful',
-        user: {
-          id: user._id,
-          username: user.username,
-          email: user.email
-        }
-      });
-    });
-  })(req, res, next);
-};
 
 // Logout
 const logout = (req, res) => {

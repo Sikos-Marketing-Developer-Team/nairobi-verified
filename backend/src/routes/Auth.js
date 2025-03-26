@@ -2,7 +2,13 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('../config/passport');
-const { login, signUp } = require('../controllers/authController');
+const { 
+  login,
+  signUp,
+  logout, 
+  getCurrentUser 
+} = require('../controllers/authController');
+const { isAuthenticated } = require('../middleware/authMiddleware');
 require('dotenv').config();
 
 // Google Authentication routes
@@ -27,6 +33,12 @@ router.get('/user', (req, res) => {
       photo: req.user.photo,
     });
 });
+
+// Logout route
+router.post('/logout', isAuthenticated, logout);
+
+// Get current user route
+router.get('/me', isAuthenticated, getCurrentUser);
 
 // Local Authentication routes
 router.post('/login', login);
