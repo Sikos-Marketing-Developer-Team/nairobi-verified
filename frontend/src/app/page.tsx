@@ -12,7 +12,7 @@ export default function Home() {
       <span className="rotate-bg"></span>
       <span className="rotate-bg2"></span>
 
-      <div className="form-box login">
+      <div className="form-box login home-p">
         <h2 className="title animation" style={{ "--i": 0, "--j": 21 } as any}>Login</h2>
         <form action="#">
           <div className="input-box animation" style={{ "--i": 1, "--j": 22 } as any}>
