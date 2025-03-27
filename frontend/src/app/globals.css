@@ -230,6 +230,58 @@ body {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* Dashboard Component */
+/* Rpute Path: /dashboard */
+/* Wrapper ClassName: .dashboard */
+
+.dashboard {
+  background-color: #fff;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* Responsive Design */
 @media (max-width: 991px) {
   .wrapper {
