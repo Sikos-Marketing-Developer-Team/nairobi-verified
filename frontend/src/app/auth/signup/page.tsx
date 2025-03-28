@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import axios from "axios";
 import Image from "next/image";
 
@@ -23,20 +22,20 @@ export default function SignUp() {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-
+  
     try {
-      // Send request to backend API for user registration
-      const response = await axios.post("http://localhost:5000/api/auth/signup", formData);
-
-      if (response.status === 201) {
-        // Auto-login after successful registration
-        await signIn("credentials", {
-          username: formData.username,
-          password: formData.password,
-          redirect: false,
-        });
-
-        router.push("/dashboard"); // Redirect to dashboard
+      // Send registration request to backend
+      const res = await axios.post("http://localhost:5000/api/auth/signup", formData);
+  
+      if (res.status === 201) {
+        // Extract token from response
+        const { token } = res.data;
+  
+        // Store token in localStorage (or use cookies for better security)
+        localStorage.setItem("token", token);
+  
+        // Redirect to dashboard after successful signup
+        router.push("/dashboard");
       }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.data?.message) {
@@ -46,15 +45,9 @@ export default function SignUp() {
       }
     }
   };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      const result = await signIn("google", {
-        callbackUrl: "/dashboard", // Redirect to dashboard after Google sign-in
-      });
-    } catch (error) {
-      setError("An error occurred during Google sign-in");
-    }
+  
+  const handleGoogleSignIn = () => {
+    window.location.href = "http://localhost:5000/api/auth/google"; // Redirect to Google auth
   };
 
 
