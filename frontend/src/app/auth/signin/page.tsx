@@ -10,12 +10,12 @@ export default function SignIn() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     try {
@@ -27,7 +27,7 @@ export default function SignIn() {
       localStorage.setItem('token', token); // Store JWT for local auth
       router.push("/dashboard");
     } catch (error) {
-      setError(error.response?.data?.message || "An error occurred during login");
+      setError((error as any).response?.data?.message || "An error occurred during login");
     }
   };
 
@@ -71,6 +71,11 @@ export default function SignIn() {
             </button>
           </div>
         </form>
+
+        <div className="linkTxt animation" style={{ "--i": 5, "--j": 25 } as any}>
+            <p>Don't have an account? <a href="/auth/signup" className="register-link" >Sign Up</a></p>
+          </div>
+
       </div>
       <div className="info-text login">
         <h2>Welcome Back!</h2>

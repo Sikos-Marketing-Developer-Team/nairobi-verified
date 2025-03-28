@@ -12,17 +12,17 @@ export default function Home() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleLoginChange = (e) => {
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setLoginData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSignupChange = (e) => {
+  const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSignupData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     try {
@@ -33,12 +33,12 @@ export default function Home() {
       const { token } = res.data;
       localStorage.setItem('token', token);
       router.push("/dashboard");
-    } catch (error) {
-      setError(error.response?.data?.message || "Login failed");
+    } catch (error: unknown) {
+      setError((error as any).response?.data?.message || "Login failed");
     }
   };
 
-  const handleSignup = async (e) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     try {
@@ -51,7 +51,7 @@ export default function Home() {
       localStorage.setItem('token', token);
       router.push("/dashboard");
     } catch (error) {
-      setError(error.response?.data?.message || "Signup failed");
+      setError((error as any).response?.data?.message || "Signup failed");
     }
   };
 
@@ -97,14 +97,7 @@ export default function Home() {
             Login
           </button>
 
-          <div className="linkTxt animation" style={{ "--i": 5, "--j": 25 } as any}>
-            <p>
-              Don't have an account?{" "}
-              <a href="#" className="register-link" onClick={(e) => { e.preventDefault(); setIsActive(true); }}>
-                Sign Up
-              </a>
-            </p>
-          </div>
+         
 
           <div className="mt-4">
             <button
@@ -125,6 +118,10 @@ export default function Home() {
             </button>
           </div>
         </form>
+
+        <div className="linkTxt animation" style={{ "--i": 5, "--j": 25 } as any}>
+            <p>Don't have an account? <a href="/auth/signup" className="register-link" >Sign Up</a></p>
+          </div>
       </div>
 
       <div className="info-text login">

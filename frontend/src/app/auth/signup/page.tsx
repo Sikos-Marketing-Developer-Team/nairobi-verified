@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import axios from "axios";
 import Image from "next/image";
 
@@ -23,20 +22,20 @@ export default function SignUp() {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-
+  
     try {
-      // Send request to backend API for user registration
-      const response = await axios.post("http://localhost:5000/api/auth/register", formData);
-
-      if (response.status === 201) {
-        // Auto-login after successful registration
-        await signIn("credentials", {
-          username: formData.username,
-          password: formData.password,
-          redirect: false,
-        });
-        
-        router.push("/dashboard"); // Redirect to dashboard
+      // Send registration request to backend
+      const res = await axios.post("http://localhost:5000/api/auth/signup", formData);
+  
+      if (res.status === 201) {
+        // Extract token from response
+        const { token } = res.data;
+  
+        // Store token in localStorage (or use cookies for better security)
+        localStorage.setItem("token", token);
+  
+        // Redirect to dashboard after successful signup
+        router.push("/dashboard");
       }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.data?.message) {
@@ -46,14 +45,11 @@ export default function SignUp() {
       }
     }
   };
-
-  const handleGoogleSignUp = async () => {
-    try {
-      await signIn("google", { callbackUrl: "/dashboard" });
-    } catch (error) {
-      setError("An error occurred during Google sign-up");
-    }
+  
+  const handleGoogleSignIn = () => {
+    window.location.href = "http://localhost:5000/api/auth/google"; // Redirect to Google auth
   };
+
 
   return (
     <div className="wrapper">
@@ -103,21 +99,21 @@ export default function SignUp() {
           <div className="mt-4">
             <button 
               type="button"
-              onClick={handleGoogleSignUp}
+              onClick={handleGoogleSignIn}
               className="google-btn flex items-center gap-2 p-2 border rounded-lg"
             >
               <Image src="/google.svg" alt="Google logo" width={20} height={20} className="h-5 w-5" />
               Sign up with Google
             </button>
           </div>
-
-          <div className="linkTxt">
+        </form>
+      
+        <div className="linkTxt">
             <p className="p-2">
               Already have an account? {" "}
-              <a href="/signin" className="login-link">Login</a>
+              <a href="/auth/signin" className="login-link">Login</a>
             </p>
           </div>
-        </form>
       </div>
       <div className="info-text register">
         <h2>Welcome Back!</h2>
