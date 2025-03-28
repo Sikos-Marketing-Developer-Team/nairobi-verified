@@ -31,9 +31,7 @@ export default function Home() {
             Login
           </button>
 
-          <div className="linkTxt animation" style={{ "--i": 5, "--j": 25 } as any}>
-            <p>Don't have an account? <a href="#" className="register-link" onClick={(e) => { e.preventDefault(); setIsActive(true); }}>Sign Up</a></p>
-          </div>
+         
 
           <div className="mt-4">
             <button
@@ -53,6 +51,10 @@ export default function Home() {
             </button>
           </div>
         </form>
+
+        <div className="linkTxt animation" style={{ "--i": 5, "--j": 25 } as any}>
+            <p>Don't have an account? <a href="/auth/signup" className="register-link" >Sign Up</a></p>
+          </div>
       </div>
 
       <div className="info-text login">

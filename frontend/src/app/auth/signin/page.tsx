@@ -107,6 +107,11 @@ export default function SignIn() {
             </button>
           </div>
         </form>
+
+        <div className="linkTxt animation" style={{ "--i": 5, "--j": 25 } as any}>
+            <p>Don't have an account? <a href="/auth/signup" className="register-link" >Sign Up</a></p>
+          </div>
+
       </div>
 
       <div className="info-text login">

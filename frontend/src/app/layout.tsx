@@ -4,6 +4,7 @@ import "./globals.css";
 import { NextAuthProvider } from "./providers";
 import Script from "next/script";
 
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
