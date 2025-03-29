@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { 
+  registerClient,
+  registerMerchant,
   login, 
   googleAuth, 
   googleCallback, 
@@ -9,12 +11,15 @@ const {
   requestPasswordReset,
   resetPassword,
   sendVerificationEmail,
-  verifyEmail,
-  handleGoogleAuth
+  verifyEmail
 } = require('../controllers/authController');
 const { isAuthenticated } = require('../middleware/authMiddleware');
 
-// Local login route
+// Registration routes
+router.post('/register/client', registerClient);
+router.post('/register/merchant', registerMerchant);
+
+// Login route
 router.post('/login', login);
 
 // Password reset routes
@@ -28,10 +33,9 @@ router.get('/verify-email/:token', verifyEmail);
 // Google authentication routes
 router.get('/google', googleAuth);
 router.get('/google/callback', googleCallback);
-router.post('/google', handleGoogleAuth);
 
 // Logout route
-router.post('/logout', isAuthenticated, logout);
+router.post('/logout', logout);
 
 // Get current user route
 router.get('/me', isAuthenticated, getCurrentUser);

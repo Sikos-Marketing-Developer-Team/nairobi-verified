@@ -4,16 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function SignIn() {
+export default function ClientRegister() {
   const [formData, setFormData] = useState({
-    username: "",
+    fullName: "",
+    email: "",
+    phone: "",
     password: "",
+    confirmPassword: "",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isActive, setIsActive] = useState(false);
   const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,16 +31,15 @@ export default function SignIn() {
     setError("");
     setSuccess("");
 
-    // Check for superadmin credentials
-    if (formData.username === "admin" && formData.password === "admin123") {
-      router.push("/admin/dashboard");
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/api/auth/register/client", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -49,55 +50,63 @@ export default function SignIn() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+        throw new Error(data.message || "Registration failed");
       }
 
-      setSuccess("Login successful!");
+      setSuccess("Registration successful! Please check your email for verification.");
       setTimeout(() => {
-        // Redirect based on user role
-        if (data.user.role === "merchant") {
-          router.push("/merchant/profile");
-        } else {
-          router.push("/dashboard");
-        }
-      }, 1000);
+        router.push("/auth/signin");
+      }, 3000);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Invalid credentials");
+      setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleSignIn = () => {
-    window.location.href = "/api/auth/google";
-  };
-
-  const handleRegisterClick = () => {
-    setIsActive(true);
-    setTimeout(() => {
-      router.push("/");
-    }, 600); // Wait for animation to complete
-  };
-
   return (
     <div className="wrapper">
-      <div className={`form-box ${isActive ? 'active' : ''}`}>
-        <h2 className="title">Welcome Back</h2>
+      <div className="form-box">
+        <h2 className="title">Client Registration</h2>
         <p className="text-sm text-gray-600 mb-6">
-          Sign in to your account to continue
+          Create your account to start shopping with verified merchants.
         </p>
 
         <form onSubmit={handleSubmit}>
           <div className="input-box">
             <input
               type="text"
-              name="username"
-              value={formData.username}
+              name="fullName"
+              value={formData.fullName}
               onChange={handleInputChange}
               required
             />
-            <label>Username or Email</label>
+            <label>Full Name</label>
             <i className="bx bxs-user"></i>
+          </div>
+
+          <div className="input-box">
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              required
+            />
+            <label>Email Address</label>
+            <i className="bx bxs-envelope"></i>
+          </div>
+
+          <div className="input-box">
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              required
+            />
+            <label>Phone Number</label>
+            <i className="bx bxs-phone"></i>
           </div>
 
           <div className="input-box">
@@ -113,17 +122,16 @@ export default function SignIn() {
                onClick={() => setShowPassword(!showPassword)}></i>
           </div>
 
-          <div className="flex items-center justify-between mb-4">
-            <label className="flex items-center">
-              <input type="checkbox" className="mr-2" />
-              <span className="text-sm">Remember me</span>
-            </label>
-            <Link
-              href="/auth/forgot-password"
-              className="forgot-password"
-            >
-              Forgot Password?
-            </Link>
+          <div className="input-box">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              required
+            />
+            <label>Confirm Password</label>
+            <i className="bx bxs-lock-alt"></i>
           </div>
 
           {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
@@ -134,41 +142,27 @@ export default function SignIn() {
             className="btn"
             disabled={isLoading}
           >
-            {isLoading ? "Signing in..." : "Sign In"}
-          </button>
-
-          <div className="divider">
-            <span>or</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            className="google-btn"
-          >
-            <i className="bx bxl-google"></i>
-            Continue with Google
+            {isLoading ? "Registering..." : "Register"}
           </button>
 
           <div className="mt-4 text-center">
             <p className="text-sm">
-              Don't have an account?{" "}
-              <button
-                type="button"
-                onClick={handleRegisterClick}
+              Already have an account?{" "}
+              <Link
+                href="/auth/signin"
                 className="forgot-password"
               >
-                Register
-              </button>
+                Login
+              </Link>
             </p>
           </div>
         </form>
       </div>
 
-      <div className={`info-text ${isActive ? 'active' : ''}`}>
+      <div className="info-text">
         <h2>Welcome!</h2>
-        <p>Nairobi Verified, where Security is ensured.</p>
+        <p>Join Nairobi Verified as a Client and enjoy shopping from verified merchants.</p>
       </div>
     </div>
   );
-}
+} 
