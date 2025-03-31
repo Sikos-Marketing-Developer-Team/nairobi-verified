@@ -4,7 +4,6 @@ const nextConfig = {
   swcMinify: true,
   webpack: (config) => {
     config.resolve.fallback = {
-      ...config.resolve.fallback,
       fs: false,
       path: false,
     };
@@ -12,4 +11,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

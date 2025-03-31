@@ -1,16 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 
-export default function Home() {
+export default function LandingPage() {
   const [isActive, setIsActive] = useState(false);
-  const [loginData, setLoginData] = useState({ username: "", password: "" });
-  const [signupData, setSignupData] = useState({ username: "", email: "", password: "" });
-  const [error, setError] = useState("");
+  const [selectedType, setSelectedType] = useState<"client" | "merchant" | null>(null);
   const router = useRouter();
+
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -19,8 +16,12 @@ export default function Home() {
 
   const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setSignupData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
+
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,66 +37,140 @@ export default function Home() {
     } catch (error: unknown) {
       setError((error as any).response?.data?.message || "Login failed");
     }
-  };
+
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/signup", {
-        name: signupData.username,
-        email: signupData.email,
-        password: signupData.password,
+      const response = await fetch("/api/auth/register/client", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
       });
-      const { token } = res.data;
-      localStorage.setItem('token', token);
-      router.push("/dashboard");
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Registration failed");
+      }
+
+      setSuccess("Registration successful! Please check your email for verification.");
+      setTimeout(onSuccess, 3000);
     } catch (error) {
+
       setError((error as any).response?.data?.message || "Signup failed");
     }
   };
 
-  const handleGoogleSignIn = () => {
-    window.location.href = "http://localhost:5000/api/auth/google";
+  const handleGoogleSignUp = () => {
+    window.location.href = "/api/auth/google";
   };
 
   return (
-    <div className="wrapper">
-      <span className="rotate-bg"></span>
-      <span className="rotate-bg2"></span>
+    <form onSubmit={handleSubmit}>
+      <div className="input-box">
+        <input
+          type="text"
+          name="fullName"
+          value={formData.fullName}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Full Name</label>
+        <i className="bx bxs-user"></i>
+      </div>
 
-      <div className="form-box login home-p">
-        <h2 className="title animation" style={{ "--i": 0, "--j": 21 } as any}>Login</h2>
-        <form onSubmit={handleLogin}>
-          <div className="input-box animation" style={{ "--i": 1, "--j": 22 } as any}>
-            <input
-              type="text"
-              name="username"
-              value={loginData.username}
-              onChange={handleLoginChange}
-              required
-            />
-            <label>Username</label>
-            <i className="bx bxs-user"></i>
-          </div>
+      <div className="input-box">
+        <input
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Email Address</label>
+        <i className="bx bxs-envelope"></i>
+      </div>
 
-          <div className="input-box animation" style={{ "--i": 2, "--j": 23 } as any}>
-            <input
-              type="password"
-              name="password"
-              value={loginData.password}
-              onChange={handleLoginChange}
-              required
-            />
-            <label>Password</label>
-            <i className="bx bxs-lock-alt"></i>
-          </div>
+      <div className="input-box">
+        <input
+          type="tel"
+          name="phone"
+          value={formData.phone}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Phone Number</label>
+        <i className="bx bxs-phone"></i>
+      </div>
 
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+      <div className="input-box">
+        <input
+          type={showPassword ? "text" : "password"}
+          name="password"
+          value={formData.password}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Password</label>
+        <i className={`bx ${showPassword ? 'bxs-show' : 'bxs-hide'} cursor-pointer`} 
+           onClick={() => setShowPassword(!showPassword)}></i>
+      </div>
 
-          <button type="submit" className="btn animation" style={{ "--i": 3, "--j": 24 } as any}>
+      <div className="input-box">
+        <input
+          type={showPassword ? "text" : "password"}
+          name="confirmPassword"
+          value={formData.confirmPassword}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Confirm Password</label>
+        <i className="bx bxs-lock-alt"></i>
+      </div>
+
+      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+      {success && <p className="text-green-500 text-sm mb-4">{success}</p>}
+
+      <button
+        type="submit"
+        className="btn"
+        disabled={isLoading}
+      >
+        {isLoading ? "Registering..." : "Register"}
+      </button>
+
+      <div className="divider">
+        <span>or</span>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleGoogleSignUp}
+        className="google-btn"
+      >
+        <i className="bx bxl-google"></i>
+        Sign up with Google
+      </button>
+
+      <div className="mt-4 text-center">
+        <p className="text-sm">
+          Already have an account?{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/auth/signin")}
+            className="forgot-password"
+          >
             Login
           </button>
+        </p>
+      </div>
+    </form>
+  );
+}
 
          
 
@@ -144,51 +219,140 @@ export default function Home() {
             <i className="bx bxs-user"></i>
           </div>
 
-          <div className="input-box animation" style={{ "--i": 19, "--j": 2 } as any}>
-            <input
-              type="email"
-              name="email"
-              value={signupData.email}
-              onChange={handleSignupChange}
-              required
-            />
-            <label>Email</label>
-            <i className="bx bxs-envelope"></i>
-          </div>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
 
-          <div className="input-box animation" style={{ "--i": 20, "--j": 3 } as any}>
-            <input
-              type="password"
-              name="password"
-              value={signupData.password}
-              onChange={handleSignupChange}
-              required
-            />
-            <label>Password</label>
-            <i className="bx bxs-lock-alt"></i>
-          </div>
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
 
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+    setIsLoading(true);
 
-          <button type="submit" className="btn animation" style={{ "--i": 21, "--j": 4 } as any}>
-            Sign Up
+    try {
+      const response = await fetch("/api/auth/register/merchant", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Registration failed");
+      }
+
+      setSuccess("Registration successful! Please check your email for verification.");
+      setTimeout(onSuccess, 3000);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="input-box">
+        <input
+          type="text"
+          name="companyName"
+          value={formData.companyName}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Company Name</label>
+        <i className="bx bxs-building"></i>
+      </div>
+
+      <div className="input-box">
+        <input
+          type="email"
+          name="companyEmail"
+          value={formData.companyEmail}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Company Email</label>
+        <i className="bx bxs-envelope"></i>
+      </div>
+
+      <div className="input-box">
+        <input
+          type="tel"
+          name="companyPhone"
+          value={formData.companyPhone}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Company Phone Number</label>
+        <i className="bx bxs-phone"></i>
+      </div>
+
+      <div className="input-box">
+        <input
+          type="text"
+          name="location"
+          value={formData.location}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Company Location</label>
+        <i className="bx bxs-map"></i>
+      </div>
+
+      <div className="input-box">
+        <input
+          type={showPassword ? "text" : "password"}
+          name="password"
+          value={formData.password}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Password</label>
+        <i className={`bx ${showPassword ? 'bxs-show' : 'bxs-hide'} cursor-pointer`} 
+           onClick={() => setShowPassword(!showPassword)}></i>
+      </div>
+
+      <div className="input-box">
+        <input
+          type={showPassword ? "text" : "password"}
+          name="confirmPassword"
+          value={formData.confirmPassword}
+          onChange={handleInputChange}
+          required
+        />
+        <label>Confirm Password</label>
+        <i className="bx bxs-lock-alt"></i>
+      </div>
+
+      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+      {success && <p className="text-green-500 text-sm mb-4">{success}</p>}
+
+      <button
+        type="submit"
+        className="btn"
+        disabled={isLoading}
+      >
+        {isLoading ? "Registering..." : "Register"}
+      </button>
+
+      <div className="mt-4 text-center">
+        <p className="text-sm">
+          Already have an account?{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/auth/signin")}
+            className="forgot-password"
+          >
+            Login
           </button>
-
-          <div className="linkTxt animation" style={{ "--i": 22, "--j": 5 } as any}>
-            <p>
-              Already have an account?{" "}
-              <a href="#" className="login-link" onClick={(e) => { e.preventDefault(); setIsActive(false); }}>
-                Login
-              </a>
-            </p>
-          </div>
-        </form>
+        </p>
       </div>
-
-      <div className={`info-text register ${isActive ? 'active' : ''}`}>
-        <h2 className="animation" style={{ "--i": 17, "--j": 0 } as any}>Welcome Back!</h2>
-        <p className="animation" style={{ "--i": 18, "--j": 1 } as any}>Nairobi Verified, where Security is ensured.</p>
-      </div>
-    </div>
+    </form>
   );
 }
