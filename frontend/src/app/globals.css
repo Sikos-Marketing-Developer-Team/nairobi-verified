@@ -73,8 +73,18 @@ body {
   z-index: 1;
 }
 
-.info-text.active {
-  transform: translateX(-100%);
+.form-box.register {
+  min-height: fit-content; /* Ensures it grows with content */
+  padding-bottom: 2px; /* Adds spacing at the bottom */
+  overflow: hidden; /* Prevents content from overflowing */
+}
+
+.form-box h2 {
+  font-size: 2em;
+  color: var(--primary);
+  text-align: center;
+  margin-bottom: 30px;
+  font-weight: 600;
 }
 
 .info-text h2 {
@@ -95,6 +105,7 @@ body {
   color: var(--text-color);
   margin-bottom: 20px;
 }
+
 
 .input-box {
   position: relative;
@@ -258,11 +269,117 @@ body {
   border-color: #d1d5db;
 }
 
-.account-type-btn.merchant {
-  background: var(--primary-color);
-  color: var(--white);
-  border-color: var(--primary-color);
+
+div.linkTxt {
+  text-align: center;
 }
+
+div.linkTxt.animation{
+ text-align: center;
+ padding: 1rem;
+}
+.register-link,
+.login-link {
+  font-size: 0.9em;
+  color: var(--primary);
+  text-decoration: underline;
+  font-weight: 500;
+  margin-top: 20px;
+}
+
+.register-link:hover,
+.login-link:hover {
+  color: #c80535;
+  text-decoration: none;
+}
+
+/* Dashboard Component */
+/* Route Path: /dashboard */
+/* Wrapper ClassName: .dashboard */
+
+.dashboard {
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1900px;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  overflow: hidden;
+
+  text-align: center;
+}
+
+.dashboard h2 {
+  font-size: 2.5em;
+  color: var(--primary);
+  text-align: center!important;
+  margin-bottom: 30px;
+  font-weight: 600;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Responsive Design */
+@media (max-width: 991px) {
+  .wrapper {
+    height: auto;
+    min-height: 100vh;
+    padding: 10px;
+    background: #fff;
+  }
+
+  .form-box {
+    height: auto;
+    padding: 30px 20px;
+    box-shadow: none;
+  }
 
 .account-type-btn.merchant:hover {
   background: var(--secondary-color);

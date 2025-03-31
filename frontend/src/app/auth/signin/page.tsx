@@ -24,7 +24,7 @@ export default function SignIn() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -62,9 +62,7 @@ export default function SignIn() {
         }
       }, 1000);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Invalid credentials");
-    } finally {
-      setIsLoading(false);
+      setError((error as any).response?.data?.message || "An error occurred during login");
     }
   };
 
@@ -163,6 +161,11 @@ export default function SignIn() {
             </p>
           </div>
         </form>
+
+        <div className="linkTxt animation" style={{ "--i": 5, "--j": 25 } as any}>
+            <p>Don't have an account? <a href="/auth/signup" className="register-link" >Sign Up</a></p>
+          </div>
+
       </div>
 
       <div className={`info-text ${isActive ? 'active' : ''}`}>

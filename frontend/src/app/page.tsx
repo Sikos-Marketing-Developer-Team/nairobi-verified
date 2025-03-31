@@ -8,82 +8,13 @@ export default function LandingPage() {
   const [selectedType, setSelectedType] = useState<"client" | "merchant" | null>(null);
   const router = useRouter();
 
-  const handleAccountTypeSelect = (type: "client" | "merchant") => {
-    setSelectedType(type);
-    setIsActive(true);
+
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setLoginData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleBack = () => {
-    setIsActive(false);
-    setSelectedType(null);
-  };
-
-  return (
-    <div className="wrapper">
-      <div className={`form-box ${isActive ? 'active' : ''}`}>
-        {!isActive ? (
-          <div className="account-type-buttons">
-            <h2 className="title">Choose Account Type</h2>
-            <p className="text-sm text-gray-600 mb-6">
-              Select your account type to get started
-            </p>
-            <button
-              type="button"
-              className="account-type-btn"
-              onClick={() => handleAccountTypeSelect("client")}
-            >
-              Register as Client
-            </button>
-            <button
-              type="button"
-              className="account-type-btn merchant"
-              onClick={() => handleAccountTypeSelect("merchant")}
-            >
-              Register as Merchant
-            </button>
-          </div>
-        ) : (
-          <div className="registration-form">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="text-sm text-gray-600 hover:text-gray-800 mb-4 flex items-center"
-            >
-              <i className="bx bx-arrow-back mr-1"></i>
-              Back
-            </button>
-            {selectedType === "client" ? (
-              <ClientRegisterForm onSuccess={() => router.push("/auth/signin")} />
-            ) : (
-              <MerchantRegisterForm onSuccess={() => router.push("/auth/signin")} />
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className={`info-text ${isActive ? 'active' : ''}`}>
-        <h2>Welcome Back!</h2>
-        <p>Nairobi Verified, where Security is ensured.</p>
-      </div>
-    </div>
-  );
-}
-
-function ClientRegisterForm({ onSuccess }: { onSuccess: () => void }) {
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -91,18 +22,26 @@ function ClientRegisterForm({ onSuccess }: { onSuccess: () => void }) {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
+    try {
+      const res = await axios.post("http://localhost:5000/api/auth/login", {
+        username: loginData.username,
+        password: loginData.password,
+      });
+      const { token } = res.data;
+      localStorage.setItem('token', token);
+      router.push("/dashboard");
+    } catch (error: unknown) {
+      setError((error as any).response?.data?.message || "Login failed");
     }
 
-    setIsLoading(true);
 
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
     try {
       const response = await fetch("/api/auth/register/client", {
         method: "POST",
@@ -121,9 +60,8 @@ function ClientRegisterForm({ onSuccess }: { onSuccess: () => void }) {
       setSuccess("Registration successful! Please check your email for verification.");
       setTimeout(onSuccess, 3000);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
+
+      setError((error as any).response?.data?.message || "Signup failed");
     }
   };
 
@@ -234,28 +172,52 @@ function ClientRegisterForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function MerchantRegisterForm({ onSuccess }: { onSuccess: () => void }) {
-  const [formData, setFormData] = useState({
-    companyName: "",
-    companyEmail: "",
-    companyPhone: "",
-    location: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
+         
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                <Image
+                  src="/google.svg"
+                  alt="Google logo"
+                  width={20}
+                  height={20}
+                  className="h-5 w-5"
+                />
+              </span>
+              Sign in with Google
+            </button>
+          </div>
+        </form>
+
+        <div className="linkTxt animation" style={{ "--i": 5, "--j": 25 } as any}>
+            <p>Don't have an account? <a href="/auth/signup" className="register-link" >Sign Up</a></p>
+          </div>
+      </div>
+
+      <div className="info-text login">
+        <h2 className="animation" style={{ "--i": 0, "--j": 20 } as any}>Welcome Back!</h2>
+        <p className="animation" style={{ "--i": 1, "--j": 21 } as any}>Nairobi Verified, where Security is ensured.</p>
+      </div>
+
+      <div className={`form-box register ${isActive ? 'active' : ''}`}>
+        <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign Up</h2>
+        <form onSubmit={handleSignup}>
+          <div className="input-box animation" style={{ "--i": 18, "--j": 1 } as any}>
+            <input
+              type="text"
+              name="username"
+              value={signupData.username}
+              onChange={handleSignupChange}
+              required
+            />
+            <label>Username</label>
+            <i className="bx bxs-user"></i>
+          </div>
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
