@@ -5,14 +5,28 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #2563eb;
-  --secondary-color: #1e40af;
+  --primary-color: #ef9607;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --background-primary: #ffffff;
+  --background-secondary: #f5f5f5;
+  --border-color: #e5e5e5;
+  --secondary-color: #e9a107;
   --text-color: #1f2937;
   --light-text: #6b7280;
   --background: #f3f4f6;
   --white: #ffffff;
   --error: #ef4444;
   --success: #22c55e;
+}
+
+.dark {
+  --primary-color: #ef9607;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --background-primary: #1a1a1a;
+  --background-secondary: #2d2d2d;
+  --border-color: #404040;
 }
 
 * {
@@ -23,7 +37,9 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -292,4 +308,173 @@ body {
   .info-text {
     display: none;
   }
+}
+
+/* Dashboard Layout */
+.dashboard-layout {
+  @apply flex min-h-screen w-full;
+}
+
+/* Sidebar */
+.sidebar {
+  @apply fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-800 shadow-lg transform -translate-x-full transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static z-50;
+}
+
+.sidebar.open {
+  @apply translate-x-0;
+}
+
+.sidebar-logo {
+  @apply p-6 flex items-center justify-center border-b border-gray-200 dark:border-gray-700;
+  @apply text-xl font-bold text-orange-600 dark:text-orange-400;
+}
+
+.sidebar-menu {
+  @apply mt-6 px-4 space-y-2;
+}
+
+.menu-item {
+  @apply flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-orange-100 dark:hover:bg-gray-700 transition-colors;
+}
+
+.menu-item.active {
+  @apply bg-orange-100 dark:bg-gray-700 text-orange-600 dark:text-orange-400;
+}
+
+/* Main Content */
+.main-content {
+  @apply flex-1 min-h-screen bg-gray-50 dark:bg-gray-900 lg:ml-0;
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Top Bar */
+.top-bar {
+  @apply sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm;
+  @apply px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4;
+}
+
+.search-bar {
+  @apply relative w-full md:w-96;
+}
+
+.search-bar input {
+  @apply w-full pl-10 pr-4 py-2 rounded-lg;
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white;
+  @apply focus:outline-none focus:ring-2 focus:ring-orange-500;
+}
+
+.search-bar svg {
+  @apply absolute left-3 top-1/2 -translate-y-1/2 text-gray-400;
+}
+
+.user-menu {
+  @apply flex items-center space-x-4;
+}
+
+.notification-badge {
+  @apply relative;
+}
+
+.notification-count {
+  @apply absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs;
+  @apply flex items-center justify-center rounded-full;
+}
+
+.user-profile {
+  @apply flex items-center space-x-3;
+}
+
+.user-avatar {
+  @apply w-8 h-8 rounded-full bg-orange-200 dark:bg-orange-800;
+  @apply flex items-center justify-center text-orange-600 dark:text-orange-200;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8;
+}
+
+.dashboard-card {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+  @apply transition-all duration-300 hover:shadow-lg;
+}
+
+.card-header {
+  @apply flex items-center justify-between mb-4;
+}
+
+.card-title {
+  @apply text-lg font-semibold;
+}
+
+.card-content {
+  @apply space-y-4;
+}
+
+.stat-value {
+  @apply text-2xl font-bold text-gray-900 dark:text-white;
+}
+
+.stat-label {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1024px) {
+  .main-content {
+    @apply ml-0;
+  }
+  
+  .dashboard-grid {
+    @apply grid-cols-1 sm:grid-cols-2;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-bar {
+    @apply flex-col items-stretch;
+  }
+  
+  .user-menu {
+    @apply justify-between;
+  }
+  
+  .dashboard-grid {
+    @apply grid-cols-1;
+  }
+  
+  .search-bar {
+    @apply w-full;
+  }
+}
+
+/* Deals and Shops Sections */
+.deals-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.shops-grid {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-8;
+}
+
+/* Map Container */
+.map-container {
+  @apply h-[400px] lg:h-[600px] rounded-lg overflow-hidden;
+  @apply bg-white dark:bg-gray-800 shadow-md;
+}
+
+/* Dropdown Styling */
+.category-dropdown {
+  @apply relative w-full md:w-64;
+}
+
+.dropdown-button {
+  @apply w-full px-4 py-2 rounded-lg shadow-sm;
+  @apply flex items-center justify-between;
+  @apply transition-colors duration-200;
+}
+
+.dropdown-menu {
+  @apply absolute z-50 w-full mt-2 rounded-lg shadow-lg;
+  @apply max-h-60 overflow-y-auto;
 }
