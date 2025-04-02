@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #2563eb;
+  --primary-color: #e77e05;
   --secondary-color: #1e40af;
   --text-color: #1f2937;
   --light-text: #6b7280;
@@ -19,15 +19,16 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Inter", sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 
 body {
-  background: var(--background);
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--background);
+  padding: 20px;
 }
 
 .wrapper {
@@ -60,7 +61,9 @@ body {
 }
 
 .info-text {
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 0;
   width: 50%;
   height: 100%;
   background: var(--primary-color);
@@ -69,43 +72,39 @@ body {
   flex-direction: column;
   justify-content: center;
   color: var(--white);
+  text-align: center;
   transition: transform 0.6s ease-in-out;
   z-index: 1;
 }
 
-.form-box.register {
-  min-height: fit-content; /* Ensures it grows with content */
-  padding-bottom: 2px; /* Adds spacing at the bottom */
-  overflow: hidden; /* Prevents content from overflowing */
+.info-text.active {
+  transform: translateX(-100%);
 }
 
-.form-box h2 {
-  font-size: 2em;
-  color: var(--primary);
-  text-align: center;
-  margin-bottom: 30px;
-  font-weight: 600;
+.animation {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideTop 0.5s ease forwards;
 }
 
-.info-text h2 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 20px;
-}
-
-.info-text p {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  opacity: 0.9;
+@keyframes slideTop {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: var(--text-color);
   margin-bottom: 20px;
+  text-align: center;
 }
-
 
 .input-box {
   position: relative;
@@ -245,6 +244,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  margin-top: 30px;
 }
 
 .account-type-btn {
@@ -261,149 +261,80 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  text-decoration: none;
 }
 
 .account-type-btn:hover {
   background: #f9fafb;
-  border-color: #d1d5db;
+  border-color: var(--primary-color);
 }
 
-
-div.linkTxt {
-  text-align: center;
+.account-type-btn.merchant:hover {
+  background: var(--primary-color);
+  color: var(--white);
 }
 
-div.linkTxt.animation{
- text-align: center;
- padding: 1rem;
-}
-.register-link,
 .login-link {
-  font-size: 0.9em;
-  color: var(--primary);
-  text-decoration: underline;
-  font-weight: 500;
-  margin-top: 20px;
-}
-
-.register-link:hover,
-.login-link:hover {
-  color: #c80535;
+  color: var(--primary-color);
+  font-weight: 600;
   text-decoration: none;
+  transition: all 0.3s ease;
 }
 
-/* Dashboard Component */
-/* Route Path: /dashboard */
-/* Wrapper ClassName: .dashboard */
+.login-link:hover {
+  color: var(--secondary-color);
+  text-decoration: underline;
+}
 
 .dashboard {
-  height: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  max-width: 1900px;
-  height: 100vh;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  min-height: 100vh;
+  background: var(--background);
   padding: 20px;
-  overflow: hidden;
-
-  text-align: center;
 }
 
 .dashboard h2 {
-  font-size: 2.5em;
-  color: var(--primary);
-  text-align: center!important;
-  margin-bottom: 30px;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 20px;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* Responsive Design */
 @media (max-width: 991px) {
   .wrapper {
     height: auto;
-    min-height: 100vh;
-    padding: 10px;
-    background: #fff;
+    min-height: 600px;
   }
 
   .form-box {
-    height: auto;
-    padding: 30px 20px;
-    box-shadow: none;
+    width: 100%;
+    padding: 30px;
   }
 
-.account-type-btn.merchant:hover {
-  background: var(--secondary-color);
-  border-color: var(--secondary-color);
+  .account-type-btn.merchant:hover {
+    background: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+  }
 }
 
 @media (max-width: 768px) {
   .wrapper {
     height: auto;
-    margin: 20px;
+    min-height: 500px;
   }
 
   .form-box,
   .info-text {
     width: 100%;
-    padding: 30px;
+    padding: 20px;
   }
 
   .form-box.active {
-    transform: translateX(0);
+    transform: none;
   }
 
   .info-text.active {
-    transform: translateX(0);
+    transform: none;
   }
 
   .info-text {

@@ -207,8 +207,8 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// Send verification email
-const sendVerificationEmail = async (req, res) => {
+// Resend verification email
+const resendVerificationEmail = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
@@ -265,9 +265,67 @@ const verifyEmail = async (req, res) => {
 };
 
 // Google authentication
-const googleAuth = passport.authenticate('google', {
-  scope: ['profile', 'email']
-});
+const googleAuth = async (req, res) => {
+  try {
+    const { email, googleId, displayName, photo } = req.body;
+
+    // Check if user exists
+    let user = await User.findOne({ 
+      $or: [
+        { email },
+        { 'google.id': googleId }
+      ]
+    });
+
+    if (!user) {
+      // Create new user
+      user = await User.create({
+        email,
+        fullName: displayName,
+        isEmailVerified: true, // Google accounts are pre-verified
+        role: 'client', // Default role for Google sign-ins
+        google: {
+          id: googleId,
+          email: email,
+          name: displayName,
+          picture: photo
+        }
+      });
+    } else if (!user.google?.id) {
+      // Link existing user with Google account
+      user.google = {
+        id: googleId,
+        email: email,
+        name: displayName,
+        picture: photo
+      };
+      user.isEmailVerified = true;
+      await user.save();
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.status(200).json({
+      message: 'Google authentication successful',
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified
+      }
+    });
+  } catch (error) {
+    console.error('Google authentication error:', error);
+    res.status(500).json({ message: 'Error during Google authentication' });
+  }
+};
 
 const googleCallback = (req, res, next) => {
   passport.authenticate('google', (err, user) => {
@@ -329,7 +387,7 @@ module.exports = {
   login,
   requestPasswordReset,
   resetPassword,
-  sendVerificationEmail,
+  resendVerificationEmail,
   verifyEmail,
   googleAuth,
   googleCallback,

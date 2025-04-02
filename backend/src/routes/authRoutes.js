@@ -10,7 +10,7 @@ const {
   getCurrentUser,
   requestPasswordReset,
   resetPassword,
-  sendVerificationEmail,
+  resendVerificationEmail,
   verifyEmail
 } = require('../controllers/authController');
 const { isAuthenticated } = require('../middleware/authMiddleware');
@@ -27,7 +27,7 @@ router.post('/forgot-password', requestPasswordReset);
 router.post('/reset-password', resetPassword);
 
 // Email verification routes
-router.post('/send-verification', sendVerificationEmail);
+router.post('/send-verification', resendVerificationEmail);
 router.get('/verify-email/:token', verifyEmail);
 
 // Google authentication routes

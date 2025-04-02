@@ -1,12 +1,32 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions, DefaultSession, DefaultUser } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-const handler = NextAuth({
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      role: string;
+    } & DefaultSession["user"]
+  }
+
+  interface User extends DefaultUser {
+    role?: string;
+  }
+}
+
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "select_account",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
     CredentialsProvider({
       name: "Credentials",
@@ -42,27 +62,28 @@ const handler = NextAuth({
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         try {
-          // Check if user exists in our database
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               email: user.email,
-              name: user.name,
-              picture: user.image,
-              googleId: profile.sub,
+              googleId: profile?.sub,
+              displayName: user.name,
+              photo: user.image
             }),
           });
 
-          const data = await response.json();
-
           if (!response.ok) {
-            throw new Error(data.message || "Failed to sync Google user");
+            console.error("Failed to authenticate with backend");
+            return false;
           }
 
-          // Update the user object with our database user data
-          user.id = data.user._id;
-          user.role = data.user.role;
+          const data = await response.json();
+          if (data.user) {
+            user.id = data.user._id;
+            user.role = data.user.role;
+          }
+          return true;
         } catch (error) {
           console.error("Google sign in error:", error);
           return false;
@@ -79,18 +100,24 @@ const handler = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
       }
       return session;
     },
   },
   pages: {
-    signIn: "/auth/signin",
+    signIn: '/auth/signin',
+    error: '/auth/error',
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-});
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST }; 
