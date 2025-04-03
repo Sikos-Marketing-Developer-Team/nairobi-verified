@@ -2,60 +2,50 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import axios from "axios";
 
 export default function SignIn() {
   const [isActive, setIsActive] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-    rememberMe: false
+    rememberMe: false,
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-
     try {
-      const result = await signIn("credentials", {
+      const res = await axios.post("http://localhost:5000/api/auth/login", {
         username: formData.username,
         password: formData.password,
-        redirect: false,
       });
-
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        router.push("/dashboard");
-      }
+      localStorage.setItem('token', res.data.token);
+      router.push("/dashboard");
     } catch (error) {
-      setError("An error occurred during sign in");
+      setError(error.response?.data?.message || "Sign in failed");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      await signIn("google", { callbackUrl: "/dashboard" });
-    } catch (error) {
-      setError("An error occurred during Google sign in");
-    }
+  const handleGoogleSignIn = () => {
+    window.location.href = "http://localhost:5000/api/auth/google";
   };
 
-  const handleRegisterClick = (type: 'client' | 'merchant') => {
+  const handleRegisterClick = (type) => {
     setIsActive(true);
     setTimeout(() => {
       router.push(`/auth/register/${type}`);
@@ -64,7 +54,7 @@ export default function SignIn() {
 
   return (
     <div className="wrapper">
-      <div className="form-box">
+      <div class Cuteform-box">
         <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign In</h2>
         <form onSubmit={handleSubmit}>
           <div className="input-box animation" style={{ "--i": 18, "--j": 1 } as any}>

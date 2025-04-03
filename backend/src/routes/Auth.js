@@ -1,30 +1,72 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('../config/passport');
-const { login, signUp, logout } = require('../controllers/authController');
+const { 
+  registerClient,
+  registerMerchant,
+  login, 
+  logout, 
+  getCurrentUser,
+  requestPasswordReset,
+  resetPassword,
+  resendVerificationEmail,
+  verifyEmail
+} = require('../controllers/authController');
+const { isAuthenticated } = require('../middleware/authMiddleware');
+const jwt = require('jsonwebtoken');
 
-// Google Auth (Sessions)
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: true }));
-router.get('/google/callback', passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/login` }), (req, res) => res.redirect(`${process.env.FRONTEND_URL}/dashboard`));
-router.get('/user', (req, res) => {
-  if (req.isAuthenticated()) { // Google session
-    return res.json({ id: req.user._id, email: req.user.email, displayName: req.user.displayName, photo: req.user.photo });
+// Registration routes
+router.post('/register/client', registerClient);
+router.post('/register/merchant', registerMerchant);
+
+// Login route
+router.post('/login', login);
+
+// Password reset routes
+router.post('/forgot-password', requestPasswordReset);
+router.post('/reset-password', resetPassword);
+
+// Email verification routes
+router.post('/send-verification', resendVerificationEmail);
+router.get('/verify-email/:token', verifyEmail);
+
+// Google authentication routes
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { failureRedirect: 'http://localhost:3000/auth/signin', session: false }),
+  (req, res) => {
+    const token = req.user.token; // From passport.js
+    res.redirect(`http://localhost:3000/dashboard?token=${token}`);
   }
+);
+
+// Get current user route (JWT-based)
+router.get('/user', (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
   if (!token) return res.status(401).json({ message: 'Not authenticated' });
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) return res.status(401).json({ message: 'Invalid token' });
-    User.findById(decoded.userId).then(user => {
-      if (!user) return res.status(404).json({ message: 'User not found' });
-      res.json({ id: user._id, email: user.email, username: user.username });
-    });
+    User.findById(decoded.userId)
+      .then(user => {
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        res.json({
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          photo: user.google?.picture,
+        });
+      })
+      .catch(() => res.status(500).json({ message: 'Server error' }));
   });
 });
 
-// Local Auth + Others
-router.post('/login', login);
-router.post('/signup', signUp);
+// Logout route
 router.post('/logout', logout);
 
+// Authenticated user info
+router.get('/me', isAuthenticated, getCurrentUser);
 
 module.exports = router;

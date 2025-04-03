@@ -1,46 +1,33 @@
-require("dotenv").config();
+require("dotenv").config({ path: './src/.env' });
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const User = require("../models/User");
-const passport = require('passport');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/emailService');
 const crypto = require('crypto');
 
-// Register client
 const registerClient = async (req, res) => {
   try {
     const { fullName, email, phone, password } = req.body;
-
-    // Check if user exists
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already registered' });
-    }
+    if (existingUser) return res.status(400).json({ message: 'Email already registered' });
 
-    // Create new user
     const user = await User.create({
       fullName,
       email,
       phone,
       password,
-      role: 'client'
+      role: 'client',
     });
 
-    // Generate verification token
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
-
-    // Send verification email
     await sendVerificationEmail(email, verificationToken);
 
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
     res.status(201).json({
       message: 'Registration successful. Please check your email for verification.',
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role
-      }
+      token,
+      user: { id: user._id, fullName, email, phone, role: user.role },
     });
   } catch (error) {
     console.error('Client registration error:', error);
@@ -48,25 +35,12 @@ const registerClient = async (req, res) => {
   }
 };
 
-// Register merchant
 const registerMerchant = async (req, res) => {
   try {
-    const { 
-      fullName, 
-      email, 
-      phone, 
-      password,
-      companyName,
-      location 
-    } = req.body;
-
-    // Check if user exists
+    const { fullName, email, phone, password, companyName, location } = req.body;
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already registered' });
-    }
+    if (existingUser) return res.status(400).json({ message: 'Email already registered' });
 
-    // Create new merchant
     const user = await User.create({
       fullName,
       email,
@@ -74,26 +48,18 @@ const registerMerchant = async (req, res) => {
       password,
       role: 'merchant',
       companyName,
-      location
+      location,
     });
 
-    // Generate verification token
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
-
-    // Send verification email
     await sendVerificationEmail(email, verificationToken);
 
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
     res.status(201).json({
       message: 'Registration successful. Please check your email for verification.',
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        companyName: user.companyName,
-        location: user.location
-      }
+      token,
+      user: { id: user._id, fullName, email, phone, role: user.role, companyName, location },
     });
   } catch (error) {
     console.error('Merchant registration error:', error);
@@ -101,36 +67,19 @@ const registerMerchant = async (req, res) => {
   }
 };
 
-// Login
 const login = async (req, res) => {
   try {
     const { username, password, rememberMe } = req.body;
+    const user = await User.findOne({ $or: [{ email: username }, { fullName: username }] });
+    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user.isEmailVerified) return res.status(401).json({ message: 'Please verify your email first' });
 
-    // Find user by username or email
-    const user = await User.findOne({
-      $or: [{ email: username }, { fullName: username }]
-    });
-
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    // Check if email is verified
-    if (!user.isEmailVerified) {
-      return res.status(401).json({ message: 'Please verify your email first' });
-    }
-
-    // Check password
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
+    if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
-    // Set remember me
-    user.rememberMe = rememberMe;
+    user.rememberMe = rememberMe || false;
     await user.save();
 
-    // Generate JWT token
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
@@ -140,13 +89,7 @@ const login = async (req, res) => {
     res.status(200).json({
       message: 'Login successful',
       token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isVerified
-      }
+      user: { id: user._id, fullName: user.fullName, email: user.email, phone: user.phone, role: user.role },
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -154,19 +97,14 @@ const login = async (req, res) => {
   }
 };
 
-// Request password reset
 const requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
     const resetToken = user.generatePasswordResetToken();
     await user.save();
-
     await sendPasswordResetEmail(email, resetToken);
 
     res.status(200).json({ message: 'Password reset email sent' });
@@ -176,24 +114,16 @@ const requestPasswordReset = async (req, res) => {
   }
 };
 
-// Reset password
 const resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
-
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(token)
-      .digest('hex');
-
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const user = await User.findOne({
       passwordResetToken: hashedToken,
-      passwordResetExpires: { $gt: Date.now() }
+      passwordResetExpires: { $gt: Date.now() },
     });
 
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired reset token' });
-    }
+    if (!user) return res.status(400).json({ message: 'Invalid or expired reset token' });
 
     user.password = password;
     user.passwordResetToken = undefined;
@@ -207,23 +137,15 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// Resend verification email
 const resendVerificationEmail = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (user.isEmailVerified) {
-      return res.status(400).json({ message: 'Email already verified' });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.isEmailVerified) return res.status(400).json({ message: 'Email already verified' });
 
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
-
     await sendVerificationEmail(email, verificationToken);
 
     res.status(200).json({ message: 'Verification email sent' });
@@ -233,147 +155,38 @@ const resendVerificationEmail = async (req, res) => {
   }
 };
 
-// Verify email
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
-
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(token)
-      .digest('hex');
-
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const user = await User.findOne({
       emailVerificationToken: hashedToken,
-      emailVerificationExpires: { $gt: Date.now() }
+      emailVerificationExpires: { $gt: Date.now() },
     });
 
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired verification token' });
-    }
+    if (!user) return res.status(400).json({ message: 'Invalid or expired verification token' });
 
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
     await user.save();
 
-    res.status(200).json({ message: 'Email verified successfully' });
+    const tokenJwt = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    res.status(200).json({ message: 'Email verified successfully', token: tokenJwt });
   } catch (error) {
     console.error('Email verification error:', error);
     res.status(500).json({ message: 'Error verifying email' });
   }
 };
 
-// Google authentication
-const googleAuth = async (req, res) => {
-  try {
-    const { email, googleId, displayName, photo } = req.body;
-
-    // Check if user exists
-    let user = await User.findOne({ 
-      $or: [
-        { email },
-        { 'google.id': googleId }
-      ]
-    });
-
-    if (!user) {
-      // Create new user
-      user = await User.create({
-        email,
-        fullName: displayName,
-        isEmailVerified: true, // Google accounts are pre-verified
-        role: 'client', // Default role for Google sign-ins
-        google: {
-          id: googleId,
-          email: email,
-          name: displayName,
-          picture: photo
-        }
-      });
-    } else if (!user.google?.id) {
-      // Link existing user with Google account
-      user.google = {
-        id: googleId,
-        email: email,
-        name: displayName,
-        picture: photo
-      };
-      user.isEmailVerified = true;
-      await user.save();
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
-
-    res.status(200).json({
-      message: 'Google authentication successful',
-      token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isVerified
-      }
-    });
-  } catch (error) {
-    console.error('Google authentication error:', error);
-    res.status(500).json({ message: 'Error during Google authentication' });
-  }
-};
-
-const googleCallback = (req, res, next) => {
-  passport.authenticate('google', (err, user) => {
-    if (err) {
-      return next(err);
-    }
-    if (!user) {
-      return res.status(401).json({ message: 'Google authentication failed' });
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.status(200).json({
-      message: 'Google login successful',
-      token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isVerified
-      }
-    });
-  })(req, res, next);
-};
-
-// Logout
 const logout = (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Error logging out' });
-    }
-    res.status(200).json({ message: 'Logged out successfully' });
-  });
+  res.status(200).json({ message: 'Logged out successfully' });
 };
 
-// Get current user
 const getCurrentUser = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    const user = await User.findById(req.user?._id).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json({ user });
   } catch (error) {
     console.error('Get current user error:', error);
@@ -389,8 +202,6 @@ module.exports = {
   resetPassword,
   resendVerificationEmail,
   verifyEmail,
-  googleAuth,
-  googleCallback,
   logout,
-  getCurrentUser
+  getCurrentUser,
 };
