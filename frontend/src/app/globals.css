@@ -1,10 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+
 :root {
+  /* Colors */
   --primary-color: #ef9607;
   --text-primary: #1a1a1a;
   --text-secondary: #666666;
@@ -18,6 +21,19 @@
   --white: #ffffff;
   --error: #ef4444;
   --success: #22c55e;
+
+  /* Fonts (Typography) */
+  --garamond: "EB Garamond", serif;
+  --roboto:  "Roboto", sans-serif;
+  --poppins: "Poppins", sans-serif;
+
+
+  /* Transition */
+  --transition-duration: 400ms;
+  --transition-timing-function: ease-in-out;
+
+  /* Box Shadow */
+  --box-shadow: 0px 8px 20px rgba(34, 34, 34, 0.2);
 }
 
 .dark {
@@ -55,13 +71,13 @@ body {
   border-radius: 20px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   display: flex;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .form-box {
   position: relative;
   width: 50%;
-  height: 100%;
+  min-height: 100%;
   background: var(--white);
   padding: 40px;
   display: flex;
@@ -69,6 +85,8 @@ body {
   justify-content: center;
   transition: transform 0.6s ease-in-out;
   z-index: 2;
+  overflow-y: auto;
+
 }
 
 .form-box.active {
