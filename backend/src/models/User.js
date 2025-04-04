@@ -1,4 +1,3 @@
-// User Model Schema
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
@@ -6,93 +5,73 @@ const crypto = require('crypto');
 const userSchema = new mongoose.Schema({
   fullName: {
     type: String,
-    required: true,
-    trim: true
+    trim: true, // Optional, filled by Google displayName if not provided
   },
   email: {
     type: String,
     required: true,
     unique: true,
     trim: true,
-    lowercase: true
+    lowercase: true,
   },
   password: {
     type: String,
-    required: function() {
-      return !this.google; // Password is required only if not using Google auth
-    }
+    required: function () {
+      return !this.google?.id; // Password required only for non-Google users
+    },
   },
   phone: {
     type: String,
-    required: true,
-    trim: true
+    trim: true, // Optional
   },
   role: {
     type: String,
     enum: ['client', 'merchant', 'admin'],
-    default: 'client'
+    default: 'client',
   },
-  // Merchant specific fields
   companyName: {
     type: String,
-    required: function() {
+    required: function () {
       return this.role === 'merchant';
-    }
+    },
   },
   location: {
     type: String,
-    required: function() {
+    required: function () {
       return this.role === 'merchant';
-    }
+    },
   },
   isVerified: {
     type: Boolean,
-    default: false
+    default: false,
   },
   documents: {
-    businessRegistration: {
-      url: String,
-      uploadedAt: Date
-    },
-    taxCertificate: {
-      url: String,
-      uploadedAt: Date
-    },
-    idDocument: {
-      url: String,
-      uploadedAt: Date
-    }
+    businessRegistration: { url: String, uploadedAt: Date },
+    taxCertificate: { url: String, uploadedAt: Date },
+    idDocument: { url: String, uploadedAt: Date },
   },
-  // Email verification
   isEmailVerified: {
     type: Boolean,
-    default: false
+    default: false,
   },
   emailVerificationToken: String,
   emailVerificationExpires: Date,
-  // Password reset
   passwordResetToken: String,
   passwordResetExpires: Date,
-  // Google auth
   google: {
     id: String,
     email: String,
     name: String,
-    picture: String
+    picture: String,
   },
-  // Remember me
   rememberMe: {
     type: Boolean,
-    default: false
-  }
-}, {
-  timestamps: true
-});
+    default: false,
+  },
+}, { timestamps: true });
 
-// Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || !this.password) return next();
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -102,37 +81,22 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  try {
-    return await bcrypt.compare(candidatePassword, this.password);
-  } catch (error) {
-    throw error;
-  }
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Generate email verification token
-userSchema.methods.generateEmailVerificationToken = function() {
+userSchema.methods.generateEmailVerificationToken = function () {
   const token = crypto.randomBytes(32).toString('hex');
-  this.emailVerificationToken = crypto
-    .createHash('sha256')
-    .update(token)
-    .digest('hex');
+  this.emailVerificationToken = crypto.createHash('sha256').update(token).digest('hex');
   this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
   return token;
 };
 
-// Generate password reset token
-userSchema.methods.generatePasswordResetToken = function() {
+userSchema.methods.generatePasswordResetToken = function () {
   const token = crypto.randomBytes(32).toString('hex');
-  this.passwordResetToken = crypto
-    .createHash('sha256')
-    .update(token)
-    .digest('hex');
+  this.passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   return token;
 };
 
-const User = mongoose.model('User', userSchema);
-
-module.exports = User;
+module.exports = mongoose.model('User', userSchema);

@@ -49,7 +49,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Inter", sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 
 body {
@@ -60,6 +60,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--background);
+  padding: 20px;
 }
 
 .wrapper {
@@ -94,7 +96,9 @@ body {
 }
 
 .info-text {
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 0;
   width: 50%;
   height: 100%;
   background: var(--primary-color);
@@ -103,6 +107,7 @@ body {
   flex-direction: column;
   justify-content: center;
   color: var(--white);
+  text-align: center;
   transition: transform 0.6s ease-in-out;
   z-index: 1;
 }
@@ -111,23 +116,29 @@ body {
   transform: translateX(-100%);
 }
 
-.info-text h2 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 20px;
+.animation {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideTop 0.5s ease forwards;
 }
 
-.info-text p {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  opacity: 0.9;
+@keyframes slideTop {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: var(--text-color);
   margin-bottom: 20px;
+  text-align: center;
 }
 
 .input-box {
@@ -268,6 +279,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  margin-top: 30px;
 }
 
 .account-type-btn {
@@ -284,43 +296,80 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  text-decoration: none;
 }
 
 .account-type-btn:hover {
   background: #f9fafb;
-  border-color: #d1d5db;
-}
-
-.account-type-btn.merchant {
-  background: var(--primary-color);
-  color: var(--white);
   border-color: var(--primary-color);
 }
 
 .account-type-btn.merchant:hover {
-  background: var(--secondary-color);
-  border-color: var(--secondary-color);
+  background: var(--primary-color);
+  color: var(--white);
+}
+
+.login-link {
+  color: var(--primary-color);
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.login-link:hover {
+  color: var(--secondary-color);
+  text-decoration: underline;
+}
+
+.dashboard {
+  min-height: 100vh;
+  background: var(--background);
+  padding: 20px;
+}
+
+.dashboard h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 991px) {
+  .wrapper {
+    height: auto;
+    min-height: 600px;
+  }
+
+  .form-box {
+    width: 100%;
+    padding: 30px;
+  }
+
+  .account-type-btn.merchant:hover {
+    background: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+  }
 }
 
 @media (max-width: 768px) {
   .wrapper {
     height: auto;
-    margin: 20px;
+    min-height: 500px;
   }
 
   .form-box,
   .info-text {
     width: 100%;
-    padding: 30px;
+    padding: 20px;
   }
 
   .form-box.active {
-    transform: translateX(0);
+    transform: none;
   }
 
   .info-text.active {
-    transform: translateX(0);
+    transform: none;
   }
 
   .info-text {
