@@ -19,12 +19,13 @@ export default function JoinPlatform() {
   };
 
   return (
-    <div className="wrapper">
+    <div className="wrapper join-platform">
       <div className={`form-box ${isActive ? 'active' : ''}`}>
+        {/* Would Look best with a logo at the top (Logo with a clear background) */}
         {!isActive ? (
           <div className="account-type-buttons">
-            <h2 className="title">Choose Account Type</h2>
-            <p className="text-sm text-gray-600 mb-6">
+            <h4 className="title">Choose Account Type</h4>
+            <p className="p text-gray-600 mb-6">
               Select your account type to get started
             </p>
             <button
@@ -62,8 +63,9 @@ export default function JoinPlatform() {
       </div>
 
       <div className={`info-text ${isActive ? 'active' : ''}`}>
-        <h2>Welcome Back!</h2>
-        <p>Nairobi Verified, where Security is ensured.</p>
+        <h2 className="well">Welcome !</h2>
+        <hr className="my-4" />
+        <p className="wel">Nairobi Verified, where Security is ensured.</p>
       </div>
     </div>
   );

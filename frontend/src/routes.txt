@@ -1,0 +1,6 @@
+/ - Home Page
+/auth/register/client - Client Registration
+/auth/register/merchant - Merchant Registration
+/admin/dashboard - Dashboard
+/merchant/profile - Merchant Profile
+/join - Choose Account Type
