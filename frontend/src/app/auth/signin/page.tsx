@@ -15,7 +15,7 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -23,7 +23,7 @@ export default function SignIn() {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
@@ -35,7 +35,11 @@ export default function SignIn() {
       localStorage.setItem('token', res.data.token);
       router.push("/dashboard");
     } catch (error) {
-      setError(error.response?.data?.message || "Sign in failed");
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError("Sign in failed");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -45,7 +49,7 @@ export default function SignIn() {
     window.location.href = "http://localhost:5000/api/auth/google";
   };
 
-  const handleRegisterClick = (type) => {
+  const handleRegisterClick = (type: 'client' | 'merchant') => {
     setIsActive(true);
     setTimeout(() => {
       router.push(`/auth/register/${type}`);
@@ -54,7 +58,7 @@ export default function SignIn() {
 
   return (
     <div className="wrapper">
-      <div class Cuteform-box">
+      <div className="Cuteform-box">
         <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign In</h2>
         <form onSubmit={handleSubmit}>
           <div className="input-box animation" style={{ "--i": 18, "--j": 1 } as any}>

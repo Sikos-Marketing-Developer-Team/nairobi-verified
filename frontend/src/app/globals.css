@@ -52,6 +52,10 @@
   font-family: "Poppins", sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+} 
+
 body {
   background-color: var(--background-primary);
   color: var(--text-primary);
@@ -63,6 +67,22 @@ body {
   background: var(--background);
   padding: 20px;
 }
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: #EC5C0B;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 0 20px;
+  z-index: 1000; /* Ensures navbar stays above other elements */
+  max-height: 150px;
+  overflow: hidden;
+  font-size: 15px;
+  lazyload: true;
+}
+
 
 .wrapper {
   position: relative;
