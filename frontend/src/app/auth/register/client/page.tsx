@@ -72,10 +72,10 @@ export default function ClientRegister() {
   };
 
   return (
-    <div className="wrapper">
+    <div className="wrapper client-registration-form">
       <div className="form-box">
         <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Client Registration</h2>
-        <p className="text-sm text-gray-600 mb-6 animation" style={{ "--i": 18, "--j": 1 } as any}>
+        <p className="p text-sm mb-6 animation" style={{ "--i": 18, "--j": 1 } as any}>
           Create your account to start shopping with verified merchants.
         </p>
 
@@ -153,13 +153,16 @@ export default function ClientRegister() {
             {isLoading ? "Registering..." : "Register"}
           </button>
 
-          <div className="mt-4 text-center animation" style={{ "--i": 26, "--j": 9 } as any}>
+          <div className=" mt-6 text-center animation" style={{ "--i": 26, "--j": 9 } as any}>
             <p className="text-sm">
-              Already have an account?{" "}
+             <span className="font-semibold text-black">
+             Already have an account?{" "}
+             </span>
               <button
                 type="button"
                 onClick={handleLoginClick}
                 className="forgot-password"
+                title="Login"
               >
                 Login
               </button>
@@ -169,8 +172,9 @@ export default function ClientRegister() {
       </div>
 
       <div className="info-text">
-        <h2 className="animation" style={{ "--i": 0, "--j": 17 } as any}>Welcome!</h2>
-        <p className="animation" style={{ "--i": 1, "--j": 18 } as any}>Join Nairobi Verified as a Client and enjoy shopping from verified merchants.</p>
+        <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>Welcome!</h2>
+        <hr className="my-4"/>
+        <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>Join Nairobi Verified as a Client and enjoy shopping from verified merchants.</p>
       </div>
     </div>
   );

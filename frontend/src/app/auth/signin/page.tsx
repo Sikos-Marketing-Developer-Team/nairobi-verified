@@ -57,8 +57,8 @@ export default function SignIn() {
   };
 
   return (
-    <div className="wrapper">
-      <div className="Cuteform-box">
+    <div className="wrapper sign-in-form">
+      <div className="form-box">
         <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign In</h2>
         <form onSubmit={handleSubmit}>
           <div className="input-box animation" style={{ "--i": 18, "--j": 1 } as any}>
@@ -95,6 +95,7 @@ export default function SignIn() {
               />
               Remember me
             </label>
+            <br/>
             <button
               type="button"
               onClick={() => router.push('/auth/forgot-password')}
@@ -135,19 +136,21 @@ export default function SignIn() {
 
           <div className="register-link animation" style={{ "--i": 25, "--j": 8 } as any}>
             <p>
-              Don't have an account?{" "}
-              <button
+             <span> Don't have an account?</span><br/>
+              Register as <button
                 type="button"
                 onClick={() => handleRegisterClick('client')}
                 className="register-btn"
+                title="Client"
               >
-                Register as Client
+                 Client
               </button>
               {" or "}
               <button
                 type="button"
                 onClick={() => handleRegisterClick('merchant')}
                 className="register-btn"
+                title="Merchant"
               >
                 Merchant
               </button>
@@ -157,8 +160,9 @@ export default function SignIn() {
       </div>
 
       <div className="info-text">
-        <h2 className="animation" style={{ "--i": 0, "--j": 17 } as any}>Welcome Back!</h2>
-        <p className="animation" style={{ "--i": 1, "--j": 18 } as any}>
+        <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>Welcome Back!</h2>
+        <hr className="my-4"/>
+        <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>
           Sign in to access your account and continue your journey with us.
         </p>
       </div>

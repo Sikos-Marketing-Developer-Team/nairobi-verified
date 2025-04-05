@@ -86,11 +86,11 @@ export default function MerchantRegister() {
   };
 
   return (
-    <div className="wrapper">
+    <div className="wrapper merchant-registration-form">
       <div className="form-box merchant">
         <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Merchant Registration</h2>
-        <p className="text-sm text-gray-600 mb-6 animation" style={{ "--i": 18, "--j": 1 } as any}>
-          Join Nairobi Verified as a trusted merchant.
+        <p className="p text-sm mb-6 animation" style={{ "--i": 18, "--j": 1 } as any}>
+          Join Nairobi Verified as a trusted merchant
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -207,13 +207,14 @@ export default function MerchantRegister() {
             {isLoading ? "Registering..." : "Register"}
           </button>
 
-          <div className="mt-4 text-center animation" style={{ "--i": 29, "--j": 12 } as any}>
+          <div className="mt-6 text-center animation" style={{ "--i": 29, "--j": 12 } as any}>
             <p className="text-sm">
-              Already have an account?{" "}
+             <span className="text-black"> Already have an account?{" "}</span>
               <button
                 type="button"
                 onClick={handleLoginClick}
                 className="forgot-password"
+                title="login"
               >
                 Login
               </button>
@@ -223,8 +224,9 @@ export default function MerchantRegister() {
       </div>
 
       <div className="info-text merchant">
-        <h2 className="animation" style={{ "--i": 0, "--j": 17 } as any}>Welcome Merchant!</h2>
-        <p className="animation" style={{ "--i": 1, "--j": 18 } as any}>Join Nairobi Verified as a trusted merchant and grow your business.</p>
+        <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>Welcome!</h2>
+        <hr className="my-4"/>
+        <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>Join Nairobi Verified as a trusted merchant and grow your business.</p>
       </div>
     </div>
   );

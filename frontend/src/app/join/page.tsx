@@ -2,6 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faSearch,
+  faUser,
+  faStore,
+  faHeart,
+  faShoppingCart,
+  faPhone,
+  faBolt,
+  faChevronDown,
+  faBars,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
 
 export default function JoinPlatform() {
   const [isActive, setIsActive] = useState(false);
@@ -33,14 +46,17 @@ export default function JoinPlatform() {
               className="account-type-btn"
               onClick={() => handleAccountTypeSelect("client")}
             >
-              Register as Client
+             <span className="personna p-2">
+             <FontAwesomeIcon icon={faUser} style={{ color: "#EC5C0B"}} /></span> Register as Client
             </button>
             <button
               type="button"
               className="account-type-btn merchant"
               onClick={() => handleAccountTypeSelect("merchant")}
             >
-              Register as Merchant
+              <span className="personna p-2">
+             <FontAwesomeIcon icon={faStore} style={{ color: "#000000"}} />
+             </span> Register as Merchant
             </button>
           </div>
         ) : (

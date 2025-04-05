@@ -91,7 +91,7 @@ body {
   position: relative;
   width: 100%;
   max-width: 1200px;
-  height: 600px;
+  min-height: 600px;
   background: var(--white);
   border-radius: 20px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -230,6 +230,14 @@ body {
   color: var(--light-text);
   pointer-events: none;
   transition: all 0.3s ease;
+  font-family: var(--roboto);
+  font-size: 15px;
+}
+
+.input-box select {
+  font-family: var(--roboto);
+  font-size: 15px;
+  color: var(--light-text);
 }
 
 .input-box input:focus,
@@ -245,6 +253,13 @@ body {
   padding: 0 5px;
   background: var(--white);
   color: var(--primary-color);
+  margin-top: 2px;
+}
+
+.input-box option {
+  font-family: var(--roboto);
+  font-size: 15px;
+  color: var(--light-text);
 }
 
 .input-box i {
@@ -253,6 +268,7 @@ body {
   right: 15px;
   transform: translateY(-50%);
   color: var(--light-text);
+  
 }
 
 .btn {
@@ -323,11 +339,25 @@ body {
   font-size: 0.9rem;
 }
 
+.remember-forgot label{
+  margin: 2px;
+  margin-top: 5px;
+  font-family: var(--roboto);
+}
+
+.remember-forgot input {
+  margin: 2px;
+}
+
 .forgot-password {
   color: var(--primary-color);
   text-decoration: none;
   font-size: 0.9rem;
   transition: all 0.3s ease;
+  padding: 1rem;
+  display: block;
+  margin: auto;
+  
 }
 
 .forgot-password:hover {
@@ -379,7 +409,106 @@ body {
   color: var(--secondary-color);
   text-decoration: underline;
 }
+/* Sign-In form */
+.sign-in-form {
+ padding: 1rem;
+}
 
+.sign-in-form .title {
+  font-weight: 700;
+  font-family: var(--garamond);
+  margin-bottom: 20px;
+}
+
+.register-link {
+ padding: 1rem;
+ text-align: center;
+ margin-top: 1rem;
+
+}
+
+.register-link p {
+ font-size: 15px;
+}
+
+.register-link p span {
+  color: var(--primary-color);
+  font-weight: 600;
+  font-size: 16px;
+   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.register-link button {
+  color: var(--primary-color);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.register-link button:hover {
+  color: var(--secondary-color);
+  text-decoration: underline;
+}
+
+/* Client Registration */
+.client-registration-form {
+  padding: 1rem;
+  padding-top: 0;
+}
+
+.client-registration-form .title {
+  font-family: var(--garamond);
+  margin-top: 1rem;
+  margin-bottom: 10px;
+}
+
+.client-registration-form .p {
+  color: var(--logo-color);
+}
+
+.client-registration-form .forgot-password {
+  margin-top: 0;
+  padding-top: 0.5rem;
+  font-size: 16px;
+  font-weight: 500;
+
+}
+
+/* Merchant Registration Form */
+.merchant-registration-form {
+  padding: 1rem;
+  padding-top: 0;
+}
+
+.merchant-registration-form .title {
+  font-family: var(--garamond);
+  margin-top: 1rem;
+  margin-bottom: 10px;
+  line-height: 1em;
+  font-size: 2.3rem;
+}
+
+.merchant-registration-form .p {
+  color: var(--logo-color);
+  font-size: 15px;
+  text-align: center;
+}
+
+.merchant-registration-form p span {
+  font-weight: 600;
+  font-size: 16px;
+   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.merchant-registration-form .forgot-password {
+  margin-top: 0;
+  padding-top: 0.5rem;
+  font-size: 16px;
+  font-weight: 500;
+
+}
+/* Dashboard */
 .dashboard {
   min-height: 100vh;
   background: var(--background);
