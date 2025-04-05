@@ -82,10 +82,12 @@ body {
   padding: 0 20px;
   z-index: 1000; /* Ensures navbar stays above other elements */
   max-height: 150px;
-  overflow: hidden;
   font-size: 15px;
 }
 
+.top-row {
+  max-height: 90px;
+}
 
 .wrapper {
   position: relative;
