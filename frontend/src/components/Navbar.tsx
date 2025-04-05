@@ -139,7 +139,7 @@ const Navbar = () => {
             <a href="/orders" className="hover:underline" title="Orders">Track Order</a>
           </li>
           <li>
-            <a href="#" className="hover:scale-125 transition-transform duration-200" title="Tiktok">
+            <a href="/" className="hover:scale-125 transition-transform duration-200" title="Tiktok">
               <FaTiktok />
             </a>
           </li>
@@ -178,8 +178,8 @@ const Navbar = () => {
             </a>
             <a href="/orders" className="block hover:underline">Track Order</a>
             <a href="#" className="block hover:scale-110">
-              <span className="inline-flex items-center gap-1">
-                <FaTiktok /> TikTok
+              <span className="inline-flex items-center gap-1 hover:scale-125 transition-transform duration-200">
+                <FaTiktok /> Tiktok
               </span>
             </a>
           </div>
