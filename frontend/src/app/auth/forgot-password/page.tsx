@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -12,12 +10,12 @@ export default function ForgotPassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     setError("");
     setSuccess("");
-    setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/forgot-password", {
+      const response = await fetch("http://localhost:5000/api/auth/forgot-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -31,60 +29,66 @@ export default function ForgotPassword() {
         throw new Error(data.message || "Failed to send reset email");
       }
 
-      setSuccess("Password reset instructions have been sent to your email");
+      setSuccess("Password reset instructions have been sent to your email.");
       setEmail("");
     } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      setError(error instanceof Error ? error.message : "Failed to send reset email");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="wrapper">
-      <div className="form-box">
-        <h2 className="title">Reset Password</h2>
-        <p className="text-sm text-gray-600 mb-6">
-          Enter your email address and we'll send you instructions to reset your password.
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          <div className="input-box">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <label>Email Address</label>
-            <i className="bx bxs-envelope"></i>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Reset your password
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Enter your email address and we'll send you instructions to reset your password.
+          </p>
+        </div>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div className="input-box">
+              <input
+                type="email"
+                name="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <label>Email Address</label>
+              <i className="bx bxs-envelope"></i>
+            </div>
           </div>
 
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-          {success && <p className="text-green-500 text-sm mb-4">{success}</p>}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {success && <p className="text-green-500 text-sm">{success}</p>}
 
-          <button
-            type="submit"
-            className="btn"
-            disabled={isLoading}
-          >
-            {isLoading ? "Sending..." : "Send Reset Instructions"}
-          </button>
-
-          <div className="mt-4 text-center">
-            <Link
-              href="/auth/signin"
-              className="text-sm text-primary hover:text-primary-dark"
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn"
             >
-              Back to Login
-            </Link>
+              {isLoading ? "Sending..." : "Send reset instructions"}
+            </button>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Remember your password?{" "}
+              <a
+                href="/auth/signin"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
+                Sign in
+              </a>
+            </p>
           </div>
         </form>
-      </div>
-
-      <div className="info-text">
-        <h2>Welcome Back!</h2>
-        <p>Nairobi Verified, where Security is ensured.</p>
       </div>
     </div>
   );

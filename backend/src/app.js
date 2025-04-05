@@ -1,10 +1,10 @@
 // Main App
-require('dotenv').config({ path: './.env' });
+require('dotenv').config({ path: '../.env' });
 const express = require('express');
 const session = require('express-session');
 const passport = require('./config/passport');
 const connectDB = require('./config/db');
-const authRoutes = require('./routes/authRoutes');
+const authRoutes = require('./routes/Auth');
 const merchantRoutes = require('./routes/merchantRoutes');
 const cors = require('cors');
 const path = require('path');

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function ClientRegister() {
+  const [isActive, setIsActive] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -39,7 +39,7 @@ export default function ClientRegister() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/register/client", {
+      const response = await fetch("http://localhost:5000/api/auth/register/client", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -64,16 +64,23 @@ export default function ClientRegister() {
     }
   };
 
+  const handleLoginClick = () => {
+    setIsActive(true);
+    setTimeout(() => {
+      router.push("/auth/signin");
+    }, 400);
+  };
+
   return (
-    <div className="wrapper">
+    <div className="wrapper client-registration-form">
       <div className="form-box">
-        <h2 className="title">Client Registration</h2>
-        <p className="text-sm text-gray-600 mb-6">
+        <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Client Registration</h2>
+        <p className="p text-sm mb-6 animation" style={{ "--i": 18, "--j": 1 } as any}>
           Create your account to start shopping with verified merchants.
         </p>
 
         <form onSubmit={handleSubmit}>
-          <div className="input-box">
+          <div className="input-box animation" style={{ "--i": 19, "--j": 2 } as any}>
             <input
               type="text"
               name="fullName"
@@ -85,7 +92,7 @@ export default function ClientRegister() {
             <i className="bx bxs-user"></i>
           </div>
 
-          <div className="input-box">
+          <div className="input-box animation" style={{ "--i": 20, "--j": 3 } as any}>
             <input
               type="email"
               name="email"
@@ -97,7 +104,7 @@ export default function ClientRegister() {
             <i className="bx bxs-envelope"></i>
           </div>
 
-          <div className="input-box">
+          <div className="input-box animation" style={{ "--i": 21, "--j": 4 } as any}>
             <input
               type="tel"
               name="phone"
@@ -109,7 +116,7 @@ export default function ClientRegister() {
             <i className="bx bxs-phone"></i>
           </div>
 
-          <div className="input-box">
+          <div className="input-box animation" style={{ "--i": 22, "--j": 5 } as any}>
             <input
               type={showPassword ? "text" : "password"}
               name="password"
@@ -122,7 +129,7 @@ export default function ClientRegister() {
                onClick={() => setShowPassword(!showPassword)}></i>
           </div>
 
-          <div className="input-box">
+          <div className="input-box animation" style={{ "--i": 23, "--j": 6 } as any}>
             <input
               type={showPassword ? "text" : "password"}
               name="confirmPassword"
@@ -134,34 +141,40 @@ export default function ClientRegister() {
             <i className="bx bxs-lock-alt"></i>
           </div>
 
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-          {success && <p className="text-green-500 text-sm mb-4">{success}</p>}
+          {error && <p className="text-red-500 text-sm mb-4 animation" style={{ "--i": 24, "--j": 7 } as any}>{error}</p>}
+          {success && <p className="text-green-500 text-sm mb-4 animation" style={{ "--i": 24, "--j": 7 } as any}>{success}</p>}
 
           <button
             type="submit"
-            className="btn"
+            className="btn animation"
+            style={{ "--i": 25, "--j": 8 } as any}
             disabled={isLoading}
           >
             {isLoading ? "Registering..." : "Register"}
           </button>
 
-          <div className="mt-4 text-center">
+          <div className=" mt-6 text-center animation" style={{ "--i": 26, "--j": 9 } as any}>
             <p className="text-sm">
-              Already have an account?{" "}
-              <Link
-                href="/auth/signin"
+             <span className="font-semibold text-black">
+             Already have an account?{" "}
+             </span>
+              <button
+                type="button"
+                onClick={handleLoginClick}
                 className="forgot-password"
+                title="Login"
               >
                 Login
-              </Link>
+              </button>
             </p>
           </div>
         </form>
       </div>
 
       <div className="info-text">
-        <h2>Welcome!</h2>
-        <p>Join Nairobi Verified as a Client and enjoy shopping from verified merchants.</p>
+        <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>Welcome!</h2>
+        <hr className="my-4"/>
+        <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>Join Nairobi Verified as a Client and enjoy shopping from verified merchants.</p>
       </div>
     </div>
   );

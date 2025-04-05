@@ -52,7 +52,7 @@ export default function SignUp() {
 
 
   return (
-    <div className="wrapper">
+    <div className="wrapper sign-in-form">
       <div className="form-box register">
         <h2 className="title">Sign Up</h2>
         <form onSubmit={handleRegister}>
@@ -109,15 +109,17 @@ export default function SignUp() {
         </form>
       
         <div className="linkTxt">
-            <p className="p-2">
-              Already have an account? {" "}
+            <p className="p-2 mt-4 text-center ">
+            <span className="text-dark font-semibold text-sm">Already have an account?</span>
+              <br/>
               <a href="/auth/signin" className="login-link">Login</a>
             </p>
           </div>
       </div>
       <div className="info-text register">
-        <h2>Welcome Back!</h2>
-        <p>Nairobi Verified, where Security is ensured.</p>
+        <h2 className="well">Welcome!</h2>
+        <hr className="my-4" />
+        <p className="wel">Nairobi Verified, where Security is ensured.</p>
       </div>
     </div>
   );

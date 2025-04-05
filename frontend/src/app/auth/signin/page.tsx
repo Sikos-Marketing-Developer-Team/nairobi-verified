@@ -2,91 +2,66 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import axios from "axios";
 
 export default function SignIn() {
+  const [isActive, setIsActive] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     password: "",
+    rememberMe: false,
   });
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [isActive, setIsActive] = useState(false);
   const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
-
-    // Check for superadmin credentials
-    if (formData.username === "admin" && formData.password === "admin123") {
-      router.push("/admin/dashboard");
-      return;
-    }
-
     setIsLoading(true);
-
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+      const res = await axios.post("http://localhost:5000/api/auth/login", {
+        username: formData.username,
+        password: formData.password,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed");
-      }
-
-      setSuccess("Login successful!");
-      setTimeout(() => {
-        // Redirect based on user role
-        if (data.user.role === "merchant") {
-          router.push("/merchant/profile");
-        } else {
-          router.push("/dashboard");
-        }
-      }, 1000);
+      localStorage.setItem('token', res.data.token);
+      router.push("/dashboard");
     } catch (error) {
-      setError((error as any).response?.data?.message || "An error occurred during login");
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError("Sign in failed");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = () => {
-    window.location.href = "/api/auth/google";
+    window.location.href = "http://localhost:5000/api/auth/google";
   };
 
-  const handleRegisterClick = () => {
+  const handleRegisterClick = (type: 'client' | 'merchant') => {
     setIsActive(true);
     setTimeout(() => {
-      router.push("/");
-    }, 600); // Wait for animation to complete
+      router.push(`/auth/register/${type}`);
+    }, 400);
   };
 
   return (
-    <div className="wrapper">
-      <div className={`form-box ${isActive ? 'active' : ''}`}>
-        <h2 className="title">Welcome Back</h2>
-        <p className="text-sm text-gray-600 mb-6">
-          Sign in to your account to continue
-        </p>
-
+    <div className="wrapper sign-in-form">
+      <div className="form-box">
+        <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign In</h2>
         <form onSubmit={handleSubmit}>
-          <div className="input-box">
+          <div className="input-box animation" style={{ "--i": 18, "--j": 1 } as any}>
             <input
               type="text"
               name="username"
@@ -98,79 +73,98 @@ export default function SignIn() {
             <i className="bx bxs-user"></i>
           </div>
 
-          <div className="input-box">
+          <div className="input-box animation" style={{ "--i": 19, "--j": 2 } as any}>
             <input
-              type={showPassword ? "text" : "password"}
+              type="password"
               name="password"
               value={formData.password}
               onChange={handleInputChange}
               required
             />
             <label>Password</label>
-            <i className={`bx ${showPassword ? 'bxs-show' : 'bxs-hide'} cursor-pointer`} 
-               onClick={() => setShowPassword(!showPassword)}></i>
+            <i className="bx bxs-lock-alt"></i>
           </div>
 
-          <div className="flex items-center justify-between mb-4">
-            <label className="flex items-center">
-              <input type="checkbox" className="mr-2" />
-              <span className="text-sm">Remember me</span>
+          <div className="remember-forgot animation" style={{ "--i": 20, "--j": 3 } as any}>
+            <label>
+              <input
+                type="checkbox"
+                name="rememberMe"
+                checked={formData.rememberMe}
+                onChange={handleInputChange}
+              />
+              Remember me
             </label>
-            <Link
-              href="/auth/forgot-password"
+            <br/>
+            <button
+              type="button"
+              onClick={() => router.push('/auth/forgot-password')}
               className="forgot-password"
             >
               Forgot Password?
-            </Link>
+            </button>
           </div>
 
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-          {success && <p className="text-green-500 text-sm mb-4">{success}</p>}
+          {error && (
+            <p className="text-red-500 text-sm mb-4 animation" style={{ "--i": 21, "--j": 4 } as any}>
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
-            className="btn"
+            className="btn animation"
+            style={{ "--i": 22, "--j": 5 } as any}
             disabled={isLoading}
           >
             {isLoading ? "Signing in..." : "Sign In"}
           </button>
 
-          <div className="divider">
+          <div className="divider animation" style={{ "--i": 23, "--j": 6 } as any}>
             <span>or</span>
           </div>
 
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            className="google-btn"
+            className="google-btn animation"
+            style={{ "--i": 24, "--j": 7 } as any}
           >
             <i className="bx bxl-google"></i>
             Continue with Google
           </button>
 
-          <div className="mt-4 text-center">
-            <p className="text-sm">
-              Don't have an account?{" "}
+          <div className="register-link animation" style={{ "--i": 25, "--j": 8 } as any}>
+            <p>
+             <span> Don't have an account?</span><br/>
+              Register as <button
+                type="button"
+                onClick={() => handleRegisterClick('client')}
+                className="register-btn"
+                title="Client"
+              >
+                 Client
+              </button>
+              {" or "}
               <button
                 type="button"
-                onClick={handleRegisterClick}
-                className="forgot-password"
+                onClick={() => handleRegisterClick('merchant')}
+                className="register-btn"
+                title="Merchant"
               >
-                Register
+                Merchant
               </button>
             </p>
           </div>
         </form>
-
-        <div className="linkTxt animation" style={{ "--i": 5, "--j": 25 } as any}>
-            <p>Don't have an account? <a href="/auth/signup" className="register-link" >Sign Up</a></p>
-          </div>
-
       </div>
 
-      <div className={`info-text ${isActive ? 'active' : ''}`}>
-        <h2>Welcome!</h2>
-        <p>Nairobi Verified, where Security is ensured.</p>
+      <div className="info-text">
+        <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>Welcome Back!</h2>
+        <hr className="my-4"/>
+        <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>
+          Sign in to access your account and continue your journey with us.
+        </p>
       </div>
     </div>
   );

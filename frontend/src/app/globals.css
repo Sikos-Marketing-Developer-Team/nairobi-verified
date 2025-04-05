@@ -1,51 +1,133 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+
 :root {
-  --primary-color: #2563eb;
-  --secondary-color: #1e40af;
+  /* Colors */
+  /* --primary-color: #ef9607; */
+  /* Keeping this for later, for the sake of matching the logo */
+  --primary-color: #ec5c0b;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --background-primary: #ffffff;
+  --background-secondary: #f5f5f5;
+  --border-color: #e5e5e5;
+  --secondary-color: #e9a107;
   --text-color: #1f2937;
   --light-text: #6b7280;
   --background: #f3f4f6;
   --white: #ffffff;
   --error: #ef4444;
   --success: #22c55e;
+  --logo-color: #ec5c0b;
+
+  /* Fonts (Typography) */
+  --garamond: "EB Garamond", serif;
+  --roboto:  "Roboto", sans-serif;
+  --poppins: "Poppins", sans-serif;
+
+
+  /* Transition */
+  --transition-duration: 400ms;
+  --transition-timing-function: ease-in-out;
+
+  /* Box Shadow */
+  --box-shadow: 0px 8px 20px rgba(34, 34, 34, 0.2);
+}
+
+.dark {
+  --primary-color: #ef9607;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --background-primary: #1a1a1a;
+  --background-secondary: #2d2d2d;
+  --border-color: #404040;
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Inter", sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+} 
+
 body {
-  background: var(--background);
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--background);
+  padding: 20px;
 }
 
+/* Navbar */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: #EC5C0B;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 0 20px;
+  z-index: 1000; /* Ensures navbar stays above other elements */
+  max-height: 150px;
+  font-size: 15px;
+}
+
+.top-row {
+  max-height: 90px;
+}
+
+/* HomePage */
+.home-body {
+  margin-top: 0; /* Adjust this value to create space for the navbar */
+}
+.home-body h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 20px;
+  font-family: var(--garamond);
+}
+
+.home-body h2 {
+  color: var(--text-color);
+  font-family: var(--garamond);
+  font-size: 2rem;
+}
+
+
+/* Auth Components */
 .wrapper {
   position: relative;
   width: 100%;
   max-width: 1200px;
-  height: 600px;
+  min-height: 600px;
   background: var(--white);
   border-radius: 20px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   display: flex;
-  overflow: hidden;
+  overflow-y: auto;
+  margin: 150px;
+  margin-top: 0;
+  box-shadow: var(--box-shadow);
 }
 
 .form-box {
   position: relative;
   width: 50%;
-  height: 100%;
+  min-height: 100%;
   background: var(--white);
   padding: 40px;
   display: flex;
@@ -53,59 +135,93 @@ body {
   justify-content: center;
   transition: transform 0.6s ease-in-out;
   z-index: 2;
+  overflow-y: auto;
+
 }
+
+
 
 .form-box.active {
   transform: translateX(100%);
 }
 
 .info-text {
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 0;
   width: 50%;
   height: 100%;
   background: var(--primary-color);
+  background: var(--logo-color);
   padding: 40px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   color: var(--white);
+  text-align: center;
   transition: transform 0.6s ease-in-out;
   z-index: 1;
+ 
 }
 
-.form-box.register {
-  min-height: fit-content; /* Ensures it grows with content */
-  padding-bottom: 2px; /* Adds spacing at the bottom */
-  overflow: hidden; /* Prevents content from overflowing */
+.info-text.active {
+  transform: translateX(-100%);
 }
 
-.form-box h2 {
-  font-size: 2em;
-  color: var(--primary);
-  text-align: center;
-  margin-bottom: 30px;
+.well {
+  font-size: 3rem;
+  color: var(--text-primary);
+  font-family: var(--garamond);
   font-weight: 600;
+  
 }
 
-.info-text h2 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 20px;
+.wel {
+  font-family: var(--garamond);
+  font-size: 1.2rem;
 }
 
-.info-text p {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  opacity: 0.9;
+.animation {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideTop 0.5s ease forwards;
+}
+
+@keyframes slideTop {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: var(--text-color);
   margin-bottom: 20px;
+  text-align: center;
+
 }
 
+/* Join-platform */
+.join-platform .title{
+ line-height: 1.2em;
+ font-weight: 550px;
+ font-family: var(--garamond);
+ margin-bottom: 10px;
+}
+
+.join-platform .p {
+  font-family: var(--garamond);
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--logo-color)
+ 
+}
 
 .input-box {
   position: relative;
@@ -136,6 +252,14 @@ body {
   color: var(--light-text);
   pointer-events: none;
   transition: all 0.3s ease;
+  font-family: var(--roboto);
+  font-size: 15px;
+}
+
+.input-box select {
+  font-family: var(--roboto);
+  font-size: 15px;
+  color: var(--light-text);
 }
 
 .input-box input:focus,
@@ -151,6 +275,13 @@ body {
   padding: 0 5px;
   background: var(--white);
   color: var(--primary-color);
+  margin-top: 2px;
+}
+
+.input-box option {
+  font-family: var(--roboto);
+  font-size: 15px;
+  color: var(--light-text);
 }
 
 .input-box i {
@@ -159,6 +290,7 @@ body {
   right: 15px;
   transform: translateY(-50%);
   color: var(--light-text);
+  
 }
 
 .btn {
@@ -229,11 +361,25 @@ body {
   font-size: 0.9rem;
 }
 
+.remember-forgot label{
+  margin: 2px;
+  margin-top: 5px;
+  font-family: var(--roboto);
+}
+
+.remember-forgot input {
+  margin: 2px;
+}
+
 .forgot-password {
   color: var(--primary-color);
   text-decoration: none;
   font-size: 0.9rem;
   transition: all 0.3s ease;
+  padding: 1rem;
+  display: block;
+  margin: auto;
+  
 }
 
 .forgot-password:hover {
@@ -245,6 +391,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  margin-top: 30px;
 }
 
 .account-type-btn {
@@ -261,152 +408,351 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  text-decoration: none;
 }
 
 .account-type-btn:hover {
   background: #f9fafb;
-  border-color: #d1d5db;
+  border-color: var(--primary-color);
 }
 
-
-div.linkTxt {
-  text-align: center;
+.account-type-btn.merchant:hover {
+  background: var(--primary-color);
+  color: var(--white);
 }
 
-div.linkTxt.animation{
- text-align: center;
+.login-link {
+  color: var(--primary-color);
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.login-link:hover {
+  color: var(--secondary-color);
+  text-decoration: underline;
+}
+/* Sign-In form */
+.sign-in-form {
  padding: 1rem;
 }
-.register-link,
-.login-link {
-  font-size: 0.9em;
-  color: var(--primary);
-  text-decoration: underline;
+
+.sign-in-form .title {
+  font-weight: 700;
+  font-family: var(--garamond);
+  margin-bottom: 20px;
+}
+
+.register-link {
+ padding: 1rem;
+ text-align: center;
+ margin-top: 1rem;
+
+}
+
+.register-link p {
+ font-size: 15px;
+}
+
+.register-link p span {
+  color: var(--primary-color);
+  font-weight: 600;
+  font-size: 16px;
+   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.register-link button {
+  color: var(--primary-color);
   font-weight: 500;
-  margin-top: 20px;
+  font-size: 16px;
 }
 
-.register-link:hover,
-.login-link:hover {
-  color: #c80535;
-  text-decoration: none;
+.register-link button:hover {
+  color: var(--secondary-color);
+  text-decoration: underline;
 }
 
-/* Dashboard Component */
-/* Route Path: /dashboard */
-/* Wrapper ClassName: .dashboard */
+/* Client Registration */
+.client-registration-form {
+  padding: 1rem;
+  padding-top: 0;
+}
 
-.dashboard {
-  height: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  max-width: 1900px;
-  height: 100vh;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-  padding: 20px;
-  overflow: hidden;
+.client-registration-form .title {
+  font-family: var(--garamond);
+  margin-top: 1rem;
+  margin-bottom: 10px;
+}
 
+.client-registration-form .p {
+  color: var(--logo-color);
+}
+
+.client-registration-form .forgot-password {
+  margin-top: 0;
+  padding-top: 0.5rem;
+  font-size: 16px;
+  font-weight: 500;
+
+}
+
+/* Merchant Registration Form */
+.merchant-registration-form {
+  padding: 1rem;
+  padding-top: 0;
+}
+
+.merchant-registration-form .title {
+  font-family: var(--garamond);
+  margin-top: 1rem;
+  margin-bottom: 10px;
+  line-height: 1em;
+  font-size: 2.3rem;
+}
+
+.merchant-registration-form .p {
+  color: var(--logo-color);
+  font-size: 15px;
   text-align: center;
+}
+
+.merchant-registration-form p span {
+  font-weight: 600;
+  font-size: 16px;
+   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.merchant-registration-form .forgot-password {
+  margin-top: 0;
+  padding-top: 0.5rem;
+  font-size: 16px;
+  font-weight: 500;
+
+}
+/* Dashboard */
+.dashboard {
+  min-height: 100vh;
+  background: var(--background);
+  padding: 20px;
 }
 
 .dashboard h2 {
-  font-size: 2.5em;
-  color: var(--primary);
-  text-align: center!important;
-  margin-bottom: 30px;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 20px;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* Responsive Design */
 @media (max-width: 991px) {
   .wrapper {
     height: auto;
-    min-height: 100vh;
-    padding: 10px;
-    background: #fff;
+    min-height: 600px;
   }
 
   .form-box {
-    height: auto;
-    padding: 30px 20px;
-    box-shadow: none;
+    width: 100%;
+    padding: 30px;
   }
 
-.account-type-btn.merchant:hover {
-  background: var(--secondary-color);
-  border-color: var(--secondary-color);
+  .account-type-btn.merchant:hover {
+    background: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+  }
 }
 
 @media (max-width: 768px) {
   .wrapper {
     height: auto;
-    margin: 20px;
+    min-height: 500px;
   }
 
   .form-box,
   .info-text {
     width: 100%;
-    padding: 30px;
+    padding: 20px;
   }
 
   .form-box.active {
-    transform: translateX(0);
+    transform: none;
   }
 
   .info-text.active {
-    transform: translateX(0);
+    transform: none;
   }
 
   .info-text {
     display: none;
   }
+}
+
+/* Dashboard Layout */
+.dashboard-layout {
+  @apply flex min-h-screen w-full;
+}
+
+/* Sidebar */
+.sidebar {
+  @apply fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-800 shadow-lg transform -translate-x-full transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static z-50;
+}
+
+.sidebar.open {
+  @apply translate-x-0;
+}
+
+.sidebar-logo {
+  @apply p-6 flex items-center justify-center border-b border-gray-200 dark:border-gray-700;
+  @apply text-xl font-bold text-orange-600 dark:text-orange-400;
+}
+
+.sidebar-menu {
+  @apply mt-6 px-4 space-y-2;
+}
+
+.menu-item {
+  @apply flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-orange-100 dark:hover:bg-gray-700 transition-colors;
+}
+
+.menu-item.active {
+  @apply bg-orange-100 dark:bg-gray-700 text-orange-600 dark:text-orange-400;
+}
+
+/* Main Content */
+.main-content {
+  @apply flex-1 min-h-screen bg-gray-50 dark:bg-gray-900 lg:ml-0;
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Top Bar */
+.top-bar {
+  @apply sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm;
+  @apply px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4;
+}
+
+.search-bar {
+  @apply relative w-full md:w-96;
+}
+
+.search-bar input {
+  @apply w-full pl-10 pr-4 py-2 rounded-lg;
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white;
+  @apply focus:outline-none focus:ring-2 focus:ring-orange-500;
+}
+
+.search-bar svg {
+  @apply absolute left-3 top-1/2 -translate-y-1/2 text-gray-400;
+}
+
+.user-menu {
+  @apply flex items-center space-x-4;
+}
+
+.notification-badge {
+  @apply relative;
+}
+
+.notification-count {
+  @apply absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs;
+  @apply flex items-center justify-center rounded-full;
+}
+
+.user-profile {
+  @apply flex items-center space-x-3;
+}
+
+.user-avatar {
+  @apply w-8 h-8 rounded-full bg-orange-200 dark:bg-orange-800;
+  @apply flex items-center justify-center text-orange-600 dark:text-orange-200;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8;
+}
+
+.dashboard-card {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+  @apply transition-all duration-300 hover:shadow-lg;
+}
+
+.card-header {
+  @apply flex items-center justify-between mb-4;
+}
+
+.card-title {
+  @apply text-lg font-semibold;
+}
+
+.card-content {
+  @apply space-y-4;
+}
+
+.stat-value {
+  @apply text-2xl font-bold text-gray-900 dark:text-white;
+}
+
+.stat-label {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1024px) {
+  .main-content {
+    @apply ml-0;
+  }
+  
+  .dashboard-grid {
+    @apply grid-cols-1 sm:grid-cols-2;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-bar {
+    @apply flex-col items-stretch;
+  }
+  
+  .user-menu {
+    @apply justify-between;
+  }
+  
+  .dashboard-grid {
+    @apply grid-cols-1;
+  }
+  
+  .search-bar {
+    @apply w-full;
+  }
+}
+
+/* Deals and Shops Sections */
+.deals-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.shops-grid {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-8;
+}
+
+/* Map Container */
+.map-container {
+  @apply h-[400px] lg:h-[600px] rounded-lg overflow-hidden;
+  @apply bg-white dark:bg-gray-800 shadow-md;
+}
+
+/* Dropdown Styling */
+.category-dropdown {
+  @apply relative w-full md:w-64;
+}
+
+.dropdown-button {
+  @apply w-full px-4 py-2 rounded-lg shadow-sm;
+  @apply flex items-center justify-between;
+  @apply transition-colors duration-200;
+}
+
+.dropdown-menu {
+  @apply absolute z-50 w-full mt-2 rounded-lg shadow-lg;
+  @apply max-h-60 overflow-y-auto;
 }
