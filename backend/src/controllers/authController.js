@@ -1,37 +1,66 @@
 require("dotenv").config({ path: './src/.env' });
+const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const User = require("../models/User");
-const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/emailService');
 const crypto = require('crypto');
+const { sendVerificationEmail } = require('../utils/emailService');
 
 const registerClient = async (req, res) => {
   try {
     const { fullName, email, phone, password } = req.body;
+    console.log('Signup request:', { fullName, email, phone });
+    if (!fullName || !email || !phone || !password) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'Email already registered' });
 
-    const user = await User.create({
-      fullName,
-      email,
-      phone,
-      password,
-      role: 'client',
-    });
+    const user = await User.create({ fullName, email, phone, password, role: 'client' });
+    console.log('User created:', user._id);
 
-    const verificationToken = user.generateEmailVerificationToken();
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    user.emailVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+    user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
     await user.save();
+    console.log('Verification token generated:', verificationToken);
+
     await sendVerificationEmail(email, verificationToken);
+    console.log('Verification email triggered for:', email);
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
     res.status(201).json({
       message: 'Registration successful. Please check your email for verification.',
-      token,
       user: { id: user._id, fullName, email, phone, role: user.role },
     });
   } catch (error) {
-    console.error('Client registration error:', error);
-    res.status(500).json({ message: 'Error registering client' });
+    console.error('Client registration error:', error.message);
+    res.status(500).json({ message: error.message || 'Error registering client' });
+  }
+};
+
+const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: Date.now() },
+    });
+
+    if (!user) return res.status(400).json({ message: 'Invalid or expired verification token' });
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    const tokenJwt = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    res.cookie('token', tokenJwt, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
+    res.redirect(`${process.env.FRONTEND_URL}/dashboard?verified=true`);
+  } catch (error) {
+    console.error('Email verification error:', error.message);
+    res.status(500).json({ message: 'Error verifying email' });
   }
 };
 
@@ -155,30 +184,6 @@ const resendVerificationEmail = async (req, res) => {
   }
 };
 
-const verifyEmail = async (req, res) => {
-  try {
-    const { token } = req.params;
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-    const user = await User.findOne({
-      emailVerificationToken: hashedToken,
-      emailVerificationExpires: { $gt: Date.now() },
-    });
-
-    if (!user) return res.status(400).json({ message: 'Invalid or expired verification token' });
-
-    user.isEmailVerified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
-    await user.save();
-
-    const tokenJwt = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
-    res.status(200).json({ message: 'Email verified successfully', token: tokenJwt });
-  } catch (error) {
-    console.error('Email verification error:', error);
-    res.status(500).json({ message: 'Error verifying email' });
-  }
-};
-
 const logout = (req, res) => {
   res.status(200).json({ message: 'Logged out successfully' });
 };
@@ -193,6 +198,8 @@ const getCurrentUser = async (req, res) => {
     res.status(500).json({ message: 'Error getting current user' });
   }
 };
+
+
 
 module.exports = {
   registerClient,
