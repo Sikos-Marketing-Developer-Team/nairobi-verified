@@ -1,6 +1,8 @@
 / - Home Page
 /auth/register/client - Client Registration
 /auth/register/merchant - Merchant Registration
-/admin/dashboard - Dashboard
 /merchant/profile - Merchant Profile
 /join - Choose Account Type
+/dashboard/user - User Dashboard
+/dashboard/vendor - Vendor Dashboard
+/dashboard/admin - Admin Dashboard
