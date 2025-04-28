@@ -34,10 +34,10 @@ router.get('/verify-email/:token', verifyEmail);
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get(
   '/google/callback',
-  passport.authenticate('google', { failureRedirect: 'http://localhost:3000/auth/signin', session: false }),
+  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/auth/signin`, session: false }),
   (req, res) => {
     const token = req.user.token; // From passport.js
-    res.redirect(`http://localhost:3000/dashboard?token=${token}`);
+    res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
   }
 );
 
