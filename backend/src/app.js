@@ -30,6 +30,7 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: 'strict',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
@@ -44,6 +45,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/merchant', merchantRoutes);
+
+
+// Health check route
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
