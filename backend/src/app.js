@@ -1,5 +1,4 @@
-// Main App
-require('dotenv').config({ path: './src/.env' });
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const passport = require('./config/passport');
@@ -22,7 +21,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Session configuration
+// Session configuration (in-memory for now)
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -40,19 +39,18 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/merchant', merchantRoutes);
-
 
 // Health check route
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
