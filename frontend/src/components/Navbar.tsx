@@ -83,6 +83,7 @@ const Navbar = () => {
           <a href="https://instagram.com" title="Instagram" target="_blank" className="hover:scale-125 transition-transform duration-200">
             <FaInstagram />
           </a>
+          
         </div>
       </div>
 
@@ -140,7 +141,7 @@ const Navbar = () => {
           </li>
           <li>
             <a href="/" className="hover:scale-125 transition-transform duration-200" title="Tiktok">
-              <FaTiktok />
+            &#x1F1F0;&#x1F1EA;
             </a>
           </li>
         </ul>
