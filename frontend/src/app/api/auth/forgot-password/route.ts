@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/forgot-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

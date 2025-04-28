@@ -39,7 +39,7 @@ export default function ClientRegister() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register/client", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register/client`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

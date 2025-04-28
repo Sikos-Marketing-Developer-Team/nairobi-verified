@@ -28,7 +28,7 @@ export default function SignIn() {
     setError("");
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
         username: formData.username,
         password: formData.password,
       });
@@ -46,7 +46,7 @@ export default function SignIn() {
   };
 
   const handleGoogleSignIn = () => {
-    window.location.href = "http://localhost:5000/api/auth/google";
+    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
   };
 
   const handleRegisterClick = (type: 'client' | 'merchant') => {

@@ -22,7 +22,7 @@ const sendVerificationEmail = async (email, token) => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
       throw new Error('Email credentials missing in environment variables');
     }
-    const verificationUrl = `${process.env.BACKEND_URL}/api/auth/verify-email/${token}`;
+    const verificationUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/verify-email/${token}`;
     console.log('Preparing verification email:', { email, verificationUrl });
 
     const mailOptions = {
