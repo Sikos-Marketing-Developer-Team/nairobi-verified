@@ -9,7 +9,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.FRONTEND_URL}/api/auth/google/callback`, // Match frontend redirect
+      callbackURL: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google/callback`, // Match frontend redirect
       scope: ['profile', 'email'],
     },
     async (accessToken, refreshToken, profile, done) => {
