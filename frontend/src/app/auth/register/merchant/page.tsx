@@ -53,7 +53,7 @@ export default function MerchantRegister() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register/merchant", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register/merchant`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

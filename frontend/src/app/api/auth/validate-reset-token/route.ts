@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/validate-reset-token?token=${token}`
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/validate-reset-token?token=${token}`
     );
 
     const data = await response.json();

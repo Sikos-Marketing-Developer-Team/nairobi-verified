@@ -25,7 +25,7 @@ export default function SignUp() {
   
     try {
       // Send registration request to backend
-      const res = await axios.post("http://localhost:5000/api/auth/signup", formData);
+      const res = await axios.post("https://nairobi-verified-backend.onrender.com/api/auth/signup", formData);
   
       if (res.status === 201) {
         // Extract token from response
@@ -47,7 +47,7 @@ export default function SignUp() {
   };
   
   const handleGoogleSignIn = () => {
-    window.location.href = "http://localhost:5000/api/auth/google"; // Redirect to Google auth
+    window.location.href = "https://nairobi-verified-backend.onrender.com/api/auth/google"; // Redirect to Google auth
   };
 
 
