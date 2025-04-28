@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Cookies from "js-cookie";
+// import Cookies from "js-cookie";
 
 export default function Dashboard() {
   const [message, setMessage] = useState("");
