@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MainLayout from "@/components/MainLayout";
-import { FaShoppingBag, FaHeart, FaHistory, FaUser, FaStore, FaSearch } from "react-icons/fa";
+import { FaShoppingBag, FaHeart, FaUser, FaStore, FaSearch } from "react-icons/fa";
 
 export default function ClientDashboard() {
   const router = useRouter();
