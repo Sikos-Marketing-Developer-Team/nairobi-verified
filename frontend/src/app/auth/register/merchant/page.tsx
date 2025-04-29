@@ -54,15 +54,12 @@ export default function MerchantRegister() {
     setIsLoading(true);
 
     try {
-      // For development/demo purposes - simulate successful registration
-      // In production, uncomment the actual API call
-      /*
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register/merchant`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -254,4 +251,4 @@ export default function MerchantRegister() {
       </div>
     // </MainLayout>
   );
-} 
+}
