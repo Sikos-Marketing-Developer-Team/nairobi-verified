@@ -3,14 +3,32 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MainLayout from "@/components/MainLayout";
-import { FaShoppingBag, FaHeart, FaHistory, FaUser, FaStore, FaSearch } from "react-icons/fa";
+import { FaShoppingBag, FaHeart, FaUser, FaStore, FaSearch } from "react-icons/fa";
 
 export default function ClientDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [userData, setUserData] = useState({
+  interface Order {
+    id: string;
+    date: string;
+    status: string;
+    total: number;
+  }
+
+  interface Vendor {
+    id: number;
+    name: string;
+    category: string;
+  }
+
+  const [userData, setUserData] = useState<{
+    fullName: string;
+    email: string;
+    recentOrders: Order[];
+    savedVendors: Vendor[];
+  }>({
     fullName: "",
     email: "",
     recentOrders: [],
