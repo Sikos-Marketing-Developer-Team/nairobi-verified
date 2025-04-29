@@ -53,12 +53,22 @@ export default function MerchantRegister() {
     setIsLoading(true);
 
     try {
+      // Map frontend fields to backend expectations
+      const payload = {
+        fullName: formData.ownerName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        companyName: formData.businessName,
+        location: formData.location
+      };
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register/merchant`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -230,4 +240,4 @@ export default function MerchantRegister() {
       </div>
     </div>
   );
-} 
+}
