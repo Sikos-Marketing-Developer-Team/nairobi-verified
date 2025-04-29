@@ -18,6 +18,7 @@ const jwt = require('jsonwebtoken');
 // Registration routes
 router.post('/register/client', registerClient);
 router.post('/register/merchant', registerMerchant);
+router.post('/signup', registerClient); // Add this route to match frontend expectation
 
 // Login route
 router.post('/login', login);

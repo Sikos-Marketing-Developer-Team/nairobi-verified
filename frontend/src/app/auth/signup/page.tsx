@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
+// import MainLayout from "@/components/MainLayout";
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -24,8 +25,11 @@ export default function SignUp() {
     setError("");
   
     try {
+      // For development/demo purposes - simulate successful registration
+      // In production, uncomment the actual API call
+      /*
       // Send registration request to backend
-      const res = await axios.post("https://nairobi-verified-backend.onrender.com/api/auth/signup", formData);
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/signup`, formData);
   
       if (res.status === 201) {
         // Extract token from response
@@ -37,24 +41,47 @@ export default function SignUp() {
         // Redirect to dashboard after successful signup
         router.push("/dashboard");
       }
+      */
+      
+      // Demo mode - create a mock token
+      localStorage.setItem("token", "signup-demo-token-" + Math.random().toString(36).substring(2));
+      
+      // Redirect to dashboard after successful signup
+      router.push("/dashboard");
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.data?.message) {
-        setError(error.response.data.message);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.data?.message) {
+          setError(error.response.data.message);
+        } else if (error.message === 'Network Error') {
+          setError("Cannot connect to server. Please try again later.");
+        } else {
+          setError("Sign up failed: " + error.message);
+        }
       } else {
-        setError("An error occurred during sign-up");
+        setError("An unexpected error occurred during sign-up");
       }
     }
   };
   
   const handleGoogleSignIn = () => {
-    window.location.href = "https://nairobi-verified-backend.onrender.com/api/auth/google"; // Redirect to Google auth
+    // For development/demo purposes - simulate successful Google login
+    // In production, uncomment the actual redirect
+    /*
+    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`; // Redirect to Google auth
+    */
+    
+    // Demo mode - create a mock token and redirect
+    localStorage.setItem('token', 'google-signup-demo-token-' + Math.random().toString(36).substring(2));
+    router.push("/dashboard");
   };
 
 
   return (
-    <div className="wrapper sign-in-form">
-      <div className="form-box register">
-        <h2 className="title">Sign Up</h2>
+    // <MainLayout className="bg-gray-100 py-10">
+      <div className="container mx-auto px-4">
+        <div className="wrapper sign-in-form max-w-4xl mx-auto">
+          <div className="form-box register">
+            <h2 className="title">Sign Up</h2>
         <form onSubmit={handleRegister}>
           <div className="input-box">
             <input
@@ -120,7 +147,9 @@ export default function SignUp() {
         <h2 className="well">Welcome!</h2>
         <hr className="my-4" />
         <p className="wel">Nairobi Verified, where Security is ensured.</p>
+          </div>
+        </div>
       </div>
-    </div>
+    // </MainLayout>
   );
 }

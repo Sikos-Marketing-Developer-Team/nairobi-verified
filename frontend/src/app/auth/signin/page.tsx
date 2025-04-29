@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+// import MainLayout from "@/components/MainLayout";
 
 export default function SignIn() {
   const [isActive, setIsActive] = useState(false);
@@ -28,17 +29,37 @@ export default function SignIn() {
     setError("");
     setIsLoading(true);
     try {
+      // For development/demo purposes - simulate successful login
+      // In production, uncomment the actual API call
+      /*
       const res = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
         username: formData.username,
         password: formData.password,
       });
       localStorage.setItem('token', res.data.token);
-      router.push("/dashboard");
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.data?.message) {
-        setError(error.response.data.message);
+      */
+      
+      // Demo mode - create a mock token
+      localStorage.setItem('token', 'demo-token-' + Math.random().toString(36).substring(2));
+      
+      // Check user type based on username for demo
+      if (formData.username.toLowerCase().includes('vendor') || 
+          formData.username.toLowerCase().includes('merchant')) {
+        router.push("/vendor/dashboard");
       } else {
-        setError("Sign in failed");
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.data?.message) {
+          setError(error.response.data.message);
+        } else if (error.message === 'Network Error') {
+          setError("Cannot connect to server. Please try again later.");
+        } else {
+          setError("Sign in failed: " + error.message);
+        }
+      } else {
+        setError("An unexpected error occurred");
       }
     } finally {
       setIsLoading(false);
@@ -46,7 +67,15 @@ export default function SignIn() {
   };
 
   const handleGoogleSignIn = () => {
+    // For development/demo purposes - simulate successful Google login
+    // In production, uncomment the actual redirect
+    /*
     window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
+    */
+    
+    // Demo mode - create a mock token and redirect
+    localStorage.setItem('token', 'google-demo-token-' + Math.random().toString(36).substring(2));
+    router.push("/dashboard");
   };
 
   const handleRegisterClick = (type: 'client' | 'merchant') => {
@@ -57,9 +86,11 @@ export default function SignIn() {
   };
 
   return (
-    <div className="wrapper sign-in-form">
-      <div className="form-box">
-        <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign In</h2>
+    // <MainLayout className="bg-gray-100 py-10">
+      <div className="container mx-auto px-4">
+        <div className="wrapper sign-in-form max-w-4xl mx-auto">
+          <div className="form-box">
+            <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign In</h2>
         <form onSubmit={handleSubmit}>
           <div className="input-box animation" style={{ "--i": 18, "--j": 1 } as any}>
             <input
@@ -93,9 +124,8 @@ export default function SignIn() {
                 checked={formData.rememberMe}
                 onChange={handleInputChange}
               />
-              Remember me
+              <span>Remember me</span>
             </label>
-            <br/>
             <button
               type="button"
               onClick={() => router.push('/auth/forgot-password')}
@@ -165,7 +195,9 @@ export default function SignIn() {
         <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>
           Sign in to access your account and continue your journey with us.
         </p>
+          </div>
+        </div>
       </div>
-    </div>
+    // </MainLayout>
   );
 }

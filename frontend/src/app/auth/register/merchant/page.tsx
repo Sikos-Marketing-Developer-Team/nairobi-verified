@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+// import MainLayout from "@/components/MainLayout";
 
 export default function MerchantRegister() {
   const [isActive, setIsActive] = useState(false);
@@ -53,6 +54,9 @@ export default function MerchantRegister() {
     setIsLoading(true);
 
     try {
+      // For development/demo purposes - simulate successful registration
+      // In production, uncomment the actual API call
+      /*
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register/merchant`, {
         method: "POST",
         headers: {
@@ -67,12 +71,28 @@ export default function MerchantRegister() {
         throw new Error(data.message || "Registration failed");
       }
 
-      setSuccess("Registration successful! Please check your email for verification.");
+      // Store token in localStorage
+      localStorage.setItem('token', data.token || "");
+      */
+      
+      // Demo mode - create a mock token
+      localStorage.setItem('token', 'merchant-demo-token-' + Math.random().toString(36).substring(2));
+      
+      setSuccess("Registration successful! Redirecting to complete your profile...");
+      
       setTimeout(() => {
-        router.push("/auth/signin");
-      }, 3000);
+        router.push("/vendor/profile");
+      }, 2000);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      if (error instanceof Error) {
+        if (error.message === 'Failed to fetch') {
+          setError("Cannot connect to server. Please try again later.");
+        } else {
+          setError(error.message);
+        }
+      } else {
+        setError("An unexpected error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -86,9 +106,11 @@ export default function MerchantRegister() {
   };
 
   return (
-    <div className="wrapper merchant-registration-form">
-      <div className="form-box merchant">
-        <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Merchant Registration</h2>
+    // <MainLayout className="bg-gray-100 py-10">
+      <div className="container mx-auto px-4">
+        <div className="wrapper merchant-registration-form max-w-4xl mx-auto">
+          <div className="form-box merchant">
+            <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Merchant Registration</h2>
         <p className="p text-sm mb-6 animation" style={{ "--i": 18, "--j": 1 } as any}>
           Join Nairobi Verified as a trusted merchant
         </p>
@@ -227,7 +249,9 @@ export default function MerchantRegister() {
         <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>Welcome!</h2>
         <hr className="my-4"/>
         <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>Join Nairobi Verified as a trusted merchant and grow your business.</p>
+          </div>
+        </div>
       </div>
-    </div>
+    // </MainLayout>
   );
 } 
