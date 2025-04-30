@@ -54,7 +54,7 @@ export default function MerchantRegister() {
     setIsLoading(true);
 
     try {
-      /* For development/demo purposes - simulate successful registration
+      //For development/demo purposes - simulate successful registration
       // In production, uncomment the actual API call
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register/merchant`, {
         method: "POST",
@@ -72,7 +72,7 @@ export default function MerchantRegister() {
 
       // Store token in localStorage
       localStorage.setItem('token', data.token || "");
-      */
+    
       
       // Demo mode - create a mock token
       localStorage.setItem('token', 'merchant-demo-token-' + Math.random().toString(36).substring(2));

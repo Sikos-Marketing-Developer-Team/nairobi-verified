@@ -27,7 +27,7 @@ export default function SignUp() {
     try {
       // For development/demo purposes - simulate successful registration
       // In production, uncomment the actual API call
-      /*
+      
       // Send registration request to backend
       const res = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/signup`, formData);
   
@@ -41,7 +41,7 @@ export default function SignUp() {
         // Redirect to dashboard after successful signup
         router.push("/dashboard");
       }
-      */
+      
       
       // Demo mode - create a mock token
       localStorage.setItem("token", "signup-demo-token-" + Math.random().toString(36).substring(2));
