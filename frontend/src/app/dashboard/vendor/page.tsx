@@ -7,7 +7,15 @@ import { FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
 
 export default function VendorDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  interface User {
+    companyName?: string;
+    location?: string;
+    phone?: string;
+    email?: string;
+    isEmailVerified: boolean;
+  }
+
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedSubscription, setSelectedSubscription] = useState('basic');
