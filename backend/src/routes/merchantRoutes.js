@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { isAuthenticated } = require('../middleware/authMiddleware');
+const { isAuthenticated, isEmailVerified } = require('../middleware/authMiddleware');
 const { 
   upload, 
   uploadDocuments, 
@@ -9,15 +9,16 @@ const {
 } = require('../controllers/merchantController');
 
 // Get merchant profile
-router.get('/profile', isAuthenticated, getMerchantProfile);
+router.get('/profile', isAuthenticated, isEmailVerified, getMerchantProfile);
 
 // Update merchant profile
-router.put('/profile', isAuthenticated, updateMerchantProfile);
+router.put('/profile', isAuthenticated, isEmailVerified, updateMerchantProfile);
 
 // Upload merchant documents
 router.post(
   '/upload-documents',
   isAuthenticated,
+  isEmailVerified,
   upload.fields([
     { name: 'businessRegistration', maxCount: 1 },
     { name: 'taxCertificate', maxCount: 1 },
@@ -26,4 +27,4 @@ router.post(
   uploadDocuments
 );
 
-module.exports = router; 
+module.exports = router;
