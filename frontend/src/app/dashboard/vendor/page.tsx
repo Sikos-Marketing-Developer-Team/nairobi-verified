@@ -1,21 +1,87 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useTheme } from '@/context/ThemeContext';
-import { FiMapPin, FiPhone, FiMail, FiGlobe, FiUpload, FiDollarSign, FiPackage, FiStar, FiTruck } from 'react-icons/fi';
-import { FaFacebook, FaTwitter, FaInstagram } from 'react-icons/fa';
-import Image from 'next/image';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { FiMapPin, FiPhone, FiMail, FiGlobe, FiUpload, FiDollarSign, FiPackage, FiStar, FiTruck } from "react-icons/fi";
+import { FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
 
 export default function VendorDashboard() {
-  const { theme } = useTheme();
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [selectedSubscription, setSelectedSubscription] = useState('basic');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user`, {
+          method: "GET",
+          credentials: "include",
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user");
+        }
+        if (!data.user.isEmailVerified) {
+          router.push('/auth/verify-email');
+          return;
+        }
+        setUser(data.user);
+      } catch (err) {
+        setError("Failed to load user data. Please sign in again.");
+        router.push('/auth/signin');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, [router]);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const files = Array.from(event.target.files);
+      setUploadedFiles(files);
+      try {
+        const formData = new FormData();
+        files.forEach((file, index) => {
+          const field = index === 0 ? 'businessRegistration' : index === 1 ? 'taxCertificate' : 'idDocument';
+          formData.append(field, file);
+        });
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/upload-documents`, {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Upload failed");
+        }
+        alert('Documents uploaded successfully');
+      } catch (err) {
+        setError('Failed to upload documents');
+      }
+    }
+  };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
+  }
+
+  if (!user) {
+    return null;
+  }
+
   const storeDetails = {
-    name: 'Electronics Hub',
-    location: 'Westlands, Nairobi',
-    phone: '+254 712 345 678',
-    email: 'contact@electronicshub.com',
+    name: user.companyName || 'Electronics Hub',
+    location: user.location || 'Westlands, Nairobi',
+    phone: user.phone || '+254 712 345 678',
+    email: user.email || 'contact@electronicshub.com',
     website: 'www.electronicshub.com',
     social: {
       facebook: 'electronicsHub',
@@ -53,17 +119,9 @@ export default function VendorDashboard() {
     }
   ];
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      setUploadedFiles(Array.from(event.target.files));
-    }
-  };
-
   return (
     <div className="p-4 md:p-6 space-y-8">
       <h1 className="text-2xl md:text-3xl font-bold mb-8">Vendor Dashboard</h1>
-
-      {/* Store Profile Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="dashboard-card">
           <h2 className="text-xl font-semibold mb-6">Store Details</h2>
@@ -97,7 +155,6 @@ export default function VendorDashboard() {
             </div>
           </div>
         </div>
-
         <div className="dashboard-card">
           <h2 className="text-xl font-semibold mb-6">Business Verification</h2>
           <div className="space-y-4">
@@ -118,7 +175,6 @@ export default function VendorDashboard() {
                 Select File
               </label>
             </div>
-
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
               <FiUpload className="mx-auto h-12 w-12 text-gray-400" />
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Upload Store Photos</p>
@@ -140,8 +196,6 @@ export default function VendorDashboard() {
           </div>
         </div>
       </div>
-
-      {/* Subscription Plans */}
       <div className="dashboard-card">
         <h2 className="text-xl font-semibold mb-6">Subscription Plans</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -180,8 +234,6 @@ export default function VendorDashboard() {
           ))}
         </div>
       </div>
-
-      {/* Premium Features */}
       {selectedSubscription === 'premium' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="dashboard-card">
@@ -189,24 +241,17 @@ export default function VendorDashboard() {
               <h2 className="text-xl font-semibold">Transaction Tracking</h2>
               <FiPackage className="text-orange-500 w-6 h-6" />
             </div>
-            <div className="space-y-4">
-              {/* Add transaction tracking content */}
-            </div>
+            <div className="space-y-4">{/* Add transaction tracking content */}</div>
           </div>
-
           <div className="dashboard-card">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Parcel Tracking</h2>
               <FiTruck className="text-orange-500 w-6 h-6" />
             </div>
-            <div className="space-y-4">
-              {/* Add parcel tracking content */}
-            </div>
+            <div className="space-y-4">{/* Add parcel tracking content */}</div>
           </div>
         </div>
       )}
-
-      {/* Reviews Section */}
       <div className="dashboard-card">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Customer Reviews</h2>
@@ -216,12 +261,8 @@ export default function VendorDashboard() {
             <span className="text-gray-500 dark:text-gray-400 ml-2">({storeDetails.reviews} reviews)</span>
           </div>
         </div>
-        <div className="space-y-4">
-          {/* Add reviews content */}
-        </div>
+        <div className="space-y-4">{/* Add reviews content */}</div>
       </div>
-
-      {/* Google My Business Integration */}
       <div className="dashboard-card">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Google My Business</h2>
@@ -236,4 +277,4 @@ export default function VendorDashboard() {
       </div>
     </div>
   );
-} 
+}

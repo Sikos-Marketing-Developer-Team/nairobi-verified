@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
-// import MainLayout from "@/components/MainLayout";
 
 export default function SignIn() {
   const [isActive, setIsActive] = useState(false);
@@ -29,52 +27,35 @@ export default function SignIn() {
     setError("");
     setIsLoading(true);
     try {
-      // For development/demo purposes - simulate successful login
-      // In production, uncomment the actual API call
-      
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
-        username: formData.username,
-        password: formData.password,
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+          rememberMe: formData.rememberMe,
+        }),
       });
-      localStorage.setItem('token', res.data.token);
-      
-      
-      // Demo mode - create a mock token
-      localStorage.setItem('token', 'demo-token-' + Math.random().toString(36).substring(2));
-      
-      // Check user type based on username for demo
-      if (formData.username.toLowerCase().includes('vendor') || 
-          formData.username.toLowerCase().includes('merchant')) {
-        router.push("/vendor/dashboard");
-      } else {
-        router.push("/dashboard");
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
       }
+
+      const redirectUrl = data.user.role === 'merchant' ? '/vendor/dashboard' : '/dashboard';
+      router.push(redirectUrl);
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.data?.message) {
-          setError(error.response.data.message);
-        } else if (error.message === 'Network Error') {
-          setError("Cannot connect to server. Please try again later.");
-        } else {
-          setError("Sign in failed: " + error.message);
-        }
-      } else {
-        setError("An unexpected error occurred");
-      }
+      setError(error instanceof Error ? error.message : "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = () => {
-    // For development/demo purposes - simulate successful Google login
-    // In production, uncomment the actual redirect
-    
     window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
-    
-    // Demo mode - create a mock token and redirect
-    localStorage.setItem('token', 'google-demo-token-' + Math.random().toString(36).substring(2));
-    router.push("/dashboard");
   };
 
   const handleRegisterClick = (type: 'client' | 'merchant') => {
@@ -85,118 +66,108 @@ export default function SignIn() {
   };
 
   return (
-    // <MainLayout className="bg-gray-100 py-10">
-      <div className="container mx-auto px-4">
-        <div className="wrapper sign-in-form max-w-4xl mx-auto">
-          <div className="form-box">
-            <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign In</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="input-box animation" style={{ "--i": 18, "--j": 1 } as any}>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleInputChange}
-              required
-            />
-            <label>Username or Email</label>
-            <i className="bx bxs-user"></i>
-          </div>
-
-          <div className="input-box animation" style={{ "--i": 19, "--j": 2 } as any}>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-            />
-            <label>Password</label>
-            <i className="bx bxs-lock-alt"></i>
-          </div>
-
-          <div className="remember-forgot animation" style={{ "--i": 20, "--j": 3 } as any}>
-            <label>
+    <div className="container mx-auto px-4">
+      <div className="wrapper sign-in-form max-w-4xl mx-auto">
+        <div className="form-box">
+          <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign In</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="input-box animation" style={{ "--i": 18, "--j": 1 } as any}>
               <input
-                type="checkbox"
-                name="rememberMe"
-                checked={formData.rememberMe}
+                type="text"
+                name="username"
+                value={formData.username}
                 onChange={handleInputChange}
+                required
               />
-              <span>Remember me</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => router.push('/auth/forgot-password')}
-              className="forgot-password"
-            >
-              Forgot Password?
-            </button>
-          </div>
-
-          {error && (
-            <p className="text-red-500 text-sm mb-4 animation" style={{ "--i": 21, "--j": 4 } as any}>
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            className="btn animation"
-            style={{ "--i": 22, "--j": 5 } as any}
-            disabled={isLoading}
-          >
-            {isLoading ? "Signing in..." : "Sign In"}
-          </button>
-
-          <div className="divider animation" style={{ "--i": 23, "--j": 6 } as any}>
-            <span>or</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            className="google-btn animation"
-            style={{ "--i": 24, "--j": 7 } as any}
-          >
-            <i className="bx bxl-google"></i>
-            Continue with Google
-          </button>
-
-          <div className="register-link animation" style={{ "--i": 25, "--j": 8 } as any}>
-            <p>
-             <span> Don't have an account?</span><br/>
-              Register as <button
-                type="button"
-                onClick={() => handleRegisterClick('client')}
-                className="register-btn"
-                title="Client"
-              >
-                 Client
-              </button>
-              {" or "}
+              <label>Username or Email</label>
+              <i className="bx bxs-user"></i>
+            </div>
+            <div className="input-box animation" style={{ "--i": 19, "--j": 2 } as any}>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+              />
+              <label>Password</label>
+              <i className="bx bxs-lock-alt"></i>
+            </div>
+            <div className="remember-forgot animation" style={{ "--i": 20, "--j": 3 } as any}>
+              <label>
+                <input
+                  type="checkbox"
+                  name="rememberMe"
+                  checked={formData.rememberMe}
+                  onChange={handleInputChange}
+                />
+                <span>Remember me</span>
+              </label>
               <button
                 type="button"
-                onClick={() => handleRegisterClick('merchant')}
-                className="register-btn"
-                title="Merchant"
+                onClick={() => router.push('/auth/forgot-password')}
+                className="forgot-password"
               >
-                Merchant
+                Forgot Password?
               </button>
-            </p>
-          </div>
-        </form>
-      </div>
-
-      <div className="info-text">
-        <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>Welcome Back!</h2>
-        <hr className="my-4"/>
-        <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>
-          Sign in to access your account and continue your journey with us.
-        </p>
-          </div>
+            </div>
+            {error && (
+              <p className="text-red-500 text-sm mb-4 animation" style={{ "--i": 21, "--j": 4 } as any}>
+                {error}
+              </p>
+            )}
+            <button
+              type="submit"
+              className="btn animation"
+              style={{ "--i": 22, "--j": 5 } as any}
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing in..." : "Sign In"}
+            </button>
+            <div className="divider animation" style={{ "--i": 23, "--j": 6 } as any}>
+              <span>or</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="google-btn animation"
+              style={{ "--i": 24, "--j": 7 } as any}
+            >
+              <i className="bx bxl-google"></i>
+              Continue with Google
+            </button>
+            <div className="register-link animation" style={{ "--i": 25, "--j": 8 } as any}>
+              <p>
+                <span>Don't have an account?</span><br/>
+                Register as <button
+                  type="button"
+                  onClick={() => handleRegisterClick('client')}
+                  className="register-btn"
+                  title="Client"
+                >
+                  Client
+                </button>
+                {" or "}
+                <button
+                  type="button"
+                  onClick={() => handleRegisterClick('merchant')}
+                  className="register-btn"
+                  title="Merchant"
+                >
+                  Merchant
+                </button>
+              </p>
+            </div>
+          </form>
+        </div>
+        <div className="info-text">
+          <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>Welcome Back!</h2>
+          <hr className="my-4"/>
+          <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>
+            Sign in to access your account and continue your journey with us.
+          </p>
         </div>
       </div>
-    // </MainLayout>
+    </div>
   );
 }
