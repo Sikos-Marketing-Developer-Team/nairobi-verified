@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import api from '@/utils/api';
 
 export default function VerifyEmail() {
   const [email, setEmail] = useState("");
@@ -16,7 +15,19 @@ export default function VerifyEmail() {
     setIsLoading(true);
 
     try {
-      const data = await api.post('/api/auth/send-verification', { email });
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/send-verification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Request failed");
+      }
       setMessage(data.message);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");

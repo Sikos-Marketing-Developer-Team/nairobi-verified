@@ -12,13 +12,12 @@ const {
   resendVerificationEmail,
   verifyEmail
 } = require('../controllers/authController');
-const { isAuthenticated } = require('../middleware/authMiddleware');
-const jwt = require('jsonwebtoken');
+const { isAuthenticated, isEmailVerified } = require('../middleware/authMiddleware');
 
 // Registration routes
 router.post('/register/client', registerClient);
 router.post('/register/merchant', registerMerchant);
-router.post('/signup', registerClient); // Add this route to match frontend expectation
+router.post('/signup', registerClient);
 
 // Login route
 router.post('/login', login);
@@ -37,35 +36,28 @@ router.get(
   '/google/callback',
   passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/auth/signin`, session: false }),
   (req, res) => {
-    const token = req.user.token; // From passport.js
-    res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
+    const token = req.user.token;
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+    const redirectUrl = req.user.isEmailVerified ? 
+      (req.user.role === 'merchant' ? `${process.env.FRONTEND_URL}/vendor/dashboard` : `${process.env.FRONTEND_URL}/dashboard`) :
+      `${process.env.FRONTEND_URL}/auth/verify-email`;
+    res.redirect(redirectUrl);
   }
 );
 
-// Get current user route (JWT-based)
-router.get('/user', (req, res) => {
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) return res.status(401).json({ message: 'Not authenticated' });
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ message: 'Invalid token' });
-    User.findById(decoded.userId)
-      .then(user => {
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.json({
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          photo: user.google?.picture,
-        });
-      })
-      .catch(() => res.status(500).json({ message: 'Server error' }));
-  });
-});
+// Get current user route
+router.get('/user', isAuthenticated, getCurrentUser);
 
 // Logout route
-router.post('/logout', logout);
+router.post('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ message: 'Logged out successfully' });
+});
 
 // Authenticated user info
 router.get('/me', isAuthenticated, getCurrentUser);
