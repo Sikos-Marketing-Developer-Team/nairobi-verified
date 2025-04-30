@@ -42,7 +42,7 @@ export default function ClientRegister() {
     try {
       // For development/demo purposes - simulate successful registration
       // In production, uncomment the actual API call
-      /*
+      
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register/client`, {
         method: "POST",
         headers: {
@@ -56,7 +56,7 @@ export default function ClientRegister() {
       if (!response.ok) {
         throw new Error(data.message || "Registration failed");
       }
-      */
+      
       
       setSuccess("Registration successful! Please check your email for verification.");
       

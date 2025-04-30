@@ -31,13 +31,13 @@ export default function SignIn() {
     try {
       // For development/demo purposes - simulate successful login
       // In production, uncomment the actual API call
-      /*
+      
       const res = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
         username: formData.username,
         password: formData.password,
       });
       localStorage.setItem('token', res.data.token);
-      */
+      
       
       // Demo mode - create a mock token
       localStorage.setItem('token', 'demo-token-' + Math.random().toString(36).substring(2));
@@ -69,9 +69,8 @@ export default function SignIn() {
   const handleGoogleSignIn = () => {
     // For development/demo purposes - simulate successful Google login
     // In production, uncomment the actual redirect
-    /*
+    
     window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
-    */
     
     // Demo mode - create a mock token and redirect
     localStorage.setItem('token', 'google-demo-token-' + Math.random().toString(36).substring(2));
