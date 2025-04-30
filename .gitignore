@@ -1,3 +1,5 @@
 node_modules
 .env
 *.log
+Desktop.ini
+playground-1.mongodb.js
