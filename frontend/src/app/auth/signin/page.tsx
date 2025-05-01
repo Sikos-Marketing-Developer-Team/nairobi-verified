@@ -46,12 +46,17 @@ export default function SignIn() {
       }
 
       const redirectUrl = data.user.role === 'merchant' ? '/vendor/dashboard' : '/dashboard';
-      router.push(redirectUrl);
+console.log('Redirecting to:', redirectUrl);
+setTimeout(() => {
+  router.replace(redirectUrl); // Use replace instead of push to avoid adding to history
+}, 100);
     } catch (error) {
       setError(error instanceof Error ? error.message : "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
+
+    
   };
 
   const handleGoogleSignIn = () => {
