@@ -45,18 +45,14 @@ export default function SignIn() {
         throw new Error(data.message || "Login failed");
       }
 
-      const redirectUrl = data.user.role === 'merchant' ? '/vendor/dashboard' : '/dashboard';
-console.log('Redirecting to:', redirectUrl);
-setTimeout(() => {
-  router.replace(redirectUrl); // Use replace instead of push to avoid adding to history
-}, 100);
+      const redirectUrl = data.user.role === 'merchant' ? '/vendor/profile' : '/dashboard';
+      console.log("Redirecting to:", redirectUrl);
+      router.push(redirectUrl);
     } catch (error) {
       setError(error instanceof Error ? error.message : "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
-
-    
   };
 
   const handleGoogleSignIn = () => {
