@@ -1,8 +1,7 @@
 // Testing
-
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function SignIn() {
@@ -15,6 +14,32 @@ export default function SignIn() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/check`, {
+          credentials: "include",
+        });
+        
+        const data = await response.json();
+        if (data.isAuthenticated) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+          redirectUser(data.user.role);
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error);
+      }
+    };
+
+    checkAuthStatus();
+  }, []);
+
+  const redirectUser = (role: string) => {
+    const redirectUrl = role === 'merchant' ? '/vendor/profile' : '/dashboard';
+    window.location.href = redirectUrl;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -49,20 +74,20 @@ export default function SignIn() {
         throw new Error(data.message || "Login failed");
       }
 
-      // Debugging - log the response
       console.log("Login response:", data);
 
-      // Ensure the response contains user role
       if (!data.user?.role) {
         throw new Error("User role not found in response");
       }
 
-      // Force hard redirect instead of client-side navigation
-      if (data.user.role === 'merchant') {
-        window.location.assign('/vendor/profile');
-      } else {
-        window.location.assign('/dashboard');
-      }
+      // Store user data in localStorage
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Wait briefly to ensure cookie is set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Redirect based on role
+      redirectUser(data.user.role);
 
     } catch (error) {
       setError(error instanceof Error ? error.message : "An unexpected error occurred");
