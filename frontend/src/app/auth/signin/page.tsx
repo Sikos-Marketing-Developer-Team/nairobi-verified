@@ -26,6 +26,7 @@ export default function SignIn() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+    
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
         method: "POST",
@@ -41,16 +42,28 @@ export default function SignIn() {
       });
 
       const data = await response.json();
+      
       if (!response.ok) {
         throw new Error(data.message || "Login failed");
       }
 
-      const redirectUrl = data.user.role === 'merchant' ? '/vendor/profile' : '/dashboard';
-      console.log("Redirecting to:", redirectUrl);
-      router.push(redirectUrl);
+      // Debugging - log the response
+      console.log("Login response:", data);
+
+      // Ensure the response contains user role
+      if (!data.user?.role) {
+        throw new Error("User role not found in response");
+      }
+
+      // Force hard redirect instead of client-side navigation
+      if (data.user.role === 'merchant') {
+        window.location.assign('/vendor/profile');
+      } else {
+        window.location.assign('/dashboard');
+      }
+
     } catch (error) {
       setError(error instanceof Error ? error.message : "An unexpected error occurred");
-    } finally {
       setIsLoading(false);
     }
   };
