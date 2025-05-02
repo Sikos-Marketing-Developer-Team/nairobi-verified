@@ -1,5 +1,3 @@
-// testing
-
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -7,17 +5,6 @@ const User = require('../models/User');
 const { sendVerificationEmail } = require('../utils/emailService');
 require("dotenv").config({ path: './src/.env' });
 
-// Helper function for setting cookies
-const setAuthCookie = (res, token, rememberMe) => {
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax', // Changed from 'strict' for better cross-origin support
-    maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
-    domain: process.env.COOKIE_DOMAIN || undefined,
-    path: '/'
-  });
-};
 
 const registerClient = async (req, res) => {
   try {
@@ -84,7 +71,7 @@ const registerMerchant = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { username, password, rememberMe } = req.body;
-    const user = await User.findOne({ $or: [{ email: username }, { fullName: username }] }).select('+password');
+    const user = await User.findOne({ $or: [{ email: username }, { fullName: username }] });
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -94,23 +81,19 @@ const login = async (req, res) => {
       return res.status(403).json({ message: 'Please verify your email first' });
     }
 
-    const token = jwt.sign(
-      { userId: user._id, role: user.role }, // Include role in JWT
-      process.env.JWT_SECRET,
-      { expiresIn: rememberMe ? '30d' : '24h' }
-    );
-
-    setAuthCookie(res, token, rememberMe);
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: rememberMe ? '30d' : '24h'
+    });
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000
+    });
 
     res.status(200).json({
       message: 'Login successful',
-      user: { 
-        id: user._id, 
-        fullName: user.fullName, 
-        email: user.email, 
-        phone: user.phone, 
-        role: user.role 
-      }
+      user: { id: user._id, fullName: user.fullName, email: user.email, phone: user.phone, role: user.role }
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -134,43 +117,21 @@ const verifyEmail = async (req, res) => {
     user.emailVerificationExpires = undefined;
     await user.save();
 
-    const tokenJwt = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    setAuthCookie(res, tokenJwt, false);
+    const tokenJwt = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    res.cookie('token', tokenJwt, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000
+    });
 
-    const redirectUrl = user.role === 'merchant' 
-      ? `${process.env.FRONTEND_URL}/vendor/profile` 
-      : `${process.env.FRONTEND_URL}/dashboard`;
-    
+    const redirectUrl = user.role === 'merchant' ? 
+      `${process.env.FRONTEND_URL}/vendor/dashboard` : 
+      `${process.env.FRONTEND_URL}/dashboard`;
     res.redirect(redirectUrl);
   } catch (error) {
     console.error('Email verification error:', error);
     res.status(500).json({ message: 'Error verifying email' });
-  }
-};
-
-const checkAuth = async (req, res) => {
-  try {
-    if (!req.user) return res.status(401).json({ isAuthenticated: false });
-    
-    const user = await User.findById(req.user._id).select('-password');
-    if (!user) return res.status(404).json({ isAuthenticated: false });
-    
-    res.status(200).json({
-      isAuthenticated: true,
-      user: {
-        id: user._id,
-        role: user.role,
-        email: user.email,
-        fullName: user.fullName
-      }
-    });
-  } catch (error) {
-    console.error('Auth check error:', error);
-    res.status(500).json({ message: 'Authentication check failed' });
   }
 };
 
@@ -237,10 +198,7 @@ const resendVerificationEmail = async (req, res) => {
 };
 
 const logout = (req, res) => {
-  res.clearCookie('token', {
-    domain: process.env.COOKIE_DOMAIN || undefined,
-    path: '/'
-  });
+  res.clearCookie('token');
   res.status(200).json({ message: 'Logged out successfully' });
 };
 
@@ -260,7 +218,6 @@ module.exports = {
   registerMerchant,
   login,
   verifyEmail,
-  checkAuth,
   requestPasswordReset,
   resetPassword,
   resendVerificationEmail,
