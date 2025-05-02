@@ -126,7 +126,7 @@ const verifyEmail = async (req, res) => {
     });
 
     const redirectUrl = user.role === 'merchant' ? 
-      `${process.env.FRONTEND_URL}/vendor/dashboard` : 
+      `${process.env.FRONTEND_URL}/vendor/profile` : 
       `${process.env.FRONTEND_URL}/dashboard`;
     res.redirect(redirectUrl);
   } catch (error) {
