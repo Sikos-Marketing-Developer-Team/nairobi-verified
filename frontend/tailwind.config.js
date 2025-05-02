@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
+    "./src/**/*.{html,js,ts,jsx,tsx}", // Adjust paths to match your project structure
     "./src/**/*.{js,ts,jsx,tsx}", // Include all JS/TS files in src
     "./app/**/*.{js,ts,jsx,tsx}", // Include Next.js app directory
     "./components/**/*.{js,ts,jsx,tsx}", // Include components

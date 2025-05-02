@@ -1,9 +1,8 @@
 import './globals.css';
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
-import { ThemeProviderWrapper } from "../components/ThemeProviderWrapper"; // Adjust the path as needed
-
+import { ThemeProviderWrapper } from "../components/ThemeProviderWrapper";
+import { ThemeToggle } from "../components/ThemeToggle"; // Import the ThemeToggle
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,9 +19,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+        <link
+          href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
+          rel="stylesheet"
+        />
       </head>
       <body className={inter.className}>
+         {/* You can place the ThemeToggle button wherever you want */}
+         <ThemeToggle />
         <ThemeProviderWrapper>
           {children}
         </ThemeProviderWrapper>
