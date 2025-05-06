@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function SignIn() {
@@ -12,9 +12,7 @@ export default function SignIn() {
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -26,8 +24,6 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isLoading) return;
-
     setError("");
     setIsLoading(true);
 
@@ -46,7 +42,6 @@ export default function SignIn() {
       });
 
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.message || "Login failed");
       }
@@ -70,14 +65,8 @@ export default function SignIn() {
   };
 
   const handleRegisterClick = (type: "client" | "merchant") => {
-
     router.push(`/auth/register/${type}`);
-
   };
-
-  if (isCheckingAuth) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="container mx-auto px-4">
