@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 export default function SignIn() {
   const [formData, setFormData] = useState({
@@ -51,7 +50,7 @@ export default function SignIn() {
       }
 
       // Redirect based on role
-      const redirectUrl = data.user.role === "merchant" ? "/vendor/auth-details" : "/dashboard";
+      const redirectUrl = data.user.role === "merchant" ? "/vendor/profile" : "/dashboard";
       router.push(redirectUrl);
     } catch (error) {
       setError(error instanceof Error ? error.message : "An unexpected error occurred");
