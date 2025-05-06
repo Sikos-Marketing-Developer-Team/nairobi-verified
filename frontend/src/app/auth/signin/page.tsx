@@ -22,10 +22,10 @@ export default function SignIn() {
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/check`, {
           credentials: "include",
         });
-        
+
         const data = await response.json();
         if (data.isAuthenticated) {
-          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem("user", JSON.stringify(data.user));
           redirectUser(data.user.role);
         }
       } catch (error) {
@@ -37,23 +37,26 @@ export default function SignIn() {
   }, []);
 
   const redirectUser = (role: string) => {
-    const redirectUrl = role === 'merchant' ? '/vendor/profile' : '/dashboard';
-    window.location.href = redirectUrl;
+    const redirectUrl = role === "merchant" ? "/vendor/profile" : "/dashboard";
+    router.push(redirectUrl);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (isLoading) return;
+
     setError("");
     setIsLoading(true);
-    
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
         method: "POST",
@@ -69,24 +72,18 @@ export default function SignIn() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
+        console.error("Login error response:", data);
         throw new Error(data.message || "Login failed");
       }
-
-      console.log("Login response:", data);
 
       if (!data.user?.role) {
         throw new Error("User role not found in response");
       }
 
-      // Store user data in localStorage
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Wait briefly to ensure cookie is set
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Redirect based on role
+      localStorage.setItem("user", JSON.stringify(data.user));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       redirectUser(data.user.role);
 
     } catch (error) {
@@ -99,7 +96,7 @@ export default function SignIn() {
     window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
   };
 
-  const handleRegisterClick = (type: 'client' | 'merchant') => {
+  const handleRegisterClick = (type: "client" | "merchant") => {
     setIsActive(true);
     setTimeout(() => {
       router.push(`/auth/register/${type}`);
@@ -108,7 +105,7 @@ export default function SignIn() {
 
   return (
     <div className="container mx-auto px-4">
-      <div className="wrapper sign-in-form max-w-4xl mx-auto">
+      <div className={`wrapper sign-in-form max-w-4xl mx-auto ${isActive ? "active" : ""}`}>
         <div className="form-box">
           <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign In</h2>
           <form onSubmit={handleSubmit}>
@@ -146,7 +143,7 @@ export default function SignIn() {
               </label>
               <button
                 type="button"
-                onClick={() => router.push('/auth/forgot-password')}
+                onClick={() => router.push("/auth/forgot-password")}
                 className="forgot-password"
               >
                 Forgot Password?
@@ -179,10 +176,11 @@ export default function SignIn() {
             </button>
             <div className="register-link animation" style={{ "--i": 25, "--j": 8 } as any}>
               <p>
-                <span>Don't have an account?</span><br/>
-                Register as <button
+                <span>Don't have an account?</span><br />
+                Register as{" "}
+                <button
                   type="button"
-                  onClick={() => handleRegisterClick('client')}
+                  onClick={() => handleRegisterClick("client")}
                   className="register-btn"
                   title="Client"
                 >
@@ -191,7 +189,7 @@ export default function SignIn() {
                 {" or "}
                 <button
                   type="button"
-                  onClick={() => handleRegisterClick('merchant')}
+                  onClick={() => handleRegisterClick("merchant")}
                   className="register-btn"
                   title="Merchant"
                 >
@@ -203,7 +201,7 @@ export default function SignIn() {
         </div>
         <div className="info-text">
           <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>Welcome Back!</h2>
-          <hr className="my-4"/>
+          <hr className="my-4" />
           <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>
             Sign in to access your account and continue your journey with us.
           </p>
