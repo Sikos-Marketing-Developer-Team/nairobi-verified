@@ -1,8 +1,7 @@
-// Testing
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function SignIn() {
   const [isActive, setIsActive] = useState(false);
@@ -13,32 +12,44 @@ export default function SignIn() {
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
-  // Check if user is already logged in
   useEffect(() => {
+    let isMounted = true;
+
     const checkAuthStatus = async () => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/check`, {
           credentials: "include",
         });
-
         const data = await response.json();
-        if (data.isAuthenticated) {
+        console.log("Auth check response:", data);
+        if (data.isAuthenticated && isMounted) {
           localStorage.setItem("user", JSON.stringify(data.user));
           redirectUser(data.user.role);
         }
       } catch (error) {
         console.error("Auth check failed:", error);
+      } finally {
+        if (isMounted) setIsCheckingAuth(false);
       }
     };
 
     checkAuthStatus();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const redirectUser = (role: string) => {
     const redirectUrl = role === "merchant" ? "/vendor/profile" : "/dashboard";
-    router.push(redirectUrl);
+    if (pathname !== redirectUrl) {
+      console.log("Redirecting to:", redirectUrl);
+      router.push(redirectUrl);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,7 +62,6 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (isLoading) return;
 
     setError("");
@@ -74,7 +84,6 @@ export default function SignIn() {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Login error response:", data);
         throw new Error(data.message || "Login failed");
       }
 
@@ -85,7 +94,6 @@ export default function SignIn() {
       localStorage.setItem("user", JSON.stringify(data.user));
       await new Promise((resolve) => setTimeout(resolve, 100));
       redirectUser(data.user.role);
-
     } catch (error) {
       setError(error instanceof Error ? error.message : "An unexpected error occurred");
       setIsLoading(false);
@@ -103,11 +111,17 @@ export default function SignIn() {
     }, 400);
   };
 
+  if (isCheckingAuth) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="container mx-auto px-4">
       <div className={`wrapper sign-in-form max-w-4xl mx-auto ${isActive ? "active" : ""}`}>
         <div className="form-box">
-          <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>Sign In</h2>
+          <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>
+            Sign In
+          </h2>
           <form onSubmit={handleSubmit}>
             <div className="input-box animation" style={{ "--i": 18, "--j": 1 } as any}>
               <input
@@ -176,7 +190,8 @@ export default function SignIn() {
             </button>
             <div className="register-link animation" style={{ "--i": 25, "--j": 8 } as any}>
               <p>
-                <span>Don't have an account?</span><br />
+                <span>Don't have an account?</span>
+                <br />
                 Register as{" "}
                 <button
                   type="button"
@@ -200,7 +215,9 @@ export default function SignIn() {
           </form>
         </div>
         <div className="info-text">
-          <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>Welcome Back!</h2>
+          <h2 className="animation well" style={{ "--i": 0, "--j": 17 } as any}>
+            Welcome Back!
+          </h2>
           <hr className="my-4" />
           <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>
             Sign in to access your account and continue your journey with us.
