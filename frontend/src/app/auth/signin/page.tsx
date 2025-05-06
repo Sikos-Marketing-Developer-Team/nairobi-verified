@@ -63,6 +63,7 @@ export default function SignIn() {
   const handleGoogleSignIn = () => {
     window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
   };
+  // 
 
   const handleRegisterClick = (type: "client" | "merchant") => {
     router.push(`/auth/register/${type}`);
