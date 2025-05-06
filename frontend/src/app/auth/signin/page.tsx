@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function SignIn() {
-  const [isActive, setIsActive] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -15,42 +15,6 @@ export default function SignIn() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const checkAuthStatus = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/check`, {
-          credentials: "include",
-        });
-        const data = await response.json();
-        console.log("Auth check response:", data);
-        if (data.isAuthenticated && isMounted) {
-          localStorage.setItem("user", JSON.stringify(data.user));
-          redirectUser(data.user.role);
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-      } finally {
-        if (isMounted) setIsCheckingAuth(false);
-      }
-    };
-
-    checkAuthStatus();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const redirectUser = (role: string) => {
-    const redirectUrl = role === "merchant" ? "/vendor/profile" : "/dashboard";
-    if (pathname !== redirectUrl) {
-      console.log("Redirecting to:", redirectUrl);
-      router.push(redirectUrl);
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -91,11 +55,12 @@ export default function SignIn() {
         throw new Error("User role not found in response");
       }
 
-      localStorage.setItem("user", JSON.stringify(data.user));
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      redirectUser(data.user.role);
+      // Redirect based on role
+      const redirectUrl = data.user.role === "merchant" ? "/vendor/auth-details" : "/dashboard";
+      router.push(redirectUrl);
     } catch (error) {
       setError(error instanceof Error ? error.message : "An unexpected error occurred");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -105,10 +70,9 @@ export default function SignIn() {
   };
 
   const handleRegisterClick = (type: "client" | "merchant") => {
-    setIsActive(true);
-    setTimeout(() => {
-      router.push(`/auth/register/${type}`);
-    }, 400);
+
+    router.push(`/auth/register/${type}`);
+
   };
 
   if (isCheckingAuth) {
@@ -192,7 +156,7 @@ export default function SignIn() {
               <p>
                 <span>Don't have an account?</span>
                 <br />
-                Register as{" "}
+                Register as
                 <button
                   type="button"
                   onClick={() => handleRegisterClick("client")}
