@@ -12,7 +12,9 @@ export default function SignIn() {
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -24,6 +26,8 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isLoading) return;
+
     setError("");
     setIsLoading(true);
 
@@ -42,6 +46,7 @@ export default function SignIn() {
       });
 
       const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.message || "Login failed");
       }
@@ -65,12 +70,18 @@ export default function SignIn() {
   };
 
   const handleRegisterClick = (type: "client" | "merchant") => {
+
     router.push(`/auth/register/${type}`);
+
   };
+
+  if (isCheckingAuth) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="container mx-auto px-4">
-      <div className="wrapper sign-in-form max-w-4xl mx-auto">
+      <div className={`wrapper sign-in-form max-w-4xl mx-auto ${isActive ? "active" : ""}`}>
         <div className="form-box">
           <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>
             Sign In
