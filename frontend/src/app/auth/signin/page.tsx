@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 
 export default function SignIn() {
@@ -81,7 +81,7 @@ export default function SignIn() {
 
   return (
     <div className="container mx-auto px-4">
-      <div className={`wrapper sign-in-form max-w-4xl mx-auto ${isActive ? "active" : ""}`}>
+      <div className="wrapper sign-in-form max-w-4xl mx-auto">
         <div className="form-box">
           <h2 className="title animation" style={{ "--i": 17, "--j": 0 } as any}>
             Sign In
