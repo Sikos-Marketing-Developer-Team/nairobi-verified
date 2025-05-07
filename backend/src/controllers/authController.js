@@ -5,7 +5,6 @@ const User = require('../models/User');
 const { sendVerificationEmail } = require('../utils/emailService');
 require("dotenv").config({ path: './src/.env' });
 
-
 const registerClient = async (req, res) => {
   try {
     const { fullName, email, phone, password } = req.body;
@@ -101,6 +100,35 @@ const login = async (req, res) => {
   }
 };
 
+const checkAuth = async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) {
+      return res.status(401).json({ isAuthenticated: false });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+    if (!user) {
+      return res.status(401).json({ isAuthenticated: false });
+    }
+
+    res.status(200).json({
+      isAuthenticated: true,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Auth check error:', error);
+    res.status(401).json({ isAuthenticated: false });
+  }
+};
+
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
@@ -126,7 +154,7 @@ const verifyEmail = async (req, res) => {
     });
 
     const redirectUrl = user.role === 'merchant' ? 
-      `${process.env.FRONTEND_URL}/vendor/profile` : 
+      `${process.env.FRONTEND_URL}/vendor/dashboard` : 
       `${process.env.FRONTEND_URL}/dashboard`;
     res.redirect(redirectUrl);
   } catch (error) {
@@ -217,6 +245,7 @@ module.exports = {
   registerClient,
   registerMerchant,
   login,
+  checkAuth,
   verifyEmail,
   requestPasswordReset,
   resetPassword,

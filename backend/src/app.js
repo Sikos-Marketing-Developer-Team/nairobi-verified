@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
 const passport = require('./config/passport');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/Auth');
@@ -23,22 +22,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Session configuration (in-memory for now)
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'strict',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
-
 // Initialize Passport
 app.use(passport.initialize());
-app.use(passport.session());
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
