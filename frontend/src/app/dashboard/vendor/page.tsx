@@ -7,7 +7,7 @@ import { FiMapPin, FiPhone, FiMail, FiGlobe, FiUpload, FiDollarSign, FiPackage, 
 import { FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
 
 export default function VendorDashboard() {
-  const { user, isAuthenticated, isLoading } = useAuth('merchant');
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [selectedSubscription, setSelectedSubscription] = useState('basic');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
@@ -47,8 +47,8 @@ export default function VendorDashboard() {
   };
 
   const storeDetails = {
-    name: user.companyName || 'Electronics Hub',
-    location: user.location || 'Westlands, Nairobi',
+    name: user.displayName || 'Electronics Hub',
+    location: 'Westlands, Nairobi',
     phone: user.phone || '+254 712 345 678',
     email: user.email || 'contact@electronicshub.com',
     website: 'www.electronicshub.com',
