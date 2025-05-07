@@ -149,7 +149,7 @@ const verifyEmail = async (req, res) => {
     res.cookie('token', tokenJwt, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      sameSite: 'None',
       maxAge: 24 * 60 * 60 * 1000
     });
 
