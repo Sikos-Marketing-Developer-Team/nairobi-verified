@@ -85,7 +85,7 @@ const login = async (req, res) => {
     });
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'None',
       maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000
     });
@@ -148,7 +148,7 @@ const verifyEmail = async (req, res) => {
     const tokenJwt = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
     res.cookie('token', tokenJwt, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'None',
       maxAge: 24 * 60 * 60 * 1000
     });
