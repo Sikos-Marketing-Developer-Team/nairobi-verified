@@ -50,7 +50,7 @@ export default function SignIn() {
       }
 
       // Redirect based on role
-      const redirectUrl = data.user.role === "merchant" ? "/vendor/profile" : "/dashboard";
+      const redirectUrl = data.user.role === "merchant" ? "/vendor/dashboard" : "/dashboard";
       router.push(redirectUrl);
     } catch (error) {
       setError(error instanceof Error ? error.message : "An unexpected error occurred");
@@ -62,7 +62,6 @@ export default function SignIn() {
   const handleGoogleSignIn = () => {
     window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
   };
-  // 
 
   const handleRegisterClick = (type: "client" | "merchant") => {
     router.push(`/auth/register/${type}`);

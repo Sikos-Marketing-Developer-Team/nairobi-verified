@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function MerchantRegister() {
-  const [isActive, setIsActive] = useState(false);
   const [formData, setFormData] = useState({
     businessName: "",
     ownerName: "",
@@ -75,9 +74,7 @@ export default function MerchantRegister() {
       }
 
       setSuccess("Registration successful! Please check your email for verification.");
-      setTimeout(() => {
-        router.push("/auth/verify-email");
-      }, 2000);
+      router.push("/auth/verify-email");
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -86,11 +83,10 @@ export default function MerchantRegister() {
   };
 
   const handleLoginClick = () => {
-    setIsActive(true);
-    setTimeout(() => {
-      router.push("/auth/signin");
-    }, 400);
+    router.push("/auth/signin");
   };
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="container mx-auto px-4">

@@ -7,6 +7,7 @@ const {
   login, 
   logout, 
   getCurrentUser,
+  checkAuth,
   requestPasswordReset,
   resetPassword,
   resendVerificationEmail,
@@ -21,6 +22,9 @@ router.post('/signup', registerClient);
 
 // Login route
 router.post('/login', login);
+
+// Auth check route
+router.get('/check', checkAuth);
 
 // Password reset routes
 router.post('/forgot-password', requestPasswordReset);
@@ -54,10 +58,7 @@ router.get(
 router.get('/user', isAuthenticated, getCurrentUser);
 
 // Logout route
-router.post('/logout', (req, res) => {
-  res.clearCookie('token');
-  res.json({ message: 'Logged out successfully' });
-});
+router.post('/logout', logout);
 
 // Authenticated user info
 router.get('/me', isAuthenticated, getCurrentUser);

@@ -42,19 +42,11 @@ export default function SignUp() {
 
       if (res.status === 201) {
         setSuccess("Registration successful! Please check your email for verification.");
-        setTimeout(() => {
-          router.push("/auth/verify-email");
-        }, 2000);
+        router.push("/auth/verify-email");
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        if (error.response?.data?.message) {
-          setError(error.response.data.message);
-        } else if (error.message === "Network Error") {
-          setError("Cannot connect to server. Please try again later.");
-        } else {
-          setError("Sign up failed: " + error.message);
-        }
+        setError(error.response?.data?.message || "Sign up failed: " + error.message);
       } else {
         setError("An unexpected error occurred during sign-up");
       }
@@ -67,6 +59,8 @@ export default function SignUp() {
   const handleGoogleSignIn = () => {
     window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
   };
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="container mx-auto px-4">
