@@ -97,7 +97,7 @@ const center = {
 };
 
 export default function UserDashboard() {
-  const { isAuthenticated, isLoading } = useAuth("client");
+  const { isAuthenticated, isLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
