@@ -171,7 +171,7 @@ export default function SignIn() {
             Welcome Back!
           </h2>
           <hr className="my-4" />
-          <p className="animation well" style={{ "--i": 1, "--j": 18 } as any}>
+          <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>
             Sign in to access your account and continue your journey with us.
           </p>
         </div>
