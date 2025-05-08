@@ -85,10 +85,13 @@ const login = async (req, res) => {
     });
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'None',
+      path: '/', // Ensures cookie is sent to all routes
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // Overwrites stale cookies
       maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000
     });
+    console.log('login: Set-Cookie:', res.get('Set-Cookie'));
 
     res.status(200).json({
       message: 'Login successful',
@@ -104,12 +107,14 @@ const checkAuth = async (req, res) => {
   try {
     const token = req.cookies.token;
     if (!token) {
+      console.log('checkAuth: No token provided');
       return res.status(401).json({ isAuthenticated: false });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId).select('-password');
     if (!user) {
+      console.log('checkAuth: User not found');
       return res.status(401).json({ isAuthenticated: false });
     }
 
@@ -124,7 +129,7 @@ const checkAuth = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Auth check error:', error);
+    console.error('checkAuth: Auth check error:', error);
     res.status(401).json({ isAuthenticated: false });
   }
 };
@@ -135,30 +140,29 @@ const verifyEmail = async (req, res) => {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const user = await User.findOne({
       emailVerificationToken: hashedToken,
-      emailVerificationExpires: { $gt: Date.now() }
+      emailVerificationExpires: { $gt: Date.now() },
     });
-
-    if (!user) return res.status(400).json({ message: 'Invalid or expired verification token' });
-
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired verification token' });
+    }
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
     await user.save();
-
-    const tokenJwt = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
-    res.cookie('token', tokenJwt, {
+    const jwtToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    res.cookie('token', jwtToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000
+      secure: true,
+      sameSite: 'None',
+      path: '/', // Ensures cookie is sent to all routes
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // Overwrites stale cookies
+      maxAge: 24 * 60 * 60 * 1000,
     });
-
-    const redirectUrl = user.role === 'merchant' ? 
-      `${process.env.FRONTEND_URL}/vendor/dashboard` : 
-      `${process.env.FRONTEND_URL}/dashboard`;
-    res.redirect(redirectUrl);
+    console.log('verifyEmail: Set-Cookie:', res.get('Set-Cookie'));
+    const redirectUrl = user.role === 'merchant' ? '/dashboard/vendor/dashboard' : '/dashboard/user';
+    res.redirect(`${process.env.FRONTEND_URL}${redirectUrl}`);
   } catch (error) {
-    console.error('Email verification error:', error);
+    console.error('verifyEmail: Email verification error:', error);
     res.status(500).json({ message: 'Error verifying email' });
   }
 };
@@ -241,15 +245,5 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
-module.exports = {
-  registerClient,
-  registerMerchant,
-  login,
-  checkAuth,
-  verifyEmail,
-  requestPasswordReset,
-  resetPassword,
-  resendVerificationEmail,
-  logout,
-  getCurrentUser
-};
+
+module.exports = { registerClient, registerMerchant, login, checkAuth, verifyEmail, requestPasswordReset, resetPassword, getCurrentUser, logout, resendVerificationEmail };
