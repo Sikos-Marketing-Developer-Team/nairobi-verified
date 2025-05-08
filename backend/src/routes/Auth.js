@@ -45,6 +45,8 @@ router.get(
       httpOnly: true,
       secure: true,
       sameSite: 'None',
+      path: '/', // Ensures cookie is sent to all routes
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
       maxAge: 24 * 60 * 60 * 1000
     });
     const redirectUrl = req.user.isEmailVerified ? 
