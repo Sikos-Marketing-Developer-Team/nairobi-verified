@@ -50,7 +50,7 @@ export default function SignIn() {
       }
 
       // Redirect based on role
-      const redirectUrl = data.user.role === "merchant" ? "/vendor/dashboard" : "/dashboard";
+      const redirectUrl = data.user.role === "merchant" ? "/vendor/profile" : "/dashboard";
       router.push(redirectUrl);
     } catch (error) {
       setError(error instanceof Error ? error.message : "An unexpected error occurred");
@@ -171,7 +171,7 @@ export default function SignIn() {
             Welcome Back!
           </h2>
           <hr className="my-4" />
-          <p className="animation wel" style={{ "--i": 1, "--j": 18 } as any}>
+          <p className="animation well" style={{ "--i": 1, "--j": 18 } as any}>
             Sign in to access your account and continue your journey with us.
           </p>
         </div>
