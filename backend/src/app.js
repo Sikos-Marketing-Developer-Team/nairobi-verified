@@ -4,6 +4,11 @@ const passport = require('./config/passport');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/Auth');
 const merchantRoutes = require('./routes/merchantRoutes');
+const productRoutes = require('./routes/productRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const cartRoutes = require('./routes/cartRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 const cors = require('cors');
 const path = require('path');
 
@@ -30,6 +35,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/merchant', merchantRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
