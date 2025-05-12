@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(200, 150)">
+    <!-- Laptop base -->
+    <rect x="50" y="200" width="300" height="20" rx="5" fill="#7f8c8d"/>
+    <path d="M50,200 L0,250 L400,250 L350,200 Z" fill="#95a5a6"/>
+    
+    <!-- Laptop screen -->
+    <rect x="50" y="20" width="300" height="180" fill="#34495e"/>
+    <rect x="60" y="30" width="280" height="160" fill="#3498db"/>
+    
+    <!-- Screen content -->
+    <rect x="80" y="50" width="240" height="20" fill="#ecf0f1"/>
+    <rect x="80" y="90" width="100" height="80" fill="#e74c3c"/>
+    <rect x="200" y="90" width="100" height="80" fill="#2ecc71"/>
+  </g>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">Laptop</text>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(300, 100)">
+    <!-- Phone body -->
+    <rect x="0" y="0" width="200" height="400" rx="20" fill="#34495e"/>
+    <rect x="10" y="40" width="180" height="320" fill="#ecf0f1"/>
+    
+    <!-- Camera -->
+    <circle cx="100" cy="20" r="5" fill="#7f8c8d"/>
+    
+    <!-- Home button -->
+    <circle cx="100" cy="380" r="15" fill="#bdc3c7"/>
+    
+    <!-- Screen elements -->
+    <rect x="30" y="70" width="140" height="20" rx="5" fill="#3498db"/>
+    <rect x="30" y="110" width="60" height="60" rx="5" fill="#e74c3c"/>
+    <rect x="110" y="110" width="60" height="60" rx="5" fill="#2ecc71"/>
+    <rect x="30" y="190" width="60" height="60" rx="5" fill="#f1c40f"/>
+    <rect x="110" y="190" width="60" height="60" rx="5" fill="#9b59b6"/>
+    <rect x="30" y="270" width="140" height="40" rx="5" fill="#1abc9c"/>
+  </g>
+  <text x="400" y="530" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">Smartphone</text>
+</svg>

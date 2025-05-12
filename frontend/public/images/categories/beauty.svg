@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(300, 150)">
+    <rect x="50" y="50" width="100" height="200" rx="50" fill="#e84393"/>
+    <rect x="70" y="70" width="60" height="160" rx="30" fill="#fd79a8"/>
+    <circle cx="100" cy="70" r="15" fill="#ffffff"/>
+    <rect x="85" y="20" width="30" height="30" rx="5" fill="#e84393"/>
+    <rect x="180" y="100" width="20" height="100" fill="#636e72"/>
+    <circle cx="190" cy="90" r="30" fill="#ff7675"/>
+  </g>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">Beauty</text>
+</svg>

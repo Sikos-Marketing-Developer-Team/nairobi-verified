@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(250, 200)">
+    <!-- Earbuds case -->
+    <rect x="100" y="100" width="100" height="60" rx="30" fill="#2c3e50"/>
+    <rect x="110" y="110" width="80" height="40" rx="20" fill="#34495e"/>
+    
+    <!-- Left earbud -->
+    <circle cx="80" cy="80" r="25" fill="#3498db"/>
+    <circle cx="80" cy="80" r="15" fill="#2980b9"/>
+    <rect x="80" y="80" width="5" height="30" fill="#2c3e50"/>
+    <path d="M85,110 C100,120 120,100 130,110" stroke="#2c3e50" stroke-width="3" fill="none"/>
+    
+    <!-- Right earbud -->
+    <circle cx="220" cy="80" r="25" fill="#3498db"/>
+    <circle cx="220" cy="80" r="15" fill="#2980b9"/>
+    <rect x="215" y="80" width="5" height="30" fill="#2c3e50"/>
+    <path d="M215,110 C200,120 180,100 170,110" stroke="#2c3e50" stroke-width="3" fill="none"/>
+  </g>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">Wireless Earbuds</text>
+</svg>

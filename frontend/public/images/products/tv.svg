@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(200, 150)">
+    <!-- TV frame -->
+    <rect x="0" y="0" width="400" height="250" rx="10" fill="#2c3e50"/>
+    <rect x="10" y="10" width="380" height="200" fill="#ecf0f1"/>
+    
+    <!-- TV stand -->
+    <rect x="150" y="250" width="100" height="20" fill="#2c3e50"/>
+    <rect x="175" y="270" width="50" height="30" fill="#2c3e50"/>
+    <rect x="150" y="300" width="100" height="10" fill="#2c3e50"/>
+    
+    <!-- Screen content -->
+    <rect x="30" y="30" width="340" height="160" fill="#3498db"/>
+    <circle cx="200" cy="110" r="50" fill="#e74c3c"/>
+    <rect x="100" y="140" width="200" height="30" fill="#2ecc71"/>
+  </g>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">Television</text>
+</svg>

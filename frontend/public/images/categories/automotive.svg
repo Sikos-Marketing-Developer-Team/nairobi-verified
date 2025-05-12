@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(250, 150)">
+    <!-- Car body -->
+    <path d="M50,100 L100,50 L200,50 L250,100 L250,150 L50,150 Z" fill="#3498db"/>
+    <rect x="70" y="150" width="40" height="20" fill="#2c3e50"/>
+    <rect x="190" y="150" width="40" height="20" fill="#2c3e50"/>
+    
+    <!-- Windows -->
+    <path d="M100,50 L100,100 L200,100 L200,50 Z" fill="#ecf0f1"/>
+    <line x1="150" y1="50" x2="150" y2="100" stroke="#3498db" stroke-width="2"/>
+    
+    <!-- Wheels -->
+    <circle cx="90" cy="170" r="20" fill="#2c3e50"/>
+    <circle cx="90" cy="170" r="10" fill="#7f8c8d"/>
+    <circle cx="210" cy="170" r="20" fill="#2c3e50"/>
+    <circle cx="210" cy="170" r="10" fill="#7f8c8d"/>
+    
+    <!-- Lights -->
+    <rect x="50" y="100" width="20" height="10" fill="#f1c40f"/>
+    <rect x="230" y="100" width="20" height="10" fill="#e74c3c"/>
+  </g>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">Automotive</text>
+</svg>
