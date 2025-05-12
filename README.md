@@ -12,6 +12,9 @@ A trusted e-commerce platform that helps users discover and shop from verified v
 - **Category Navigation**: Browse products by categories
 - **Merchant Verification**: Verified merchants are highlighted for user trust
 - **Shop Location**: Find physical store locations with directions
+- **Subscription Packages**: Merchants can subscribe to different packages for enhanced visibility
+- **Automated Renewal Notifications**: Email notifications for expiring subscriptions
+- **Subscription Management**: Merchants can view, renew, and manage their subscriptions
 
 ## Tech Stack
 
@@ -30,6 +33,25 @@ A trusted e-commerce platform that helps users discover and shop from verified v
 - React Icons
 
 ## API Endpoints
+
+### Subscriptions
+- `GET /api/subscriptions/packages` - Get all subscription packages
+- `GET /api/subscriptions/packages/:id` - Get subscription package by ID
+- `POST /api/subscriptions/packages` - Create a subscription package (admin)
+- `PUT /api/subscriptions/packages/:id` - Update a subscription package (admin)
+- `DELETE /api/subscriptions/packages/:id` - Delete a subscription package (admin)
+- `POST /api/subscriptions/subscribe` - Subscribe to a package
+- `GET /api/subscriptions/current` - Get current subscription
+- `GET /api/subscriptions/history` - Get subscription history
+- `PUT /api/subscriptions/cancel/:subscriptionId` - Cancel subscription
+- `POST /api/subscriptions/renew/:subscriptionId` - Renew subscription
+- `GET /api/subscriptions/all` - Get all subscriptions (admin)
+- `PUT /api/subscriptions/:subscriptionId` - Update subscription status (admin)
+- `POST /api/subscriptions/check-expiring` - Check expiring subscriptions (admin)
+- `POST /api/subscriptions/mpesa/callback` - M-Pesa payment callback
+
+### Notifications
+- `POST /api/notifications/subscriptions/check-expiring` - Manually check for expiring subscriptions (admin)
 
 ### Authentication
 - `POST /api/auth/register` - Register a new user
