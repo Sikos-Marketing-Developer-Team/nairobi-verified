@@ -59,12 +59,8 @@ app.use((err, req, res, next) => {
 });
 
 // Set up cron jobs for subscription management
-const subscriptionCron = require('./cron/subscriptionCron');
-subscriptionCron.setupCronJobs();
-
-// Set up cron jobs for subscription management
-const subscriptionCron = require('./cron/subscriptionCron');
-subscriptionCron.setupCronJobs();
+const subscriptionCronJobs = require('./cron/subscriptionCronJobs');
+subscriptionCronJobs.scheduleSubscriptionJobs();
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

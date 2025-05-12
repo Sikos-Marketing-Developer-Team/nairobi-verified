@@ -3,6 +3,7 @@ const router = express.Router();
 const subscriptionPackageController = require('../controllers/subscriptionPackageController');
 const vendorSubscriptionController = require('../controllers/vendorSubscriptionController');
 const subscriptionRenewalController = require('../controllers/subscriptionRenewalController');
+const subscriptionPaymentController = require('../controllers/subscriptionPaymentController');
 const { isAuthenticated, isAdmin, isMerchant } = require('../middleware/authMiddleware');
 
 // Subscription Package Routes
@@ -22,6 +23,7 @@ router.get('/current', isAuthenticated, isMerchant, vendorSubscriptionController
 router.get('/history', isAuthenticated, isMerchant, vendorSubscriptionController.getSubscriptionHistory);
 router.put('/cancel/:subscriptionId', isAuthenticated, isMerchant, vendorSubscriptionController.cancelSubscription);
 router.post('/renew/:subscriptionId', isAuthenticated, isMerchant, subscriptionRenewalController.renewSubscription);
+router.get('/payment-status', isAuthenticated, isMerchant, subscriptionPaymentController.checkPaymentStatus);
 
 // Admin routes
 router.get('/all', isAuthenticated, isAdmin, vendorSubscriptionController.getAllSubscriptions);
@@ -29,6 +31,6 @@ router.put('/:subscriptionId', isAuthenticated, isAdmin, vendorSubscriptionContr
 router.post('/check-expiring', isAuthenticated, isAdmin, subscriptionRenewalController.checkExpiringSubscriptions);
 
 // Payment callback routes
-router.post('/mpesa/callback', vendorSubscriptionController.verifyMpesaCallback);
+router.post('/mpesa/callback', subscriptionPaymentController.handleMpesaCallback);
 
 module.exports = router;

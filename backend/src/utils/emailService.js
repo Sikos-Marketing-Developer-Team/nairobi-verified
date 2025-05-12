@@ -265,6 +265,7 @@ const sendMerchantVerificationEmail = async (email, merchantName, status, reason
       throw new Error('Email credentials missing in environment variables');
     }
     
+    const { merchantVerificationTemplate } = require('./emailTemplates');
     const isApproved = status === 'approved';
     const dashboardLink = `${process.env.FRONTEND_URL}/merchant/dashboard`;
     
@@ -275,53 +276,7 @@ const sendMerchantVerificationEmail = async (email, merchantName, status, reason
       text: isApproved 
         ? `Congratulations ${merchantName}! Your merchant account has been verified. You can now start selling on Nairobi Verified.` 
         : `Hello ${merchantName}, your merchant verification status has been updated to: ${status}. ${reason || ''}`,
-      html: isApproved 
-        ? `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-            <h2>Merchant Verification Approved!</h2>
-            <p>Congratulations ${merchantName}!</p>
-            <p>Your merchant account has been verified. You can now start selling products on Nairobi Verified.</p>
-            
-            <div style="margin: 20px 0; text-align: center;">
-              <a href="${dashboardLink}" style="display: inline-block; padding: 10px 20px; color: white; background-color: #EC5C0B; text-decoration: none; border-radius: 5px;">Go to Merchant Dashboard</a>
-            </div>
-            
-            <p>Next steps:</p>
-            <ol>
-              <li>Set up your merchant profile</li>
-              <li>Add your products</li>
-              <li>Start selling to customers across Nairobi</li>
-            </ol>
-            
-            <hr style="border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="font-size: 12px; color: #666;">Welcome to the Nairobi Verified merchant community!</p>
-          </div>
-        `
-        : `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-            <h2>Merchant Verification Update</h2>
-            <p>Hello ${merchantName},</p>
-            <p>Your merchant verification status has been updated to: <strong>${status}</strong></p>
-            
-            ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
-            
-            ${status === 'rejected' 
-              ? `<p>You can update your information and reapply for verification from your dashboard.</p>
-                 <div style="margin: 20px 0; text-align: center;">
-                   <a href="${dashboardLink}" style="display: inline-block; padding: 10px 20px; color: white; background-color: #EC5C0B; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
-                 </div>`
-              : ''
-            }
-            
-            ${status === 'pending' 
-              ? `<p>Your application is being reviewed. We'll notify you once the verification process is complete.</p>`
-              : ''
-            }
-            
-            <hr style="border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="font-size: 12px; color: #666;">Thank you for your interest in becoming a Nairobi Verified merchant!</p>
-          </div>
-        `,
+      html: merchantVerificationTemplate(merchantName, status, reason, dashboardLink)
     };
     
     const info = await transporter.sendMail(mailOptions);
@@ -330,6 +285,65 @@ const sendMerchantVerificationEmail = async (email, merchantName, status, reason
   } catch (error) {
     console.error('Error sending merchant verification email:', error.message);
     throw new Error(`Failed to send merchant verification email: ${error.message}`);
+  }
+};
+
+// Send subscription confirmation email
+const sendSubscriptionConfirmationEmail = async (email, merchantName, packageDetails, startDate, endDate, amount) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      throw new Error('Email credentials missing in environment variables');
+    }
+    
+    const { subscriptionConfirmationTemplate } = require('./emailTemplates');
+    
+    const mailOptions = {
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Subscription Confirmation - ${packageDetails.name}`,
+      text: `Hello ${merchantName}, thank you for subscribing to our ${packageDetails.name} package. Your subscription is active from ${new Date(startDate).toDateString()} to ${new Date(endDate).toDateString()}.`,
+      html: subscriptionConfirmationTemplate(
+        merchantName, 
+        packageDetails.name, 
+        startDate, 
+        endDate, 
+        amount, 
+        packageDetails.features
+      )
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Subscription confirmation email sent:', info.messageId, 'to:', email);
+    return info;
+  } catch (error) {
+    console.error('Error sending subscription confirmation email:', error.message);
+    throw new Error(`Failed to send subscription confirmation email: ${error.message}`);
+  }
+};
+
+// Send subscription expiration email
+const sendSubscriptionExpirationEmail = async (email, merchantName, packageName, expiryDate, renewalLink) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      throw new Error('Email credentials missing in environment variables');
+    }
+    
+    const { subscriptionExpirationTemplate } = require('./emailTemplates');
+    
+    const mailOptions = {
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Your ${packageName} Subscription Has Expired`,
+      text: `Hello ${merchantName}, your ${packageName} subscription has expired on ${new Date(expiryDate).toDateString()}. Renew now to continue enjoying the benefits: ${renewalLink}`,
+      html: subscriptionExpirationTemplate(merchantName, packageName, expiryDate, renewalLink)
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Subscription expiration email sent:', info.messageId, 'to:', email);
+    return info;
+  } catch (error) {
+    console.error('Error sending subscription expiration email:', error.message);
+    throw new Error(`Failed to send subscription expiration email: ${error.message}`);
   }
 };
 
@@ -382,6 +396,8 @@ module.exports = {
   sendOrderConfirmationEmail,
   sendOrderStatusUpdateEmail,
   sendSubscriptionRenewalEmail,
+  sendSubscriptionConfirmationEmail,
+  sendSubscriptionExpirationEmail,
   sendMerchantVerificationEmail,
   sendReturnRequestEmail
 };
