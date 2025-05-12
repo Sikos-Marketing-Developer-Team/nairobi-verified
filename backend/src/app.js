@@ -11,8 +11,7 @@ const cartRoutes = require('./routes/cartRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const subscriptionRoutes = require('./routes/subscriptionRoutes');
-const adminRoutes = require('./routes/adminRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const cors = require('cors');
 const path = require('path');
 
@@ -46,8 +45,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -59,6 +57,14 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
 });
+
+// Set up cron jobs for subscription management
+const subscriptionCron = require('./cron/subscriptionCron');
+subscriptionCron.setupCronJobs();
+
+// Set up cron jobs for subscription management
+const subscriptionCron = require('./cron/subscriptionCron');
+subscriptionCron.setupCronJobs();
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
