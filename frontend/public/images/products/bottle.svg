@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(300, 100)">
+    <!-- Bottle cap -->
+    <rect x="70" y="0" width="60" height="30" rx="5" fill="#34495e"/>
+    
+    <!-- Bottle neck -->
+    <rect x="80" y="30" width="40" height="50" fill="#3498db"/>
+    
+    <!-- Bottle body -->
+    <path d="M60,80 L140,80 L150,350 L50,350 Z" fill="#3498db"/>
+    
+    <!-- Bottle label -->
+    <rect x="70" y="150" width="60" height="100" fill="#ecf0f1"/>
+    <text x="100" y="190" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#2c3e50">WATER</text>
+    <text x="100" y="210" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#2c3e50">BOTTLE</text>
+    
+    <!-- Bottle highlights -->
+    <path d="M70,100 L80,100 L80,300 L70,310 Z" fill="#2980b9"/>
+    <path d="M130,100 L120,100 L120,300 L130,310 Z" fill="#2980b9"/>
+  </g>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">Water Bottle</text>
+</svg>

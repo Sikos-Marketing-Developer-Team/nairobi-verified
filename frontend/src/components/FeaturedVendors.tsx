@@ -12,7 +12,7 @@ const mockVendors = [
     rating: 4.5,
     reviewCount: 128,
     isVerified: true,
-    image: '/images/shops/electronics-hub.jpg',
+    image: '/images/shops/electronics-hub.svg',
     productCount: 45
   },
   {
@@ -22,7 +22,7 @@ const mockVendors = [
     rating: 4.7,
     reviewCount: 156,
     isVerified: true,
-    image: '/images/shops/gadget-world.jpg',
+    image: '/images/shops/gadget-world.svg',
     productCount: 78
   },
   {
@@ -32,7 +32,7 @@ const mockVendors = [
     rating: 4.3,
     reviewCount: 96,
     isVerified: false,
-    image: '/images/shops/fashion-store.jpg',
+    image: '/images/shops/fashion-store.svg',
     productCount: 120
   },
   {
@@ -42,7 +42,7 @@ const mockVendors = [
     rating: 4.6,
     reviewCount: 112,
     isVerified: true,
-    image: '/images/shops/home-essentials.jpg',
+    image: '/images/shops/home-essentials.svg',
     productCount: 65
   }
 ];

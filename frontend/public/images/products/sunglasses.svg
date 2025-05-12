@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(200, 200)">
+    <!-- Sunglasses frame -->
+    <path d="M30,50 L150,50 C150,50 160,30 170,30 C180,30 190,50 190,50 L310,50 C330,50 350,70 350,90 C350,110 330,130 310,130 L230,130 C210,130 190,110 190,90 L170,90 C170,110 150,130 130,130 L50,130 C30,130 10,110 10,90 C10,70 30,50 50,50 L30,50 Z" fill="#2c3e50"/>
+    
+    <!-- Lenses -->
+    <ellipse cx="90" cy="90" rx="60" ry="40" fill="#34495e"/>
+    <ellipse cx="270" cy="90" rx="60" ry="40" fill="#34495e"/>
+    
+    <!-- Highlights -->
+    <ellipse cx="70" cy="70" rx="20" ry="10" fill="#ecf0f1" opacity="0.2"/>
+    <ellipse cx="250" cy="70" rx="20" ry="10" fill="#ecf0f1" opacity="0.2"/>
+  </g>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">Sunglasses</text>
+</svg>

@@ -10,7 +10,7 @@ const categories = [
     name: 'Electronics',
     slug: 'electronics',
     description: 'TVs, Cell Phones, Laptops and More!',
-    image: '/images/categories/electronics.jpg',
+    image: '/images/categories/electronics.svg',
     bgColor: 'bg-blue-50',
     textColor: 'text-blue-600',
     productCount: 54
@@ -20,7 +20,7 @@ const categories = [
     name: 'Fashion',
     slug: 'fashion',
     description: 'Clothing, Shoes, Accessories and More!',
-    image: '/images/categories/fashion.jpg',
+    image: '/images/categories/fashion.svg',
     bgColor: 'bg-pink-50',
     textColor: 'text-pink-600',
     productCount: 22
@@ -30,7 +30,7 @@ const categories = [
     name: 'Home & Garden',
     slug: 'home-garden',
     description: 'Furniture, Kitchen, Lighting and More!',
-    image: '/images/categories/home-garden.jpg',
+    image: '/images/categories/home-garden.svg',
     bgColor: 'bg-green-50',
     textColor: 'text-green-600',
     productCount: 35
@@ -40,7 +40,7 @@ const categories = [
     name: 'Health & Beauty',
     slug: 'health-beauty',
     description: 'Skincare, Makeup, Personal Care and More!',
-    image: '/images/categories/health-beauty.jpg',
+    image: '/images/categories/health-beauty.svg',
     bgColor: 'bg-purple-50',
     textColor: 'text-purple-600',
     productCount: 18
@@ -50,7 +50,7 @@ const categories = [
     name: 'Sports & Outdoors',
     slug: 'sports-outdoors',
     description: 'Fitness, Camping, Hiking and More!',
-    image: '/images/categories/sports-outdoors.jpg',
+    image: '/images/categories/sports-outdoors.svg',
     bgColor: 'bg-yellow-50',
     textColor: 'text-yellow-600',
     productCount: 15
@@ -60,7 +60,7 @@ const categories = [
     name: 'Books & Stationery',
     slug: 'books-stationery',
     description: 'Books, Notebooks, Pens and More!',
-    image: '/images/categories/books-stationery.jpg',
+    image: '/images/categories/books-stationery.svg',
     bgColor: 'bg-red-50',
     textColor: 'text-red-600',
     productCount: 12
@@ -70,7 +70,7 @@ const categories = [
     name: 'Toys & Games',
     slug: 'toys-games',
     description: 'Board Games, Puzzles, Action Figures and More!',
-    image: '/images/categories/toys-games.jpg',
+    image: '/images/categories/toys-games.svg',
     bgColor: 'bg-indigo-50',
     textColor: 'text-indigo-600',
     productCount: 8
@@ -80,7 +80,7 @@ const categories = [
     name: 'Automotive',
     slug: 'automotive',
     description: 'Car Accessories, Parts, Tools and More!',
-    image: '/images/categories/automotive.jpg',
+    image: '/images/categories/automotive.svg',
     bgColor: 'bg-gray-50',
     textColor: 'text-gray-600',
     productCount: 10
@@ -90,7 +90,7 @@ const categories = [
     name: 'Pet Supplies',
     slug: 'pet-supplies',
     description: 'Food, Toys, Accessories and More!',
-    image: '/images/categories/pet-supplies.jpg',
+    image: '/images/categories/pet-supplies.svg',
     bgColor: 'bg-orange-50',
     textColor: 'text-orange-600',
     productCount: 6

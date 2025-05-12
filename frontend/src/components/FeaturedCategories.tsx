@@ -9,7 +9,7 @@ const mockCategories = [
     name: 'Electronics',
     slug: 'electronics',
     icon: '🔌',
-    image: '/images/categories/electronics.jpg',
+    image: '/images/categories/electronics.svg',
     description: 'Latest gadgets and electronic devices'
   },
   {
@@ -17,7 +17,7 @@ const mockCategories = [
     name: 'Fashion',
     slug: 'fashion',
     icon: '👕',
-    image: '/images/categories/fashion.jpg',
+    image: '/images/categories/fashion.svg',
     description: 'Trendy clothing and accessories'
   },
   {
@@ -25,7 +25,7 @@ const mockCategories = [
     name: 'Home & Living',
     slug: 'home-living',
     icon: '🏠',
-    image: '/images/categories/home.jpg',
+    image: '/images/categories/home.svg',
     description: 'Furniture and home decor'
   },
   {
@@ -33,7 +33,7 @@ const mockCategories = [
     name: 'Health & Beauty',
     slug: 'health-beauty',
     icon: '💄',
-    image: '/images/categories/beauty.jpg',
+    image: '/images/categories/beauty.svg',
     description: 'Personal care and beauty products'
   },
   {
@@ -41,7 +41,7 @@ const mockCategories = [
     name: 'Sports & Outdoors',
     slug: 'sports-outdoors',
     icon: '⚽',
-    image: '/images/categories/sports.jpg',
+    image: '/images/categories/sports.svg',
     description: 'Sports equipment and outdoor gear'
   },
   {
@@ -49,7 +49,7 @@ const mockCategories = [
     name: 'Books & Media',
     slug: 'books-media',
     icon: '📚',
-    image: '/images/categories/books.jpg',
+    image: '/images/categories/books.svg',
     description: 'Books, music, and entertainment'
   }
 ];
