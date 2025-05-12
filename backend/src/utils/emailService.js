@@ -239,42 +239,14 @@ const sendSubscriptionRenewalEmail = async (email, merchantName, subscriptionNam
       throw new Error('Email credentials missing in environment variables');
     }
     
-    // Format expiry date
-    const expiry = new Date(expiryDate);
-    const formattedDate = expiry.toDateString();
-    
-    // Calculate days remaining
-    const today = new Date();
-    const daysRemaining = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+    const { subscriptionRenewalTemplate } = require('./emailTemplates');
     
     const mailOptions = {
       from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `Your Subscription is Expiring Soon - ${subscriptionName}`,
-      text: `Hello ${merchantName}, your ${subscriptionName} subscription is expiring on ${formattedDate} (${daysRemaining} days remaining). Renew now to avoid interruption: ${renewalLink}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-          <h2>Subscription Renewal Reminder</h2>
-          <p>Hello ${merchantName},</p>
-          <p>Your <strong>${subscriptionName}</strong> subscription is expiring on <strong>${formattedDate}</strong> (${daysRemaining} days remaining).</p>
-          
-          <p>To ensure uninterrupted service and maintain your store's visibility, please renew your subscription before it expires.</p>
-          
-          <div style="margin: 20px 0; text-align: center;">
-            <a href="${renewalLink}" style="display: inline-block; padding: 10px 20px; color: white; background-color: #EC5C0B; text-decoration: none; border-radius: 5px;">Renew Subscription</a>
-          </div>
-          
-          <p>Benefits of renewing:</p>
-          <ul>
-            <li>Maintain your store's visibility to customers</li>
-            <li>Continue selling products without interruption</li>
-            <li>Keep access to merchant dashboard and analytics</li>
-          </ul>
-          
-          <hr style="border-top: 1px solid #eee; margin: 20px 0;">
-          <p style="font-size: 12px; color: #666;">Thank you for being a valued merchant on Nairobi Verified!</p>
-        </div>
-      `,
+      text: `Hello ${merchantName}, your ${subscriptionName} subscription is expiring on ${new Date(expiryDate).toDateString()}. Renew now to avoid interruption: ${renewalLink}`,
+      html: subscriptionRenewalTemplate(merchantName, subscriptionName, expiryDate, renewalLink)
     };
     
     const info = await transporter.sendMail(mailOptions);
