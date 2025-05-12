@@ -2,6 +2,16 @@
 
 A trusted e-commerce platform that helps users discover and shop from verified vendors in Nairobi CBD — complete with directions to each shop!
 
+## Application Routes
+
+We have a comprehensive list of all application routes available at:
+- `/sitemap` - Visual site map showing all available routes
+- `/ui-guide` - UI style guide and component library
+
+For developers, the complete route list is available in:
+- `frontend/src/routes.txt` - Text list of all routes
+- `frontend/src/routes-map.md` - Detailed route map with UI enhancement ideas
+
 ## Features
 
 - **User Authentication**: Secure login and registration for customers and merchants

@@ -1,8 +1,70 @@
+# NAIROBI VERIFIED - COMPLETE ROUTE LIST
+
+## Main Pages
 / - Home Page
+/join - Choose Account Type (Client or Merchant)
+/contact - Contact Us Page
+/map - Location Map
+/help-center - Help Center
+
+## Authentication Routes
+/auth/signin - User Login
+/auth/signup - User Signup
 /auth/register/client - Client Registration
+/auth/register/customer - Customer Registration
 /auth/register/merchant - Merchant Registration
-/merchant/profile - Merchant Profile
-/join - Choose Account Type
+/auth/forgot-password - Password Recovery
+
+## User Account Management
+/account/edit-profile - Edit User Profile
+/account/change-password - Change Password
+/account/addresses - Manage Addresses
+/account/addresses/add - Add New Address
+/account/addresses/edit - Edit Address
+/account/payment-methods - Payment Methods
+/account/payment-methods/add-card - Add Credit Card
+/account/payment-methods/add-mpesa - Add M-Pesa
+/account/wishlist - User Wishlist
+/profile - User Profile
+/settings - User Settings
+/addresses - User Addresses
+/payment-methods - Payment Methods
+/notifications - User Notifications
+
+## Dashboard Routes
+/dashboard - Main Dashboard
 /dashboard/user - User Dashboard
-/dashboard/vendor - Vendor Dashboard
 /dashboard/admin - Admin Dashboard
+
+## Merchant Routes
+/merchant/profile - Merchant Profile
+/merchant/subscriptions - Merchant Subscriptions
+/merchant/subscriptions/pending - Pending Subscriptions
+
+## Admin Routes
+/admin/dashboard - Admin Dashboard
+/admin/subscriptions - Manage Subscriptions
+
+## Shopping Routes
+/cart - Shopping Cart
+/wishlist - User Wishlist
+/favorites - User Favorites
+/products - All Products
+/product/[id] - Single Product Page
+/categories - All Categories
+/category/[slug] - Products by Category
+/shops - All Shops
+/shop/[id] - Single Shop Page
+/orders - User Orders
+/orders/[id] - Single Order Details
+/track-order - Track Order Status
+
+## Special Offers
+/flash-sales - Flash Sales
+/flash-deals - Flash Deals
+/hot-deals - Hot Deals
+/featured - Featured Products
+
+## Legal Pages
+/privacy-policy - Privacy Policy
+/terms-conditions - Terms and Conditions

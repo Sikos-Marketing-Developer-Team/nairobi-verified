@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-<<<<<<< HEAD
+const VendorSubscription = require('../models/VendorSubscription');
 
 const isAuthenticated = async (req, res, next) => {
   try {
@@ -16,23 +16,17 @@ const isAuthenticated = async (req, res, next) => {
   } catch (error) {
     console.error('Authentication error:', error);
     res.status(401).json({ message: 'Invalid token' });
-=======
-const VendorSubscription = require('../models/VendorSubscription');
-
-// Middleware to check if user is authenticated (session-based)
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const VendorSubscription = require('../models/VendorSubscription');
+  }
+}
 
 // Middleware to check if user is authenticated (session-based)
 exports.isAuthenticated = (req, res, next) => {
   if (req.isAuthenticated()) {
     return next();
->>>>>>> 91be51b (Implement M-Pesa service for payment processing, including access token generation, STK push initiation, and payment verification.)
+// (Implement M-Pesa service for payment processing, including access token generation, STK push initiation, and payment verification.)
   }
 };
 
-<<<<<<< HEAD
 const isEmailVerified = async (req, res, next) => {
   try {
     const token = req.cookies.token;
@@ -55,7 +49,7 @@ const isEmailVerified = async (req, res, next) => {
 };
 
 module.exports = { isAuthenticated, isEmailVerified };
-=======
+
 // Middleware to check if user is authenticated (JWT-based)
 exports.protect = async (req, res, next) => {
   try {
@@ -342,4 +336,4 @@ exports.hasActiveSubscription = async (req, res, next) => {
     res.status(500).json({ message: 'Server error during subscription check' });
   }
 };
->>>>>>> 91be51b (Implement M-Pesa service for payment processing, including access token generation, STK push initiation, and payment verification.)
+// (Implement M-Pesa service for payment processing, including access token generation, STK push initiation, and payment verification.)

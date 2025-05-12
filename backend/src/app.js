@@ -3,6 +3,8 @@ const express = require('express');
 const passport = require('./config/passport');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/Auth');
+const createAdminUser = require('./utils/createAdminUser');
+// (feat: Implement admin user creation utility and enhance application routes and UI)
 const merchantRoutes = require('./routes/merchantRoutes');
 const productRoutes = require('./routes/productRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
@@ -18,7 +20,10 @@ const path = require('path');
 const app = express();
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  // Create admin user after database connection is established
+  createAdminUser();
+});
 
 // Middleware
 app.use(express.json());

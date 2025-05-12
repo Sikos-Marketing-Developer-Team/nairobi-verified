@@ -60,6 +60,8 @@ const Footer = () => {
               <li><a href="/auth/register/merchant" className="text-gray-400 hover:text-white transition-colors">Become a Vendor</a></li>
               <li><a href="/contact" className="text-gray-400 hover:text-white transition-colors">Contact Us</a></li>
               <li><a href="/about" className="text-gray-400 hover:text-white transition-colors">About Us</a></li>
+              <li><a href="/sitemap" className="text-gray-400 hover:text-white transition-colors">Site Map</a></li>
+              <li><a href="/ui-guide" className="text-gray-400 hover:text-white transition-colors">UI Style Guide</a></li>
             </ul>
           </div>
 
@@ -123,10 +125,17 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-gray-800 pt-6 mt-4 text-center">
-          <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} Nairobi Verified. All rights reserved.
-          </p>
+        <div className="border-t border-gray-800 pt-6 mt-4">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <p className="text-gray-500 text-sm">
+              &copy; {new Date().getFullYear()} Nairobi Verified. All rights reserved.
+            </p>
+            <div className="mt-3 md:mt-0 flex space-x-4">
+              <a href="/privacy-policy" className="text-gray-500 text-sm hover:text-white transition-colors">Privacy Policy</a>
+              <a href="/terms-conditions" className="text-gray-500 text-sm hover:text-white transition-colors">Terms & Conditions</a>
+              <a href="/sitemap" className="text-gray-500 text-sm hover:text-white transition-colors">Site Map</a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
