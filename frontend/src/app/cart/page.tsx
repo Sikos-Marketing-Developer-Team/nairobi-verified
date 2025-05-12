@@ -15,7 +15,7 @@ const mockCartItems = [
       name: 'Wireless Bluetooth Headphones',
       price: 5999,
       discountPrice: 4999,
-      images: [{ url: '/images/products/headphones.jpg', isMain: true }],
+      images: [{ url: '/images/products/headphones.svg', isMain: true }],
       merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true }
     },
     quantity: 1,
@@ -28,7 +28,7 @@ const mockCartItems = [
       name: 'Portable Bluetooth Speaker',
       price: 4500,
       discountPrice: 3999,
-      images: [{ url: '/images/products/speaker.jpg', isMain: true }],
+      images: [{ url: '/images/products/speaker.svg', isMain: true }],
       merchant: { _id: '102', companyName: 'Gadget World', isVerified: true }
     },
     quantity: 2,

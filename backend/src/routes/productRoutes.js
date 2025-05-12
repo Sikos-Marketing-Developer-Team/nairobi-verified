@@ -6,8 +6,10 @@ const authMiddleware = require('../middleware/authMiddleware');
 // Public routes
 router.get('/', productController.getProducts);
 router.get('/featured', productController.getFeaturedProducts);
-router.get('/:id', productController.getProductById);
+router.get('/search', productController.searchProducts);
+router.get('/recommendations/:productId', productController.getProductRecommendations);
 router.get('/merchant/:merchantId', productController.getProductsByMerchant);
+router.get('/:id', productController.getProductById);
 
 // Protected routes
 router.post(

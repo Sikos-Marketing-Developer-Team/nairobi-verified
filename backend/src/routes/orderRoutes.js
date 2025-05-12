@@ -40,6 +40,12 @@ router.put(
   orderController.updatePaymentStatus
 );
 
+// Public tracking route
+router.get(
+  '/track/:orderNumber',
+  orderController.trackOrder
+);
+
 // Shared routes
 router.get(
   '/:id',
@@ -58,6 +64,12 @@ router.put(
   '/:id/cancel',
   authMiddleware.protect,
   orderController.cancelOrder
+);
+
+router.post(
+  '/:id/return',
+  authMiddleware.protect,
+  orderController.requestOrderReturn
 );
 
 module.exports = router;

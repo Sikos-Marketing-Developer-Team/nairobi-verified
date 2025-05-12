@@ -12,8 +12,8 @@ const mockMerchant = {
   _id: '101',
   companyName: 'Electronics Hub',
   description: 'We are a leading electronics retailer in Nairobi, offering a wide range of high-quality gadgets and devices at competitive prices. Our store has been serving customers for over 5 years with excellent service and product knowledge.',
-  logo: '/images/shops/electronics-hub-logo.jpg',
-  coverImage: '/images/shops/electronics-hub-cover.jpg',
+  logo: '/images/shops/electronics-hub.svg',
+  coverImage: '/images/shops/electronics-hub.svg',
   isVerified: true,
   rating: 4.5,
   reviewCount: 128,
@@ -42,7 +42,7 @@ const mockProducts = [
     name: 'Wireless Bluetooth Headphones',
     price: 5999,
     discountPrice: 4999,
-    images: [{ url: '/images/products/headphones.jpg', isMain: true }],
+    images: [{ url: '/images/products/headphones.svg', isMain: true }],
     ratings: { average: 4.5, count: 128 },
     merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true }
   },
@@ -51,7 +51,7 @@ const mockProducts = [
     name: 'Smart Watch with Heart Rate Monitor',
     price: 8999,
     discountPrice: 7499,
-    images: [{ url: '/images/products/smartwatch.jpg', isMain: true }],
+    images: [{ url: '/images/products/smartwatch.svg', isMain: true }],
     ratings: { average: 4.3, count: 156 },
     merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true }
   },
@@ -60,7 +60,7 @@ const mockProducts = [
     name: 'Wireless Gaming Mouse',
     price: 3999,
     discountPrice: null,
-    images: [{ url: '/images/products/mouse.jpg', isMain: true }],
+    images: [{ url: '/images/products/mouse.svg', isMain: true }],
     ratings: { average: 4.4, count: 89 },
     merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true }
   },
@@ -69,7 +69,7 @@ const mockProducts = [
     name: 'Wireless Earbuds',
     price: 3500,
     discountPrice: 2999,
-    images: [{ url: '/images/products/earbuds.jpg', isMain: true }],
+    images: [{ url: '/images/products/earbuds.svg', isMain: true }],
     ratings: { average: 4.6, count: 98 },
     merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true }
   },
@@ -78,7 +78,7 @@ const mockProducts = [
     name: 'Wireless Keyboard and Mouse Combo',
     price: 5500,
     discountPrice: 4999,
-    images: [{ url: '/images/products/keyboard.jpg', isMain: true }],
+    images: [{ url: '/images/products/mouse.svg', isMain: true }],
     ratings: { average: 4.2, count: 67 },
     merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true }
   },
@@ -87,7 +87,7 @@ const mockProducts = [
     name: 'Portable Power Bank 20000mAh',
     price: 2500,
     discountPrice: 1999,
-    images: [{ url: '/images/products/powerbank.jpg', isMain: true }],
+    images: [{ url: '/images/products/charger.svg', isMain: true }],
     ratings: { average: 4.7, count: 112 },
     merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true }
   }

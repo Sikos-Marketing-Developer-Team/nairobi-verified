@@ -99,11 +99,15 @@ const getProducts = async (req, res) => {
       limit = 10, 
       sort = '-createdAt', 
       category, 
+      subcategory,
       merchant,
       minPrice,
       maxPrice,
       featured,
       search,
+      tags,
+      inStock,
+      rating,
       status = 'active'
     } = req.query;
 
@@ -111,6 +115,7 @@ const getProducts = async (req, res) => {
     const query = { status };
     
     if (category) query.category = category;
+    if (subcategory) query.subcategory = subcategory;
     if (merchant) query.merchant = merchant;
     if (featured) query.featured = featured === 'true';
     if (minPrice || maxPrice) {
@@ -119,12 +124,50 @@ const getProducts = async (req, res) => {
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
     
-    // Text search
+    // Stock filter
+    if (inStock === 'true') {
+      query.stock = { $gt: 0 };
+    }
+    
+    // Rating filter
+    if (rating) {
+      query['ratings.average'] = { $gte: Number(rating) };
+    }
+    
+    // Tags filter
+    if (tags) {
+      const tagArray = tags.split(',').map(tag => tag.trim());
+      query.tags = { $in: tagArray };
+    }
+    
+    // Text search with score
+    let searchOptions = {};
     if (search) {
+      // Use text search for exact matches
       query.$text = { $search: search };
+      searchOptions.score = { $meta: 'textScore' };
+      
+      // Execute query with pagination and text score sorting
+      const products = await Product.find(query, searchOptions)
+        .sort(search ? { score: { $meta: 'textScore' }, ...sort } : sort)
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit))
+        .populate('merchant', 'fullName companyName location isVerified');
+
+      // Get total count for pagination
+      const total = await Product.countDocuments(query);
+
+      return res.status(200).json({
+        success: true,
+        count: products.length,
+        total,
+        totalPages: Math.ceil(total / Number(limit)),
+        currentPage: Number(page),
+        products
+      });
     }
 
-    // Execute query with pagination
+    // Regular query without text search
     const products = await Product.find(query)
       .sort(sort)
       .limit(Number(limit))
@@ -381,6 +424,195 @@ const getProductsByMerchant = async (req, res) => {
   }
 };
 
+// Advanced search functionality
+const searchProducts = async (req, res) => {
+  try {
+    const { 
+      query, 
+      page = 1, 
+      limit = 10,
+      category,
+      subcategory,
+      minPrice,
+      maxPrice,
+      sortBy = 'relevance', // relevance, price_asc, price_desc, newest, rating
+      inStock = 'true'
+    } = req.query;
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required'
+      });
+    }
+
+    // Build search query
+    const searchQuery = { status: 'active' };
+    
+    // Text search
+    searchQuery.$text = { $search: query };
+    
+    // Additional filters
+    if (category) searchQuery.category = category;
+    if (subcategory) searchQuery.subcategory = subcategory;
+    
+    if (minPrice || maxPrice) {
+      searchQuery.price = {};
+      if (minPrice) searchQuery.price.$gte = Number(minPrice);
+      if (maxPrice) searchQuery.price.$lte = Number(maxPrice);
+    }
+    
+    if (inStock === 'true') {
+      searchQuery.stock = { $gt: 0 };
+    }
+    
+    // Determine sort order
+    let sortOptions = {};
+    
+    switch (sortBy) {
+      case 'relevance':
+        sortOptions = { score: { $meta: 'textScore' } };
+        break;
+      case 'price_asc':
+        sortOptions = { price: 1 };
+        break;
+      case 'price_desc':
+        sortOptions = { price: -1 };
+        break;
+      case 'newest':
+        sortOptions = { createdAt: -1 };
+        break;
+      case 'rating':
+        sortOptions = { 'ratings.average': -1 };
+        break;
+      default:
+        sortOptions = { score: { $meta: 'textScore' } };
+    }
+    
+    // Execute search with projection for text score
+    const products = await Product.find(
+      searchQuery,
+      { score: { $meta: 'textScore' } }
+    )
+      .sort(sortOptions)
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit))
+      .populate('merchant', 'fullName companyName location isVerified');
+    
+    // Get total count for pagination
+    const total = await Product.countDocuments(searchQuery);
+    
+    // Get related categories based on search results
+    const categories = await Product.aggregate([
+      { $match: searchQuery },
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+    
+    // Get price range for the search results
+    const priceRange = await Product.aggregate([
+      { $match: searchQuery },
+      { 
+        $group: { 
+          _id: null, 
+          minPrice: { $min: '$price' }, 
+          maxPrice: { $max: '$price' } 
+        } 
+      }
+    ]);
+    
+    // Get related tags based on search results
+    const relatedTags = await Product.aggregate([
+      { $match: searchQuery },
+      { $unwind: '$tags' },
+      { $group: { _id: '$tags', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+    
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      total,
+      totalPages: Math.ceil(total / Number(limit)),
+      currentPage: Number(page),
+      products,
+      filters: {
+        categories: categories.map(c => ({ name: c._id, count: c.count })),
+        priceRange: priceRange.length > 0 ? priceRange[0] : { minPrice: 0, maxPrice: 0 },
+        relatedTags: relatedTags.map(t => ({ name: t._id, count: t.count }))
+      }
+    });
+  } catch (error) {
+    console.error('Search products error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error searching products',
+      error: error.message 
+    });
+  }
+};
+
+// Get product recommendations
+const getProductRecommendations = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    // Find the current product
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+    
+    // Find similar products based on category, tags, and price range
+    const similarProducts = await Product.find({
+      _id: { $ne: productId }, // Exclude current product
+      status: 'active',
+      $or: [
+        { category: product.category },
+        { tags: { $in: product.tags } }
+      ],
+      price: { 
+        $gte: product.price * 0.7, 
+        $lte: product.price * 1.3 
+      }
+    })
+    .limit(8)
+    .populate('merchant', 'fullName companyName location isVerified');
+    
+    // If not enough similar products, add some featured products
+    if (similarProducts.length < 8) {
+      const featuredProducts = await Product.find({
+        _id: { $ne: productId },
+        status: 'active',
+        featured: true,
+        _id: { $nin: similarProducts.map(p => p._id) } // Exclude already found products
+      })
+      .limit(8 - similarProducts.length)
+      .populate('merchant', 'fullName companyName location isVerified');
+      
+      similarProducts.push(...featuredProducts);
+    }
+    
+    res.status(200).json({
+      success: true,
+      count: similarProducts.length,
+      products: similarProducts
+    });
+  } catch (error) {
+    console.error('Get product recommendations error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error fetching product recommendations',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   upload,
   createProduct,
@@ -389,5 +621,7 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getFeaturedProducts,
-  getProductsByMerchant
+  getProductsByMerchant,
+  searchProducts,
+  getProductRecommendations
 };

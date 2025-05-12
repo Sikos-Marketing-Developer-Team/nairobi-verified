@@ -9,7 +9,7 @@ const mockProducts = [
     name: 'Wireless Bluetooth Headphones',
     price: 5999,
     discountPrice: 4999,
-    images: [{ url: '/images/products/headphones.jpg', isMain: true }],
+    images: [{ url: '/images/products/headphones.svg', isMain: true }],
     ratings: { average: 4.5, count: 128 },
     merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true }
   },
@@ -18,7 +18,7 @@ const mockProducts = [
     name: 'Smartphone Stand with Wireless Charger',
     price: 2500,
     discountPrice: 1999,
-    images: [{ url: '/images/products/phone-stand.jpg', isMain: true }],
+    images: [{ url: '/images/products/phone-stand.svg', isMain: true }],
     ratings: { average: 4.2, count: 75 },
     merchant: { _id: '102', companyName: 'Gadget World', isVerified: true }
   },
@@ -27,7 +27,7 @@ const mockProducts = [
     name: 'Leather Laptop Sleeve Case',
     price: 3500,
     discountPrice: null,
-    images: [{ url: '/images/products/laptop-case.jpg', isMain: true }],
+    images: [{ url: '/images/products/laptop-case.svg', isMain: true }],
     ratings: { average: 4.8, count: 92 },
     merchant: { _id: '103', companyName: 'Fashion Store', isVerified: false }
   },
@@ -36,7 +36,7 @@ const mockProducts = [
     name: 'Smart Watch with Heart Rate Monitor',
     price: 8999,
     discountPrice: 7499,
-    images: [{ url: '/images/products/smartwatch.jpg', isMain: true }],
+    images: [{ url: '/images/products/smartwatch.svg', isMain: true }],
     ratings: { average: 4.3, count: 156 },
     merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true }
   },
@@ -45,7 +45,7 @@ const mockProducts = [
     name: 'Portable Bluetooth Speaker',
     price: 4500,
     discountPrice: 3999,
-    images: [{ url: '/images/products/speaker.jpg', isMain: true }],
+    images: [{ url: '/images/products/speaker.svg', isMain: true }],
     ratings: { average: 4.1, count: 112 },
     merchant: { _id: '102', companyName: 'Gadget World', isVerified: true }
   },
@@ -54,7 +54,7 @@ const mockProducts = [
     name: 'Ergonomic Office Chair',
     price: 12999,
     discountPrice: 10999,
-    images: [{ url: '/images/products/chair.jpg', isMain: true }],
+    images: [{ url: '/images/products/chair.svg', isMain: true }],
     ratings: { average: 4.7, count: 64 },
     merchant: { _id: '104', companyName: 'Home Essentials', isVerified: true }
   },
@@ -63,7 +63,7 @@ const mockProducts = [
     name: 'Wireless Gaming Mouse',
     price: 3999,
     discountPrice: null,
-    images: [{ url: '/images/products/mouse.jpg', isMain: true }],
+    images: [{ url: '/images/products/mouse.svg', isMain: true }],
     ratings: { average: 4.4, count: 89 },
     merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true }
   },
@@ -72,7 +72,7 @@ const mockProducts = [
     name: 'Stainless Steel Water Bottle',
     price: 1500,
     discountPrice: 1299,
-    images: [{ url: '/images/products/bottle.jpg', isMain: true }],
+    images: [{ url: '/images/products/bottle.svg', isMain: true }],
     ratings: { average: 4.6, count: 203 },
     merchant: { _id: '105', companyName: 'Eco Friendly', isVerified: true }
   }

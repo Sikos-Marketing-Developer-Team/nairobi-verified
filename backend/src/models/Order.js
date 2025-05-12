@@ -80,12 +80,37 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'processing', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
     default: 'pending'
   },
+  statusHistory: [
+    {
+      status: {
+        type: String,
+        enum: ['pending', 'processing', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
+        required: true
+      },
+      updatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      timestamp: {
+        type: Date,
+        default: Date.now
+      },
+      note: String
+    }
+  ],
   notes: String,
   trackingNumber: String,
-  estimatedDelivery: Date
+  estimatedDelivery: Date,
+  deliveredAt: Date,
+  returnRequested: {
+    status: Boolean,
+    reason: String,
+    requestedAt: Date
+  }
 }, { timestamps: true });
 
 // Generate unique order number before saving

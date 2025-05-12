@@ -15,9 +15,9 @@ const mockProduct = {
   discountPrice: 4999,
   stock: 15,
   images: [
-    { url: '/images/products/headphones-1.jpg', isMain: true },
-    { url: '/images/products/headphones-2.jpg', isMain: false },
-    { url: '/images/products/headphones-3.jpg', isMain: false },
+    { url: '/images/products/headphones.svg', isMain: true },
+    { url: '/images/products/headphones.svg', isMain: false },
+    { url: '/images/products/headphones.svg', isMain: false },
   ],
   ratings: { average: 4.5, count: 128 },
   merchant: { 

@@ -130,6 +130,30 @@ const createOrder = async (req, res) => {
     
     await order.save();
     
+    // Send order confirmation email
+    try {
+      const emailService = require('../utils/emailService');
+      await emailService.sendOrderConfirmationEmail(
+        user.email,
+        user.fullName,
+        order.orderNumber,
+        {
+          items: orderItems.map(item => ({
+            product: { name: item.product.name || 'Product' },
+            quantity: item.quantity,
+            price: item.price
+          })),
+          subtotal,
+          shippingFee,
+          tax
+        },
+        total
+      );
+    } catch (emailError) {
+      console.error('Failed to send order confirmation email:', emailError);
+      // Continue with the response even if email fails
+    }
+    
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
@@ -374,10 +398,13 @@ const getOrderById = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, trackingNumber, estimatedDelivery } = req.body;
+    const { status, trackingNumber, estimatedDelivery, statusNote } = req.body;
     const userId = req.user._id;
     
-    const order = await Order.findById(id);
+    const order = await Order.findById(id)
+      .populate('customer', 'email fullName')
+      .populate('items.product', 'name images');
+      
     if (!order) {
       return res.status(404).json({ 
         success: false,
@@ -398,12 +425,48 @@ const updateOrderStatus = async (req, res) => {
       });
     }
     
+    // Create status history entry
+    const previousStatus = order.status;
+    const statusUpdate = {
+      status: status || previousStatus,
+      updatedBy: userId,
+      timestamp: new Date(),
+      note: statusNote || `Status updated from ${previousStatus} to ${status}`
+    };
+    
+    // Initialize statusHistory if it doesn't exist
+    if (!order.statusHistory) {
+      order.statusHistory = [];
+    }
+    
+    // Add status update to history
+    order.statusHistory.push(statusUpdate);
+    
     // Update fields
     if (status) order.status = status;
     if (trackingNumber) order.trackingNumber = trackingNumber;
     if (estimatedDelivery) order.estimatedDelivery = new Date(estimatedDelivery);
     
     await order.save();
+    
+    // Send notification email to customer about order status update
+    try {
+      if (order.customer && order.customer.email) {
+        const emailService = require('../utils/emailService');
+        await emailService.sendOrderStatusUpdateEmail(
+          order.customer.email,
+          order.customer.fullName,
+          order.orderNumber,
+          status,
+          statusNote,
+          trackingNumber,
+          estimatedDelivery
+        );
+      }
+    } catch (emailError) {
+      console.error('Failed to send order status update email:', emailError);
+      // Continue with the response even if email fails
+    }
     
     res.status(200).json({
       success: true,
@@ -530,6 +593,155 @@ const cancelOrder = async (req, res) => {
   }
 };
 
+// Track order by order number
+const trackOrder = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    
+    const order = await Order.findOne({ orderNumber })
+      .select('orderNumber status statusHistory trackingNumber estimatedDelivery createdAt items.product items.quantity')
+      .populate('items.product', 'name images');
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+    
+    // Format tracking information
+    const trackingInfo = {
+      orderNumber: order.orderNumber,
+      status: order.status,
+      createdAt: order.createdAt,
+      trackingNumber: order.trackingNumber,
+      estimatedDelivery: order.estimatedDelivery,
+      items: order.items.map(item => ({
+        product: {
+          _id: item.product._id,
+          name: item.product.name,
+          image: item.product.images.find(img => img.isMain)?.url || item.product.images[0]?.url
+        },
+        quantity: item.quantity
+      })),
+      timeline: order.statusHistory.map(history => ({
+        status: history.status,
+        timestamp: history.timestamp,
+        note: history.note
+      })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    };
+    
+    res.status(200).json({
+      success: true,
+      tracking: trackingInfo
+    });
+  } catch (error) {
+    console.error('Track order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error tracking order',
+      error: error.message
+    });
+  }
+};
+
+// Request order return
+const requestOrderReturn = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const userId = req.user._id;
+    
+    const order = await Order.findById(id);
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+    
+    // Check if user is the customer who placed the order
+    if (order.customer.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to request a return for this order'
+      });
+    }
+    
+    // Check if order is eligible for return (delivered within last 7 days)
+    if (order.status !== 'delivered') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only delivered orders can be returned'
+      });
+    }
+    
+    // Check if return has already been requested
+    if (order.returnRequested && order.returnRequested.status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Return has already been requested for this order'
+      });
+    }
+    
+    // Update order with return request
+    order.returnRequested = {
+      status: true,
+      reason: reason || 'No reason provided',
+      requestedAt: new Date()
+    };
+    
+    // Add to status history
+    if (!order.statusHistory) {
+      order.statusHistory = [];
+    }
+    
+    order.statusHistory.push({
+      status: 'returned',
+      updatedBy: userId,
+      timestamp: new Date(),
+      note: `Return requested: ${reason || 'No reason provided'}`
+    });
+    
+    await order.save();
+    
+    // Notify merchant about return request
+    try {
+      // Get merchant emails
+      const merchantIds = [...new Set(order.items.map(item => item.merchant.toString()))];
+      const merchants = await User.find({ _id: { $in: merchantIds } }).select('email companyName');
+      
+      const emailService = require('../utils/emailService');
+      
+      for (const merchant of merchants) {
+        await emailService.sendReturnRequestEmail(
+          merchant.email,
+          merchant.companyName,
+          order.orderNumber,
+          reason
+        );
+      }
+    } catch (emailError) {
+      console.error('Failed to send return request email:', emailError);
+      // Continue with the response even if email fails
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'Return request submitted successfully',
+      order
+    });
+  } catch (error) {
+    console.error('Request return error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error requesting return',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getAllOrders,
@@ -538,5 +750,7 @@ module.exports = {
   getOrderById,
   updateOrderStatus,
   updatePaymentStatus,
-  cancelOrder
+  cancelOrder,
+  trackOrder,
+  requestOrderReturn
 };

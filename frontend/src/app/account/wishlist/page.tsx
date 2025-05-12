@@ -18,7 +18,7 @@ const mockWishlistItems = [
       name: 'Wireless Earbuds',
       price: 3500,
       discountPrice: 2999,
-      images: [{ url: '/images/products/earbuds.jpg', isMain: true }],
+      images: [{ url: '/images/products/earbuds.svg', isMain: true }],
       merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true },
       ratings: { average: 4.6, count: 98 }
     },
@@ -31,7 +31,7 @@ const mockWishlistItems = [
       name: 'USB-C Hub Adapter',
       price: 2200,
       discountPrice: null,
-      images: [{ url: '/images/products/usb-hub.jpg', isMain: true }],
+      images: [{ url: '/images/products/charger.svg', isMain: true }],
       merchant: { _id: '102', companyName: 'Gadget World', isVerified: true },
       ratings: { average: 4.0, count: 45 }
     },
@@ -44,7 +44,7 @@ const mockWishlistItems = [
       name: 'Smart Watch with Heart Rate Monitor',
       price: 8999,
       discountPrice: 7499,
-      images: [{ url: '/images/products/smartwatch.jpg', isMain: true }],
+      images: [{ url: '/images/products/smartwatch.svg', isMain: true }],
       merchant: { _id: '101', companyName: 'Electronics Hub', isVerified: true },
       ratings: { average: 4.3, count: 156 }
     },
@@ -57,7 +57,7 @@ const mockWishlistItems = [
       name: 'Portable Bluetooth Speaker',
       price: 4500,
       discountPrice: 3999,
-      images: [{ url: '/images/products/speaker.jpg', isMain: true }],
+      images: [{ url: '/images/products/speaker.svg', isMain: true }],
       merchant: { _id: '102', companyName: 'Gadget World', isVerified: true },
       ratings: { average: 4.1, count: 112 }
     },
