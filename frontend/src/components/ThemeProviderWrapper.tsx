@@ -2,6 +2,9 @@
 
 import { useEffect } from 'react';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { CartProvider } from '@/context/CartContext';
+import { WishlistProvider } from '@/context/WishlistContext';
 
 export function ThemeProviderWrapper({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -18,3 +21,16 @@ export function ThemeProviderWrapper({ children }: { children: React.ReactNode }
   return <ThemeProvider>{children}</ThemeProvider>;
 }
  
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <CartProvider>
+          <WishlistProvider>
+            {children}
+          </WishlistProvider>
+        </CartProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+
+// (feat: Integrate API for Featured Categories, Products, and Vendors)

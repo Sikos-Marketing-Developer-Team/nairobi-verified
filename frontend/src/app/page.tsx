@@ -1,5 +1,10 @@
 "use client";
 import Navbar from "@/components/Navbar";
+import MainLayout from "@/components/MainLayout";
+import FeaturedProducts from "@/components/FeaturedProducts";
+import FeaturedCategories from "@/components/FeaturedCategories";
+import FeaturedVendors from "@/components/FeaturedVendors";
+import { FiMapPin, FiShoppingBag, FiUsers } from 'react-icons/fi';
 
 export default function Home() {
   return (
@@ -81,3 +86,108 @@ export default function Home() {
   );
 }
 
+
+
+export default function Home() {
+  return (
+    <MainLayout>
+      {/* Hero Section */}
+      <section className="bg-orange-100 text-gray-900 py-16 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-6">Welcome to Nairobi Verified</h1>
+          <p className="text-lg sm:text-xl mb-8 text-[#EC5C0B] max-w-3xl mx-auto">
+            A trusted platform that helps you discover and shop from verified vendors in Nairobi CBD — complete with directions to each shop!
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6">
+            <a href="/auth/register/client" className="bg-black text-white py-3 px-8 rounded-full hover:bg-[#EC5C0B] transition-colors duration-300 font-medium">
+              Sign Up as Buyer
+            </a>
+            <a href="/auth/register/merchant" className="bg-white text-black py-3 px-8 rounded-full hover:bg-[#EC5C0B] hover:text-white transition-colors duration-300 font-medium">
+              Sign Up as Vendor
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Categories */}
+      <FeaturedCategories />
+
+      {/* Featured Products */}
+      <FeaturedProducts />
+
+      {/* Featured Vendors */}
+      <FeaturedVendors />
+
+      {/* Features Section */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Nairobi Verified?</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              We're more than just an online marketplace - we connect you with verified local businesses in Nairobi.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-gray-50 rounded-lg p-8 text-center shadow-md hover:shadow-lg transition-shadow">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 text-[#EC5C0B] rounded-full mb-4">
+                <FiUsers className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Verified Vendors</h3>
+              <p className="text-gray-600">
+                All vendors on our platform are verified to ensure you're dealing with legitimate businesses.
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-8 text-center shadow-md hover:shadow-lg transition-shadow">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 text-[#EC5C0B] rounded-full mb-4">
+                <FiShoppingBag className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Quality Products</h3>
+              <p className="text-gray-600">
+                Browse a wide selection of quality products from trusted local vendors.
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-8 text-center shadow-md hover:shadow-lg transition-shadow">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 text-[#EC5C0B] rounded-full mb-4">
+                <FiMapPin className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Location Guidance</h3>
+              <p className="text-gray-600">
+                Get directions to physical stores in Nairobi CBD, making it easy to find what you need.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* City Navigation Section */}
+      <section className="py-16 px-4 bg-[#F8F8F8]">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-[#EC5C0B] mb-4">Explore Nairobi CBD with Ease</h2>
+          <p className="text-lg mb-8 text-gray-700 max-w-3xl mx-auto">
+            Nairobi Verified doesn't just help you shop — it helps you get there too. Find vendor locations and navigate the busy CBD like a pro!
+          </p>
+          <a href="/map" className="bg-[#EC5C0B] text-white py-3 px-8 rounded-full hover:bg-[#C94A06] transition-colors duration-300 font-medium">
+            View Shop Locations
+          </a>
+        </div>
+      </section>
+
+      {/* Call to Action Section */}
+      <section className="bg-[#EC5C0B] text-white py-16 px-4 text-center">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+          <p className="text-lg mb-8">
+            Whether you're a buyer or a vendor, Nairobi Verified is the right place for you!
+          </p>
+          <a href="/join" className="bg-black text-white py-3 px-8 rounded-full hover:bg-white hover:text-black transition-colors duration-300 font-medium">
+            Join Now
+          </a>
+        </div>
+      </section>
+    </MainLayout>
+  );
+}
+//(feat: Integrate API for Featured Categories, Products, and Vendors)

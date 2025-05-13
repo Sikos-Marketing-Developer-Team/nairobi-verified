@@ -2,34 +2,22 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiShoppingCart, FiHeart, FiStar } from 'react-icons/fi';
+import { Product } from '@/types/api';
+import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface ProductCardProps {
-  product: {
-    _id: string;
-    name: string;
-    price: number;
-    discountPrice?: number;
-    images: { url: string; isMain: boolean }[];
-    ratings: {
-      average: number;
-      count: number;
-    };
-    merchant: {
-      _id: string;
-      companyName: string;
-      isVerified: boolean;
-    };
-  };
-  onAddToCart?: (productId: string) => void;
-  onAddToWishlist?: (productId: string) => void;
+  product: Product;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ 
-  product, 
-  onAddToCart, 
-  onAddToWishlist 
-}) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { _id, name, price, discountPrice, images, ratings, merchant } = product;
+  const { addToCart, isLoading: isCartLoading } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist, isLoading: isWishlistLoading } = useWishlist();
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
   
   // Find main image or use first image
   const mainImage = images.find(img => img.isMain) || images[0];
@@ -38,6 +26,38 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const discountPercentage = discountPrice && price > discountPrice 
     ? Math.round(((price - discountPrice) / price) * 100) 
     : null;
+  
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      router.push('/auth/signin?redirect=' + encodeURIComponent(`/product/${_id}`));
+      return;
+    }
+    
+    try {
+      await addToCart(_id, 1);
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+    }
+  };
+  
+  const handleWishlistToggle = async () => {
+    if (!isAuthenticated) {
+      router.push('/auth/signin?redirect=' + encodeURIComponent(`/product/${_id}`));
+      return;
+    }
+    
+    try {
+      if (isInWishlist(_id)) {
+        await removeFromWishlist(_id);
+      } else {
+        await addToWishlist(_id);
+      }
+    } catch (error) {
+      console.error('Failed to update wishlist:', error);
+    }
+  };
+  
+  const isProductInWishlist = isInWishlist(_id);
   
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
@@ -70,14 +90,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {/* Action Buttons */}
         <div className="absolute bottom-2 right-2 flex space-x-1">
           <button 
-            onClick={() => onAddToWishlist && onAddToWishlist(_id)}
-            className="bg-white dark:bg-gray-800 p-2 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            aria-label="Add to wishlist"
+            onClick={handleWishlistToggle}
+            disabled={isWishlistLoading}
+            className={`p-2 rounded-full shadow-md transition-colors ${
+              isProductInWishlist 
+                ? 'bg-red-500 hover:bg-red-600' 
+                : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+            aria-label={isProductInWishlist ? "Remove from wishlist" : "Add to wishlist"}
           >
-            <FiHeart className="text-gray-600 dark:text-gray-300" />
+            <FiHeart className={`${
+              isProductInWishlist ? 'text-white fill-current' : 'text-gray-600 dark:text-gray-300'
+            }`} />
           </button>
           <button 
-            onClick={() => onAddToCart && onAddToCart(_id)}
+            onClick={handleAddToCart}
+            disabled={isCartLoading}
             className="bg-orange-500 p-2 rounded-full shadow-md hover:bg-orange-600 transition-colors"
             aria-label="Add to cart"
           >
