@@ -1,6 +1,8 @@
+'use client';
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import apiService from '@/lib/api';
-import { Wishlist, Product } from '@/types/api';
+import { apiService } from '@/lib/api';
+import { Wishlist, WishlistItem } from '@/types/api';
 import { useAuth } from './AuthContext';
 
 interface WishlistContextType {
@@ -30,12 +32,14 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [isAuthenticated]);
 
   const refreshWishlist = async () => {
+    if (!isAuthenticated) return;
+    
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.wishlist.get();
-      setWishlist(response.data);
+      const response = await apiService.wishlist.getItems();
+      setWishlist(response.data.data);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to fetch wishlist.';
       setError(errorMessage);
@@ -46,6 +50,8 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const addToWishlist = async (productId: string) => {
+    if (!isAuthenticated) return;
+    
     setIsLoading(true);
     setError(null);
     
@@ -62,6 +68,8 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const removeFromWishlist = async (productId: string) => {
+    if (!isAuthenticated) return;
+    
     setIsLoading(true);
     setError(null);
     
@@ -78,6 +86,8 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const clearWishlist = async () => {
+    if (!isAuthenticated) return;
+    
     setIsLoading(true);
     setError(null);
     
@@ -94,8 +104,8 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const isInWishlist = (productId: string): boolean => {
-    if (!wishlist || !wishlist.products) return false;
-    return wishlist.products.some((product: Product) => product._id === productId);
+    if (!wishlist || !wishlist.items) return false;
+    return wishlist.items.some((item: WishlistItem) => item.productId === productId);
   };
 
   return (
