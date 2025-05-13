@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { apiService } from "@/lib/api";
 
 interface Merchant {
   id: string;
@@ -31,14 +32,11 @@ export default function AdminDashboard() {
 
   const fetchMerchants = async () => {
     try {
-      const response = await fetch("/api/admin/merchants");
-      if (!response.ok) {
-        throw new Error("Failed to fetch merchants");
-      }
-      const data = await response.json();
-      setMerchants(data);
+      const response = await apiService.admin.getPendingVerifications();
+      setMerchants(response.data.merchants || []);
     } catch (error) {
-      setError("Failed to load merchants");
+      console.error("Error fetching merchants:", error);
+      setError("Failed to load merchants. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -46,27 +44,27 @@ export default function AdminDashboard() {
 
   const handleVerification = async (merchantId: string, action: "verify" | "reject") => {
     try {
-      const response = await fetch(`/api/admin/merchants/${merchantId}/${action}`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update merchant status");
-      }
+      await apiService.admin.processMerchantVerification(
+        merchantId, 
+        action, 
+        action === "reject" ? "Rejected by admin" : ""
+      );
 
       setSuccess(`Merchant ${action === "verify" ? "verified" : "rejected"} successfully`);
       fetchMerchants(); // Refresh the list
     } catch (error) {
-      setError("Failed to update merchant status");
+      console.error("Error updating merchant status:", error);
+      setError("Failed to update merchant status. Please try again later.");
     }
   };
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await apiService.auth.logout();
       router.push("/auth/signin");
     } catch (error) {
       console.error("Logout failed:", error);
+      setError("Logout failed. Please try again.");
     }
   };
 

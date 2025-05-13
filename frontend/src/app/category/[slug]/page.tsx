@@ -5,18 +5,37 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import ProductCard from '@/components/ProductCard';
 import { FiFilter, FiChevronDown, FiX, FiCheck } from 'react-icons/fi';
+import { Loader2 } from 'lucide-react';
 
-// Mock data for now - will be replaced with API call
-const mockCategory = {
-  _id: '1',
-  name: 'Electronics',
-  slug: 'electronics',
-  description: 'Browse the latest electronic gadgets and devices from verified vendors.',
-  image: '/images/categories/electronics.jpg',
-  icon: '🔌'
-};
+// Define interfaces for type safety
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  icon?: string;
+}
 
-const mockProducts = [
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  discountPrice?: number;
+  images: Array<{url: string, isMain: boolean}>;
+  ratings: {
+    average: number;
+    count: number;
+  };
+  merchant: {
+    _id: string;
+    companyName: string;
+    isVerified: boolean;
+  };
+}
+
+// Define filter interfaces
+const filterOptions = {
   {
     _id: '1',
     name: 'Wireless Bluetooth Headphones',
@@ -125,8 +144,35 @@ const sortOptions = [
 ];
 
 export default function CategoryPage({ params }: { params: { slug: string } }) {
-  const [category, setCategory] = useState(mockCategory);
-  const [products, setProducts] = useState(mockProducts);
+  // Define types for our data
+  interface Category {
+    _id: string;
+    name: string;
+    slug: string;
+    description: string;
+    image: string;
+    icon?: string;
+  }
+  
+  interface Product {
+    _id: string;
+    name: string;
+    price: number;
+    discountPrice: number | null;
+    images: Array<{url: string, isMain: boolean}>;
+    ratings: {
+      average: number;
+      count: number;
+    };
+    merchant: {
+      _id: string;
+      companyName: string;
+      isVerified: boolean;
+    };
+  }
+  
+  const [category, setCategory] = useState<Category | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -144,28 +190,59 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
   // Mobile filter visibility
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   
+  // Available merchants for filtering (will be populated from API)
+  const [availableMerchants, setAvailableMerchants] = useState<{id: string, name: string, count: number}[]>([]);
+  
   // Fetch category and products
   useEffect(() => {
     const fetchCategoryAndProducts = async () => {
       try {
         setLoading(true);
-        // Replace with actual API calls when backend is ready
-        // const categoryResponse = await fetch(`/api/categories/${params.slug}`);
-        // const categoryData = await categoryResponse.json();
-        // setCategory(categoryData.category);
+        setError(null);
         
-        // const productsResponse = await fetch(`/api/products?category=${categoryData.category._id}`);
-        // const productsData = await productsResponse.json();
-        // setProducts(productsData.products);
+        // Fetch category data
+        const categoryResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/categories/${params.slug}`);
         
-        // Using mock data for now
-        setTimeout(() => {
-          setCategory(mockCategory);
-          setProducts(mockProducts);
-          setLoading(false);
-        }, 500);
+        if (!categoryResponse.ok) {
+          throw new Error('Failed to fetch category');
+        }
+        
+        const categoryData = await categoryResponse.json();
+        setCategory(categoryData.category);
+        
+        // Fetch products in this category
+        const productsResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/products?category=${params.slug}&limit=50`
+        );
+        
+        if (!productsResponse.ok) {
+          throw new Error('Failed to fetch products');
+        }
+        
+        const productsData = await productsResponse.json();
+        setProducts(productsData.products);
+        
+        // Extract unique merchants from products for filter
+        const merchantsMap = new Map();
+        productsData.products.forEach((product: Product) => {
+          if (!merchantsMap.has(product.merchant._id)) {
+            merchantsMap.set(product.merchant._id, {
+              id: product.merchant._id,
+              name: product.merchant.companyName,
+              count: 1
+            });
+          } else {
+            const merchant = merchantsMap.get(product.merchant._id);
+            merchant.count += 1;
+            merchantsMap.set(product.merchant._id, merchant);
+          }
+        });
+        
+        setAvailableMerchants(Array.from(merchantsMap.values()));
       } catch (err) {
-        setError('Failed to load category and products');
+        console.error('Error fetching category data:', err);
+        setError('Failed to load category and products. Please try again later.');
+      } finally {
         setLoading(false);
       }
     };

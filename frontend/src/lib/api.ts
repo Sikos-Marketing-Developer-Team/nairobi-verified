@@ -221,6 +221,27 @@ export const apiService = {
     processPayment: (paymentData: any) => 
       api.post('/api/checkout/payment', paymentData),
   },
+  
+  // Admin endpoints
+  admin: {
+    getDashboardStats: () => 
+      api.get('/api/admin/dashboard'),
+    
+    getUsers: (params?: any) => 
+      api.get('/api/admin/users', { params }),
+    
+    updateUser: (userId: string, userData: any) => 
+      api.put(`/api/admin/users/${userId}`, userData),
+    
+    getPendingVerifications: (params?: any) => 
+      api.get('/api/admin/verifications', { params }),
+    
+    processMerchantVerification: (merchantId: string, action: string, notes?: string) => 
+      api.put(`/api/admin/verifications/${merchantId}`, { action, notes }),
+    
+    getTransactions: (params?: any) => 
+      api.get('/api/admin/transactions', { params }),
+  },
 };
 
 export default api;
