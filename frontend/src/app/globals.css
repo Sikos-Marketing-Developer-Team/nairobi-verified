@@ -56,6 +56,8 @@
   button, .btn {
     @apply font-medium rounded-lg transition-all duration-200 ease-in-out;
   }
+
+  
 }
 
 /* Optional: Define background and text color for specific sections if needed */
@@ -67,7 +69,16 @@
   .feature-card a {
     @apply text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300;
   }
+
+  span {
+    @apply text-gray-900 dark:text-white;
+  }
 }
+
+span {
+  color: inherit;
+}
+
 
 
 :root {
