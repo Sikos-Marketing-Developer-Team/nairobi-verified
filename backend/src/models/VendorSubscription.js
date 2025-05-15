@@ -68,6 +68,5 @@ const vendorSubscriptionSchema = new mongoose.Schema({
 
 // Index for efficient queries
 vendorSubscriptionSchema.index({ vendor: 1, status: 1 });
-vendorSubscriptionSchema.index({ endDate: 1, status: 1 });
 
 module.exports = mongoose.model('VendorSubscription', vendorSubscriptionSchema);

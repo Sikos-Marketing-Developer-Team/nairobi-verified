@@ -19,6 +19,7 @@ const isAuthenticated = async (req, res, next) => {
   }
 }
 
+// (Remove duplicates in vendor subscription)
 // Middleware to check if user is authenticated (session-based)
 exports.isAuthenticated = (req, res, next) => {
   if (req.isAuthenticated()) {

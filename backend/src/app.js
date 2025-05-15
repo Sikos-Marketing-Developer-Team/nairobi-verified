@@ -5,6 +5,8 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/Auth');
 const createAdminUser = require('./utils/createAdminUser');
 // (feat: Implement admin user creation utility and enhance application routes and UI)
+const authRoutes = require('./routes/Auth');
+// (Remove duplicates in vendor subscription)
 const merchantRoutes = require('./routes/merchantRoutes');
 const productRoutes = require('./routes/productRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
