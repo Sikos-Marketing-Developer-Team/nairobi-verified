@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const settingsController = require('../controllers/settingsController');
+const adminNotificationController = require('../controllers/adminNotificationController');
 const { isAuthenticated, isAdmin } = require('../middleware/authMiddleware');
 
 // Protect all admin routes
@@ -41,5 +43,23 @@ router.delete('/features/:featureId', adminController.deleteFeatureToggle);
 router.get('/content/banners', adminController.getContentBanners);
 router.get('/content/homepage-sections', adminController.getHomepageSections);
 router.post('/content/save-layout', adminController.saveLayoutChanges);
+
+// Settings management
+router.get('/settings', settingsController.getSettings);
+router.put('/settings/:section', settingsController.updateSettings);
+router.post('/upload', settingsController.uploadFile);
+
+// Notification management
+router.get('/notifications', adminNotificationController.getNotifications);
+router.post('/notifications', adminNotificationController.createNotification);
+router.put('/notifications/:notificationId', adminNotificationController.updateNotification);
+router.delete('/notifications/:notificationId', adminNotificationController.deleteNotification);
+router.post('/notifications/:notificationId/send', adminNotificationController.sendNotification);
+
+// Email template management
+router.get('/email-templates', adminNotificationController.getEmailTemplates);
+router.post('/email-templates', adminNotificationController.createEmailTemplate);
+router.put('/email-templates/:templateId', adminNotificationController.updateEmailTemplate);
+router.delete('/email-templates/:templateId', adminNotificationController.deleteEmailTemplate);
 
 module.exports = router;

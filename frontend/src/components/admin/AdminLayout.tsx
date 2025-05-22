@@ -47,6 +47,11 @@ export default function AdminLayout({ children, notificationCount = 0 }: AdminLa
       icon: <FaChartLine className="w-5 h-5" /> 
     },
     { 
+      name: "Analytics", 
+      href: "/admin/analytics", 
+      icon: <FaChartLine className="w-5 h-5" /> 
+    },
+    { 
       name: "Users", 
       href: "/admin/users", 
       icon: <FaUsers className="w-5 h-5" /> 
@@ -77,14 +82,14 @@ export default function AdminLayout({ children, notificationCount = 0 }: AdminLa
       icon: <FaNewspaper className="w-5 h-5" /> 
     },
     { 
-      name: "Banners", 
-      href: "/admin/banners", 
-      icon: <FaImage className="w-5 h-5" /> 
-    },
-    { 
       name: "Feature Toggles", 
       href: "/admin/features", 
       icon: <FaToggleOn className="w-5 h-5" /> 
+    },
+    { 
+      name: "Notifications", 
+      href: "/admin/notifications", 
+      icon: <FaBell className="w-5 h-5" /> 
     },
     { 
       name: "Settings", 
