@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(200, 150)">
+    <!-- Deal background -->
+    <rect x="0" y="0" width="400" height="250" rx="20" fill="#e74c3c"/>
+    
+    <!-- Fashion items -->
+    <path d="M100,50 L150,50 L140,150 L110,150 Z" fill="#ecf0f1"/>
+    <rect x="110" y="150" width="30" height="40" fill="#3498db"/>
+    
+    <circle cx="200" cy="100" r="50" fill="#f39c12"/>
+    <circle cx="200" cy="100" r="40" fill="#f1c40f"/>
+    
+    <path d="M300,50 L350,50 L340,120 L310,120 Z" fill="#2ecc71"/>
+    <rect x="310" y="120" width="30" height="30" fill="#27ae60"/>
+    
+    <!-- Deal text -->
+    <rect x="50" y="170" width="300" height="50" rx="10" fill="#c0392b"/>
+    <text x="200" y="205" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="#ffffff">FASHION DEALS</text>
+  </g>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">Fashion Sale</text>
+</svg>

@@ -45,6 +45,32 @@ const deals = [
     discount: "40%",
     image: "/images/deals/gadgets.jpg",
   },
+  {
+    title: 'Flash Sale - Electronics',
+    description: 'Up to 50% off on selected electronics',
+    shop: 'Electronics Hub',
+    validUntil: '2024-03-20',
+    discount: '50%',
+    image: '/images/deals/electronics.svg'
+  },
+  {
+    id: 2,
+    title: 'Fashion Week Special',
+    description: 'Buy 2 Get 1 Free on all clothing items',
+    shop: 'Fashion Store',
+    validUntil: '2024-03-25',
+    discount: '33%',
+    image: '/images/deals/fashion.svg'
+  },
+  {
+    id: 3,
+    title: 'Gadget Bonanza',
+    description: 'Special discounts on latest gadgets',
+    shop: 'Gadget World',
+    validUntil: '2024-03-22',
+    discount: '40%',
+    image: '/images/deals/gadgets.svg'
+  },
 ];
 
 const shops = [
@@ -59,6 +85,9 @@ const shops = [
     email: "contact@electronicshub.com",
     coordinates: { lat: -1.2921, lng: 36.8219 },
     image: "/images/shops/electronics-hub.jpg",
+
+    image: '/images/shops/electronics-hub.svg'
+ // (Update category and deal images to SVG format; add new product SVGs for various items including water bottle, chair, charger, coffee beans, handbag, laptop case, phone case, phone stand, sneakers, sunglasses, t-shirt, and women's dress.)
   },
   {
     id: 2,
@@ -70,7 +99,11 @@ const shops = [
     phone: "+254 723 456 789",
     email: "info@fashionstore.com",
     coordinates: { lat: -1.2873, lng: 36.7822 },
+
     image: "/images/shops/fashion-store.jpg",
+
+    image: '/images/shops/fashion-store.svg'
+//(Update category and deal images to SVG format; add new product SVGs for various items including water bottle, chair, charger, coffee beans, handbag, laptop case, phone case, phone stand, sneakers, sunglasses, t-shirt, and women's dress.)
   },
   {
     id: 3,
@@ -82,8 +115,11 @@ const shops = [
     phone: "+254 734 567 890",
     email: "support@gadgetworld.com",
     coordinates: { lat: -1.3182, lng: 36.7172 },
+
     image: "/images/shops/gadget-world.jpg",
   },
+  
+// (Update category and deal images to SVG format; add new product SVGs for various items including water bottle, chair, charger, coffee beans, handbag, laptop case, phone case, phone stand, sneakers, sunglasses, t-shirt, and women's dress.)
 ];
 
 const mapContainerStyle = {

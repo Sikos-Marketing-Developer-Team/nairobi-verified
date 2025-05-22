@@ -1,0 +1,124 @@
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+// Process card payment using Stripe
+const processCardPayment = async ({ cardToken, amount, currency, description, customerId }) => {
+  try {
+    // Create or retrieve customer
+    let customer;
+    if (customerId) {
+      try {
+        customer = await stripe.customers.retrieve(customerId);
+      } catch (error) {
+        // If customer doesn't exist, create a new one
+        customer = await stripe.customers.create({
+          id: customerId,
+          source: cardToken
+        });
+      }
+    } else {
+      customer = await stripe.customers.create({
+        source: cardToken
+      });
+    }
+    
+    // Create payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Stripe uses cents
+      currency: currency.toLowerCase(),
+      customer: customer.id,
+      description,
+      confirm: true,
+      payment_method_types: ['card']
+    });
+    
+    // Get card details
+    const paymentMethod = await stripe.paymentMethods.retrieve(
+      paymentIntent.payment_method
+    );
+    
+    return {
+      success: true,
+      transactionId: paymentIntent.id,
+      amount: amount,
+      currency: currency,
+      last4: paymentMethod.card.last4,
+      brand: paymentMethod.card.brand,
+      expiryMonth: paymentMethod.card.exp_month,
+      expiryYear: paymentMethod.card.exp_year
+    };
+  } catch (error) {
+    console.error('Card payment error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// Create a payment intent for client-side confirmation
+const createPaymentIntent = async ({ amount, currency, description, customerId }) => {
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Stripe uses cents
+      currency: currency.toLowerCase(),
+      customer: customerId,
+      description,
+      payment_method_types: ['card']
+    });
+    
+    return {
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id
+    };
+  } catch (error) {
+    console.error('Create payment intent error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// Confirm a payment intent
+const confirmPaymentIntent = async (paymentIntentId) => {
+  try {
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    
+    if (paymentIntent.status === 'succeeded') {
+      // Get card details
+      const paymentMethod = await stripe.paymentMethods.retrieve(
+        paymentIntent.payment_method
+      );
+      
+      return {
+        success: true,
+        transactionId: paymentIntent.id,
+        amount: paymentIntent.amount / 100, // Convert back from cents
+        currency: paymentIntent.currency,
+        last4: paymentMethod.card.last4,
+        brand: paymentMethod.card.brand,
+        expiryMonth: paymentMethod.card.exp_month,
+        expiryYear: paymentMethod.card.exp_year
+      };
+    } else {
+      return {
+        success: false,
+        status: paymentIntent.status,
+        error: 'Payment not successful'
+      };
+    }
+  } catch (error) {
+    console.error('Confirm payment intent error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+module.exports = {
+  processCardPayment,
+  createPaymentIntent,
+  confirmPaymentIntent
+};

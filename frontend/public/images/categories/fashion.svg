@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(250, 100)">
+    <path d="M150,50 L200,100 L250,70 L200,350 L100,350 L50,70 L100,100 L150,50" fill="#e74c3c"/>
+    <path d="M100,100 L200,100 L200,350 L100,350 Z" fill="#c0392b"/>
+    <rect x="140" y="100" width="20" height="250" fill="#ecf0f1"/>
+    <circle cx="150" cy="30" r="25" fill="#f5cba7"/>
+  </g>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">Fashion</text>
+</svg>

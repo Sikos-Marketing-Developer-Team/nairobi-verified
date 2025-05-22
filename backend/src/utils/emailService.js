@@ -89,7 +89,315 @@ const sendPasswordResetEmail = async (email, token) => {
   }
 };
 
+// Send order confirmation email
+const sendOrderConfirmationEmail = async (email, customerName, orderNumber, orderDetails, total) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      throw new Error('Email credentials missing in environment variables');
+    }
+    
+    // Format order items for email
+    const itemsList = orderDetails.items.map(item => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.product.name}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.quantity}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">KES ${item.price.toFixed(2)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">KES ${(item.price * item.quantity).toFixed(2)}</td>
+      </tr>
+    `).join('');
+    
+    const trackingUrl = `${process.env.FRONTEND_URL}/orders/track/${orderNumber}`;
+    
+    const mailOptions = {
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Order Confirmation - ${orderNumber}`,
+      text: `Thank you for your order, ${customerName}! Your order number is ${orderNumber}. Track your order at: ${trackingUrl}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+          <h2>Order Confirmation</h2>
+          <p>Thank you for your order, ${customerName}!</p>
+          <p>Your order number is: <strong>${orderNumber}</strong></p>
+          
+          <h3>Order Summary</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background-color: #f8f8f8;">
+                <th style="padding: 10px; text-align: left;">Product</th>
+                <th style="padding: 10px; text-align: left;">Quantity</th>
+                <th style="padding: 10px; text-align: left;">Price</th>
+                <th style="padding: 10px; text-align: left;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsList}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="padding: 10px; text-align: right;"><strong>Subtotal:</strong></td>
+                <td style="padding: 10px;">KES ${orderDetails.subtotal.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td colspan="3" style="padding: 10px; text-align: right;"><strong>Shipping:</strong></td>
+                <td style="padding: 10px;">KES ${orderDetails.shippingFee.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td colspan="3" style="padding: 10px; text-align: right;"><strong>Tax:</strong></td>
+                <td style="padding: 10px;">KES ${orderDetails.tax.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td colspan="3" style="padding: 10px; text-align: right;"><strong>Total:</strong></td>
+                <td style="padding: 10px;"><strong>KES ${total.toFixed(2)}</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+          
+          <div style="margin: 20px 0;">
+            <p>Track your order: <a href="${trackingUrl}" style="color: #EC5C0B;">Click here</a></p>
+          </div>
+          
+          <hr style="border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="font-size: 12px; color: #666;">Thank you for shopping with Nairobi Verified!</p>
+        </div>
+      `,
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Order confirmation email sent:', info.messageId, 'to:', email);
+    return info;
+  } catch (error) {
+    console.error('Error sending order confirmation email:', error.message);
+    throw new Error(`Failed to send order confirmation email: ${error.message}`);
+  }
+};
+
+// Send order status update email
+const sendOrderStatusUpdateEmail = async (email, customerName, orderNumber, status, statusNote, trackingNumber, estimatedDelivery) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      throw new Error('Email credentials missing in environment variables');
+    }
+    
+    const trackingUrl = `${process.env.FRONTEND_URL}/orders/track/${orderNumber}`;
+    
+    // Format status for display
+    const statusDisplay = status.replace('_', ' ').split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+    
+    // Format estimated delivery date if provided
+    let deliveryInfo = '';
+    if (estimatedDelivery) {
+      const deliveryDate = new Date(estimatedDelivery);
+      deliveryInfo = `<p>Estimated delivery date: <strong>${deliveryDate.toDateString()}</strong></p>`;
+    }
+    
+    // Format tracking info if provided
+    let trackingInfo = '';
+    if (trackingNumber) {
+      trackingInfo = `<p>Tracking number: <strong>${trackingNumber}</strong></p>`;
+    }
+    
+    const mailOptions = {
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Order ${orderNumber} Status Update - ${statusDisplay}`,
+      text: `Your order ${orderNumber} has been updated to: ${statusDisplay}. ${statusNote || ''} ${trackingNumber ? `Tracking number: ${trackingNumber}` : ''} Track your order at: ${trackingUrl}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+          <h2>Order Status Update</h2>
+          <p>Hello ${customerName},</p>
+          <p>Your order <strong>${orderNumber}</strong> has been updated to: <strong>${statusDisplay}</strong></p>
+          
+          ${statusNote ? `<p>${statusNote}</p>` : ''}
+          ${trackingInfo}
+          ${deliveryInfo}
+          
+          <div style="margin: 20px 0; text-align: center;">
+            <a href="${trackingUrl}" style="display: inline-block; padding: 10px 20px; color: white; background-color: #EC5C0B; text-decoration: none; border-radius: 5px;">Track Your Order</a>
+          </div>
+          
+          <hr style="border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="font-size: 12px; color: #666;">Thank you for shopping with Nairobi Verified!</p>
+        </div>
+      `,
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Order status update email sent:', info.messageId, 'to:', email);
+    return info;
+  } catch (error) {
+    console.error('Error sending order status update email:', error.message);
+    throw new Error(`Failed to send order status update email: ${error.message}`);
+  }
+};
+
+// Send subscription renewal reminder
+const sendSubscriptionRenewalEmail = async (email, merchantName, subscriptionName, expiryDate, renewalLink) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      throw new Error('Email credentials missing in environment variables');
+    }
+    
+    const { subscriptionRenewalTemplate } = require('./emailTemplates');
+    
+    const mailOptions = {
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Your Subscription is Expiring Soon - ${subscriptionName}`,
+      text: `Hello ${merchantName}, your ${subscriptionName} subscription is expiring on ${new Date(expiryDate).toDateString()}. Renew now to avoid interruption: ${renewalLink}`,
+      html: subscriptionRenewalTemplate(merchantName, subscriptionName, expiryDate, renewalLink)
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Subscription renewal email sent:', info.messageId, 'to:', email);
+    return info;
+  } catch (error) {
+    console.error('Error sending subscription renewal email:', error.message);
+    throw new Error(`Failed to send subscription renewal email: ${error.message}`);
+  }
+};
+
+// Send merchant verification status email
+const sendMerchantVerificationEmail = async (email, merchantName, status, reason) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      throw new Error('Email credentials missing in environment variables');
+    }
+    
+    const { merchantVerificationTemplate } = require('./emailTemplates');
+    const isApproved = status === 'approved';
+    const dashboardLink = `${process.env.FRONTEND_URL}/merchant/dashboard`;
+    
+    const mailOptions = {
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Merchant Verification ${isApproved ? 'Approved' : 'Update'} - Nairobi Verified`,
+      text: isApproved 
+        ? `Congratulations ${merchantName}! Your merchant account has been verified. You can now start selling on Nairobi Verified.` 
+        : `Hello ${merchantName}, your merchant verification status has been updated to: ${status}. ${reason || ''}`,
+      html: merchantVerificationTemplate(merchantName, status, reason, dashboardLink)
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Merchant verification email sent:', info.messageId, 'to:', email);
+    return info;
+  } catch (error) {
+    console.error('Error sending merchant verification email:', error.message);
+    throw new Error(`Failed to send merchant verification email: ${error.message}`);
+  }
+};
+
+// Send subscription confirmation email
+const sendSubscriptionConfirmationEmail = async (email, merchantName, packageDetails, startDate, endDate, amount) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      throw new Error('Email credentials missing in environment variables');
+    }
+    
+    const { subscriptionConfirmationTemplate } = require('./emailTemplates');
+    
+    const mailOptions = {
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Subscription Confirmation - ${packageDetails.name}`,
+      text: `Hello ${merchantName}, thank you for subscribing to our ${packageDetails.name} package. Your subscription is active from ${new Date(startDate).toDateString()} to ${new Date(endDate).toDateString()}.`,
+      html: subscriptionConfirmationTemplate(
+        merchantName, 
+        packageDetails.name, 
+        startDate, 
+        endDate, 
+        amount, 
+        packageDetails.features
+      )
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Subscription confirmation email sent:', info.messageId, 'to:', email);
+    return info;
+  } catch (error) {
+    console.error('Error sending subscription confirmation email:', error.message);
+    throw new Error(`Failed to send subscription confirmation email: ${error.message}`);
+  }
+};
+
+// Send subscription expiration email
+const sendSubscriptionExpirationEmail = async (email, merchantName, packageName, expiryDate, renewalLink) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      throw new Error('Email credentials missing in environment variables');
+    }
+    
+    const { subscriptionExpirationTemplate } = require('./emailTemplates');
+    
+    const mailOptions = {
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Your ${packageName} Subscription Has Expired`,
+      text: `Hello ${merchantName}, your ${packageName} subscription has expired on ${new Date(expiryDate).toDateString()}. Renew now to continue enjoying the benefits: ${renewalLink}`,
+      html: subscriptionExpirationTemplate(merchantName, packageName, expiryDate, renewalLink)
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Subscription expiration email sent:', info.messageId, 'to:', email);
+    return info;
+  } catch (error) {
+    console.error('Error sending subscription expiration email:', error.message);
+    throw new Error(`Failed to send subscription expiration email: ${error.message}`);
+  }
+};
+
+// Send return request email to merchant
+const sendReturnRequestEmail = async (email, merchantName, orderNumber, reason) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      throw new Error('Email credentials missing in environment variables');
+    }
+    
+    const orderDetailsLink = `${process.env.FRONTEND_URL}/merchant/orders/${orderNumber}`;
+    
+    const mailOptions = {
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Return Request for Order ${orderNumber}`,
+      text: `Hello ${merchantName}, a customer has requested a return for order ${orderNumber}. Reason: ${reason || 'No reason provided'}. Please review the order details.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+          <h2>Return Request Received</h2>
+          <p>Hello ${merchantName},</p>
+          <p>A customer has requested a return for order <strong>${orderNumber}</strong>.</p>
+          
+          <p><strong>Reason for return:</strong> ${reason || 'No reason provided'}</p>
+          
+          <div style="margin: 20px 0; text-align: center;">
+            <a href="${orderDetailsLink}" style="display: inline-block; padding: 10px 20px; color: white; background-color: #EC5C0B; text-decoration: none; border-radius: 5px;">View Order Details</a>
+          </div>
+          
+          <p>Please review the order and contact the customer to arrange the return process.</p>
+          
+          <hr style="border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="font-size: 12px; color: #666;">Thank you for being a valued merchant on Nairobi Verified!</p>
+        </div>
+      `,
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Return request email sent:', info.messageId, 'to:', email);
+    return info;
+  } catch (error) {
+    console.error('Error sending return request email:', error.message);
+    throw new Error(`Failed to send return request email: ${error.message}`);
+  }
+};
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
+  sendOrderConfirmationEmail,
+  sendOrderStatusUpdateEmail,
+  sendSubscriptionRenewalEmail,
+  sendSubscriptionConfirmationEmail,
+  sendSubscriptionExpirationEmail,
+  sendMerchantVerificationEmail,
+  sendReturnRequestEmail
 };

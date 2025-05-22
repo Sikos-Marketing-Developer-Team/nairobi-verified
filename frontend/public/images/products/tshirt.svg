@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f0f0f0"/>
+  <g transform="translate(250, 150)">
+    <!-- T-shirt body -->
+    <path d="M50,50 L150,0 L250,50 L250,250 L50,250 Z" fill="#3498db"/>
+    
+    <!-- Collar -->
+    <path d="M120,0 L180,0 L180,30 C180,40 150,50 150,50 C150,50 120,40 120,30 Z" fill="#2980b9"/>
+    
+    <!-- Sleeves -->
+    <path d="M50,50 L0,100 L30,130 L80,70 Z" fill="#3498db"/>
+    <path d="M250,50 L300,100 L270,130 L220,70 Z" fill="#3498db"/>
+    
+    <!-- Design on shirt -->
+    <circle cx="150" cy="120" r="30" fill="#ecf0f1"/>
+    <path d="M130,120 L170,120 M150,100 L150,140" stroke="#3498db" stroke-width="5"/>
+  </g>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#333333">T-Shirt</text>
+</svg>
