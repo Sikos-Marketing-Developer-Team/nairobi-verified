@@ -5,8 +5,8 @@ const bcrypt = require('bcryptjs');
 
 // Admin user details
 const adminUser = {
-  fullName: 'Admin User',
-  email: 'admin@nairobidemo.com',
+  fullName: 'System Administrator',
+  email: 'njorojoe11173@gmail.com',
   phone: '+254700000000',
   password: 'admin123',
   role: 'admin',

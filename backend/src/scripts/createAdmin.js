@@ -10,8 +10,8 @@ async function createAdminUser() {
     console.log('Connected to MongoDB');
 
     // Admin credentials
-    const adminEmail = 'admin@nairobiverifed.com';
-    const adminPassword = 'Admin@123456';
+    const adminEmail = 'njorojoe11173@gmail.com';
+    const adminPassword = 'admin123';
     const adminFullName = 'System Administrator';
     const adminPhone = '+254712345678';
 

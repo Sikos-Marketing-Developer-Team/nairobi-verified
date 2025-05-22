@@ -22,8 +22,8 @@ To access the admin dashboard, you first need to create an admin user. Follow th
    ```
 
 4. The script will create an admin user with the following credentials:
-   - Email: admin@nairobiverifed.com
-   - Password: Admin@123
+   - Email: njorojoe11173@gmail.com
+   - Password: admin123
 
 ### Logging In
 
