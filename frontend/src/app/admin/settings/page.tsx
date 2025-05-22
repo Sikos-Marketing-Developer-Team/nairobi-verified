@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { 
   Card, 
   CardContent, 
   CardDescription, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardFooter
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,9 +28,36 @@ import {
   Shield,
   Globe,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Users,
+  ExternalLink,
+  Home
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+
+interface AdminRole {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+}
 
 interface SiteSettings {
   general: {
@@ -80,6 +109,10 @@ interface SiteSettings {
     refundPolicy: string;
     cookiePolicy: string;
   };
+  adminRoles: {
+    roles: AdminRole[];
+    defaultRole: string;
+  };
 }
 
 export default function AdminSettingsPage() {
@@ -99,6 +132,37 @@ export default function AdminSettingsPage() {
   const [ogImageFile, setOgImageFile] = useState<File | null>(null);
   const [ogImagePreview, setOgImagePreview] = useState<string | null>(null);
   
+  // State for admin roles
+  const [editingRole, setEditingRole] = useState<AdminRole | null>(null);
+  const [isEditRoleDialogOpen, setIsEditRoleDialogOpen] = useState(false);
+  const [newRole, setNewRole] = useState<{
+    name: string;
+    description: string;
+    permissions: string[];
+  }>({
+    name: '',
+    description: '',
+    permissions: []
+  });
+  const [promoteUserEmail, setPromoteUserEmail] = useState('');
+  const [promoteUserRole, setPromoteUserRole] = useState('');
+  
+  // Available permissions for admin roles
+  const availablePermissions = [
+    { value: 'view_dashboard', label: 'View Dashboard' },
+    { value: 'manage_users', label: 'Manage Users' },
+    { value: 'manage_merchants', label: 'Manage Merchants' },
+    { value: 'manage_products', label: 'Manage Products' },
+    { value: 'manage_orders', label: 'Manage Orders' },
+    { value: 'manage_content', label: 'Manage Content' },
+    { value: 'manage_settings', label: 'Manage Settings' },
+    { value: 'view_analytics', label: 'View Analytics' },
+    { value: 'manage_payments', label: 'Manage Payments' },
+    { value: 'manage_subscriptions', label: 'Manage Subscriptions' },
+    { value: 'view_audit_logs', label: 'View Audit Logs' },
+    { value: 'manage_features', label: 'Manage Features' },
+  ];
+  
   // State for saving
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
@@ -106,7 +170,7 @@ export default function AdminSettingsPage() {
   // Fetch settings
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [availablePermissions]);
   
   const fetchSettings = async () => {
     try {
@@ -123,6 +187,46 @@ export default function AdminSettingsPage() {
       }
       
       const data = await response.json();
+      
+      // If adminRoles is not defined in the response, add default roles
+      if (!data.settings.adminRoles) {
+        data.settings.adminRoles = {
+          roles: [
+            {
+              id: 'super_admin',
+              name: 'Super Admin',
+              description: 'Full access to all features',
+              permissions: availablePermissions.map(p => p.value)
+            },
+            {
+              id: 'content_admin',
+              name: 'Content Admin',
+              description: 'Can manage website content',
+              permissions: ['view_dashboard', 'manage_content', 'view_analytics']
+            },
+            {
+              id: 'user_admin',
+              name: 'User Admin',
+              description: 'Can manage users and merchants',
+              permissions: ['view_dashboard', 'manage_users', 'manage_merchants']
+            },
+            {
+              id: 'product_admin',
+              name: 'Product Admin',
+              description: 'Can manage products and categories',
+              permissions: ['view_dashboard', 'manage_products']
+            },
+            {
+              id: 'order_admin',
+              name: 'Order Admin',
+              description: 'Can manage orders and payments',
+              permissions: ['view_dashboard', 'manage_orders', 'manage_payments']
+            }
+          ],
+          defaultRole: 'content_admin'
+        };
+      }
+      
       setSettings(data.settings);
       
       // Set image previews
@@ -142,6 +246,75 @@ export default function AdminSettingsPage() {
       setError(err.message || "Failed to load settings. Please try again later.");
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Handler for adding a new admin role
+  const handleAddNewRole = () => {
+    if (!settings) return;
+    
+    // Generate a unique ID for the new role
+    const roleId = newRole.name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now().toString().slice(-4);
+    
+    const newRoleObj: AdminRole = {
+      id: roleId,
+      name: newRole.name,
+      description: newRole.description,
+      permissions: newRole.permissions
+    };
+    
+    // Add the new role to the settings
+    const updatedRoles = [...settings.adminRoles.roles, newRoleObj];
+    handleInputChange('adminRoles', 'roles', updatedRoles);
+    
+    // Reset the form
+    setNewRole({
+      name: '',
+      description: '',
+      permissions: []
+    });
+    
+    toast({
+      title: "Role added",
+      description: `${newRole.name} role has been added successfully.`
+    });
+  };
+  
+  // Handler for promoting a user to admin
+  const handlePromoteUser = async () => {
+    try {
+      // This endpoint needs to be implemented in the backend
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/users/promote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: promoteUserEmail,
+          roleId: promoteUserRole
+        }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to promote user");
+      }
+      
+      // Reset the form
+      setPromoteUserEmail('');
+      setPromoteUserRole('');
+      
+      toast({
+        title: "User promoted",
+        description: `User has been promoted to admin with the selected role.`
+      });
+    } catch (err: any) {
+      console.error("Error promoting user:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to promote user."
+      });
     }
   };
   
@@ -373,14 +546,26 @@ export default function AdminSettingsPage() {
           </div>
         )}
         
+        {/* View User Site Button */}
+        <div className="flex justify-end mb-4">
+          <Link href="/" target="_blank">
+            <Button variant="outline" className="flex items-center gap-2">
+              <Home className="h-4 w-4" />
+              <span>View User Site</span>
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+        
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-4">
+          <TabsList className="grid grid-cols-4 md:grid-cols-7 mb-4">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="email">Email</TabsTrigger>
             <TabsTrigger value="payment">Payment</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="seo">SEO</TabsTrigger>
             <TabsTrigger value="legal">Legal</TabsTrigger>
+            <TabsTrigger value="adminRoles">Admin Roles</TabsTrigger>
           </TabsList>
           
           {/* General Settings */}
@@ -1135,6 +1320,202 @@ export default function AdminSettingsPage() {
                       <>
                         <Save className="mr-2 h-4 w-4" />
                         Save Legal Documents
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Admin Roles Settings */}
+          <TabsContent value="adminRoles">
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin Roles & Permissions</CardTitle>
+                <CardDescription>
+                  Manage admin roles and their permissions
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Existing Roles */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Existing Admin Roles</h3>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Role Name</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Permissions</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {settings.adminRoles?.roles?.map((role) => (
+                          <TableRow key={role.id}>
+                            <TableCell className="font-medium">
+                              {role.name}
+                              {settings.adminRoles.defaultRole === role.id && (
+                                <Badge className="ml-2 bg-blue-100 text-blue-800">Default</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>{role.description}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {role.permissions.map((permission) => (
+                                  <Badge key={permission} variant="outline" className="text-xs">
+                                    {permission.replace('_', ' ')}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button variant="outline" size="sm" onClick={() => {
+                                  // Edit role functionality
+                                  setEditingRole(role);
+                                  setIsEditRoleDialogOpen(true);
+                                }}>
+                                  Edit
+                                </Button>
+                                {role.id !== 'super_admin' && (
+                                  <Button variant="destructive" size="sm" onClick={() => {
+                                    // Delete role functionality
+                                    if (confirm(`Are you sure you want to delete the ${role.name} role?`)) {
+                                      const updatedRoles = settings.adminRoles.roles.filter(r => r.id !== role.id);
+                                      handleInputChange('adminRoles', 'roles', updatedRoles);
+                                    }
+                                  }}>
+                                    Delete
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+                
+                {/* Add New Role */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-medium mb-4">Add New Admin Role</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="newRoleName">Role Name</Label>
+                      <Input
+                        id="newRoleName"
+                        placeholder="e.g., Content Manager"
+                        value={newRole.name}
+                        onChange={(e) => setNewRole({...newRole, name: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newRoleDescription">Description</Label>
+                      <Input
+                        id="newRoleDescription"
+                        placeholder="e.g., Manages website content"
+                        value={newRole.description}
+                        onChange={(e) => setNewRole({...newRole, description: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 mb-4">
+                    <Label>Permissions</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-2">
+                      {availablePermissions.map((permission) => (
+                        <div key={permission.value} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`permission-${permission.value}`}
+                            checked={newRole.permissions.includes(permission.value)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setNewRole({
+                                  ...newRole,
+                                  permissions: [...newRole.permissions, permission.value]
+                                });
+                              } else {
+                                setNewRole({
+                                  ...newRole,
+                                  permissions: newRole.permissions.filter(p => p !== permission.value)
+                                });
+                              }
+                            }}
+                          />
+                          <Label 
+                            htmlFor={`permission-${permission.value}`}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {permission.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <Button onClick={handleAddNewRole} disabled={!newRole.name || newRole.permissions.length === 0}>
+                    Add Role
+                  </Button>
+                </div>
+                
+                {/* Promote User to Admin */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-medium mb-4">Promote User to Admin</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="userEmail">User Email</Label>
+                      <Input
+                        id="userEmail"
+                        placeholder="user@example.com"
+                        value={promoteUserEmail}
+                        onChange={(e) => setPromoteUserEmail(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="adminRole">Admin Role</Label>
+                      <Select 
+                        value={promoteUserRole} 
+                        onValueChange={(value) => setPromoteUserRole(value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {settings.adminRoles?.roles?.map((role) => (
+                            <SelectItem key={role.id} value={role.id}>
+                              {role.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={handlePromoteUser} 
+                    disabled={!promoteUserEmail || !promoteUserRole}
+                  >
+                    Promote User
+                  </Button>
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => handleSaveSettings('adminRoles')}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Admin Role Settings
                       </>
                     )}
                   </Button>

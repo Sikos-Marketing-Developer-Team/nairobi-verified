@@ -223,13 +223,13 @@ export default function EditProfilePage() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Update local state
-      setUser(prev => ({
-        ...prev,
+      setUser({
+        ...user,
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         avatar: avatar
-      }));
+      });
       
       setSuccessMessage('Profile updated successfully');
       setSubmitting(false);

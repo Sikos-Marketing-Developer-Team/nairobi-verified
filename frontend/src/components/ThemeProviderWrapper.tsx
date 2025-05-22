@@ -6,34 +6,24 @@ import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { WishlistProvider } from '@/context/WishlistContext';
 import { SocketProvider } from '@/context/SocketContext';
+import { ToastProvider } from '@/context/ToastContext';
 
 export function ThemeProviderWrapper({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    // Detect if the user's system is in dark mode
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    if (prefersDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
-
-  return <ThemeProvider>{children}</ThemeProvider>;
-}
- 
   return (
     <ThemeProvider>
       <AuthProvider>
         <SocketProvider>
           <CartProvider>
             <WishlistProvider>
-              {children}
+              <ToastProvider>
+                {children}
+              </ToastProvider>
             </WishlistProvider>
           </CartProvider>
         </SocketProvider>
       </AuthProvider>
     </ThemeProvider>
   );
+}
 
 // (feat: Integrate API for Featured Categories, Products, and Vendors)

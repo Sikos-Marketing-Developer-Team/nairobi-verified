@@ -86,8 +86,8 @@ export default function AdminMerchantsPage() {
   
   // State for filtering and pagination
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [verificationFilter, setVerificationFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [verificationFilter, setVerificationFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
@@ -174,20 +174,24 @@ export default function AdminMerchantsPage() {
   useEffect(() => {
     let filtered = [...merchants];
     
-    if (statusFilter === "active") {
-      filtered = filtered.filter(merchant => merchant.isActive);
-    } else if (statusFilter === "inactive") {
-      filtered = filtered.filter(merchant => !merchant.isActive);
+    if (statusFilter !== "all") {
+      if (statusFilter === "active") {
+        filtered = filtered.filter(merchant => merchant.isActive);
+      } else if (statusFilter === "inactive") {
+        filtered = filtered.filter(merchant => !merchant.isActive);
+      }
     }
     
-    if (verificationFilter === "verified") {
-      filtered = filtered.filter(merchant => merchant.isVerified);
-    } else if (verificationFilter === "unverified") {
-      filtered = filtered.filter(merchant => !merchant.isVerified);
-    } else if (verificationFilter === "pending") {
-      filtered = filtered.filter(merchant => merchant.verificationStatus === 'pending');
-    } else if (verificationFilter === "rejected") {
-      filtered = filtered.filter(merchant => merchant.verificationStatus === 'rejected');
+    if (verificationFilter !== "all") {
+      if (verificationFilter === "verified") {
+        filtered = filtered.filter(merchant => merchant.isVerified);
+      } else if (verificationFilter === "unverified") {
+        filtered = filtered.filter(merchant => !merchant.isVerified);
+      } else if (verificationFilter === "pending") {
+        filtered = filtered.filter(merchant => merchant.verificationStatus === 'pending');
+      } else if (verificationFilter === "rejected") {
+        filtered = filtered.filter(merchant => merchant.verificationStatus === 'rejected');
+      }
     }
     
     if (searchTerm.trim() !== "") {
@@ -337,7 +341,7 @@ export default function AdminMerchantsPage() {
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
@@ -348,7 +352,7 @@ export default function AdminMerchantsPage() {
                     <SelectValue placeholder="Filter by verification" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Verification</SelectItem>
+                    <SelectItem value="all">All Verification</SelectItem>
                     <SelectItem value="verified">Verified</SelectItem>
                     <SelectItem value="unverified">Unverified</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
@@ -358,8 +362,8 @@ export default function AdminMerchantsPage() {
                 
                 <Button variant="outline" onClick={() => {
                   setSearchTerm("");
-                  setStatusFilter("");
-                  setVerificationFilter("");
+                  setStatusFilter("all");
+                  setVerificationFilter("all");
                 }}>
                   Reset Filters
                 </Button>

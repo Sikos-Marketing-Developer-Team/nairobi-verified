@@ -9,6 +9,12 @@ import { Bar, Doughnut } from 'react-chartjs-2';
 import { useSocket } from "@/context/SocketContext";
 import NotificationBadge from "@/components/admin/NotificationBadge";
 import NotificationList from "@/components/admin/NotificationList";
+import AdminLayout from "@/components/admin/AdminLayout";
+import AnimatedStatCard from "@/components/admin/AnimatedStatCard";
+import EnhancedChart from "@/components/admin/EnhancedChart";
+import MerchantVerificationCard from "@/components/admin/MerchantVerificationCard";
+import Breadcrumbs from "@/components/admin/Breadcrumbs";
+import { motion } from "framer-motion";
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
@@ -273,38 +279,22 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-orange-500"></div>
-      </div>
+      <AdminLayout notificationCount={0}>
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-orange-500"></div>
+        </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <NotificationBadge 
-                onClick={() => setActiveTab(activeTab === "notifications" ? "overview" : "notifications")}
-                count={notifications.length}
-              />
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <FaSignOutAlt className="mr-2" />
-              Logout
-            </button>
-          </div>
+    <AdminLayout notificationCount={notifications.length}>
+      <div className="space-y-6">
+        <Breadcrumbs />
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Dashboard Overview</h1>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
         {/* Tabs */}
         <div className="mb-6 border-b border-gray-200">
           <nav className="flex -mb-px">
@@ -380,396 +370,367 @@ export default function AdminDashboard() {
 
         {/* Overview Tab */}
         {activeTab === "overview" && (
-          <div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-full bg-blue-100 text-blue-500 mr-4">
-                    <FaUsers className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Total Users</p>
-                    <p className="text-2xl font-semibold text-gray-900">{stats?.userCount || 0}</p>
-                  </div>
-                </div>
-              </div>
+              <AnimatedStatCard
+                title="Total Users"
+                value={stats?.userCount || 0}
+                previousValue={stats?.userCount ? Math.round(stats.userCount * 0.9) : undefined}
+                icon={<FaUsers className="h-6 w-6" />}
+                iconBgColor="bg-blue-100"
+                iconColor="text-blue-500"
+              />
               
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-full bg-green-100 text-green-500 mr-4">
-                    <FaStore className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Merchants</p>
-                    <p className="text-2xl font-semibold text-gray-900">{stats?.merchantCount || 0}</p>
-                  </div>
-                </div>
-              </div>
+              <AnimatedStatCard
+                title="Merchants"
+                value={stats?.merchantCount || 0}
+                previousValue={stats?.merchantCount ? Math.round(stats.merchantCount * 0.85) : undefined}
+                icon={<FaStore className="h-6 w-6" />}
+                iconBgColor="bg-green-100"
+                iconColor="text-green-500"
+              />
               
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-full bg-purple-100 text-purple-500 mr-4">
-                    <FaShoppingCart className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Orders</p>
-                    <p className="text-2xl font-semibold text-gray-900">{stats?.orderCount || 0}</p>
-                  </div>
-                </div>
-              </div>
+              <AnimatedStatCard
+                title="Orders"
+                value={stats?.orderCount || 0}
+                previousValue={stats?.orderCount ? Math.round(stats.orderCount * 0.95) : undefined}
+                icon={<FaShoppingCart className="h-6 w-6" />}
+                iconBgColor="bg-purple-100"
+                iconColor="text-purple-500"
+              />
               
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-full bg-yellow-100 text-yellow-500 mr-4">
-                    <FaMoneyBillWave className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Revenue</p>
-                    <p className="text-2xl font-semibold text-gray-900">
-                      ${stats?.totalRevenue ? stats.totalRevenue.toLocaleString() : 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <AnimatedStatCard
+                title="Revenue"
+                value={stats?.totalRevenue || 0}
+                previousValue={stats?.totalRevenue ? stats.totalRevenue * 0.92 : undefined}
+                icon={<FaMoneyBillWave className="h-6 w-6" />}
+                iconBgColor="bg-yellow-100"
+                iconColor="text-yellow-500"
+                formatter={(val) => `$${val.toLocaleString()}`}
+              />
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Monthly Revenue</h3>
-                <div className="h-64">
-                  <Bar 
-                    data={revenueChartData} 
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'top' as const,
-                        },
-                        title: {
-                          display: false,
-                        },
+              <EnhancedChart
+                title="Monthly Revenue"
+                type="bar"
+                data={revenueChartData}
+                height="300px"
+                timeRanges={['30d', '90d', '1y', 'all']}
+                onTimeRangeChange={(range) => {
+                  console.log(`Changed time range to: ${range}`);
+                  // Here you would fetch new data based on the time range
+                }}
+                onRefresh={() => {
+                  console.log('Refreshing revenue chart data');
+                  fetchDashboardStats();
+                }}
+                onDownload={(format) => {
+                  console.log(`Downloading chart as ${format}`);
+                  // Implement download functionality
+                }}
+                options={{
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
                       },
-                    }} 
-                  />
-                </div>
-              </div>
+                      ticks: {
+                        callback: function(value: number) {
+                          return '$' + value;
+                        }
+                      }
+                    },
+                    x: {
+                      grid: {
+                        display: false
+                      }
+                    }
+                  }
+                }}
+              />
               
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">User Distribution</h3>
-                <div className="h-64 flex items-center justify-center">
-                  <Doughnut 
-                    data={userDistributionData} 
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'bottom' as const,
-                        },
-                      },
-                    }} 
-                  />
-                </div>
-              </div>
+              <EnhancedChart
+                title="User Distribution"
+                type="doughnut"
+                data={userDistributionData}
+                height="300px"
+                onRefresh={() => {
+                  console.log('Refreshing user distribution data');
+                  fetchDashboardStats();
+                }}
+                onDownload={(format) => {
+                  console.log(`Downloading chart as ${format}`);
+                  // Implement download functionality
+                }}
+                options={{
+                  cutout: '60%',
+                  plugins: {
+                    legend: {
+                      position: 'bottom',
+                    }
+                  }
+                }}
+              />
             </div>
 
             {/* Pending Verifications Preview */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <motion.div 
+              className="bg-white rounded-lg shadow-md overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
               <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">Recent Pending Verifications</h3>
-                <button 
+                <div className="flex items-center">
+                  <h3 className="text-lg font-medium text-gray-900">Recent Pending Verifications</h3>
+                  {merchants.length > 0 && (
+                    <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                      {merchants.length}
+                    </span>
+                  )}
+                </div>
+                <motion.button 
                   onClick={() => setActiveTab("merchants")}
-                  className="text-sm text-orange-600 hover:text-orange-800"
+                  className="text-sm text-orange-600 hover:text-orange-800 flex items-center"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   View All
-                </button>
+                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </motion.button>
               </div>
               
               {merchants.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">
-                  No pending verifications at the moment
+                <div className="p-8 text-center">
+                  <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="mt-4 text-gray-500">No pending verifications at the moment</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Company
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Contact
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {merchants.slice(0, 5).map((merchant) => (
-                        <tr key={merchant.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {merchant.companyName}
-                            </div>
-                            <div className="text-sm text-gray-500">{merchant.location}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{merchant.companyEmail}</div>
-                            <div className="text-sm text-gray-500">{merchant.companyPhone}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                              Pending
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button
-                              onClick={() => viewMerchantDetails(merchant)}
-                              className="text-blue-600 hover:text-blue-900 mr-3"
-                            >
-                              <FaEye className="inline mr-1" /> View
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {merchants.slice(0, 6).map((merchant) => (
+                      <MerchantVerificationCard
+                        key={merchant.id}
+                        merchant={merchant}
+                        onVerify={(id) => handleVerification(id, "verify")}
+                        onReject={(id) => handleVerification(id, "reject")}
+                        onViewDetails={viewMerchantDetails}
+                        onViewDocument={viewDocument}
+                      />
+                    ))}
+                  </div>
+                  
+                  {merchants.length > 6 && (
+                    <div className="mt-4 text-center">
+                      <motion.button
+                        onClick={() => setActiveTab("merchants")}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-orange-700 bg-orange-100 hover:bg-orange-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        View All {merchants.length} Pending Verifications
+                      </motion.button>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
 
         {/* Merchants Tab */}
         {activeTab === "merchants" && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Pending Merchant Verifications</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Review and verify merchant applications
-              </p>
-            </div>
-            
-            {merchants.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                No pending verifications at the moment
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Pending Merchant Verifications</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Review and verify merchant applications
+                </p>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Company
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Documents
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+              
+              {merchants.length === 0 ? (
+                <div className="p-8 text-center">
+                  <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="mt-4 text-gray-500">No pending verifications at the moment</p>
+                </div>
+              ) : (
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {merchants.map((merchant) => (
-                      <tr key={merchant.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {merchant.companyName}
-                          </div>
-                          <div className="text-sm text-gray-500">{merchant.location}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{merchant.companyEmail}</div>
-                          <div className="text-sm text-gray-500">{merchant.companyPhone}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                            Pending
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="space-x-2">
-                            {Object.entries(merchant.documents).map(([type, url]) => (
-                              <button
-                                key={type}
-                                onClick={() => viewDocument(url as string)}
-                                className="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center"
-                              >
-                                <FaFileAlt className="mr-1" />
-                                {type.replace(/([A-Z])/g, " $1").trim()}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="space-x-2">
-                            <button
-                              onClick={() => handleVerification(merchant.id, "verify")}
-                              className="px-3 py-1 bg-green-100 text-green-800 rounded-md hover:bg-green-200"
-                            >
-                              <FaCheckCircle className="inline mr-1" /> Verify
-                            </button>
-                            <button
-                              onClick={() => handleVerification(merchant.id, "reject")}
-                              className="px-3 py-1 bg-red-100 text-red-800 rounded-md hover:bg-red-200"
-                            >
-                              <FaTimesCircle className="inline mr-1" /> Reject
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                      <MerchantVerificationCard
+                        key={merchant.id}
+                        merchant={merchant}
+                        onVerify={(id) => handleVerification(id, "verify")}
+                        onReject={(id) => handleVerification(id, "reject")}
+                        onViewDetails={viewMerchantDetails}
+                        onViewDocument={viewDocument}
+                      />
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
         )}
 
         {/* Notifications Tab */}
         {activeTab === "notifications" && (
           <NotificationList 
-            notifications={notifications}
+            notifications={notifications} 
             onClearAll={clearAllNotifications}
             onMarkAllRead={markAllNotificationsAsRead}
           />
         )}
-      </main>
+      </div>
 
       {/* Merchant Details Modal */}
       {selectedMerchant && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <motion.div 
+            className="bg-white rounded-lg shadow-xl overflow-hidden max-w-2xl w-full mx-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="text-lg font-medium text-gray-900">Merchant Details</h3>
               <button 
                 onClick={closeMerchantDetails}
                 className="text-gray-400 hover:text-gray-500"
               >
-                <span className="sr-only">Close</span>
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Company Name</h4>
+                  <p className="text-sm font-medium text-gray-500">Company Name</p>
                   <p className="text-base text-gray-900">{selectedMerchant.companyName}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Location</h4>
+                  <p className="text-sm font-medium text-gray-500">Location</p>
                   <p className="text-base text-gray-900">{selectedMerchant.location}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Email</h4>
+                  <p className="text-sm font-medium text-gray-500">Email</p>
                   <p className="text-base text-gray-900">{selectedMerchant.companyEmail}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Phone</h4>
+                  <p className="text-sm font-medium text-gray-500">Phone</p>
                   <p className="text-base text-gray-900">{selectedMerchant.companyPhone}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Registration Date</h4>
-                  <p className="text-base text-gray-900">
-                    {new Date(selectedMerchant.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Status</h4>
-                  <p className="text-base text-gray-900">
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-                      Pending
-                    </span>
-                  </p>
                 </div>
               </div>
               
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-500 mb-2">Documents</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(selectedMerchant.documents).map(([type, url]) => (
-                    <div key={type} className="border border-gray-200 rounded-lg p-4">
-                      <h5 className="text-sm font-medium text-gray-900 mb-2">
-                        {type.replace(/([A-Z])/g, " $1").trim()}
-                      </h5>
-                      <button
-                        onClick={() => viewDocument(url as string)}
-                        className="w-full px-3 py-2 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 flex items-center justify-center"
-                      >
-                        <FaEye className="mr-2" /> View Document
-                      </button>
-                    </div>
-                  ))}
+                <p className="text-sm font-medium text-gray-500 mb-2">Documents</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => viewDocument(selectedMerchant.documents.businessRegistration)}
+                    className="flex items-center px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                  >
+                    <FaFileAlt className="mr-2" /> Business Registration
+                  </button>
+                  <button
+                    onClick={() => viewDocument(selectedMerchant.documents.taxCertificate)}
+                    className="flex items-center px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                  >
+                    <FaFileAlt className="mr-2" /> Tax Certificate
+                  </button>
+                  <button
+                    onClick={() => viewDocument(selectedMerchant.documents.idDocument)}
+                    className="flex items-center px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                  >
+                    <FaFileAlt className="mr-2" /> ID Document
+                  </button>
                 </div>
               </div>
               
-              <div className="flex justify-end space-x-4">
+              <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => {
                     handleVerification(selectedMerchant.id, "reject");
                     closeMerchantDetails();
                   }}
-                  className="px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 flex items-center"
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                 >
-                  <FaTimesCircle className="mr-2" /> Reject
+                  Reject
                 </button>
                 <button
                   onClick={() => {
                     handleVerification(selectedMerchant.id, "verify");
                     closeMerchantDetails();
                   }}
-                  className="px-4 py-2 bg-green-100 text-green-800 rounded-md hover:bg-green-200 flex items-center"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
-                  <FaCheckCircle className="mr-2" /> Verify
+                  Verify
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
-      {/* Document Viewer Modal */}
+      {/* Document Modal */}
       {showDocumentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+          <motion.div 
+            className="bg-white rounded-lg shadow-xl overflow-hidden max-w-4xl w-full mx-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">Document Viewer</h3>
+              <h3 className="text-lg font-medium text-gray-900">Document Preview</h3>
               <button 
                 onClick={() => setShowDocumentModal(false)}
                 className="text-gray-400 hover:text-gray-500"
               >
-                <span className="sr-only">Close</span>
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="flex-1 p-6 overflow-auto">
-              <iframe 
-                src={documentUrl} 
-                className="w-full h-full min-h-[500px] border border-gray-200 rounded"
-                title="Document Viewer"
-              />
+            <div className="p-6">
+              <div className="h-[70vh] flex items-center justify-center bg-gray-100 rounded-lg">
+                {documentUrl.endsWith('.pdf') ? (
+                  <iframe 
+                    src={documentUrl} 
+                    className="w-full h-full" 
+                    title="Document Preview"
+                  />
+                ) : (
+                  <img 
+                    src={documentUrl} 
+                    alt="Document Preview" 
+                    className="max-h-full max-w-full object-contain"
+                  />
+                )}
+              </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

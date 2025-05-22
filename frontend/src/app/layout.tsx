@@ -3,9 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProviderWrapper } from "../components/ThemeProviderWrapper";
 import { ThemeToggle } from "../components/ThemeToggle"; // Import the ThemeToggle
-import "./globals.css";
-import { ThemeProviderWrapper } from "../components/ThemeProviderWrapper"; // Adjust the path as needed
-import Footer from "../components/Footer";
+import FooterWrapper from "../components/FooterWrapper";
 // (feat: Implement admin user creation utility and enhance application routes and UI)
 
 const inter = Inter({ subsets: ['latin'] });
@@ -29,14 +27,16 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-         {/* You can place the ThemeToggle button wherever you want */}
-         <ThemeToggle />
         <ThemeProviderWrapper>
           <div className="flex flex-col min-h-screen">
+            <div className="fixed bottom-4 right-4 z-50">
+              <ThemeToggle />
+            </div>
             <main className="flex-grow">
               {children}
             </main>
-            <Footer />
+            {/* FooterWrapper will conditionally render the footer only for non-admin pages */}
+            <FooterWrapper />
           </div>
         </ThemeProviderWrapper>
       </body>

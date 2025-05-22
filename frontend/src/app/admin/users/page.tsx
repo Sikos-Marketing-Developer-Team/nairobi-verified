@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { 
   Dialog, 
   DialogContent, 
@@ -97,7 +98,7 @@ export default function AdminUsersPage() {
   // State for filtering and pagination
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -365,7 +366,7 @@ export default function AdminUsersPage() {
                     <SelectValue placeholder="Filter by role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Roles</SelectItem>
+                    <SelectItem value="all">All Roles</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="merchant">Merchant</SelectItem>
                     <SelectItem value="client">Client</SelectItem>
@@ -377,7 +378,7 @@ export default function AdminUsersPage() {
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
                     <SelectItem value="verified">Verified</SelectItem>
@@ -388,7 +389,7 @@ export default function AdminUsersPage() {
                 <Button variant="outline" onClick={() => {
                   setSearchTerm("");
                   setRoleFilter("");
-                  setStatusFilter("");
+                  setStatusFilter("all");
                   setCurrentPage(1);
                 }}>
                   Reset Filters

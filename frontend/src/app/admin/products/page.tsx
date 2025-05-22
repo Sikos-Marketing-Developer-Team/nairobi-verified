@@ -95,9 +95,9 @@ export default function AdminProductsPage() {
   
   // State for filtering and pagination
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [merchantFilter, setMerchantFilter] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [merchantFilter, setMerchantFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -448,7 +448,7 @@ export default function AdminProductsPage() {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {categories.map(category => (
                       <SelectItem key={category._id} value={category._id}>
                         {category.name}
@@ -462,7 +462,7 @@ export default function AdminProductsPage() {
                     <SelectValue placeholder="All Merchants" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Merchants</SelectItem>
+                    <SelectItem value="all">All Merchants</SelectItem>
                     {merchants.map(merchant => (
                       <SelectItem key={merchant._id} value={merchant._id}>
                         {merchant.companyName}
@@ -476,7 +476,7 @@ export default function AdminProductsPage() {
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
@@ -485,9 +485,9 @@ export default function AdminProductsPage() {
                 
                 <Button variant="outline" onClick={() => {
                   setSearchTerm("");
-                  setCategoryFilter("");
-                  setStatusFilter("");
-                  setMerchantFilter("");
+                  setCategoryFilter("all");
+                  setStatusFilter("all");
+                  setMerchantFilter("all");
                   setCurrentPage(1);
                 }}>
                   Reset Filters

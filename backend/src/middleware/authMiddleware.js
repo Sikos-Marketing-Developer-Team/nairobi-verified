@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const VendorSubscription = require('../models/VendorSubscription');
 
+// Middleware to check if user is authenticated (cookie-based)
 const isAuthenticated = async (req, res, next) => {
   try {
     const token = req.cookies.token;
@@ -17,17 +18,17 @@ const isAuthenticated = async (req, res, next) => {
     console.error('Authentication error:', error);
     res.status(401).json({ message: 'Invalid token' });
   }
-}
-
-// (Remove duplicates in vendor subscription)
-// Middleware to check if user is authenticated (session-based)
-exports.isAuthenticated = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    return next();
-// (Implement M-Pesa service for payment processing, including access token generation, STK push initiation, and payment verification.)
-  }
 };
 
+// Middleware to check if user is authenticated (session-based)
+const isSessionAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: 'Not authenticated' });
+};
+
+// Middleware to check if email is verified
 const isEmailVerified = async (req, res, next) => {
   try {
     const token = req.cookies.token;
@@ -49,8 +50,6 @@ const isEmailVerified = async (req, res, next) => {
   }
 };
 
-module.exports = { isAuthenticated, isEmailVerified };
-
 // Middleware to check if user is authenticated (JWT-based)
 exports.protect = async (req, res, next) => {
   try {
@@ -191,8 +190,7 @@ exports.hasActiveSubscription = async (req, res, next) => {
 };
 
 // Middleware to check if user is not authenticated
-// Middleware to check if user is not authenticated
-exports.isNotAuthenticated = (req, res, next) => {
+const isNotAuthenticated = (req, res, next) => {
   if (!req.isAuthenticated()) {
     return next();
   }
@@ -200,7 +198,7 @@ exports.isNotAuthenticated = (req, res, next) => {
 };
 
 // Middleware to check if user is authenticated (JWT-based)
-exports.protect = async (req, res, next) => {
+const protect = async (req, res, next) => {
   try {
     // Get token from header
     const token = req.headers.authorization?.split('Bearer ')[1];
@@ -238,7 +236,7 @@ exports.protect = async (req, res, next) => {
 };
 
 // Middleware to check if user is an admin
-exports.isAdmin = (req, res, next) => {
+const isAdmin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
@@ -247,7 +245,7 @@ exports.isAdmin = (req, res, next) => {
 };
 
 // Middleware to check if user is a merchant
-exports.isMerchant = (req, res, next) => {
+const isMerchant = (req, res, next) => {
   if (req.user && req.user.role === 'merchant') {
     next();
   } else {
@@ -256,7 +254,7 @@ exports.isMerchant = (req, res, next) => {
 };
 
 // Middleware to check if user is a client
-exports.isClient = (req, res, next) => {
+const isClient = (req, res, next) => {
   if (req.user && req.user.role === 'client') {
     next();
   } else {
@@ -265,7 +263,7 @@ exports.isClient = (req, res, next) => {
 };
 
 // Middleware to restrict access to specific roles
-exports.restrictTo = (...roles) => {
+const restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Not authenticated' });
@@ -282,7 +280,7 @@ exports.restrictTo = (...roles) => {
 };
 
 // Middleware to check if merchant is verified
-exports.isVerifiedMerchant = async (req, res, next) => {
+const isVerifiedMerchant = async (req, res, next) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Not authenticated' });
@@ -306,7 +304,7 @@ exports.isVerifiedMerchant = async (req, res, next) => {
 };
 
 // Middleware to check if merchant has active subscription
-exports.hasActiveSubscription = async (req, res, next) => {
+const hasActiveSubscription = async (req, res, next) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Not authenticated' });
@@ -337,4 +335,18 @@ exports.hasActiveSubscription = async (req, res, next) => {
     res.status(500).json({ message: 'Server error during subscription check' });
   }
 };
-// (Implement M-Pesa service for payment processing, including access token generation, STK push initiation, and payment verification.)
+
+// Export all middleware functions
+module.exports = {
+  isAuthenticated,
+  isSessionAuthenticated,
+  isEmailVerified,
+  isNotAuthenticated,
+  protect,
+  isAdmin,
+  isMerchant,
+  isClient,
+  restrictTo,
+  isVerifiedMerchant,
+  hasActiveSubscription
+};

@@ -42,7 +42,8 @@ import {
   Plus, 
   Save, 
   Trash, 
-  Upload 
+  Upload,
+  Settings
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -113,14 +114,29 @@ export default function AdminContentPage() {
   // State for section form
   const [isSectionDialogOpen, setIsSectionDialogOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<HomepageSection | null>(null);
-  const [sectionFormData, setSectionFormData] = useState({
+  const [sectionFormData, setSectionFormData] = useState<{
+    title: string;
+    type: string;
+    isActive: boolean;
+    config: {
+      itemCount?: number;
+      showTitle?: boolean;
+      viewAllLink?: string;
+      categoryId?: string;
+      productIds?: string[];
+      merchantIds?: string[];
+    };
+  }>({
     title: '',
     type: 'featured-products',
     isActive: true,
     config: {
       itemCount: 8,
       showTitle: true,
-      viewAllLink: ''
+      viewAllLink: '',
+      categoryId: '',
+      productIds: [],
+      merchantIds: []
     }
   });
   
@@ -406,7 +422,10 @@ export default function AdminContentPage() {
       config: {
         itemCount: 8,
         showTitle: true,
-        viewAllLink: ''
+        viewAllLink: '',
+        categoryId: '',
+        productIds: [],
+        merchantIds: []
       }
     });
     setIsSectionDialogOpen(true);

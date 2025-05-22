@@ -341,16 +341,16 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
           <span className="mx-2">/</span>
           <Link href="/categories" className="hover:text-orange-500 dark:hover:text-orange-400">Categories</Link>
           <span className="mx-2">/</span>
-          <span className="text-gray-900 dark:text-white">{category.name}</span>
+          <span className="text-gray-900 dark:text-white">{category?.name}</span>
         </div>
         
         {/* Category Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            {category.name}
+            {category?.name}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            {category.description}
+            {category?.description}
           </p>
         </div>
         

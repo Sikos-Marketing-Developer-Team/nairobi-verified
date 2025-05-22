@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +27,8 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -43,9 +44,26 @@ import {
   Plus, 
   RefreshCw, 
   Trash, 
-  XCircle 
+  XCircle,
+  CreditCard,
+  DollarSign,
+  Calendar,
+  Users,
+  Package,
+  Eye,
+  Filter,
+  Search as SearchIcon,
+  ArrowUpDown,
+  BarChart4,
+  FileText,
+  Download,
+  Sparkles
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SubscriptionPackage {
   _id: string;
@@ -92,6 +110,7 @@ export default function AdminSubscriptionsPage() {
   
   // State for subscriptions tab
   const [subscriptions, setSubscriptions] = useState<VendorSubscription[]>([]);
+  const [filteredSubscriptions, setFilteredSubscriptions] = useState<VendorSubscription[]>([]);
   const [loadingSubscriptions, setLoadingSubscriptions] = useState(true);
   const [subscriptionsError, setSubscriptionsError] = useState<string | null>(null);
   
@@ -113,6 +132,31 @@ export default function AdminSubscriptionsPage() {
   
   // State for checking expiring subscriptions
   const [checkingExpiring, setCheckingExpiring] = useState(false);
+  
+  // State for filtering and search
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [packageFilter, setPackageFilter] = useState('all');
+  const [sortField, setSortField] = useState('startDate');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
+  // State for subscription details
+  const [selectedSubscription, setSelectedSubscription] = useState<VendorSubscription | null>(null);
+  const [isSubscriptionDetailsOpen, setIsSubscriptionDetailsOpen] = useState(false);
+  
+  // State for package details
+  const [selectedPackageDetails, setSelectedPackageDetails] = useState<SubscriptionPackage | null>(null);
+  const [isPackageDetailsOpen, setIsPackageDetailsOpen] = useState(false);
+  
+  // State for analytics
+  const [subscriptionStats, setSubscriptionStats] = useState({
+    totalActive: 0,
+    totalExpired: 0,
+    totalRevenue: 0,
+    growthRate: 0,
+    popularPackage: '',
+    averageDuration: 0
+  });
   
   // Fetch subscription packages
   useEffect(() => {
@@ -156,6 +200,38 @@ export default function AdminSubscriptionsPage() {
         
         const data = await response.json();
         setSubscriptions(data.subscriptions);
+        setFilteredSubscriptions(data.subscriptions);
+        
+        // Calculate subscription statistics
+        if (data.subscriptions.length > 0) {
+          const activeSubscriptions = data.subscriptions.filter(sub => sub.status === 'active');
+          const expiredSubscriptions = data.subscriptions.filter(sub => sub.status === 'expired');
+          
+          // Calculate total revenue (simplified calculation)
+          const totalRevenue = data.subscriptions.reduce((sum, sub) => {
+            const packageDetails = packages.find(pkg => pkg._id === sub.package._id);
+            return sum + (packageDetails?.price || 0);
+          }, 0);
+          
+          // Find most popular package
+          const packageCounts = data.subscriptions.reduce((counts, sub) => {
+            counts[sub.package.name] = (counts[sub.package.name] || 0) + 1;
+            return counts;
+          }, {});
+          
+          const popularPackage = Object.keys(packageCounts).reduce((a, b) => 
+            packageCounts[a] > packageCounts[b] ? a : b, '');
+          
+          setSubscriptionStats({
+            totalActive: activeSubscriptions.length,
+            totalExpired: expiredSubscriptions.length,
+            totalRevenue,
+            growthRate: 5.2, // Mock data
+            popularPackage,
+            averageDuration: 6.5 // Mock data in months
+          });
+        }
+        
         setSubscriptionsError(null);
       } catch (err) {
         console.error('Error fetching vendor subscriptions:', err);
@@ -166,7 +242,70 @@ export default function AdminSubscriptionsPage() {
     };
 
     fetchSubscriptions();
-  }, []);
+  }, [packages]);
+  
+  // Filter and sort subscriptions
+  useEffect(() => {
+    if (!subscriptions.length) return;
+    
+    let filtered = [...subscriptions];
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(sub => sub.status === statusFilter);
+    }
+    
+    // Apply package filter
+    if (packageFilter !== 'all') {
+      filtered = filtered.filter(sub => sub.package._id === packageFilter);
+    }
+    
+    // Apply search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(sub => 
+        sub.vendor.fullName.toLowerCase().includes(searchLower) ||
+        sub.vendor.email.toLowerCase().includes(searchLower) ||
+        (sub.vendor.companyName && sub.vendor.companyName.toLowerCase().includes(searchLower)) ||
+        sub.package.name.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortField) {
+        case 'startDate':
+          aValue = new Date(a.startDate).getTime();
+          bValue = new Date(b.startDate).getTime();
+          break;
+        case 'endDate':
+          aValue = new Date(a.endDate).getTime();
+          bValue = new Date(b.endDate).getTime();
+          break;
+        case 'vendorName':
+          aValue = a.vendor.fullName;
+          bValue = b.vendor.fullName;
+          break;
+        case 'packageName':
+          aValue = a.package.name;
+          bValue = b.package.name;
+          break;
+        default:
+          aValue = a.createdAt;
+          bValue = b.createdAt;
+      }
+      
+      if (sortDirection === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+    
+    setFilteredSubscriptions(filtered);
+  }, [subscriptions, searchTerm, statusFilter, packageFilter, sortField, sortDirection]);
   
   // Handle package form input change
   const handlePackageInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -499,15 +638,167 @@ export default function AdminSubscriptionsPage() {
     }
   };
   
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+  
+  // Format currency for display
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+  
+  // Calculate days remaining until subscription end
+  const getDaysRemaining = (endDate: string) => {
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+  
+  // Get status badge
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+      case 'expired':
+        return <Badge className="bg-red-100 text-red-800">Expired</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-gray-100 text-gray-800">Cancelled</Badge>;
+      case 'trial':
+        return <Badge className="bg-blue-100 text-blue-800">Trial</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+    }
+  };
+  
+  // Get payment status badge
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800">Paid</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-100 text-red-800">Failed</Badge>;
+      case 'refunded':
+        return <Badge className="bg-purple-100 text-purple-800">Refunded</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+    }
+  };
+  
+  // Handle view subscription details
+  const handleViewSubscriptionDetails = (subscription: VendorSubscription) => {
+    setSelectedSubscription(subscription);
+    setIsSubscriptionDetailsOpen(true);
+  };
+  
+  // Handle view package details
+  const handleViewPackageDetails = (pkg: SubscriptionPackage) => {
+    setSelectedPackageDetails(pkg);
+    setIsPackageDetailsOpen(true);
+  };
+  
+  // Toggle sort direction
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Subscription Management</h1>
-      
-      <Tabs defaultValue="packages" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="packages">Subscription Packages</TabsTrigger>
-          <TabsTrigger value="subscriptions">Vendor Subscriptions</TabsTrigger>
-        </TabsList>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Subscription Management</h1>
+          <Button onClick={() => openCreatePackageDialog()}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create New Package
+          </Button>
+        </div>
+        
+        {/* Dashboard Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Active Subscriptions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{subscriptionStats.totalActive}</div>
+                <Users className="h-8 w-8 text-blue-500" />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {subscriptionStats.growthRate > 0 ? '+' : ''}{subscriptionStats.growthRate}% from last month
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Total Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{formatCurrency(subscriptionStats.totalRevenue)}</div>
+                <DollarSign className="h-8 w-8 text-green-500" />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Monthly recurring revenue
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Popular Package</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold truncate max-w-[180px]">{subscriptionStats.popularPackage || 'N/A'}</div>
+                <Package className="h-8 w-8 text-purple-500" />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Most subscribed package
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Avg. Subscription</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{subscriptionStats.averageDuration} months</div>
+                <Calendar className="h-8 w-8 text-orange-500" />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Average subscription duration
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <Tabs defaultValue="packages" className="w-full">
+          <TabsList className="grid w-full md:w-[400px] grid-cols-2">
+            <TabsTrigger value="packages">Subscription Packages</TabsTrigger>
+            <TabsTrigger value="subscriptions">Vendor Subscriptions</TabsTrigger>
+          </TabsList>
         
         {/* Packages Tab */}
         <TabsContent value="packages" className="mt-6">

@@ -100,7 +100,7 @@ export default function AdminOrdersPage() {
   
   // State for filtering and pagination
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("");
   const [dateRangeFilter, setDateRangeFilter] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -472,7 +472,7 @@ export default function AdminOrdersPage() {
                     <SelectValue placeholder="Order Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="processing">Processing</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
@@ -486,7 +486,7 @@ export default function AdminOrdersPage() {
                     <SelectValue placeholder="Payment Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Payment Status</SelectItem>
+                    <SelectItem value="all">All Payment Status</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="paid">Paid</SelectItem>
                     <SelectItem value="failed">Failed</SelectItem>
@@ -499,7 +499,7 @@ export default function AdminOrdersPage() {
                     <SelectValue placeholder="Date Range" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Time</SelectItem>
+                    <SelectItem value="all">All Time</SelectItem>
                     <SelectItem value="today">Today</SelectItem>
                     <SelectItem value="yesterday">Yesterday</SelectItem>
                     <SelectItem value="week">Last 7 Days</SelectItem>
@@ -509,7 +509,7 @@ export default function AdminOrdersPage() {
                 
                 <Button variant="outline" onClick={() => {
                   setSearchTerm("");
-                  setStatusFilter("");
+                  setStatusFilter("all");
                   setPaymentStatusFilter("");
                   setDateRangeFilter("");
                 }}>
