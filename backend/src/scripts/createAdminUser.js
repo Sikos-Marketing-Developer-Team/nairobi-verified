@@ -6,9 +6,9 @@ const bcrypt = require('bcryptjs');
 // Admin user details
 const adminUser = {
   fullName: 'Admin User',
-  email: 'admin@nairobiverifed.com',
+  email: 'admin@nairobidemo.com',
   phone: '+254700000000',
-  password: 'Admin@123',
+  password: 'admin123',
   role: 'admin',
   isEmailVerified: true
 };
