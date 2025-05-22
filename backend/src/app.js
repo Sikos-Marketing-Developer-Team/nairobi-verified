@@ -18,8 +18,30 @@ const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
+const socketIo = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Socket.io connection handler
+io.on('connection', (socket) => {
+  console.log('New client connected');
+  
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+});
+
+// Make io accessible to routes
+app.set('io', io);
 
 // Connect to MongoDB
 connectDB().then(() => {
@@ -31,9 +53,21 @@ connectDB().then(() => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: [process.env.FRONTEND_URL, 'http://localhost:3000/'],  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+
+// Session configuration (in-memory for now)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'nairobi-verified-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'strict',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 
 // Initialize Passport
@@ -70,6 +104,6 @@ const subscriptionCronJobs = require('./cron/subscriptionCronJobs');
 subscriptionCronJobs.scheduleSubscriptionJobs();
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

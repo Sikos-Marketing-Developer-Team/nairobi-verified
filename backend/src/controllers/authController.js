@@ -57,6 +57,29 @@ const registerMerchant = async (req, res) => {
     await user.save();
 
     await sendVerificationEmail(email, verificationToken);
+    // Emit socket event for real-time notification to admin dashboard
+    const io = req.app.get('io');
+    if (io) {
+      const merchantData = {
+        id: user._id,
+        companyName: user.companyName,
+        companyEmail: user.email,
+        companyPhone: user.phone,
+        location: user.location,
+        isVerified: user.isVerified,
+        documents: user.documents || {
+          businessRegistration: '',
+          taxCertificate: '',
+          idDocument: ''
+        },
+        createdAt: user.createdAt
+      };
+      
+      io.emit('newMerchantRegistration', merchantData);
+      console.log('Emitted newMerchantRegistration event:', merchantData.companyName);
+    }
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
     res.status(201).json({
       message: 'Registration successful. Please check your email for verification.',
       user: { id: user._id, fullName, email, phone, role: user.role, companyName, location }

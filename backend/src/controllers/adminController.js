@@ -165,6 +165,17 @@ const processMerchantVerification = async (req, res) => {
         // Continue with the response even if email fails
       }
       
+      // Emit socket event for real-time notification
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('merchantVerified', {
+          id: merchant._id,
+          companyName: merchant.companyName || merchant.fullName,
+          email: merchant.email
+        });
+        console.log('Emitted merchantVerified event for:', merchant.companyName || merchant.fullName);
+      }
+      
       res.status(200).json({
         success: true,
         message: 'Merchant verification approved successfully',
@@ -192,6 +203,18 @@ const processMerchantVerification = async (req, res) => {
       } catch (emailError) {
         console.error('Failed to send merchant rejection email:', emailError);
         // Continue with the response even if email fails
+      }
+      
+      // Emit socket event for real-time notification
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('merchantRejected', {
+          id: merchant._id,
+          companyName: merchant.companyName || merchant.fullName,
+          email: merchant.email,
+          reason: notes || 'Verification rejected by admin'
+        });
+        console.log('Emitted merchantRejected event for:', merchant.companyName || merchant.fullName);
       }
       
       res.status(200).json({

@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { WishlistProvider } from '@/context/WishlistContext';
+import { SocketProvider } from '@/context/SocketContext';
 
 export function ThemeProviderWrapper({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -24,11 +25,13 @@ export function ThemeProviderWrapper({ children }: { children: React.ReactNode }
   return (
     <ThemeProvider>
       <AuthProvider>
-        <CartProvider>
-          <WishlistProvider>
-            {children}
-          </WishlistProvider>
-        </CartProvider>
+        <SocketProvider>
+          <CartProvider>
+            <WishlistProvider>
+              {children}
+            </WishlistProvider>
+          </CartProvider>
+        </SocketProvider>
       </AuthProvider>
     </ThemeProvider>
   );
