@@ -20,4 +20,26 @@ router.put('/verifications/:merchantId', adminController.processMerchantVerifica
 // Transaction management
 router.get('/transactions', adminController.getTransactions);
 
+// Analytics
+router.get('/analytics', adminController.getAnalytics);
+router.get('/analytics/export', adminController.exportAnalytics);
+
+// Product management
+router.get('/products', adminController.getProducts);
+router.put('/products/:productId/status', adminController.updateProductStatus);
+router.put('/products/:productId/featured', adminController.updateProductFeatured);
+router.delete('/products/:productId', adminController.deleteProduct);
+router.post('/products/bulk', adminController.bulkUpdateProducts);
+
+// Feature toggles
+router.get('/features', adminController.getFeatureToggles);
+router.post('/features', adminController.createFeatureToggle);
+router.put('/features/:featureId', adminController.updateFeatureToggle);
+router.delete('/features/:featureId', adminController.deleteFeatureToggle);
+
+// Content management
+router.get('/content/banners', adminController.getContentBanners);
+router.get('/content/homepage-sections', adminController.getHomepageSections);
+router.post('/content/save-layout', adminController.saveLayoutChanges);
+
 module.exports = router;
