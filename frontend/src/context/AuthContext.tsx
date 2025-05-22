@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           } else {
             // Fetch user info from API
             const response = await apiService.auth.me();
-            const userData = response.data.data;
+            const userData = response.data.user;
             
             setUser(userData);
             Cookies.set('user_info', JSON.stringify(userData), { expires: 7 });
@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     try {
       const response = await apiService.auth.login(credentials.email, credentials.password);
-      const { user, token } = response.data.data;
+      const { user, token } = response.data;
       
       // Save token and user info
       Cookies.set('auth_token', token, { expires: 7 });
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     try {
       const response = await apiService.auth.register(data);
-      const { user, token } = response.data.data;
+      const { user, token } = response.data;
       
       // Save token and user info
       Cookies.set('auth_token', token, { expires: 7 });

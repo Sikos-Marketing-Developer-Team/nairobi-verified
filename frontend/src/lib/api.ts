@@ -51,7 +51,7 @@ export const apiService = {
   // Auth endpoints
   auth: {
     login: (email: string, password: string) => 
-      api.post('/api/auth/login', { email, password }),
+      api.post('/api/auth/login', { username: email, password }),
     
     register: (userData: any) => 
       api.post('/api/auth/register', userData),
