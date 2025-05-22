@@ -35,7 +35,7 @@ interface Product {
 }
 
 // Define filter interfaces
-const filterOptions = {
+const filterOptions = [
   {
     _id: '1',
     name: 'Wireless Bluetooth Headphones',
