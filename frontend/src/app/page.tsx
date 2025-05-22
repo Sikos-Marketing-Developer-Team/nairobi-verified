@@ -8,8 +8,8 @@ export default function Home() {
 
       <div className="home-body mt-0">
         {/* Hero Section */}
-        <section className="md:mt-[150px] bg-orange-100 text-gray-900 py-12 px-4 sm:px-6">
-          <div className="max-w-3xl mx-auto text-center">
+       <section className="mt-[80px] md:mt-[150px] bg-orange-100 text-gray-900 py-12 px-4 sm:px-6">
+ <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-[var(--text-color)]">
               Welcome to Nairobi Verified
             </h1>
