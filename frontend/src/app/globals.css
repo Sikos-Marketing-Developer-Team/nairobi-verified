@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -55,6 +56,8 @@
   button, .btn {
     @apply font-medium rounded-lg transition-all duration-200 ease-in-out;
   }
+
+  
 }
 
 /* Optional: Define background and text color for specific sections if needed */
@@ -66,7 +69,16 @@
   .feature-card a {
     @apply text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300;
   }
+
+  span {
+    @apply text-gray-900 dark:text-white;
+  }
 }
+
+span {
+  color: inherit;
+}
+
 
 
 :root {
@@ -87,7 +99,7 @@
   --logo-color: #ea580c; /* primary-600 */
 
   /* Fonts (Typography) */
-  --garamond: "EB Garamond", serif;
+  --inter: "Inter", sans-serif;
   --roboto: "Roboto", sans-serif;
   --poppins: "Poppins", sans-serif;
 
@@ -246,13 +258,13 @@
 .well {
   font-size: 3rem;
   color: var(--text-primary);
-  font-family: var(--garamond);
+  font-family: var(--inter);
   font-weight: 600;
   
 }
 
 .wel {
-  font-family: var(--garamond);
+  font-family: var(--inter);
   font-size: 1.2rem;
 }
 
@@ -286,12 +298,12 @@
 .join-platform .title{
  line-height: 1.2em;
  font-weight: 550px;
- font-family: var(--garamond);
+ font-family: var(--inter);
  margin-bottom: 10px;
 }
 
 .join-platform .p {
-  font-family: var(--garamond);
+  font-family: var(--inter);
   text-align: center;
   font-size: 1.2rem;
   color: var(--logo-color)
@@ -569,7 +581,7 @@
 
 .sign-in-form .title {
   font-weight: 700;
-  font-family: var(--garamond);
+  font-family: var(--inter);
   margin-bottom: 20px;
 }
 
@@ -610,7 +622,7 @@
 }
 
 .client-registration-form .title {
-  font-family: var(--garamond);
+  font-family: var(--inter);
   margin-top: 1rem;
   margin-bottom: 10px;
 }
@@ -634,7 +646,7 @@
 }
 
 .merchant-registration-form .title {
-  font-family: var(--garamond);
+  font-family: var(--inter);
   margin-top: 1rem;
   margin-bottom: 10px;
   line-height: 1em;
