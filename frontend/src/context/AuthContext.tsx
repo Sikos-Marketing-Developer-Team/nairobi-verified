@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
 import { apiService } from '@/lib/api';
 import { User, LoginCredentials, RegisterData } from '@/types/api';
 
@@ -26,35 +25,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Check if user is already logged in
   useEffect(() => {
     const checkAuthStatus = async () => {
       setIsLoading(true);
-      
       try {
-        // Check if we have a token
-        const token = Cookies.get('auth_token');
-        
-        if (token) {
-          // Get user info from cookie or API
-          const userInfoCookie = Cookies.get('user_info');
-          
-          if (userInfoCookie) {
-            setUser(JSON.parse(userInfoCookie));
-          } else {
-            // Fetch user info from API
-            const response = await apiService.auth.me();
-            const userData = response.data.user;
-            
-            setUser(userData);
-            Cookies.set('user_info', JSON.stringify(userData), { expires: 7 });
-          }
+        const response = await apiService.auth.check();
+        if (response.data.isAuthenticated) {
+          setUser(response.data.user);
+        } else {
+          setUser(null);
         }
       } catch (err) {
         console.error('Auth check failed:', err);
-        // Clear cookies if auth check fails
-        Cookies.remove('auth_token');
-        Cookies.remove('user_info');
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -66,25 +49,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (credentials: LoginCredentials) => {
     setIsLoading(true);
     setError(null);
-    
     try {
-      const response = await apiService.auth.login(credentials.email, credentials.password);
-      const { user, token } = response.data;
-      
-      // Save token and user info
-      Cookies.set('auth_token', token, { expires: 7 });
-      Cookies.set('user_info', JSON.stringify(user), { expires: 7 });
-      
+      const response = await apiService.auth.login(credentials.email, credentials.password, credentials.rememberMe);
+      const user = response.data.user;
       setUser(user);
-      
-      // Redirect based on user role
-      if (user.role === 'admin') {
-        router.push('/admin/dashboard');
-      } else if (user.role === 'merchant') {
-        router.push('/merchant/profile');
-      } else {
-        router.push('/');
-      }
+      router.push(user.role === 'admin' ? '/admin/dashboard' : user.role === 'merchant' ? '/vendor/dashboard' : '/dashboard');
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Login failed. Please check your credentials.';
       setError(errorMessage);
@@ -97,23 +66,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (data: RegisterData) => {
     setIsLoading(true);
     setError(null);
-    
     try {
-      const response = await apiService.auth.register(data);
-      const { user, token } = response.data;
-      
-      // Save token and user info
-      Cookies.set('auth_token', token, { expires: 7 });
-      Cookies.set('user_info', JSON.stringify(user), { expires: 7 });
-      
+      const endpoint = data.role === 'merchant' ? '/api/auth/register/merchant' : '/api/auth/register/client';
+      const response = await apiService.auth.register(data, endpoint);
+      const user = response.data.user;
       setUser(user);
-      
-      // Redirect based on user role
-      if (data.role === 'merchant') {
-        router.push('/merchant/profile');
-      } else {
-        router.push('/');
-      }
+      router.push('/auth/verify-email');
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
       setError(errorMessage);
@@ -125,20 +83,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     setIsLoading(true);
-    
     try {
-      // Call logout API
       await apiService.auth.logout();
     } catch (err) {
       console.error('Logout API call failed:', err);
     } finally {
-      // Clear cookies and state regardless of API success
-      Cookies.remove('auth_token');
-      Cookies.remove('user_info');
       setUser(null);
       setIsLoading(false);
-      
-      // Redirect to home
       router.push('/');
     }
   };
@@ -146,7 +97,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const forgotPassword = async (email: string) => {
     setIsLoading(true);
     setError(null);
-    
     try {
       await apiService.auth.forgotPassword(email);
     } catch (err: any) {
@@ -161,7 +111,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const resetPassword = async (token: string, password: string) => {
     setIsLoading(true);
     setError(null);
-    
     try {
       await apiService.auth.resetPassword(token, password);
     } catch (err: any) {
@@ -194,11 +143,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
   return context;
 };
 
