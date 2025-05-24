@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { mockApi } from './mockApi';
 
-const MOCK_ENABLED = true;
+const MOCK_ENABLED = false;
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000',

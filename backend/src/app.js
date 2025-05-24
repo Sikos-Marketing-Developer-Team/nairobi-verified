@@ -1,11 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const passport = require('./config/passport');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/Auth');
 const createAdminUser = require('./utils/createAdminUser');
-// (Remove duplicates in vendor subscription)
 const merchantRoutes = require('./routes/merchantRoutes');
 const productRoutes = require('./routes/productRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
@@ -44,7 +44,6 @@ app.set('io', io);
 
 // Connect to MongoDB
 connectDB().then(() => {
-  // Create admin user after database connection is established
   createAdminUser();
 });
 
@@ -53,14 +52,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Session configuration (in-memory for now)
+// Session configuration with MongoDB store
 app.use(session({
   secret: process.env.SESSION_SECRET || 'nairobi-verified-secret',
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    collectionName: 'sessions'
+  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -71,6 +76,7 @@ app.use(session({
 
 // Initialize Passport
 app.use(passport.initialize());
+app.use(passport.session());
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));

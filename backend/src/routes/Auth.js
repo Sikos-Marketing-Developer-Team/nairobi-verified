@@ -38,21 +38,22 @@ router.get('/verify-email/:token', verifyEmail);
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get(
   '/google/callback',
-  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/auth/signin`, session: false }),
+  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/auth/signin` }),
   (req, res) => {
-    const token = req.user.token;
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'None',
-      path: '/', // Ensures cookie is sent to all routes
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      maxAge: 24 * 60 * 60 * 1000
-    });
-    const redirectUrl = req.user.isEmailVerified ? 
-      (req.user.role === 'merchant' ? `${process.env.FRONTEND_URL}/vendor/dashboard` : `${process.env.FRONTEND_URL}/dashboard`) :
-      `${process.env.FRONTEND_URL}/auth/verify-email`;
-    res.redirect(redirectUrl);
+    // Store user in session
+    req.session.user = {
+      id: req.user._id,
+      fullName: req.user.fullName,
+      email: req.user.email,
+      phone: req.user.phone || '',
+      role: req.user.role
+    };
+    console.log('google/callback: Session set:', req.session.user);
+
+    const redirectUrl = req.user.isEmailVerified 
+      ? (req.user.role === 'merchant' ? '/vendor/dashboard' : '/dashboard')
+      : '/auth/verify-email';
+    res.redirect(`${process.env.FRONTEND_URL}${redirectUrl}`);
   }
 );
 
