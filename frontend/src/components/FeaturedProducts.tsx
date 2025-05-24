@@ -1,7 +1,10 @@
-import React, { useRef } from 'react';
+'use client';
+
+import { useRef } from 'react';
+import Link from 'next/link';
+import { useApi } from '@/hooks/useApi';
+import { apiService } from '@/lib/api';
 import ProductCard from './ProductCard';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { useFeaturedProducts } from '@/hooks/useApi';
 import { Product } from '@/types/api';
 
 interface FeaturedProductsProps {
@@ -9,105 +12,92 @@ interface FeaturedProductsProps {
   subtitle?: string;
 }
 
-const FeaturedProducts: React.FC<FeaturedProductsProps> = ({ 
-  title = "Featured Products", 
-  subtitle = "Discover our handpicked selection of top products from verified vendors" 
-}) => {
-  const { data: products, isLoading, error } = useFeaturedProducts();
-  
+export default function FeaturedProducts({
+  title = 'Featured Products',
+  subtitle = 'Discover our handpicked selection of top products from verified vendors',
+}: FeaturedProductsProps) {
+  const { data: products, isLoading, error } = useApi<Product[]>(apiService.products.getFeatured);
+
   // For mobile scrolling
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Scroll functions for mobile
-  const scrollLeft = () => {
+
+  const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+      const scrollAmount = direction === 'left' ? -300 : 300;
+      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
-  
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
-    }
-  };
-  
-  return (
-    <section className="py-12 px-4 bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto max-w-6xl">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{title}</h2>
-          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">{subtitle}</p>
+
+  if (isLoading) {
+    return (
+      <section className="py-12 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{title}</h2>
+          <p className="text-gray-600 mb-8">{subtitle}</p>
+          <div className="text-center">Loading products...</div>
         </div>
-        
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center text-red-500 dark:text-red-400 py-8">
-            Failed to load featured products. Please try again later.
-          </div>
-        ) : !products || products.length === 0 ? (
-          <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-            No featured products available at the moment.
-          </div>
-        ) : (
-          <>
-            {/* Desktop View */}
-            <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {products.map((product: Product) => (
-                <ProductCard
-                  key={product._id}
-                  product={product}
-                />
-              ))}
-            </div>
-            
-            {/* Mobile View with Horizontal Scroll */}
-            <div className="md:hidden relative">
-              <button 
-                onClick={scrollLeft}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 rounded-full p-2 shadow-md"
-                aria-label="Scroll left"
-              >
-                <FiChevronLeft className="text-gray-600 dark:text-gray-300" />
-              </button>
-              
-              <div 
-                ref={scrollContainerRef}
-                className="flex overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {products.map((product: Product) => (
-                  <div key={product._id} className="w-64 flex-shrink-0 mx-2 snap-start">
-                    <ProductCard product={product} />
-                  </div>
-                ))}
-              </div>
-              
-              <button 
-                onClick={scrollRight}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 rounded-full p-2 shadow-md"
-                aria-label="Scroll right"
-              >
-                <FiChevronRight className="text-gray-600 dark:text-gray-300" />
-              </button>
-            </div>
-          </>
-        )}
-        
-        <div className="text-center mt-8">
-          <a 
-            href="/products" 
-            className="inline-flex items-center text-orange-500 hover:text-orange-600 font-medium"
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-12 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{title}</h2>
+          <p className="text-gray-600 mb-8">{subtitle}</p>
+          <div className="text-center text-red-600">Error loading products: {error}</div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!products || products.length === 0) {
+    return (
+      <section className="py-12 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{title}</h2>
+          <p className="text-gray-600 mb-8">{subtitle}</p>
+          <div className="text-center">No featured products available.</div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-12 bg-gray-50">
+      <div className="container mx-auto px-4">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">{title}</h2>
+        <p className="text-gray-600 mb-8">{subtitle}</p>
+        <div className="relative">
+          <button
+            onClick={() => scroll('left')}
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
+            aria-label="Scroll left"
           >
-            View All Products
-            <FiChevronRight className="ml-1" />
-          </a>
+            <i className="bx bx-chevron-left text-2xl"></i>
+          </button>
+          <div
+            ref={scrollContainerRef}
+            className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory"
+          >
+            {products.map((product) => (
+              <div key={product._id} className="snap-start flex-shrink-0 w-64 mx-2">
+                <Link href={`/products/${product._id}`}>
+                  <ProductCard product={product} />
+                </Link>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => scroll('right')}
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
+            aria-label="Scroll right"
+          >
+            <i className="bx bx-chevron-right text-2xl"></i>
+          </button>
         </div>
       </div>
     </section>
   );
-};
-
-export default FeaturedProducts;
+}
