@@ -3,11 +3,12 @@ const User = require('../models/User');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { uploadImage, uploadMultipleImages, deleteImage } = require('../config/cloudinary');
 
-// Configure multer for product image uploads
+// Configure multer for temporary storage before Cloudinary upload
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = 'uploads/products';
+    const uploadDir = 'uploads/temp';
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -51,11 +52,28 @@ const createProduct = async (req, res) => {
       return res.status(403).json({ message: 'Only verified merchants can create products' });
     }
 
-    // Process uploaded images
-    const images = req.files.map((file, index) => ({
-      url: file.path,
-      isMain: index === 0 // First image is the main image
-    }));
+    // Process uploaded images with Cloudinary
+    let cloudinaryImages = [];
+    
+    if (req.files && req.files.length > 0) {
+      // Upload images to Cloudinary
+      const uploadPromises = req.files.map(file => uploadImage(file.path, 'nairobi-verified/products'));
+      const cloudinaryResults = await Promise.all(uploadPromises);
+      
+      // Format image data
+      cloudinaryImages = cloudinaryResults.map((result, index) => ({
+        url: result.secure_url,
+        publicId: result.public_id,
+        isMain: index === 0 // First image is the main image
+      }));
+      
+      // Clean up temp files
+      req.files.forEach(file => {
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      });
+    }
 
     // Create product
     const product = new Product({
@@ -65,7 +83,7 @@ const createProduct = async (req, res) => {
       discountPrice: discountPrice || price,
       category,
       subcategory,
-      images,
+      images: cloudinaryImages,
       stock,
       merchant: merchantId,
       featured: featured || false,
@@ -267,13 +285,26 @@ const updateProduct = async (req, res) => {
     
     // Process new images if uploaded
     if (req.files && req.files.length > 0) {
-      const newImages = req.files.map(file => ({
-        url: file.path,
+      // Upload new images to Cloudinary
+      const uploadPromises = req.files.map(file => uploadImage(file.path, 'nairobi-verified/products'));
+      const cloudinaryResults = await Promise.all(uploadPromises);
+      
+      // Format new image data
+      const newImages = cloudinaryResults.map(result => ({
+        url: result.secure_url,
+        publicId: result.public_id,
         isMain: false
       }));
       
       // Add new images to existing ones
       product.images = [...product.images, ...newImages];
+      
+      // Clean up temp files
+      req.files.forEach(file => {
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      });
     }
     
     // Update main image if specified
@@ -286,6 +317,27 @@ const updateProduct = async (req, res) => {
         
         // Set the specified image as main
         product.images[index].isMain = true;
+      }
+    }
+    
+    // Handle image deletions if specified
+    if (req.body.deleteImageIds) {
+      const deleteImageIds = JSON.parse(req.body.deleteImageIds);
+      
+      // Delete images from Cloudinary
+      for (const imageId of deleteImageIds) {
+        const imageToDelete = product.images.find(img => img._id.toString() === imageId);
+        if (imageToDelete && imageToDelete.publicId) {
+          await deleteImage(imageToDelete.publicId);
+        }
+      }
+      
+      // Remove deleted images from product
+      product.images = product.images.filter(img => !deleteImageIds.includes(img._id.toString()));
+      
+      // If main image was deleted, set first available image as main
+      if (product.images.length > 0 && !product.images.some(img => img.isMain)) {
+        product.images[0].isMain = true;
       }
     }
     
@@ -328,6 +380,13 @@ const deleteProduct = async (req, res) => {
         success: false,
         message: 'You are not authorized to delete this product' 
       });
+    }
+    
+    // Delete images from Cloudinary
+    for (const image of product.images) {
+      if (image.publicId) {
+        await deleteImage(image.publicId);
+      }
     }
     
     // Delete product

@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import Image from 'next/image';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { FiShoppingCart, FiHeart, FiStar } from 'react-icons/fi';
 import { Product } from '@/types/api';
@@ -9,6 +8,7 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import OptimizedImage from './OptimizedImage';
 
 interface ProductCardProps {
   product: Product;
@@ -71,8 +71,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = 'grid' })
             <Link href={`/product/${id}`}>
               <div className="w-full h-full relative">
                 {mainImage ? (
-                  <Image
-                    src={mainImage.startsWith('http') ? mainImage : `/${mainImage}`}
+                  <OptimizedImage
+                    src={mainImage}
                     alt={name}
                     fill
                     className="object-cover"
@@ -172,7 +172,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = 'grid' })
                 <button 
                   onClick={handleAddToCart}
                   disabled={isCartLoading}
-                  className="bg-orange-500 p-2 rounded-full shadow-md hover:bg-orange-600 transition-colors"
+                  className="bg-orange-600 p-2 rounded-full shadow-md hover:bg-orange-700 transition-colors"
                   aria-label="Add to cart"
                 >
                   <FiShoppingCart className="text-white" />
@@ -193,8 +193,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = 'grid' })
         <Link href={`/product/${id}`}>
           <div className="w-full h-full relative">
             {mainImage ? (
-              <Image
-                src={mainImage.startsWith('http') ? mainImage : `/${mainImage}`}
+              <OptimizedImage
+                src={mainImage}
                 alt={name}
                 fill
                 className="object-cover"
@@ -233,7 +233,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = 'grid' })
           <button 
             onClick={handleAddToCart}
             disabled={isCartLoading}
-            className="bg-orange-500 p-2 rounded-full shadow-md hover:bg-orange-600 transition-colors"
+            className="bg-orange-600 p-2 rounded-full shadow-md hover:bg-orange-700 transition-colors"
             aria-label="Add to cart"
           >
             <FiShoppingCart className="text-white" />

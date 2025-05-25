@@ -1,6 +1,8 @@
 import React, { ReactNode, useEffect } from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import ErrorBoundary from './ErrorBoundary';
+import dynamic from 'next/dynamic';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -51,13 +53,30 @@ const MainLayout = ({
 
   return (
     <div className="flex flex-col min-h-screen">
-      {showNavbar && <Navbar />}
+      {showNavbar && (
+        <ErrorBoundary fallback={
+          <div className="fixed top-0 left-0 right-0 bg-white shadow-md p-4 z-50">
+            <div className="flex justify-between items-center">
+              <a href="/" className="text-xl font-bold text-orange-600">Nairobi Verified</a>
+              <a href="/auth/login" className="bg-orange-600 text-white px-4 py-2 rounded-md">Sign In</a>
+            </div>
+          </div>
+        }>
+          <Navbar />
+        </ErrorBoundary>
+      )}
       
-      <main className={`flex-grow ${className}`}>
-        {children}
+      <main className={`flex-grow ${showNavbar ? 'pt-[130px] md:pt-[140px] var(--navbar-height, 140px)' : ''} ${className}`}>
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </main>
       
-      {showFooter && <Footer />}
+      {showFooter && (
+        <ErrorBoundary>
+          <Footer />
+        </ErrorBoundary>
+      )}
       
       {/* Scroll to top button */}
       <button 

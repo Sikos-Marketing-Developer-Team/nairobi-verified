@@ -46,9 +46,9 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
   documents: {
-    businessRegistration: { url: String, uploadedAt: Date },
-    taxCertificate: { url: String, uploadedAt: Date },
-    idDocument: { url: String, uploadedAt: Date },
+    businessRegistration: { url: String, publicId: String, uploadedAt: Date, status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' } },
+    taxCertificate: { url: String, publicId: String, uploadedAt: Date, status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' } },
+    idDocument: { url: String, publicId: String, uploadedAt: Date, status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' } },
   },
   isEmailVerified: {
     type: Boolean,

@@ -80,8 +80,8 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
+// Serve uploaded files (for temporary files before Cloudinary upload)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);

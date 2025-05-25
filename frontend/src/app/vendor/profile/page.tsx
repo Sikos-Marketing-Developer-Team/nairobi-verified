@@ -268,15 +268,10 @@ export default function VendorProfile() {
         formData.append('businessPermit', profileData.businessPermit);
       }
       
-      // For development/demo purposes - skip actual API call
-      // In production, uncomment the actual API call
-      /*
-      // Send data to backend
+      // Send data to backend with Cloudinary integration
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vendor/profile`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
+        credentials: 'include',
         body: formData
       });
       
@@ -285,9 +280,8 @@ export default function VendorProfile() {
       if (!response.ok) {
         throw new Error(data.message || 'Failed to update profile');
       }
-      */
       
-      // Demo mode - simulate successful profile update
+      // Profile updated successfully
       setSuccess('Profile submitted successfully!');
       setProfileComplete(true);
       
@@ -369,43 +363,49 @@ export default function VendorProfile() {
           return;
         }
         
-        // For development/demo purposes - skip actual API call
-        // In production, uncomment the actual API call
-        /*
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vendor/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vendor/profile`, {
+            credentials: 'include'
+          });
           
-          // Update state with fetched data
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Update state with fetched data
+            setProfileData(prev => ({
+              ...prev,
+              ...data.profile,
+              businessLogoPreview: data.profile.businessLogoUrl || '',
+              kraCertificatePreview: data.profile.kraCertificateUrl || '',
+              businessPermitPreview: data.profile.businessPermitUrl || ''
+            }));
+            
+            // Check if profile is complete
+            setProfileComplete(checkProfileCompletion().isComplete);
+          } else {
+            // If profile doesn't exist yet, use empty profile
+            setProfileData(prev => ({
+              ...prev,
+              businessName: user?.companyName || "",
+              email: user?.email || "",
+              phone: user?.phone || "",
+            }));
+            
+            setProfileComplete(false);
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+          
+          // Fallback to empty profile on error
           setProfileData(prev => ({
             ...prev,
-            ...data,
-            businessLogoPreview: data.businessLogoUrl || '',
-            kraCertificatePreview: data.kraCertificateUrl || '',
-            businessPermitPreview: data.businessPermitUrl || ''
+            businessName: user?.companyName || "",
+            email: user?.email || "",
+            phone: user?.phone || "",
           }));
           
-          // Check if profile is complete
-          setProfileComplete(checkProfileCompletion().isComplete);
+          setProfileComplete(false);
         }
-        */
-        
-        // Demo mode - use default empty profile
-        // This allows the form to be filled out without backend connection
-        setProfileData(prev => ({
-          ...prev,
-          // You can pre-fill some fields for demo purposes if needed
-          businessName: token.includes('merchant') ? "Demo Merchant" : "",
-          email: "demo@example.com",
-          phone: "+254700000000",
-        }));
-        
-        setProfileComplete(false);
       } catch (error) {
         console.error('Error fetching profile:', error);
       }

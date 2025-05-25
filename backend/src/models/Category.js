@@ -19,6 +19,9 @@ const categorySchema = new mongoose.Schema({
   image: {
     type: String
   },
+  imagePublicId: {
+    type: String
+  },
   slug: {
     type: String,
     required: true,

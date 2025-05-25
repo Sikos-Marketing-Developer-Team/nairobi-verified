@@ -3,3 +3,8 @@ node_modules
 *.log
 Desktop.ini
 playground-1.mongodb.js
+# Ignore temporary upload files
+uploads/
+uploads/temp/
+backend/uploads/
+backend/uploads/temp/

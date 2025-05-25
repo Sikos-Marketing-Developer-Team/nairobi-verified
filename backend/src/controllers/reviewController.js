@@ -5,11 +5,12 @@ const Order = require('../models/Order');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { uploadImage, uploadMultipleImages, deleteImage } = require('../config/cloudinary');
 
-// Configure multer for review image uploads
+// Configure multer for temporary storage before Cloudinary upload
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = 'uploads/reviews';
+    const uploadDir = 'uploads/temp';
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -78,8 +79,36 @@ const createProductReview = async (req, res) => {
     // Check if user has purchased the product
     const isVerifiedPurchase = await hasUserPurchasedProduct(userId, productId);
     
-    // Process uploaded images
-    const images = req.files ? req.files.map(file => file.path) : [];
+    // Process uploaded images with Cloudinary
+    let cloudinaryImages = [];
+    
+    if (req.files && req.files.length > 0) {
+      try {
+        // Upload images to Cloudinary
+        const uploadPromises = req.files.map(file => uploadImage(file.path, 'nairobi-verified/reviews'));
+        const cloudinaryResults = await Promise.all(uploadPromises);
+        
+        // Format image data
+        cloudinaryImages = cloudinaryResults.map(result => ({
+          url: result.secure_url,
+          publicId: result.public_id
+        }));
+        
+        // Clean up temp files
+        req.files.forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+      } catch (uploadError) {
+        console.error('Error uploading review images to Cloudinary:', uploadError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error uploading review images',
+          error: uploadError.message
+        });
+      }
+    }
     
     // Create review
     const review = new Review({
@@ -88,7 +117,7 @@ const createProductReview = async (req, res) => {
       rating: Number(rating),
       title,
       comment,
-      images,
+      images: cloudinaryImages,
       isVerifiedPurchase,
       status: 'pending' // Reviews need approval
     });
@@ -162,8 +191,36 @@ const createMerchantReview = async (req, res) => {
       status: { $in: ['delivered', 'completed'] }
     });
     
-    // Process uploaded images
-    const images = req.files ? req.files.map(file => file.path) : [];
+    // Process uploaded images with Cloudinary
+    let cloudinaryImages = [];
+    
+    if (req.files && req.files.length > 0) {
+      try {
+        // Upload images to Cloudinary
+        const uploadPromises = req.files.map(file => uploadImage(file.path, 'nairobi-verified/reviews'));
+        const cloudinaryResults = await Promise.all(uploadPromises);
+        
+        // Format image data
+        cloudinaryImages = cloudinaryResults.map(result => ({
+          url: result.secure_url,
+          publicId: result.public_id
+        }));
+        
+        // Clean up temp files
+        req.files.forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+      } catch (uploadError) {
+        console.error('Error uploading review images to Cloudinary:', uploadError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error uploading review images',
+          error: uploadError.message
+        });
+      }
+    }
     
     // Create review
     const review = new Review({
@@ -172,7 +229,7 @@ const createMerchantReview = async (req, res) => {
       rating: Number(rating),
       title,
       comment,
-      images,
+      images: cloudinaryImages,
       isVerifiedPurchase: hasPurchased,
       status: 'pending' // Reviews need approval
     });

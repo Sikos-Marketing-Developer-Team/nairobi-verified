@@ -1,0 +1,12 @@
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main text -->
+  <text x="10" y="35" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#ea580c">NAIROBI</text>
+  <text x="110" y="35" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#1f2937">VERIFIED</text>
+  
+  <!-- Verification checkmark -->
+  <circle cx="180" cy="20" r="10" fill="#ea580c" />
+  <path d="M175 20 L178 23 L185 16" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Tagline -->
+  <text x="100" y="50" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#4b5563">Trusted Local Vendors</text>
+</svg>

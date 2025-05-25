@@ -1,16 +1,41 @@
 "use client";
 import MainLayout from "@/components/MainLayout";
-import FeaturedProducts from "@/components/FeaturedProducts";
-import FeaturedCategories from "@/components/FeaturedCategories";
-import FeaturedVendors from "@/components/FeaturedVendors";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import LazyLoad from "@/components/LazyLoad";
 import { FiMapPin, FiShoppingBag, FiUsers, FiStar, FiShield, FiTruck, FiClock, FiHeart } from "react-icons/fi";
 import { FaSearch, FaMapMarkerAlt, FaStore, FaShoppingCart, FaRegCreditCard } from "react-icons/fa";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import OptimizedImage from "@/components/OptimizedImage";
+import FontLoader from "@/components/FontLoader";
+
+// Dynamically import heavy components
+const FeaturedProducts = dynamic(() => import("@/components/FeaturedProducts"), {
+  loading: () => <div className="w-full h-64 bg-gray-100 animate-pulse rounded-lg"></div>,
+  ssr: false
+});
+
+const FeaturedCategories = dynamic(() => import("@/components/FeaturedCategories"), {
+  loading: () => <div className="w-full h-48 bg-gray-100 animate-pulse rounded-lg"></div>,
+  ssr: false
+});
+
+const FeaturedVendors = dynamic(() => import("@/components/FeaturedVendors"), {
+  loading: () => <div className="w-full h-48 bg-gray-100 animate-pulse rounded-lg"></div>,
+  ssr: false
+});
 
 export default function Home() {
   return (
     <MainLayout className="overflow-hidden">
+      {/* Font optimization */}
+      <FontLoader 
+        fonts={[
+          { family: 'Inter', weights: [400, 500, 600, 700], styles: ['normal'], display: 'swap', preload: true },
+          { family: 'Poppins', weights: [600, 700], styles: ['normal'], display: 'swap', preload: true }
+        ]} 
+      />
       {/* Hero Section with Background Image */}
       <section className="relative bg-gradient-to-r from-orange-600 to-orange-500 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-50 z-0"></div>
@@ -110,28 +135,12 @@ export default function Home() {
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {[
-              { name: "Electronics", icon: "💻", color: "bg-blue-100", hoverColor: "hover:bg-blue-200", textColor: "text-blue-800" },
-              { name: "Fashion", icon: "👕", color: "bg-pink-100", hoverColor: "hover:bg-pink-200", textColor: "text-pink-800" },
-              { name: "Home & Living", icon: "🏠", color: "bg-green-100", hoverColor: "hover:bg-green-200", textColor: "text-green-800" },
-              { name: "Beauty", icon: "💄", color: "bg-purple-100", hoverColor: "hover:bg-purple-200", textColor: "text-purple-800" },
-              { name: "Sports", icon: "⚽", color: "bg-yellow-100", hoverColor: "hover:bg-yellow-200", textColor: "text-yellow-800" },
-              { name: "Phones", icon: "📱", color: "bg-red-100", hoverColor: "hover:bg-red-200", textColor: "text-red-800" },
-            ].map((category, index) => (
-              <Link href={`/categories/${category.name.toLowerCase()}`} key={index} className="group">
-                <div className={`${category.color} ${category.hoverColor} rounded-xl p-6 flex flex-col items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-md`}>
-                  <div className="w-16 h-16 mb-4 relative">
-                    <div className="absolute inset-0 bg-white rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-4xl">{category.icon}</span>
-                    </div>
-                  </div>
-                  <h3 className={`${category.textColor} font-medium text-center`}>{category.name}</h3>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <ErrorBoundary>
+            <FeaturedCategories 
+              title="Trending Categories" 
+              subtitle="Explore our most popular shopping categories" 
+            />
+          </ErrorBoundary>
         </div>
       </section>
 
@@ -148,7 +157,9 @@ export default function Home() {
             </Link>
           </div>
           
-          <FeaturedProducts />
+          <ErrorBoundary>
+            <FeaturedProducts />
+          </ErrorBoundary>
         </div>
       </section>
 
@@ -165,7 +176,9 @@ export default function Home() {
             </Link>
           </div>
           
-          <FeaturedVendors />
+          <ErrorBoundary>
+            <FeaturedVendors />
+          </ErrorBoundary>
         </div>
       </section>
 
@@ -448,19 +461,19 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                name: "Jane Muthoni",
+                name: "Sally Mugisha",
                 role: "Shopper",
                 image: "/images/testimonial1.jpg",
                 quote: "Nairobi Verified has made shopping in CBD so much easier. I can find exactly what I need and know exactly where to go!"
               },
               {
-                name: "David Ochieng",
+                name: "Joseph Mwangi",
                 role: "Vendor",
                 image: "/images/testimonial2.jpg",
                 quote: "Since joining Nairobi Verified, my customer base has grown significantly. The platform brings serious buyers to my shop."
               },
               {
-                name: "Sarah Kimani",
+                name: "Jude Kimathi",
                 role: "Shopper",
                 image: "/images/testimonial3.jpg",
                 quote: "I love that I can browse products online and then visit the physical store. It saves me so much time and hassle."

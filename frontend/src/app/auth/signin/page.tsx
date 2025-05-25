@@ -1,12 +1,11 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import MainLayout from '@/components/MainLayout';
-import { useAuth } from '@/context/AuthContext';
-import { FiUser, FiLock, FiAlertCircle } from 'react-icons/fi';
-import { FcGoogle } from 'react-icons/fc';
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import MainLayout from "@/components/MainLayout";
+import { useAuth } from "@/context/AuthContext";
+import { FiUser, FiLock, FiAlertCircle } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
 
 export default function SignIn() {
   const [formData, setFormData] = useState({
@@ -36,8 +35,9 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setFormError('');
-
+    setFormError("");
+    
+    // Basic validation
     if (!formData.email) {
       setFormError('Email is required');
       return;
@@ -54,14 +54,23 @@ export default function SignIn() {
         rememberMe: formData.rememberMe,
       });
     } catch (error) {
-      console.error('Login failed:', error);
+      // Error is handled by the auth context
+      console.error("Login failed:", error);
     }
   };
 
   const handleGoogleSignIn = () => {
+    // Redirect to Google OAuth endpoint
     window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
   };
 
+<<<<<<< Updated upstream
+=======
+  const handleRegisterClick = (type: "client" | "merchant") => {
+    router.push(`/auth/register/${type}`);
+  };
+
+>>>>>>> Stashed changes
   return (
     <MainLayout className="bg-gray-100 py-10">
       <div className="container mx-auto px-4">

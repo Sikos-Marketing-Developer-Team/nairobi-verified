@@ -30,12 +30,14 @@ export default function MerchantProfile() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch("/api/merchant/profile");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/profile`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch profile");
       }
       const data = await response.json();
-      setProfile(data);
+      setProfile(data.profile);
     } catch (error) {
       setError("Failed to load profile");
     } finally {
@@ -52,30 +54,48 @@ export default function MerchantProfile() {
     setSuccess("");
 
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("documentType", documentType);
+    
+    // Add file to the appropriate field based on document type
+    if (documentType === 'businessRegistration') {
+      formData.append("businessRegistration", file);
+    } else if (documentType === 'taxCertificate') {
+      formData.append("taxCertificate", file);
+    } else if (documentType === 'idDocument') {
+      formData.append("idDocument", file);
+    }
 
     try {
-      const response = await fetch("/api/merchant/upload-document", {
+      // Use the merchant controller endpoint that now uses Cloudinary
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/upload-documents`, {
         method: "POST",
+        credentials: 'include',
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Upload failed");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Upload failed");
       }
 
       const data = await response.json();
-      setProfile(prev => prev ? {
-        ...prev,
-        documents: {
-          ...prev.documents,
-          [documentType]: data.url
-        }
-      } : null);
-      setSuccess("Document uploaded successfully");
+      
+      // Update the profile with the new document URL from Cloudinary
+      setProfile(prev => {
+        if (!prev) return null;
+        
+        return {
+          ...prev,
+          documents: {
+            ...prev.documents,
+            [documentType]: data.documents[documentType]?.url || ''
+          }
+        };
+      });
+      
+      setSuccess("Document uploaded successfully and pending verification");
     } catch (error) {
-      setError("Failed to upload document");
+      console.error('Upload error:', error);
+      setError(error instanceof Error ? error.message : "Failed to upload document");
     } finally {
       setUploading(false);
     }

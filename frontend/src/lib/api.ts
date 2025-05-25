@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
+import Cookies from 'js-cookie';
 import { mockApi } from './mockApi';
 
 const MOCK_ENABLED = false;
@@ -15,45 +16,90 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    // Log detailed error information
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message
+    });
+
+    const { response } = error;
+    
+    // Handle authentication errors
+    if (response?.status === 401) {
+      // Clear auth cookies
+      Cookies.remove('auth_token');
+      Cookies.remove('user_info');
+      
+      // Redirect to login if not already there
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/signin')) {
         window.location.href = '/auth/signin';
       }
     }
+    
+    // Handle network errors (when no response is received)
+    if (!response) {
+      // Create a more descriptive error
+      const networkError = new Error(
+        'Network error: Unable to connect to the server. Please check your internet connection and ensure the backend server is running.'
+      );
+      return Promise.reject(networkError);
+    }
+    
     return Promise.reject(error);
   }
 );
 
 export const apiService = {
+  // System endpoints
+  system: {
+    healthCheck: () => 
+      api.get('/api/health'),
+  },
+  
+  // Auth endpoints
   auth: {
     login: (email: string, password: string, rememberMe: boolean = false) =>
       MOCK_ENABLED
         ? mockApi.auth.login(email, password, rememberMe)
         : api.post('/api/auth/login', { username: email, password, rememberMe }),
-    register: (userData: any, endpoint: string) =>
+    
+    register: (userData: any, endpoint?: string) =>
       MOCK_ENABLED
         ? mockApi.auth.register(userData, endpoint)
-        : api.post(endpoint, userData),
+        : api.post(endpoint || '/api/auth/register', userData),
+    
     forgotPassword: (email: string) =>
       MOCK_ENABLED
         ? mockApi.auth.forgotPassword(email)
         : api.post('/api/auth/forgot-password', { email }),
+    
     resetPassword: (token: string, password: string) =>
       MOCK_ENABLED
         ? mockApi.auth.resetPassword(token, password)
         : api.post('/api/auth/reset-password', { token, password }),
+    
+    validateResetToken: (token: string) => 
+      api.post('/api/auth/validate-reset-token', { token }),
+    
     logout: () =>
       MOCK_ENABLED
         ? mockApi.auth.logout()
         : api.post('/api/auth/logout'),
+    
     check: () =>
       MOCK_ENABLED
         ? mockApi.auth.check()
         : api.get('/api/auth/check'),
+    
     me: () =>
       MOCK_ENABLED
         ? mockApi.auth.me()
         : api.get('/api/auth/user'),
+    
     verifyEmail: (token: string) =>
       MOCK_ENABLED
         ? mockApi.auth.verifyEmail(token)

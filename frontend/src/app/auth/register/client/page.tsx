@@ -29,6 +29,32 @@ export default function ClientRegister() {
       router.push('/');
     }
   }, [isAuthenticated, router]);
+  
+  // Check backend connection on page load
+  useEffect(() => {
+    const checkBackendConnection = async () => {
+      try {
+        // Try to connect to the backend health check endpoint
+        await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/api/health`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // Short timeout to quickly identify connection issues
+          signal: AbortSignal.timeout(3000)
+        });
+        console.log('Backend connection successful');
+      } catch (error) {
+        console.error('Backend connection check failed:', error);
+        setFormError(
+          "Warning: Unable to connect to the backend server. Please ensure the backend is running at " + 
+          (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000')
+        );
+      }
+    };
+    
+    checkBackendConnection();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -70,33 +96,10 @@ export default function ClientRegister() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register/client`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          fullName: `${formData.firstName} ${formData.lastName}`,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
-
-      setSuccess("Registration successful! Please check your email for verification.");
-      setTimeout(() => {
-        router.push("/auth/verify-email");
-      }, 2000);
-    } catch (error) {
-      setFormError(error instanceof Error ? error.message : "An error occurred");
-    } finally {
-      await register({
+      console.log("Attempting to register client user...");
+      
+      // Use the register function from AuthContext
+      const result = await register({
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
@@ -105,9 +108,28 @@ export default function ClientRegister() {
         role: 'customer'
       });
       
-      setSuccess("Registration successful!");
+      if (result?.success) {
+        setSuccess("Registration successful!");
+        // Redirect will be handled by the useEffect when isAuthenticated changes
+      } else if (result?.error) {
+        setFormError(result.error);
+      }
+    } catch (error) {
+      // Fallback error handling
+      console.error("Registration failed:", error);
       
-      // Redirect will be handled by the useEffect when isAuthenticated changes
+      // Provide more helpful error message for network errors
+      if (error instanceof Error) {
+        if (error.message.includes('Network Error') || error.message.includes('network error')) {
+          setFormError(
+            "Unable to connect to the server. Please check that the backend server is running and your internet connection is working."
+          );
+        } else {
+          setFormError(error.message);
+        }
+      } else {
+        setFormError("Registration failed. Please try again.");
+      }
     }
   };
 

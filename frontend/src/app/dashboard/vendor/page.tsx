@@ -26,22 +26,34 @@ export default function VendorDashboard() {
       setUploadedFiles(files);
       try {
         const formData = new FormData();
+        
+        // Assign each file to the appropriate field
         files.forEach((file, index) => {
           const field = index === 0 ? 'businessRegistration' : index === 1 ? 'taxCertificate' : 'idDocument';
           formData.append(field, file);
         });
+        
+        // Send to backend - now using Cloudinary
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/upload-documents`, {
           method: "POST",
           credentials: "include",
           body: formData,
         });
+        
         const data = await response.json();
+        
         if (!response.ok) {
           throw new Error(data.message || "Upload failed");
         }
-        alert('Documents uploaded successfully');
+        
+        // Show success message with document details
+        alert('Documents uploaded successfully and will be reviewed by our team');
+        
+        // You can display the uploaded documents if needed
+        console.log('Uploaded documents:', data.documents);
       } catch (err) {
-        setError('Failed to upload documents');
+        console.error('Upload error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to upload documents');
       }
     }
   };

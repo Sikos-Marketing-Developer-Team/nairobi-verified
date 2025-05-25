@@ -1,0 +1,13 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="50" fill="#fee2e2" />
+  
+  <!-- Error icon -->
+  <circle cx="60" cy="60" r="40" fill="#ef4444" />
+  
+  <!-- X mark -->
+  <path d="M40 40 L80 80 M80 40 L40 80" stroke="white" stroke-width="8" stroke-linecap="round" />
+  
+  <!-- Outer ring -->
+  <circle cx="60" cy="60" r="55" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5" />
+</svg>

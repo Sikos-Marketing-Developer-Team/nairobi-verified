@@ -1,0 +1,12 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="300" fill="#f3f4f6" />
+  
+  <!-- Image icon -->
+  <path d="M160 110 H240 V190 H160 Z" fill="none" stroke="#d1d5db" stroke-width="8" />
+  <circle cx="190" cy="140" r="15" fill="#d1d5db" />
+  <path d="M220 170 L200 150 L180 170 L160 150 V190 H240 V160 L220 170 Z" fill="#d1d5db" />
+  
+  <!-- Text -->
+  <text x="200" y="220" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#9ca3af">Image Loading</text>
+</svg>

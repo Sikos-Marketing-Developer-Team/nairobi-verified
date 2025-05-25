@@ -1,0 +1,38 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="100" height="100" rx="20" fill="#fee2e2" />
+  
+  <!-- Phone body with gradient -->
+  <linearGradient id="phoneGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#ef4444" />
+    <stop offset="100%" stop-color="#b91c1c" />
+  </linearGradient>
+  <rect x="35" y="15" width="30" height="70" rx="8" fill="url(#phoneGradient)" />
+  
+  <!-- Screen with reflection -->
+  <rect x="38" y="20" width="24" height="50" rx="3" fill="#fef2f2" />
+  <linearGradient id="screenGlare" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7" />
+    <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+  </linearGradient>
+  <rect x="38" y="20" width="24" height="50" rx="3" fill="url(#screenGlare)" opacity="0.3" />
+  
+  <!-- Home button -->
+  <circle cx="50" cy="75" r="5" fill="#fef2f2" />
+  <circle cx="50" cy="75" r="3" fill="#fecaca" />
+  
+  <!-- Camera and speaker -->
+  <circle cx="50" cy="25" r="2" fill="#1f2937" />
+  <rect x="43" y="30" width="14" height="2" rx="1" fill="#1f2937" />
+  
+  <!-- App icons -->
+  <rect x="42" y="35" width="7" height="7" rx="2" fill="#3b82f6" />
+  <rect x="51" y="35" width="7" height="7" rx="2" fill="#10b981" />
+  <rect x="42" y="44" width="7" height="7" rx="2" fill="#f59e0b" />
+  <rect x="51" y="44" width="7" height="7" rx="2" fill="#8b5cf6" />
+  <rect x="42" y="53" width="7" height="7" rx="2" fill="#ef4444" />
+  <rect x="51" y="53" width="7" height="7" rx="2" fill="#6366f1" />
+  
+  <!-- Shadow -->
+  <ellipse cx="50" cy="90" rx="20" ry="3" fill="#9f1239" opacity="0.2" />
+</svg>

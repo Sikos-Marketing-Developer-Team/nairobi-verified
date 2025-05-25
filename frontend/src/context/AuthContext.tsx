@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 import { apiService } from '@/lib/api';
 import { User, LoginCredentials, RegisterData } from '@/types/api';
 
@@ -67,15 +68,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     setError(null);
     try {
+      console.log('Registering user with data:', {
+        ...data,
+        password: '[REDACTED]' // Don't log the actual password
+      });
+      
+      // Verify backend URL from environment
+      console.log('Backend URL:', process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000');
+      
       const endpoint = data.role === 'merchant' ? '/api/auth/register/merchant' : '/api/auth/register/client';
       const response = await apiService.auth.register(data, endpoint);
-      const user = response.data.user;
+      console.log('Registration successful:', response.data);
+      
+      const { user, token } = response.data;
+      
+      // Save token and user info
+      Cookies.set('auth_token', token, { expires: 7 });
+      Cookies.set('user_info', JSON.stringify(user), { expires: 7 });
+      
       setUser(user);
-      router.push('/auth/verify-email');
+      
+      // Redirect based on user role
+      if (data.role === 'merchant') {
+        router.push('/merchant/profile');
+      } else {
+        router.push('/auth/verify-email');
+      }
+      
+      return { success: true, user };
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
+      console.error('Registration error:', err);
+      
+      // Extract error message from response if available
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // Add more context for network errors
+      if (!err.response && err.message.includes('Network Error')) {
+        errorMessage = 'Network error: Unable to connect to the server. Please check that the backend server is running at ' + 
+          (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000');
+      }
+      
       setError(errorMessage);
-      throw new Error(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }

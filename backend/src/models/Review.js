@@ -31,7 +31,10 @@ const reviewSchema = new mongoose.Schema({
     trim: true,
     maxlength: [500, 'Comment cannot exceed 500 characters']
   },
-  images: [String],
+  images: [{
+    url: String,
+    publicId: String
+  }],
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
