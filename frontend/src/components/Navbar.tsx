@@ -190,7 +190,7 @@ const Navbar = () => {
       <div className="md:flex items-center justify-between px-6 py-2 border-t border-white/20 hidden bg-gradient-to-r from-orange-700 to-orange-600 text-white">
         <ul className="flex space-x-6 p-2">
           <li>
-            <Link href="/search?category=flash-sale" className="hover:text-yellow-200 transition-colors font-semibold" title="View Offers">
+            <Link href="/search?category=flash-sale" className="hover:text-yellow-200  transition-colors font-semibold" title="View Offers">
               <span className="inline-flex items-center gap-1">
                 Hot Deals <FaBolt className="text-yellow-300" />
               </span>
@@ -321,7 +321,7 @@ const Navbar = () => {
         <Link href="/search?type=vendor" className="block hover:text-orange-600 transition-colors">Find Vendors</Link>
         <Link href="/auth/register/merchant" className="block bg-orange-600 text-white px-4 py-2 rounded-full text-center font-semibold hover:bg-orange-700 transition-colors">Sell on Nairobi Verified</Link>
         <div className="pt-2 border-t border-gray-200 mt-2">
-          <ul className="space-y-1">
+          <ul className="space-y-1 nav-bottom-right-links">
             <li>
               <Link href="/auth/login" className="block hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1">
                 <FaSignInAlt aria-hidden="true" /> Sign In
@@ -333,7 +333,7 @@ const Navbar = () => {
               </Link>
             </li>
             <li>
-              <Link href="/contact" className="block hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1">
+              <Link href="/contact" className="block !text-white hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1">
                 <FaPhone aria-hidden="true" /> Contact Us
               </Link>
             </li>
