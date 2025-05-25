@@ -223,6 +223,9 @@ span {
   max-height: 90px;
 }
 
+ul.nav-bottom-right-links li a{
+  color:white!important;
+}
 /* Auth Components */
 .wrapper {
   position: relative;

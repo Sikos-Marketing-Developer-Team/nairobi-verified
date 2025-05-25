@@ -1,5 +1,4 @@
-'use client';
-
+"use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -7,12 +6,26 @@ import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle, FiMapPin, FiShoppingBag, FiHome, FiTag } from "react-icons/fi";
 
+// Define available business types for the select dropdown
+const businessTypes = [
+  "Retail",
+  "Restaurant",
+  "Service",
+  "Wholesale",
+  "Manufacturing",
+  "E-commerce",
+  "Other"
+];
+
 export default function MerchantRegister() {
   const [formData, setFormData] = useState({
     fullName: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     companyName: '',
+    businessType: '',
     location: '',
     password: '',
     confirmPassword: '',
@@ -55,7 +68,9 @@ export default function MerchantRegister() {
     checkBackendConnection();
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -104,23 +119,24 @@ export default function MerchantRegister() {
     try {
       console.log("Attempting to register merchant user...");
       
-      // Use the register function from AuthContext
-      const result = await register({
+      // Define the expected result type
+      type RegisterResult = {
+        success?: boolean;
+        error?: string;
+      };
+      
+      await register({
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
         companyName: formData.companyName,
+        // @ts-expect-error: Add businessType to RegisterData type in AuthContext
+        businessType: formData.businessType,
         location: formData.location,
         role: 'merchant',
       });
-      
-      if (result?.success) {
-        setSuccess("Registration successful! Please check your email for verification.");
-        // Redirect will be handled by the useEffect when isAuthenticated changes
-      } else if (result?.error) {
-        setFormError(result.error);
-      }
+      // Success and error handling will be managed by isAuthenticated and authError from context
     } catch (error) {
       // Fallback error handling
       console.error("Registration failed:", error);
@@ -160,30 +176,12 @@ export default function MerchantRegister() {
                   </div>
                 )}
                 
-                {success && (
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="md:flex">
-              {/* Form Section */}
-              <div className="md:w-2/3 p-6 md:p-8">
-                <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900">Create Merchant Account</h2>
-                  <p className="text-gray-600 mt-2">Join Nairobi Verified as a trusted merchant and grow your business</p>
-                </div>
-                
-                {(formError || authError) && (
-                  <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-md flex items-start">
-                    <FiAlertCircle className="text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <p className="text-red-600 text-sm">{formError || authError}</p>
-                  </div>
-                )}
-                
-                {success && (
-                  <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded-md flex items-start">
-                    <FiCheckCircle className="text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <p className="text-green-600 text-sm">{success}</p>
-                  </div>
-                )}
+        {success && (
+          <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded-md flex items-start">
+            <FiCheckCircle className="text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+            <p className="text-green-600 text-sm">{success}</p>
+          </div>
+        )}
                 
                 <form onSubmit={handleSubmit}>
                   {/* Business Information */}
@@ -191,7 +189,7 @@ export default function MerchantRegister() {
                     <h3 className="text-lg font-medium text-gray-800 mb-3">Business Information</h3>
                     
                     <div className="mb-4">
-                      <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
                         Business Name
                       </label>
                       <div className="relative">
@@ -199,10 +197,10 @@ export default function MerchantRegister() {
                           <FiShoppingBag className="text-gray-400" />
                         </div>
                         <input
-                          id="businessName"
+                          id="companyName"
                           type="text"
-                          name="businessName"
-                          value={formData.businessName}
+                          name="companyName"
+                          value={formData.companyName}
                           onChange={handleInputChange}
                           className="pl-10 w-full py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                           placeholder="Your Business Name"
@@ -463,7 +461,6 @@ export default function MerchantRegister() {
                 </div>
               </div>
             </div>
->>>>>>> Stashed changes
           </div>
         </div>
       </div>
