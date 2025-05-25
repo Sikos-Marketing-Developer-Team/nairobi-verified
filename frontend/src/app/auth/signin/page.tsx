@@ -64,13 +64,9 @@ export default function SignIn() {
     window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
   };
 
-<<<<<<< Updated upstream
-=======
   const handleRegisterClick = (type: "client" | "merchant") => {
     router.push(`/auth/register/${type}`);
   };
-
->>>>>>> Stashed changes
   return (
     <MainLayout className="bg-gray-100 py-10">
       <div className="container mx-auto px-4">

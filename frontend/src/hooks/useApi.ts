@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import { AxiosError, AxiosResponse } from 'axios';
 import { ApiResponse } from '@/types/api';

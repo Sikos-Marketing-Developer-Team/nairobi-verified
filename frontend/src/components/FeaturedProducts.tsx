@@ -37,14 +37,11 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
     }
   };
 
-  if (isLoading) {
-    return (
-      <section className="py-12 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">{title}</h2>
-          <p className="text-gray-600 mb-8">{subtitle}</p>
-          <div className="text-center">Loading products...</div>
-        </div>
+  return (
+    <section className="py-12 bg-gray-50">
+      <div className="container mx-auto px-4">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">{title}</h2>
+        <p className="text-gray-600 mb-8">{subtitle}</p>
         
         {isLoading ? (
           <div className="flex justify-center items-center h-64">

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, FormEvent, useEffect, useCallback, useRef } from "react";
 import OptimizedImage from "./OptimizedImage";
 import { useRouter } from "next/navigation";
@@ -117,7 +119,7 @@ const Navbar = () => {
         <div>
           <Link href="/">
             <OptimizedImage
-              src="/images/logo.webp"
+              src="/images/logo.svg"
               alt="Nairobi Verified"
               width={130}
               height={70}

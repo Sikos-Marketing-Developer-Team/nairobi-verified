@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import Image, { ImageProps } from 'next/image';
 import { generateBlurPlaceholder, getResponsiveImageSizes, formatImageUrl, optimizeCloudinaryUrl } from '@/utils/imageOptimizer';
@@ -60,7 +62,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
         priority={priority}
         placeholder="blur"
         blurDataURL={blurDataURL}
-        onLoadingComplete={handleLoadComplete}
+        onLoad={handleLoadComplete}
         onError={handleError}
         className={`transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         {...props}

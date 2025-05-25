@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import OptimizedImage from './OptimizedImage';
 import { 
   FaFacebook, 
   FaTwitter, 
@@ -72,8 +73,8 @@ const Footer = () => {
           {/* Column 1: About */}
           <div className="lg:col-span-2">
             <div className="mb-6">
-              <Image
-                src="/images/logo.webp"
+              <OptimizedImage
+                src="/images/logo.svg"
                 alt="Nairobi Verified"
                 width={180}
                 height={90}
