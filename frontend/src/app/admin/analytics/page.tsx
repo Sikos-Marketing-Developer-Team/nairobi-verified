@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { 
   Card, 
@@ -141,29 +141,35 @@ export default function AdminAnalyticsPage() {
     fetchAnalyticsData();
   }, [timeRange]);
   
-  const fetchAnalyticsData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // This endpoint needs to be implemented in the backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/analytics?timeRange=${timeRange}`, {
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch analytics data");
-      }
-      
-      const data = await response.json();
-      setAnalyticsData(data.analytics);
-    } catch (err: any) {
-      console.error("Error fetching analytics data:", err);
-      setError(err.message || "Failed to load analytics data. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+ const fetchAnalyticsData = useCallback(async () => {
+  try {
+    setIsLoading(true);
+    setError(null);
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/analytics?timeRange=${timeRange}`,
+      { credentials: 'include' }
+    );
+
+    if (!response.ok) throw new Error("Failed to fetch analytics data");
+
+    const data = await response.json();
+    setAnalyticsData(data);
+  } catch (err: any) {
+    setError(err.message || "Something went wrong");
+    toast({
+      title: "Error",
+      description: err.message,
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+}, [timeRange, toast]);
+
+useEffect(() => {
+  fetchAnalyticsData();
+}, [fetchAnalyticsData]);
   
   const handleExportData = async (format: string) => {
     try {
