@@ -386,9 +386,9 @@ export default function VendorProfile() {
             // If profile doesn't exist yet, use empty profile
             setProfileData(prev => ({
               ...prev,
-              businessName: user?.companyName || "",
-              email: user?.email || "",
-              phone: user?.phone || "",
+              businessName: "",
+              email: "",
+              phone: "",
             }));
             
             setProfileComplete(false);
@@ -399,9 +399,9 @@ export default function VendorProfile() {
           // Fallback to empty profile on error
           setProfileData(prev => ({
             ...prev,
-            businessName: user?.companyName || "",
-            email: user?.email || "",
-            phone: user?.phone || "",
+            businessName: "",
+            email: "",
+            phone: "",
           }));
           
           setProfileComplete(false);
@@ -413,6 +413,11 @@ export default function VendorProfile() {
     
     fetchProfile();
   }, [router]);
+
+  useEffect(() => {
+  checkProfileCompletion();
+}, [checkProfileCompletion]); // ✅ Include it here
+
   
   const completionStatus = checkProfileCompletion();
   

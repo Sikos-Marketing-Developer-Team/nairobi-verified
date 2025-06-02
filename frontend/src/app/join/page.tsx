@@ -3,8 +3,7 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FiShoppingBag, FiCheck, FiArrowRight } from 'react-icons/fi';
-import { FiShop } from 'react-icons/fi';
+import { FiShoppingBag, FiCheck, FiArrowRight, FiShoppingCart } from 'react-icons/fi';
 import MainLayout from '@/components/MainLayout';
 
 export default function JoinPage() {
@@ -133,7 +132,7 @@ export default function JoinPage() {
               >
                 <div className="p-8">
                   <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 mb-6">
-                    <FiShop size={32} />
+                    <FiShoppingCart size={32} />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">Join as a Vendor</h2>
                   <p className="text-gray-600 mb-6">
@@ -312,8 +311,8 @@ export default function JoinPage() {
               {/* For Vendors */}
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                  <FiShop className="text-orange-600 mr-2" />
-                  For Vendors
+                  <FiShoppingCart className="text-orange-600 mr-2" />
+                  <FiShoppingCart className="text-orange-600 mr-2" />
                 </h3>
                 
                 <div className="space-y-8">

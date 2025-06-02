@@ -19,7 +19,7 @@ export default function MapPage() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 mt-12">
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">Shop Locations</h1>
         
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
@@ -67,7 +67,7 @@ export default function MapPage() {
             )}
           </div>
           
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-gray-200 mb-10">
             <h3 className="font-semibold text-lg mb-2">Nearby Verified Vendors</h3>
             <div className="space-y-3">
               {[1, 2, 3].map((item) => (
