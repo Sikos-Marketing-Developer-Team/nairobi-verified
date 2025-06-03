@@ -233,8 +233,8 @@ export default function Dashboard() {
     };
 
     // Handle verification message
-    const verified = searchParams.get("verified");
-    if (verified === "true" && searchParams.toString()) {
+    const verified = searchParams?.get("verified");
+    if (verified === "true" && searchParams?.toString()) {
       setMessage("Email verified successfully!");
       router.replace("/dashboard", { scroll: false });
     } else {
