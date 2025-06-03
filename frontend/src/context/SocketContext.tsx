@@ -43,15 +43,19 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return () => {
         socketInstance.disconnect();
+        setIsConnected(false);
       };
     }
 
+    // Cleanup for when isAuthenticated or user becomes falsy
     return () => {
       if (socket) {
         socket.disconnect();
+        setSocket(null);
+        setIsConnected(false);
       }
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, socket]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

@@ -136,12 +136,8 @@ export default function AdminAnalyticsPage() {
   const [timeRange, setTimeRange] = useState<string>("30d");
   const [chartView, setChartView] = useState<string>("daily");
   
-  // Fetch analytics data
-  useEffect(() => {
-    fetchAnalyticsData();
-  }, [timeRange, fetchAnalyticsData]);
-  
- const fetchAnalyticsData = useCallback(async () => {
+// Fetch analytics data
+const fetchAnalyticsData = useCallback(async () => {
   try {
     setIsLoading(true);
     setError(null);
@@ -169,7 +165,7 @@ export default function AdminAnalyticsPage() {
 
 useEffect(() => {
   fetchAnalyticsData();
-}, [fetchAnalyticsData]);
+}, [timeRange, fetchAnalyticsData]);
   
   const handleExportData = async (format: string) => {
     try {

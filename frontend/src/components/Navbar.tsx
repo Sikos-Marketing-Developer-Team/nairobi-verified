@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, FormEvent, useEffect, useCallback, useRef } from "react";
+import { useState, FormEvent, useEffect, useCallback, useRef, useMemo } from "react";
 import OptimizedImage from "./OptimizedImage";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { throttle } from "@/utils/performance";
 import {
-  FaStore,
   FaHeart,
   FaShoppingCart,
   FaPhone,
@@ -33,28 +32,29 @@ const Navbar = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // Create a throttled scroll handler for better performance
-  const handleScroll = useCallback(
+  // Create a memoized throttled function
+const throttledScroll = useMemo(
+  () =>
     throttle(() => {
       if (window.scrollY > 50) {
         setScrolled(true);
       } else {
         setScrolled(false);
       }
-    }, 100), // Only run at most once every 100ms
-    []
-  );
+    }, 100),
+  [] // Empty array since throttle and setScrolled are stable
+);
 
-  // Handle scroll effect for navbar
-  useEffect(() => {
-    // Check initial scroll position
-    handleScroll();
-    
-    window.addEventListener("scroll", handleScroll);
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, [handleScroll]);
+ // Wrap invocation in useCallback for event listener
+const handleScroll = useCallback(() => {
+  throttledScroll();
+}, [throttledScroll]);
+
+// Example: Attach scroll event listener
+useEffect(() => {
+  window.addEventListener('scroll', handleScroll);
+  return () => window.removeEventListener('scroll', handleScroll);
+}, [handleScroll]);
   
   // Add keyboard navigation support
   useEffect(() => {
@@ -298,7 +298,7 @@ const Navbar = () => {
         className={`px-6 py-4 bg-white md:hidden space-y-4 text-gray-800 font-medium shadow-lg transition-all duration-300 ${isMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}
         aria-hidden={!isMenuOpen}
       >
-        <Link href="/search?category=flash-sale" className="block hover:text-orange-600 transition-colors flex items-center gap-1">
+        <Link href="/search?category=flash-sale" className="hover:text-orange-600 transition-colors flex items-center gap-1">
           Hot Deals <FaBolt className="text-orange-500" aria-hidden="true" />
         </Link>
         <div>
@@ -323,17 +323,17 @@ const Navbar = () => {
         <div className="pt-2 border-t border-gray-200 mt-2">
           <ul className="space-y-1 nav-bottom-right-links">
             <li>
-              <Link href="/auth/login" className="block hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1">
+              <Link href="/auth/login" className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1">
                 <FaSignInAlt aria-hidden="true" /> Sign In
               </Link>
             </li>
             <li>
-              <Link href="/wishlist" className="block hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1">
+              <Link href="/wishlist" className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1">
                 <FaHeart aria-hidden="true" /> Wishlist
               </Link>
             </li>
             <li>
-              <Link href="/contact" className="block !text-white hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1">
+              <Link href="/contact" className="!text-white hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1">
                 <FaPhone aria-hidden="true" /> Contact Us
               </Link>
             </li>

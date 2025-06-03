@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/MainLayout";
 import Image from "next/image";
@@ -13,8 +13,8 @@ export default function VendorProfile() {
   const [error, setError] = useState("");
   const [profileComplete, setProfileComplete] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
-  const [tabErrors, setTabErrors] = useState<{[key: string]: string}>({});
-  
+  const [tabErrors, setTabErrors] = useState<{ [key: string]: string }>({});
+
   // Profile data state
   const [profileData, setProfileData] = useState({
     // Basic Information
@@ -76,7 +76,7 @@ export default function VendorProfile() {
       tiktok: "",
     },
   });
-  
+
   // Business types
   const businessTypes = [
     "Retail Store",
@@ -86,149 +86,195 @@ export default function VendorProfile() {
     "Grocery",
     "Beauty & Health",
     "Home & Garden",
-    "Other"
+    "Other",
   ];
-  
+
   // Counties in Kenya
   const counties = [
-    "Nairobi", "Mombasa", "Kisumu", "Nakuru", "Kiambu", 
-    "Uasin Gishu", "Meru", "Machakos", "Kakamega", "Nyeri",
-    "Kilifi", "Kisii", "Turkana", "Bungoma", "Kajiado",
-    "Garissa", "Kitui", "Kwale", "Laikipia", "Makueni",
-    "Murang'a", "Nandi", "Narok", "Nyamira", "Siaya",
-    "Taita Taveta", "Tana River", "Tharaka-Nithi", "Trans Nzoia", "Vihiga",
-    "Wajir", "West Pokot", "Baringo", "Bomet", "Busia",
-    "Elgeyo Marakwet", "Embu", "Homa Bay", "Isiolo", "Kericho",
-    "Kirinyaga", "Lamu", "Mandera", "Marsabit", "Migori",
-    "Samburu"
+    "Nairobi",
+    "Mombasa",
+    "Kisumu",
+    "Nakuru",
+    "Kiambu",
+    "Uasin Gishu",
+    "Meru",
+    "Machakos",
+    "Kakamega",
+    "Nyeri",
+    "Kilifi",
+    "Kisii",
+    "Turkana",
+    "Bungoma",
+    "Kajiado",
+    "Garissa",
+    "Kitui",
+    "Kwale",
+    "Laikipia",
+    "Makueni",
+    "Murang'a",
+    "Nandi",
+    "Narok",
+    "Nyamira",
+    "Siaya",
+    "Taita Taveta",
+    "Tana River",
+    "Tharaka-Nithi",
+    "Trans Nzoia",
+    "Vihiga",
+    "Wajir",
+    "West Pokot",
+    "Baringo",
+    "Bomet",
+    "Busia",
+    "Elgeyo Marakwet",
+    "Embu",
+    "Homa Bay",
+    "Isiolo",
+    "Kericho",
+    "Kirinyaga",
+    "Lamu",
+    "Mandera",
+    "Marsabit",
+    "Migori",
+    "Samburu",
   ];
-  
+
   // Handle input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setProfileData(prev => ({
+    setProfileData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
-  
+
   // Handle file uploads
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string, previewField: string) => {
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: string,
+    previewField: string
+  ) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const reader = new FileReader();
-      
+
       reader.onload = (event) => {
         if (event.target) {
-          setProfileData(prev => ({
+          setProfileData((prev) => ({
             ...prev,
             [field]: file,
-            [previewField]: event.target?.result as string
+            [previewField]: event.target?.result as string,
           }));
         }
       };
-      
+
       reader.readAsDataURL(file);
     }
   };
-  
+
   // Handle operating hours changes
-  const handleHoursChange = (day: string, field: 'open' | 'close' | 'closed', value: string | boolean) => {
-    setProfileData(prev => ({
+  const handleHoursChange = (
+    day: string,
+    field: "open" | "close" | "closed",
+    value: string | boolean
+  ) => {
+    setProfileData((prev) => ({
       ...prev,
       operatingHours: {
         ...prev.operatingHours,
         [day]: {
           ...prev.operatingHours[day as keyof typeof prev.operatingHours],
-          [field]: value
-        }
-      }
+          [field]: value,
+        },
+      },
     }));
   };
-  
+
   // Handle payment method changes
   const handlePaymentMethodChange = (method: string, checked: boolean) => {
-    setProfileData(prev => ({
+    setProfileData((prev) => ({
       ...prev,
       paymentMethods: {
         ...prev.paymentMethods,
-        [method]: checked
-      }
+        [method]: checked,
+      },
     }));
   };
-  
+
   // Handle social media changes
   const handleSocialMediaChange = (platform: string, value: string) => {
-    setProfileData(prev => ({
+    setProfileData((prev) => ({
       ...prev,
       socialMedia: {
         ...prev.socialMedia,
-        [platform]: value
-      }
+        [platform]: value,
+      },
     }));
   };
-  
+
   // Validate tab before changing
   const validateTab = (nextTab: string): boolean => {
     // Clear previous errors
     setTabErrors({});
-    
+
     // Define required fields for each tab
-    const tabValidation: {[key: string]: string[]} = {
-      basic: ['businessName', 'businessDescription', 'businessLogo'],
-      contact: ['email', 'phone', 'physicalAddress', 'city', 'county', 'postalCode'],
-      documents: ['kraPin', 'kraCertificate', 'businessPermit'],
-      details: ['businessType', 'yearEstablished', 'numberOfEmployees'],
-      payment: ['mpesaNumber']
+    const tabValidation: { [key: string]: string[] } = {
+      basic: ["businessName", "businessDescription", "businessLogo"],
+      contact: ["email", "phone", "physicalAddress", "city", "county", "postalCode"],
+      documents: ["kraPin", "kraCertificate", "businessPermit"],
+      details: ["businessType", "yearEstablished", "numberOfEmployees"],
+      payment: ["mpesaNumber"],
     };
-    
+
     // Check if required fields for current tab are filled
     const requiredFields = tabValidation[activeTab];
-    const errors: {[key: string]: string} = {};
-    
+    const errors: { [key: string]: string } = {};
+
     for (const field of requiredFields) {
-      if (field.includes('Logo') || field.includes('Certificate') || field.includes('Permit')) {
+      if (field.includes("Logo") || field.includes("Certificate") || field.includes("Permit")) {
         // Check file fields
         if (!profileData[field as keyof typeof profileData]) {
-          errors[field] = `${field.replace(/([A-Z])/g, ' $1').trim()} is required`;
+          errors[field] = `${field.replace(/([A-Z])/g, " $1").trim()} is required`;
         }
       } else {
         // Check text fields
         const value = profileData[field as keyof typeof profileData];
-        if (!value || (typeof value === 'string' && value.trim() === '')) {
-          errors[field] = `${field.replace(/([A-Z])/g, ' $1').trim()} is required`;
+        if (!value || (typeof value === "string" && value.trim() === "")) {
+          errors[field] = `${field.replace(/([A-Z])/g, " $1").trim()} is required`;
         }
       }
     }
-    
+
     if (Object.keys(errors).length > 0) {
       setTabErrors(errors);
       return false;
     }
-    
+
     return true;
   };
-  
+
   // Handle tab change with validation
   const handleTabChange = (nextTab: string) => {
     if (validateTab(nextTab)) {
       setActiveTab(nextTab);
     } else {
       // Scroll to the first error
-      const firstErrorField = document.querySelector('.error-field');
+      const firstErrorField = document.querySelector(".error-field");
       if (firstErrorField) {
-        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstErrorField.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }
   };
-  
+
   // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
     setSuccess("");
-    
+
     // Validate all fields before submission
     const completionStatus = checkProfileCompletion();
     if (!completionStatus.isComplete) {
@@ -236,189 +282,191 @@ export default function VendorProfile() {
       setIsLoading(false);
       return;
     }
-    
+
     try {
       // Create FormData object to handle file uploads
       const formData = new FormData();
-      
+
       // Append all text fields
       Object.entries(profileData).forEach(([key, value]) => {
-        if (key !== 'businessLogo' && key !== 'kraCertificate' && key !== 'businessPermit' && 
-            key !== 'businessLogoPreview' && key !== 'kraCertificatePreview' && key !== 'businessPermitPreview' &&
-            key !== 'operatingHours' && key !== 'paymentMethods' && key !== 'socialMedia') {
+        if (
+          key !== "businessLogo" &&
+          key !== "kraCertificate" &&
+          key !== "businessPermit" &&
+          key !== "businessLogoPreview" &&
+          key !== "kraCertificatePreview" &&
+          key !== "businessPermitPreview" &&
+          key !== "operatingHours" &&
+          key !== "paymentMethods" &&
+          key !== "socialMedia"
+        ) {
           formData.append(key, value as string);
         }
       });
-      
+
       // Append complex objects as JSON strings
-      formData.append('operatingHours', JSON.stringify(profileData.operatingHours));
-      formData.append('paymentMethods', JSON.stringify(profileData.paymentMethods));
-      formData.append('socialMedia', JSON.stringify(profileData.socialMedia));
-      
+      formData.append("operatingHours", JSON.stringify(profileData.operatingHours));
+      formData.append("paymentMethods", JSON.stringify(profileData.paymentMethods));
+      formData.append("socialMedia", JSON.stringify(profileData.socialMedia));
+
       // Append files if they exist
       if (profileData.businessLogo) {
-        formData.append('businessLogo', profileData.businessLogo);
+        formData.append("businessLogo", profileData.businessLogo);
       }
-      
+
       if (profileData.kraCertificate) {
-        formData.append('kraCertificate', profileData.kraCertificate);
+        formData.append("kraCertificate", profileData.kraCertificate);
       }
-      
+
       if (profileData.businessPermit) {
-        formData.append('businessPermit', profileData.businessPermit);
+        formData.append("businessPermit", profileData.businessPermit);
       }
-      
+
       // Send data to backend with Cloudinary integration
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vendor/profile`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
+        method: "POST",
+        credentials: "include",
+        body: formData,
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to update profile');
+        throw new Error(data.message || "Failed to update profile");
       }
-      
+
       // Profile updated successfully
-      setSuccess('Profile submitted successfully!');
+      setSuccess("Profile submitted successfully!");
       setProfileComplete(true);
-      
+
       // Redirect to confirmation page after 2 seconds
       setTimeout(() => {
         router.push(`/vendor/confirmation?businessName=${encodeURIComponent(profileData.businessName)}`);
       }, 2000);
-      
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === 'Failed to fetch') {
+        if (error.message === "Failed to fetch") {
           setError("Cannot connect to server. Please try again later.");
         } else {
           setError(error.message);
         }
       } else {
-        setError('An unexpected error occurred');
+        setError("An unexpected error occurred");
       }
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   // Check profile completion status
-  const checkProfileCompletion = () => {
+  const checkProfileCompletion = useCallback(() => {
     const requiredFields = [
       // Basic Information
-      'businessName',
-      'businessDescription',
-      
+      "businessName",
+      "businessDescription",
       // Contact Information
-      'email',
-      'phone',
-      'website',
-      
+      "email",
+      "phone",
+      "website",
       // Location Information
-      'physicalAddress',
-      'city',
-      'county',
-      'postalCode',
-      'googleMapsLink',
-      
+      "physicalAddress",
+      "city",
+      "county",
+      "postalCode",
+      "googleMapsLink",
       // Business Documents
-      'kraPin',
-      
+      "kraPin",
       // Business Details
-      'businessType',
-      'yearEstablished',
-      'numberOfEmployees',
-      
+      "businessType",
+      "yearEstablished",
+      "numberOfEmployees",
       // Payment Information
-      'mpesaNumber',
+      "mpesaNumber",
     ];
-    
+
     const requiredFiles = [
-      'businessLogo',
-      'kraCertificate',
-      'businessPermit'
+      "businessLogo",
+      "kraCertificate",
+      "businessPermit",
     ];
-    
-    const missingFields = requiredFields.filter(field => !profileData[field as keyof typeof profileData]);
-    const missingFiles = requiredFiles.filter(field => !profileData[field as keyof typeof profileData]);
-    
+
+    const missingFields = requiredFields.filter(
+      (field) => !profileData[field as keyof typeof profileData]
+    );
+    const missingFiles = requiredFiles.filter(
+      (field) => !profileData[field as keyof typeof profileData]
+    );
+
     return {
       isComplete: missingFields.length === 0 && missingFiles.length === 0,
       missingFields,
-      missingFiles
+      missingFiles,
     };
-  };
-  
+  }, [profileData]); // Dependency: profileData
+
   // Load profile data if it exists
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-          router.push('/auth/signin');
-          return;
-        }
-        
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vendor/profile`, {
-            credentials: 'include'
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            
-            // Update state with fetched data
-            setProfileData(prev => ({
-              ...prev,
-              ...data.profile,
-              businessLogoPreview: data.profile.businessLogoUrl || '',
-              kraCertificatePreview: data.profile.kraCertificateUrl || '',
-              businessPermitPreview: data.profile.businessPermitUrl || ''
-            }));
-            
-            // Check if profile is complete
-            setProfileComplete(checkProfileCompletion().isComplete);
-          } else {
-            // If profile doesn't exist yet, use empty profile
-            setProfileData(prev => ({
-              ...prev,
-              businessName: "",
-              email: "",
-              phone: "",
-            }));
-            
-            setProfileComplete(false);
-          }
-        } catch (error) {
-          console.error('Error fetching profile:', error);
-          
-          // Fallback to empty profile on error
-          setProfileData(prev => ({
-            ...prev,
-            businessName: "",
-            email: "",
-            phone: "",
-          }));
-          
-          setProfileComplete(false);
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
+  const fetchProfile = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        router.push("/auth/signin");
+        return;
       }
-    };
-    
-    fetchProfile();
-  }, [router]);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vendor/profile`, {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Update state with fetched data
+        setProfileData((prev) => ({
+          ...prev,
+          ...data.profile,
+          businessLogoPreview: data.profile.businessLogoUrl || "",
+          kraCertificatePreview: data.profile.kraCertificateUrl || "",
+          businessPermitPreview: data.profile.businessPermitUrl || "",
+        }));
+
+        // Check if profile is complete
+        setProfileComplete(checkProfileCompletion().isComplete);
+      } else {
+        // If profile doesn't exist yet, use empty profile
+        setProfileData((prev) => ({
+          ...prev,
+          businessName: "",
+          email: "",
+          phone: "",
+        }));
+
+        setProfileComplete(false);
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+
+      // Fallback to empty profile on error
+      setProfileData((prev) => ({
+        ...prev,
+        businessName: "",
+        email: "",
+        phone: "",
+      }));
+
+      setProfileComplete(false);
+    }
+  }, [router, checkProfileCompletion]); // Dependencies: router, checkProfileCompletion
 
   useEffect(() => {
-  checkProfileCompletion();
-}, [checkProfileCompletion]); // ✅ Include it here
+    fetchProfile();
+  }, [fetchProfile]); // Depend on fetchProfile
 
-  
+// Check profile completion when profileData changes
+useEffect(() => {
+  const { isComplete } = checkProfileCompletion();
+  setProfileComplete(isComplete);
+}, [checkProfileCompletion]);
   const completionStatus = checkProfileCompletion();
   
   return (
