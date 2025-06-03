@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { 
@@ -148,7 +148,8 @@ export default function AdminSettingsPage() {
   const [promoteUserRole, setPromoteUserRole] = useState('');
   
   // Available permissions for admin roles
-  const availablePermissions = [
+  const availablePermissions = useMemo(
+  () => [
     { value: 'view_dashboard', label: 'View Dashboard' },
     { value: 'manage_users', label: 'Manage Users' },
     { value: 'manage_merchants', label: 'Manage Merchants' },
@@ -161,17 +162,15 @@ export default function AdminSettingsPage() {
     { value: 'manage_subscriptions', label: 'Manage Subscriptions' },
     { value: 'view_audit_logs', label: 'View Audit Logs' },
     { value: 'manage_features', label: 'Manage Features' },
-  ];
+  ],
+  [] // Empty dependency array since the array is static
+);
   
   // State for saving
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
   
   // Fetch settings
-  useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
-  
   const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -248,6 +247,10 @@ export default function AdminSettingsPage() {
       setIsLoading(false);
     }
   }, [availablePermissions]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
   
   // Handler for adding a new admin role
   const handleAddNewRole = () => {

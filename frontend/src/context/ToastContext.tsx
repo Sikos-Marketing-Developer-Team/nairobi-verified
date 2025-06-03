@@ -37,6 +37,10 @@ interface ToastProviderProps {
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+  const removeToast = useCallback((id: string) => {
+    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id));
+  }, [setToasts]); // Added setToasts to fix the warning
+
   const addToast = useCallback((type: ToastType, message: string, title?: string, duration = 5000) => {
     const id = uuidv4();
     const newToast: ToastMessage = {
@@ -46,20 +50,16 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
       message,
       duration,
     };
-    
+
     setToasts((prevToasts) => [...prevToasts, newToast]);
-    
+
     // Auto-remove toast after duration
     if (duration !== Infinity) {
       setTimeout(() => {
         removeToast(id);
       }, duration);
     }
-  }, []);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id));
-  }, []);
+  }, [removeToast, setToasts]); // Added removeToast and setToasts
 
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>

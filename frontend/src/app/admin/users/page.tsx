@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiService } from "@/lib/api";
@@ -48,8 +48,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { 
   AlertCircle, 
-  CheckCircle, 
-  ChevronDown, 
   Edit, 
   Eye, 
   Loader2, 
@@ -57,7 +55,6 @@ import {
   Search, 
   Trash, 
   UserPlus, 
-  XCircle 
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -115,11 +112,47 @@ export default function AdminUsersPage() {
     isVerified: false,
   });
   
-  // Fetch users
+interface UserParams {
+  page: number;
+  limit: number;
+  role?: string;
+  isActive?: boolean;
+  isVerified?: boolean;
+}
+
+const fetchUsers = useCallback(async () => {
+  try {
+    setIsLoading(true);
+    setError(null);
+
+    const params: UserParams = {
+      page: currentPage,
+      limit: 10,
+    };
+
+    if (roleFilter) params.role = roleFilter;
+    if (statusFilter === 'active') params.isActive = true;
+    if (statusFilter === 'inactive') params.isActive = false;
+    if (statusFilter === 'verified') params.isVerified = true;
+    if (statusFilter === 'unverified') params.isVerified = false;
+
+    const response = await apiService.admin.getUsers(params);
+
+    setUsers(response.data.users);
+    setFilteredUsers(response.data.users);
+    setTotalPages(response.data.totalPages);
+    setTotalUsers(response.data.total);
+  } catch (err: any) {
+    console.error('Error fetching users:', err);
+    setError(err.message || 'Failed to load users. Please try again later.');
+  } finally {
+    setIsLoading(false);
+  }
+}, [currentPage, roleFilter, statusFilter]);
+
   useEffect(() => {
     fetchUsers();
-  }, [currentPage, roleFilter, statusFilter]);
-  
+  }, [currentPage, roleFilter, statusFilter, fetchUsers]);
   // Apply search filter
   useEffect(() => {
     if (searchTerm.trim() === "") {
@@ -134,37 +167,6 @@ export default function AdminUsersPage() {
       setFilteredUsers(filtered);
     }
   }, [searchTerm, users]);
-  
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const params: any = {
-        page: currentPage,
-        limit: 10,
-      };
-      
-      if (roleFilter) params.role = roleFilter;
-      if (statusFilter === "active") params.isActive = true;
-      if (statusFilter === "inactive") params.isActive = false;
-      if (statusFilter === "verified") params.isVerified = true;
-      if (statusFilter === "unverified") params.isVerified = false;
-      
-      const response = await apiService.admin.getUsers(params);
-      
-      setUsers(response.data.users);
-      setFilteredUsers(response.data.users);
-      setTotalPages(response.data.totalPages);
-      setTotalUsers(response.data.total);
-    } catch (err: any) {
-      console.error("Error fetching users:", err);
-      setError(err.message || "Failed to load users. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   const fetchUserActivityLogs = async (userId: string) => {
     try {
       // This endpoint needs to be implemented in the backend

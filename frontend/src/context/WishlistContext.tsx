@@ -1,8 +1,19 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { apiService } from '@/lib/api';
-import { Wishlist, WishlistItem } from '@/types/api';
+
+export interface WishlistItem {
+  productId: string;
+  // Add other fields as needed
+}
+
+export interface Wishlist {
+  id: string;
+  items: WishlistItem[];
+  // Add other fields as needed
+}
+
 import { useAuth } from './AuthContext';
 
 interface WishlistContextType {
@@ -24,19 +35,12 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
 
-  // Fetch wishlist when user is authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      refreshWishlist();
-    }
-  }, [isAuthenticated]);
-
-  const refreshWishlist = async () => {
+  const refreshWishlist = useCallback(async () => {
     if (!isAuthenticated) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await apiService.wishlist.getItems();
       setWishlist(response.data.data);
@@ -47,14 +51,21 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated]); // Dependencies: isAuthenticated
 
-  const addToWishlist = async (productId: string) => {
+  // Fetch wishlist when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshWishlist();
+    }
+  }, [isAuthenticated, refreshWishlist]); // Added refreshWishlist
+
+  const addToWishlist = useCallback(async (productId: string) => {
     if (!isAuthenticated) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       await apiService.wishlist.addItem(productId);
       await refreshWishlist();
@@ -65,14 +76,14 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, refreshWishlist]); // Added refreshWishlist
 
-  const removeFromWishlist = async (productId: string) => {
+  const removeFromWishlist = useCallback(async (productId: string) => {
     if (!isAuthenticated) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       await apiService.wishlist.removeItem(productId);
       await refreshWishlist();
@@ -83,14 +94,14 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, refreshWishlist]); // Added refreshWishlist
 
-  const clearWishlist = async () => {
+  const clearWishlist = useCallback(async () => {
     if (!isAuthenticated) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       await apiService.wishlist.clear();
       setWishlist(null);
@@ -101,12 +112,12 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated]); // Dependencies: isAuthenticated
 
-  const isInWishlist = (productId: string): boolean => {
+  const isInWishlist = useCallback((productId: string): boolean => {
     if (!wishlist || !wishlist.items) return false;
     return wishlist.items.some((item: WishlistItem) => item.productId === productId);
-  };
+  }, [wishlist]); // Dependencies: wishlist
 
   return (
     <WishlistContext.Provider
@@ -128,11 +139,11 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
 
 export const useWishlist = () => {
   const context = useContext(WishlistContext);
-  
+
   if (context === undefined) {
     throw new Error('useWishlist must be used within a WishlistProvider');
   }
-  
+
   return context;
 };
 
