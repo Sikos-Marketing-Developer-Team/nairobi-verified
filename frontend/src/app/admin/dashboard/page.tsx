@@ -20,16 +20,18 @@ import { motion } from "framer-motion";
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 interface Merchant {
-  id: string;
+  _id: string;
+  id?: string;
+  fullName: string;
+  email: string;
+  phone?: string;
   companyName: string;
-  companyEmail: string;
-  companyPhone: string;
-  location: string;
-  isVerified: boolean;
-  documents: {
-    businessRegistration: string;
-    taxCertificate: string;
-    idDocument: string;
+  location?: string;
+  isVerified?: boolean;
+  documents?: {
+    businessRegistration?: string;
+    taxCertificate?: string;
+    idDocument?: string;
   };
   createdAt: string;
 }
@@ -179,7 +181,7 @@ export default function AdminDashboard() {
       setSuccess(`Merchant ${action === "verify" ? "verified" : "rejected"} successfully`);
       
       // Update local state to reflect the change
-      setMerchants(prev => prev.filter(merchant => merchant.id !== merchantId));
+      setMerchants(prev => prev.filter(merchant => (merchant._id || merchant.id) !== merchantId));
       
       // Update stats
       if (stats) {
@@ -190,7 +192,7 @@ export default function AdminDashboard() {
       }
       
       // Add notification
-      const merchant = merchants.find(m => m.id === merchantId);
+      const merchant = merchants.find(m => (m._id || m.id) === merchantId);
       const notification = {
         id: Date.now().toString(),
         message: `Merchant ${merchant?.companyName} ${action === "verify" ? "verified" : "rejected"}`,
@@ -634,11 +636,11 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">Email</p>
-                  <p className="text-base text-gray-900">{selectedMerchant.companyEmail}</p>
+                  <p className="text-base text-gray-900">{selectedMerchant.email}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">Phone</p>
-                  <p className="text-base text-gray-900">{selectedMerchant.companyPhone}</p>
+                  <p className="text-base text-gray-900">{selectedMerchant.phone || 'N/A'}</p>
                 </div>
               </div>
               

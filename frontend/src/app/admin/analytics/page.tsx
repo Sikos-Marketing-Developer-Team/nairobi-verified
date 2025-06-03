@@ -139,7 +139,7 @@ export default function AdminAnalyticsPage() {
   // Fetch analytics data
   useEffect(() => {
     fetchAnalyticsData();
-  }, [timeRange]);
+  }, [timeRange, fetchAnalyticsData]);
   
  const fetchAnalyticsData = useCallback(async () => {
   try {

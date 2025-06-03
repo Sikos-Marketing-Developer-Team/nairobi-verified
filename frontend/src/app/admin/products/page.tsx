@@ -119,7 +119,7 @@ export default function AdminProductsPage() {
     fetchProducts();
     fetchCategories();
     fetchMerchants();
-  }, [currentPage, categoryFilter, statusFilter, merchantFilter]);
+  }, [currentPage, categoryFilter, statusFilter, merchantFilter, fetchProducts, fetchCategories, fetchMerchants]);
   
   // Apply search filter
   useEffect(() => {
@@ -136,7 +136,7 @@ export default function AdminProductsPage() {
     }
   }, [searchTerm, products]);
   
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -171,25 +171,25 @@ export default function AdminProductsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, categoryFilter, statusFilter, merchantFilter]);
   
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const response = await apiService.categories.getAll();
       setCategories(response.data.categories);
     } catch (err) {
       console.error("Error fetching categories:", err);
     }
-  };
+  }, []);
   
-  const fetchMerchants = async () => {
+  const fetchMerchants = useCallback(async () => {
     try {
       const response = await apiService.merchants.getAll();
       setMerchants(response.data.merchants);
     } catch (err) {
       console.error("Error fetching merchants:", err);
     }
-  };
+  }, []);
   
   const handleViewProductDetails = (product: Product) => {
     setSelectedProduct(product);

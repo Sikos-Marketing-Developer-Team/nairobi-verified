@@ -170,9 +170,9 @@ export default function AdminSettingsPage() {
   // Fetch settings
   useEffect(() => {
     fetchSettings();
-  }, [availablePermissions]);
+  }, [fetchSettings]);
   
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -247,7 +247,7 @@ export default function AdminSettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [availablePermissions]);
   
   // Handler for adding a new admin role
   const handleAddNewRole = () => {
