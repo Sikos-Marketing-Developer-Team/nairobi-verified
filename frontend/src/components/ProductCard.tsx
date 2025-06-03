@@ -13,12 +13,19 @@ import OptimizedImage from './OptimizedImage';
 interface ProductCardProps {
   product: Product;
   viewMode?: 'grid' | 'list';
+  onAddToCart?: (productId: string) => void;
+  onAddToWishlist?: (productId: string) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = 'grid' }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  viewMode = 'grid',
+  onAddToCart,
+  onAddToWishlist
+}) => {
   const { id, name, price, discountPrice, images, rating, reviewCount, merchantId } = product;
   const { addToCart, isLoading: isCartLoading } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist, isLoading: isWishlistLoading } = useWishlist();
+  const { addToWishlist: addToWishlistContext, removeFromWishlist, isInWishlist, isLoading: isWishlistLoading } = useWishlist();
   const { isAuthenticated } = useAuth();
   const router = useRouter();
   
@@ -37,7 +44,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = 'grid' })
     }
     
     try {
-      await addToCart(id, 1);
+      if (onAddToCart) {
+        onAddToCart(id || product._id);
+      } else {
+        await addToCart(id || product._id, 1);
+      }
     } catch (error) {
       console.error('Failed to add to cart:', error);
     }
@@ -50,17 +61,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = 'grid' })
     }
     
     try {
-      if (isInWishlist(id)) {
-        await removeFromWishlist(id);
+      if (onAddToWishlist) {
+        onAddToWishlist(id || product._id);
+      } else if (isInWishlist(id || product._id)) {
+        await removeFromWishlist(id || product._id);
       } else {
-        await addToWishlist(id);
+        await addToWishlistContext(id || product._id);
       }
     } catch (error) {
       console.error('Failed to update wishlist:', error);
     }
   };
   
-  const isProductInWishlist = isInWishlist(id);
+  const isProductInWishlist = isInWishlist(id || product._id);
   
   if (viewMode === 'list') {
     return (

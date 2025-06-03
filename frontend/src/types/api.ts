@@ -36,3 +36,20 @@ export interface AuthResponse {
   user: User;
   message: string;
 }
+
+export interface Product {
+  _id: string;
+  id?: string;
+  name: string;
+  price: number;
+  discountPrice?: number;
+  images: string[];
+  category: string;
+  merchantId: string;
+  rating: number;
+  reviewCount: number;
+  isNew?: boolean;
+  isFeatured?: boolean;
+  isFlashSale?: boolean;
+  description?: string;
+}

@@ -84,8 +84,6 @@ const shops = [
     phone: "+254 712 345 678",
     email: "contact@electronicshub.com",
     coordinates: { lat: -1.2921, lng: 36.8219 },
-    image: "/images/shops/electronics-hub.jpg",
-
     image: '/images/shops/electronics-hub.svg'
  // (Update category and deal images to SVG format; add new product SVGs for various items including water bottle, chair, charger, coffee beans, handbag, laptop case, phone case, phone stand, sneakers, sunglasses, t-shirt, and women's dress.)
   },
@@ -99,8 +97,6 @@ const shops = [
     phone: "+254 723 456 789",
     email: "info@fashionstore.com",
     coordinates: { lat: -1.2873, lng: 36.7822 },
-
-    image: "/images/shops/fashion-store.jpg",
 
     image: '/images/shops/fashion-store.svg'
 //(Update category and deal images to SVG format; add new product SVGs for various items including water bottle, chair, charger, coffee beans, handbag, laptop case, phone case, phone stand, sneakers, sunglasses, t-shirt, and women's dress.)
