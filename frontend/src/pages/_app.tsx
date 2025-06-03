@@ -1,8 +1,8 @@
-import '@/styles/globals.css'
+import '../styles/globals.css'
 import type { AppProps } from 'next/app'
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
-import preloadCriticalImages from '@/utils/preloadImages'
+import preloadCriticalImages from '../utils/preloadImages'
 
 // Performance monitoring function
 const reportWebVitals = ({ id, name, label, value }: any) => {

@@ -123,12 +123,12 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/deals" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
+                <Link href="/hot-deals" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
                   <span className="mr-2">›</span> Hot Deals
                 </Link>
               </li>
               <li>
-                <Link href="/vendors" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
+                <Link href="/shops" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
                   <span className="mr-2">›</span> Find Vendors
                 </Link>
               </li>
@@ -158,32 +158,32 @@ const Footer = () => {
             </h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/categories/electronics" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
+                <Link href="/search?category=electronics" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
                   <span className="mr-2">›</span> Electronics
                 </Link>
               </li>
               <li>
-                <Link href="/categories/fashion" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
+                <Link href="/search?category=fashion" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
                   <span className="mr-2">›</span> Fashion
                 </Link>
               </li>
               <li>
-                <Link href="/categories/home-kitchen" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
+                <Link href="/search?category=home-kitchen" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
                   <span className="mr-2">›</span> Home & Kitchen
                 </Link>
               </li>
               <li>
-                <Link href="/categories/beauty" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
+                <Link href="/search?category=beauty" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
                   <span className="mr-2">›</span> Beauty
                 </Link>
               </li>
               <li>
-                <Link href="/categories/health" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
+                <Link href="/search?category=health" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
                   <span className="mr-2">›</span> Health & Wellness
                 </Link>
               </li>
               <li>
-                <Link href="/categories/sports" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
+                <Link href="/search?category=sports" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center">
                   <span className="mr-2">›</span> Sports & Outdoors
                 </Link>
               </li>

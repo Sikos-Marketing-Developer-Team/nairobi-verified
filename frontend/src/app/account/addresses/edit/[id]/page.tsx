@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
+import Navbar from '../../../../../components/Navbar';
 import { 
   FiArrowLeft, FiMapPin, FiUser, FiPhone, FiHome, FiMail, FiCheck, FiAlertCircle
 } from 'react-icons/fi';
