@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import MainLayout from "../components/MainLayout";
-
+// 
 export default function NotFound() {
   return (
     <MainLayout>
