@@ -92,9 +92,10 @@ export default function Home() {
                   <option value="karen">Karen</option>
                 </select>
               </div>
-              <button className="w-full bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 transition-all duration-300 font-medium shadow-md hover:shadow-lg">
+              <Link href="/search" className="w-full bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 transition-all duration-300 font-medium shadow-md hover:shadow-lg flex items-center justify-center">
+                <FaSearch className="mr-2" />
                 Search Now
-              </button>
+              </Link>
             </div>
             
             <div className="absolute -bottom-4 -right-4 bg-orange-100 p-4 rounded-lg shadow-md hidden md:block transform hover:scale-105 transition-transform duration-300">
@@ -168,7 +169,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-10">
             <h2 className="text-3xl font-bold text-gray-900">Trusted Vendors</h2>
-            <Link href="/vendors" className="text-orange-600 hover:text-orange-700 font-medium flex items-center">
+            <Link href="/shops" className="text-orange-600 hover:text-orange-700 font-medium flex items-center">
               View All Vendors
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
