@@ -131,97 +131,135 @@ export default function Dashboard() {
           return;
         }
 
-        // Simulate API call with mock data
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Use real API calls
+        const { apiService } = await import('@/lib/api');
         
-        // Set user data
+        // Get user profile data
+        const userProfileResponse = await apiService.user.getProfile();
+        const userProfile = userProfileResponse.data || {};
+        
+        // Get user orders
+        const ordersResponse = await apiService.user.getOrders();
+        const orders = ordersResponse.data || [];
+        
+        // Get featured merchants
+        const merchantsResponse = await apiService.merchants.getFeatured();
+        const merchants = merchantsResponse.data || [];
+        
+        // Get wishlist items
+        const wishlistResponse = await apiService.wishlist.getItems();
+        const wishlistItems = wishlistResponse.data || [];
+        
+        // Set user data with real API data
         setUserData({
-          fullName: "John Doe",
-          email: "john.doe@example.com",
-          phone: "+254 712 345 678",
-          address: "123 Kimathi Street, Nairobi CBD",
-          profileImage: "/images/avatars/user1.jpg",
-          recentOrders: [
-            { id: "ORD-001", date: "2023-06-15", status: "Delivered", total: 3500, items: 2 },
-            { id: "ORD-002", date: "2023-06-10", status: "Processing", total: 1200, items: 1 },
-            { id: "ORD-003", date: "2023-06-05", status: "Delivered", total: 2800, items: 3 },
-          ],
-          savedVendors: [
-            { id: 1, name: "Electronics Hub", category: "Electronics", image: "/images/shops/tech-hub.jpg", rating: 4.8, location: "Moi Avenue" },
-            { id: 2, name: "Fashion World", category: "Fashion", image: "/images/shops/fashion-trends.jpg", rating: 4.6, location: "Kimathi Street" },
-            { id: 3, name: "Fresh Groceries", category: "Grocery", image: "/images/shops/gourmet-delights.jpg", rating: 4.7, location: "Biashara Street" },
-          ],
-          wishlist: [
-            { id: 101, name: "Wireless Headphones", price: 4999, discountPrice: 3999, image: "/images/products/headphones.jpg", category: "Electronics", vendor: "Electronics Hub", rating: 4.7 },
-            { id: 102, name: "Summer Dress", price: 2999, image: "/images/products/womens-dress.jpg", category: "Fashion", vendor: "Fashion World", rating: 4.5 },
-          ],
+          fullName: userProfile.fullName || userProfile.name || "User",
+          email: userProfile.email || "",
+          phone: userProfile.phone || "",
+          address: userProfile.address || "",
+          profileImage: userProfile.profileImage || "/images/avatars/default.jpg",
+          recentOrders: orders.slice(0, 5).map((order: any) => ({
+            id: order.id || order._id || order.orderId,
+            date: order.createdAt || order.orderDate || new Date().toISOString().split('T')[0],
+            status: order.status || "Processing",
+            total: order.total || 0,
+            items: order.items?.length || 0
+          })),
+          savedVendors: merchants.slice(0, 3).map((merchant: any) => ({
+            id: merchant.id || merchant._id,
+            name: merchant.companyName || merchant.name,
+            category: merchant.category || "General",
+            image: merchant.logo || "/images/shops/placeholder.jpg",
+            rating: merchant.rating || 4.5,
+            location: merchant.location || "Nairobi"
+          })),
+          wishlist: wishlistItems.map((item: any) => ({
+            id: item.id || item._id || item.productId,
+            name: item.name || "Product",
+            price: item.price || 0,
+            discountPrice: item.discountPrice,
+            image: item.image || item.images?.[0]?.url || "/images/products/placeholder.jpg",
+            category: item.category || "General",
+            vendor: item.merchant?.companyName || "Vendor",
+            rating: item.rating || 4.5
+          })),
           notifications: [
-            { id: 1, message: "Your order #ORD-001 has been delivered", date: "2023-06-15", isRead: false },
-            { id: 2, message: "Flash sale on Electronics starting tomorrow!", date: "2023-06-14", isRead: true },
-            { id: 3, message: "New shops added near your location", date: "2023-06-12", isRead: true },
+            { id: 1, message: "Welcome to Nairobi Verified!", date: new Date().toISOString().split('T')[0], isRead: false }
           ],
         });
         
-        // Set marketplace data
+        // Get featured products
+        const featuredProductsResponse = await apiService.products.getFeatured();
+        const featuredProducts = featuredProductsResponse.data || [];
+        
+        // Get categories
+        const categoriesResponse = await apiService.categories.getAll();
+        const categories = categoriesResponse.data || [];
+        
+        // Set marketplace data with real API data
         setMarketplaceData({
-          featuredProducts: [
-            { id: 101, name: "Wireless Headphones", price: 4999, discountPrice: 3999, image: "/images/products/headphones.jpg", category: "Electronics", vendor: "Electronics Hub", rating: 4.7, isFeatured: true },
-            { id: 102, name: "Summer Dress", price: 2999, image: "/images/products/womens-dress.jpg", category: "Fashion", vendor: "Fashion World", rating: 4.5, isFeatured: true },
-            { id: 103, name: "Smartphone Pro", price: 89999, discountPrice: 79999, image: "/images/products/smartphone.jpg", category: "Electronics", vendor: "Electronics Hub", rating: 4.9, isFeatured: true, isNew: true },
-            { id: 104, name: "Leather Handbag", price: 5999, image: "/images/products/handbag.jpg", category: "Fashion", vendor: "Fashion World", rating: 4.8, isFeatured: true },
-          ],
-          popularCategories: [
-            { id: 1, name: "Electronics", icon: "electronics", count: 120 },
-            { id: 2, name: "Fashion", icon: "fashion", count: 85 },
-            { id: 3, name: "Home & Kitchen", icon: "home", count: 64 },
-            { id: 4, name: "Beauty", icon: "beauty", count: 42 },
-            { id: 5, name: "Sports", icon: "sports", count: 38 },
-            { id: 6, name: "Books", icon: "books", count: 29 },
-          ],
-          flashSales: [
-            { 
-              id: 1, 
-              product: { 
-                id: 105, 
-                name: "Smartwatch Series 5", 
-                price: 34999, 
-                discountPrice: 24999, 
-                image: "/images/products/smartwatch.jpg", 
-                category: "Electronics", 
-                vendor: "Electronics Hub", 
-                rating: 4.7,
+          featuredProducts: featuredProducts.map((product: any) => ({
+            id: product.id || product._id,
+            name: product.name || "Product",
+            price: product.price || 0,
+            discountPrice: product.discountPrice,
+            image: product.images?.[0]?.url || "/images/products/placeholder.jpg",
+            category: product.category || "General",
+            vendor: product.merchant?.companyName || "Vendor",
+            rating: product.ratings?.average || 4.5,
+            isFeatured: true,
+            isNew: new Date(product.createdAt || Date.now()).getTime() > Date.now() - (7 * 24 * 60 * 60 * 1000) // 7 days
+          })),
+          popularCategories: categories.map((category: any, index: number) => ({
+            id: category.id || category._id || index + 1,
+            name: category.name || "Category",
+            icon: category.icon || category.name.toLowerCase() || "category",
+            count: category.productCount || Math.floor(Math.random() * 100) + 20
+          })),
+          flashSales: featuredProducts.slice(0, 2).map((product: any, index: number) => {
+            // Calculate discount percentage
+            const price = product.price || 0;
+            const discountPrice = product.discountPrice || 0;
+            const discount = price > 0 ? Math.round(((price - discountPrice) / price) * 100) : 0;
+            
+            // Generate a future end date
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + Math.floor(Math.random() * 5) + 1); // 1-5 days from now
+            
+            return {
+              id: index + 1,
+              product: {
+                id: product.id || product._id,
+                name: product.name || "Product",
+                price: product.price || 0,
+                discountPrice: product.discountPrice,
+                image: product.images?.[0]?.url || "/images/products/placeholder.jpg",
+                category: product.category || "General",
+                vendor: product.merchant?.companyName || "Vendor",
+                rating: product.ratings?.average || 4.5,
                 isFlashSale: true
-              }, 
-              discount: 30, 
-              endsAt: "2023-06-20" 
-            },
-            { 
-              id: 2, 
-              product: { 
-                id: 106, 
-                name: "Men's Sneakers", 
-                price: 4999, 
-                discountPrice: 2999, 
-                image: "/images/products/sneakers.jpg", 
-                category: "Fashion", 
-                vendor: "Fashion World", 
-                rating: 4.6,
-                isFlashSale: true
-              }, 
-              discount: 40, 
-              endsAt: "2023-06-20" 
-            },
-          ],
-          recommendedShops: [
-            { id: 1, name: "Electronics Hub", category: "Electronics", image: "/images/shops/tech-hub.jpg", rating: 4.8, location: "Moi Avenue" },
-            { id: 2, name: "Fashion World", category: "Fashion", image: "/images/shops/fashion-trends.jpg", rating: 4.6, location: "Kimathi Street" },
-            { id: 3, name: "Home Essentials", category: "Home & Kitchen", image: "/images/shops/home-essentials.jpg", rating: 4.5, location: "Biashara Street" },
-            { id: 4, name: "Beauty Spot", category: "Beauty", image: "/images/shops/beauty-spot.jpg", rating: 4.7, location: "Kenyatta Avenue" },
-          ],
-          recentlyViewed: [
-            { id: 107, name: "Bluetooth Speaker", price: 12999, discountPrice: 9999, image: "/images/products/speaker.jpg", category: "Electronics", vendor: "Electronics Hub", rating: 4.6 },
-            { id: 108, name: "Coffee Maker", price: 8999, image: "/images/products/coffee-maker.jpg", category: "Home & Kitchen", vendor: "Home Essentials", rating: 4.4 },
-          ],
+              },
+              discount: discount || 20,
+              endsAt: endDate.toISOString().split('T')[0]
+            };
+          }),
+          recommendedShops: merchants.map((merchant: any) => ({
+            id: merchant.id || merchant._id,
+            name: merchant.companyName || merchant.name,
+            category: merchant.category || "General",
+            image: merchant.logo || "/images/shops/placeholder.jpg",
+            rating: merchant.rating || 4.5,
+            location: merchant.location || "Nairobi"
+          })),
+          recentlyViewed: featuredProducts.slice(-2).map((product: any) => ({
+            id: product.id || product._id,
+            name: product.name || "Product",
+            price: product.price || 0,
+            discountPrice: product.discountPrice,
+            image: product.images?.[0]?.url || "/images/products/placeholder.jpg",
+            category: product.category || "General",
+            vendor: product.merchant?.companyName || "Vendor",
+            rating: product.ratings?.average || 4.5
+          })),
         });
         
         setIsLoading(false);

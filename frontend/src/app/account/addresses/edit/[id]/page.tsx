@@ -34,7 +34,7 @@ const mockAddresses = [
 
 export default function EditAddressPage() {
   const params = useParams();
-  const addressId = params.id as string;
+  const addressId = params?.id as string || '';
   const router = useRouter();
   
   const [loading, setLoading] = useState(true);

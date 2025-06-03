@@ -119,19 +119,38 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('featured');
   const [priceRange, setPriceRange] = useState([0, 2000]);
-  const [products, setProducts] = useState(mockProducts);
+  const [products, setProducts] = useState<any[]>([]);
   const [category, setCategory] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you would fetch products based on the category slug
-    // For now, we'll just filter our mock data
-    const categoryData = categories[params.slug as keyof typeof categories];
-    if (categoryData) {
-      setCategory(categoryData);
-      // Filter products by category
-      const filteredProducts = mockProducts.filter(product => product.category === params.slug);
-      setProducts(filteredProducts);
-    }
+    const fetchCategoryAndProducts = async () => {
+      try {
+        setLoading(true);
+        
+        // Use real API calls
+        const { apiService } = await import('@/lib/api');
+        
+        // Get category data
+        const categoryResponse = await apiService.categories.getById(params.slug);
+        if (categoryResponse.data) {
+          setCategory(categoryResponse.data);
+        }
+        
+        // Get category products
+        const productsResponse = await apiService.products.getByCategory(params.slug);
+        if (productsResponse.data) {
+          setProducts(productsResponse.data);
+        }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching category data:', err);
+        setLoading(false);
+      }
+    };
+    
+    fetchCategoryAndProducts();
   }, [params.slug]);
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

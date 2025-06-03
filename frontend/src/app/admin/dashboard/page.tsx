@@ -21,17 +21,19 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 interface Merchant {
   _id: string;
-  id?: string;
+  id: string;
   fullName: string;
   email: string;
-  phone?: string;
+  phone: string;
   companyName: string;
-  location?: string;
-  isVerified?: boolean;
-  documents?: {
-    businessRegistration?: string;
-    taxCertificate?: string;
-    idDocument?: string;
+  companyEmail: string;
+  companyPhone: string;
+  location: string;
+  isVerified: boolean;
+  documents: {
+    businessRegistration: string;
+    taxCertificate: string;
+    idDocument: string;
   };
   createdAt: string;
 }
@@ -66,7 +68,29 @@ export default function AdminDashboard() {
   const fetchMerchants = useCallback(async () => {
     try {
       const response = await apiService.admin.getPendingVerifications();
-      setMerchants(response.data.merchants || []);
+      const merchantsData = response.data.merchants || [];
+      
+      // Map the merchant data to match the required interface
+      const formattedMerchants = merchantsData.map((merchant: any) => ({
+        _id: merchant._id || merchant.id || '',
+        id: merchant._id || merchant.id || '',
+        fullName: merchant.fullName || merchant.name || '',
+        email: merchant.email || '',
+        phone: merchant.phone || '',
+        companyName: merchant.companyName || merchant.businessName || '',
+        companyEmail: merchant.companyEmail || merchant.email || '',
+        companyPhone: merchant.companyPhone || merchant.phone || '',
+        location: merchant.location || merchant.address || '',
+        isVerified: merchant.isVerified || false,
+        documents: {
+          businessRegistration: merchant.documents?.businessRegistration || '',
+          taxCertificate: merchant.documents?.taxCertificate || '',
+          idDocument: merchant.documents?.idDocument || ''
+        },
+        createdAt: merchant.createdAt || new Date().toISOString()
+      }));
+      
+      setMerchants(formattedMerchants);
     } catch (error) {
       console.error("Error fetching merchants:", error);
       setError("Failed to load merchants. Please try again later.");

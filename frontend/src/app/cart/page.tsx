@@ -37,7 +37,7 @@ const mockCartItems = [
 ];
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState(mockCartItems);
+  const [cartItems, setCartItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -52,17 +52,19 @@ export default function CartPage() {
     const fetchCart = async () => {
       try {
         setLoading(true);
-        // Replace with actual API call when backend is ready
-        // const response = await fetch('/api/cart');
-        // const data = await response.json();
-        // setCartItems(data.cart.items);
         
-        // Using mock data for now
-        setTimeout(() => {
-          setCartItems(mockCartItems);
-          setLoading(false);
-        }, 500);
+        // Use real API calls
+        const { apiService } = await import('@/lib/api');
+        
+        // Get cart items
+        const cartResponse = await apiService.cart.getItems();
+        if (cartResponse.data) {
+          setCartItems(cartResponse.data);
+        }
+        
+        setLoading(false);
       } catch (err) {
+        console.error('Error fetching cart data:', err);
         setError('Failed to load cart');
         setLoading(false);
       }

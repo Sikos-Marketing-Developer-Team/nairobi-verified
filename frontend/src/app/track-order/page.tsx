@@ -72,30 +72,35 @@ export default function TrackOrderPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     setOrder(null);
 
-    // Simulate API call delay
-    setTimeout(() => {
-      if (orderNumber.trim() === '') {
-        setError('Please enter an order number');
-        setIsLoading(false);
-        return;
-      }
+    if (orderNumber.trim() === '') {
+      setError('Please enter an order number');
+      setIsLoading(false);
+      return;
+    }
 
-      const foundOrder = mockOrders[orderNumber as keyof typeof mockOrders];
+    try {
+      // Use real API calls
+      const { apiService } = await import('@/lib/api');
       
-      if (foundOrder) {
-        setOrder(foundOrder);
+      // Get order data
+      const orderResponse = await apiService.user.getOrderById(orderNumber);
+      if (orderResponse.data) {
+        setOrder(orderResponse.data);
       } else {
         setError('Order not found. Please check the order number and try again.');
       }
-      
+    } catch (err) {
+      console.error('Error fetching order data:', err);
+      setError('Failed to retrieve order information. Please try again later.');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const getStatusColor = (status: string) => {

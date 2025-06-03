@@ -290,12 +290,44 @@ export default function ShopPage({ params }: { params: { slug: string } }) {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    // In a real app, you would fetch the shop data from an API
-    // For now, we'll use our mock data
-    const shopData = shopsData[params.slug as keyof typeof shopsData];
-    if (shopData) {
-      setShop(shopData);
-    }
+    const fetchShopData = async () => {
+      try {
+        // Use real API calls
+        const { apiService } = await import('@/lib/api');
+        
+        // Get merchant data
+        const merchantResponse = await apiService.merchants.getById(params.slug);
+        
+        if (merchantResponse.data) {
+          setShop({
+            id: merchantResponse.data.id || merchantResponse.data._id,
+            name: merchantResponse.data.companyName,
+            logo: merchantResponse.data.logo || '/images/shops/placeholder.svg',
+            coverImage: merchantResponse.data.coverImage,
+            description: merchantResponse.data.description,
+            rating: merchantResponse.data.rating || 4.5,
+            reviewCount: merchantResponse.data.reviewCount || 0,
+            location: merchantResponse.data.location || 'Nairobi, Kenya',
+            isVerified: merchantResponse.data.isVerified || false,
+            categories: merchantResponse.data.categories || [],
+            products: []
+          });
+          
+          // Get merchant products
+          const productsResponse = await apiService.merchants.getProducts(params.slug);
+          if (productsResponse.data) {
+            setShop(prevShop => ({
+              ...prevShop,
+              products: productsResponse.data
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching shop data:', err);
+      }
+    };
+    
+    fetchShopData();
   }, [params.slug]);
 
   if (!shop) {
