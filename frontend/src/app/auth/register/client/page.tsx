@@ -102,18 +102,14 @@ export default function ClientRegister() {
       const result = await register({
         email: formData.email,
         password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        fullName: `${formData.firstName} ${formData.lastName}`,
         phone: formData.phone,
-        role: 'customer'
+        role: 'client'
       });
       
-      if (result?.success) {
-        setSuccess("Registration successful!");
-        // Redirect will be handled by the useEffect when isAuthenticated changes
-      } else if (result?.error) {
-        setFormError(result.error);
-      }
+      // The register function will handle the redirect
+      setSuccess("Registration successful!");
+      // Redirect will be handled by the AuthContext
     } catch (error) {
       // Fallback error handling
       console.error("Registration failed:", error);

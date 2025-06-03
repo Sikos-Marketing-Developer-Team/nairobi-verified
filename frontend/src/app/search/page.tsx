@@ -11,8 +11,8 @@ import { FiFilter, FiGrid, FiList, FiSearch, FiSliders, FiStar } from 'react-ico
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
-  const query = searchParams.get('q') || '';
-  const categoryId = searchParams.get('category') || '';
+  const query = searchParams?.get('q') || '';
+  const categoryId = searchParams?.get('category') || '';
   
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);

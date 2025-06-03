@@ -44,11 +44,26 @@ export default function PaymentMethodsPage() {
         // const data = await response.json();
         // setPaymentMethods(data.paymentMethods);
         
-        // Using mock data for now
-        setTimeout(() => {
-          setPaymentMethods(mockPaymentMethods);
-          setLoading(false);
-        }, 500);
+        // Use real API call
+        try {
+          const { apiService } = await import('@/lib/api');
+          
+          // Get payment methods
+          const response = await apiService.checkout.getPaymentMethods();
+          
+          if (response.data && Array.isArray(response.data)) {
+            setPaymentMethods(response.data);
+          } else {
+            // Fallback to empty array if no data
+            setPaymentMethods([]);
+          }
+        } catch (error) {
+          console.error('Error fetching payment methods:', error);
+          // Fallback to empty array on error
+          setPaymentMethods([]);
+        }
+        
+        setLoading(false);
       } catch (err) {
         setError('Failed to load payment methods');
         setLoading(false);
@@ -96,7 +111,8 @@ export default function PaymentMethodsPage() {
   };
   
   // Get card icon based on brand
-  const getCardIcon = (brand: string) => {
+  const getCardIcon = (brand: string | undefined) => {
+    if (!brand) return null;
     switch (brand.toLowerCase()) {
       case 'visa':
         return (

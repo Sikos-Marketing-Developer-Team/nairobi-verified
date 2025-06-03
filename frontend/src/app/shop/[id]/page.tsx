@@ -115,22 +115,25 @@ export default function ShopPage({ params }: { params: { id: string } }) {
     const fetchMerchantAndProducts = async () => {
       try {
         setLoading(true);
-        // Replace with actual API calls when backend is ready
-        // const merchantResponse = await fetch(`/api/merchants/${params.id}`);
-        // const merchantData = await merchantResponse.json();
-        // setMerchant(merchantData.merchant);
         
-        // const productsResponse = await fetch(`/api/products?merchant=${params.id}`);
-        // const productsData = await productsResponse.json();
-        // setProducts(productsData.products);
+        // Use real API calls
+        const { apiService } = await import('@/lib/api');
         
-        // Using mock data for now
-        setTimeout(() => {
-          setMerchant(mockMerchant);
-          setProducts(mockProducts);
-          setLoading(false);
-        }, 500);
+        // Get merchant data
+        const merchantResponse = await apiService.merchants.getById(params.id);
+        if (merchantResponse.data) {
+          setMerchant(merchantResponse.data);
+        }
+        
+        // Get merchant products
+        const productsResponse = await apiService.merchants.getProducts(params.id);
+        if (productsResponse.data) {
+          setProducts(productsResponse.data);
+        }
+        
+        setLoading(false);
       } catch (err) {
+        console.error('Error fetching merchant data:', err);
         setError('Failed to load merchant and products');
         setLoading(false);
       }

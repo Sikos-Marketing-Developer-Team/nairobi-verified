@@ -46,18 +46,52 @@ export default function VendorDashboard() {
         // });
         // const data = await response.json();
         
-        // For demo purposes, we'll use mock data
-        setTimeout(() => {
+        // Use real API calls
+        const { apiService } = await import('@/lib/api');
+        
+        // Get merchant profile data
+        const profileResponse = await apiService.merchant.getProfile();
+        
+        if (profileResponse.data) {
+          // Get merchant orders
+          const ordersResponse = await apiService.merchant.getOrders();
+          
+          // Get merchant products
+          const productsResponse = await apiService.merchant.getProducts();
+          
+          // Calculate dashboard stats
+          const orders = ordersResponse.data || [];
+          const pendingOrders = orders.filter((order: any) => 
+            order.status === 'pending' || order.status === 'processing'
+          );
+          
+          // Calculate total revenue from completed orders
+          const completedOrders = orders.filter((order: any) => order.status === 'completed');
+          const totalRevenue = completedOrders.reduce((sum: number, order: any) => 
+            sum + (order.total || 0), 0
+          );
+          
+          setVendorData({
+            businessName: profileResponse.data.companyName || "Your Business Name",
+            totalProducts: productsResponse.data?.length || 0,
+            totalOrders: orders.length || 0,
+            pendingOrders: pendingOrders.length || 0,
+            totalRevenue: totalRevenue || 0,
+            averageRating: profileResponse.data.rating || 4.5,
+          });
+        } else {
+          // Fallback if no data is available
           setVendorData({
             businessName: "Your Business Name",
-            totalProducts: 24,
-            totalOrders: 18,
-            pendingOrders: 5,
-            totalRevenue: 45000,
-            averageRating: 4.7,
+            totalProducts: 0,
+            totalOrders: 0,
+            pendingOrders: 0,
+            totalRevenue: 0,
+            averageRating: 0,
           });
-          setIsLoading(false);
-        }, 1000);
+        }
+        
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching vendor data:", error);
         setIsLoading(false);

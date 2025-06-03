@@ -17,7 +17,7 @@ export default function SignIn() {
   const { login, isLoading, error: authError, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectPath = searchParams.get('redirect') || '/dashboard';
+  const redirectPath = searchParams?.get('redirect') || '/dashboard';
 
   useEffect(() => {
     if (isAuthenticated) {

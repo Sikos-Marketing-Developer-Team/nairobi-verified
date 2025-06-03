@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { apiService } from "@/lib/api";
 import { 
@@ -114,28 +114,7 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState<{_id: string, name: string}[]>([]);
   const [merchants, setMerchants] = useState<{_id: string, companyName: string}[]>([]);
   
-  // Fetch products
-  useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-    fetchMerchants();
-  }, [currentPage, categoryFilter, statusFilter, merchantFilter, fetchProducts, fetchCategories, fetchMerchants]);
-  
-  // Apply search filter
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredProducts(products);
-    } else {
-      const filtered = products.filter(
-        product =>
-          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.merchant.companyName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredProducts(filtered);
-    }
-  }, [searchTerm, products]);
-  
+  // Define fetch functions first - we'll use them in useEffect below
   const fetchProducts = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -190,6 +169,28 @@ export default function AdminProductsPage() {
       console.error("Error fetching merchants:", err);
     }
   }, []);
+
+  // Fetch products
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+    fetchMerchants();
+  }, [fetchProducts, fetchCategories, fetchMerchants]);
+  
+  // Apply search filter
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter(
+        product =>
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.merchant.companyName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredProducts(filtered);
+    }
+  }, [searchTerm, products]);
   
   const handleViewProductDetails = (product: Product) => {
     setSelectedProduct(product);
@@ -426,379 +427,249 @@ export default function AdminProductsPage() {
           </div>
         </div>
         
-        {/* Filters */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
+          <CardHeader>
+            <CardTitle>Products</CardTitle>
+            <CardDescription>
+              Manage your product catalog
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Filters */}
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                   <Input
-                    type="search"
                     placeholder="Search products..."
                     className="pl-8"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value)}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map(category => (
-                      <SelectItem key={category._id} value={category._id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 
-                <Select value={merchantFilter} onValueChange={(value) => setMerchantFilter(value)}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="All Merchants" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Merchants</SelectItem>
-                    {merchants.map(merchant => (
-                      <SelectItem key={merchant._id} value={merchant._id}>
-                        {merchant.companyName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value)}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Button variant="outline" onClick={() => {
-                  setSearchTerm("");
-                  setCategoryFilter("all");
-                  setStatusFilter("all");
-                  setMerchantFilter("all");
-                  setCurrentPage(1);
-                }}>
-                  Reset Filters
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Products Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Products</CardTitle>
-            <CardDescription>
-              Showing {filteredProducts.length} of {totalProducts} total products
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-              </div>
-            ) : error ? (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-                <div className="flex">
-                  <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                  <p className="text-sm text-red-700">{error}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Select
+                    value={categoryFilter}
+                    onValueChange={setCategoryFilter}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map(category => (
+                        <SelectItem key={category._id} value={category._id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select
+                    value={statusFilter}
+                    onValueChange={setStatusFilter}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select
+                    value={merchantFilter}
+                    onValueChange={setMerchantFilter}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Merchant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Merchants</SelectItem>
+                      {merchants.map(merchant => (
+                        <SelectItem key={merchant._id} value={merchant._id}>
+                          {merchant.companyName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No products found matching your filters.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[50px]">
-                        <Checkbox 
-                          checked={selectedProductIds.length === filteredProducts.length && filteredProducts.length > 0}
-                          onCheckedChange={handleSelectAllProducts}
-                        />
-                      </TableHead>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Merchant</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Featured</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product._id}>
-                        <TableCell>
+              
+              {/* Products Table */}
+              {isLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+                </div>
+              ) : error ? (
+                <div className="flex justify-center items-center py-8 text-red-500">
+                  <AlertCircle className="h-5 w-5 mr-2" />
+                  {error}
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No products found matching your criteria.
+                </div>
+              ) : (
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40px]">
                           <Checkbox 
-                            checked={selectedProductIds.includes(product._id)}
-                            onCheckedChange={(checked) => handleSelectProduct(product._id, !!checked)}
+                            checked={selectedProductIds.length === filteredProducts.length && filteredProducts.length > 0}
+                            onCheckedChange={handleSelectAllProducts}
                           />
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center space-x-3">
-                            {product.images && product.images.length > 0 ? (
-                              <img 
-                                src={product.images[0]} 
-                                alt={product.name} 
-                                className="h-10 w-10 rounded object-cover"
-                              />
-                            ) : (
-                              <div className="h-10 w-10 rounded bg-gray-200 flex items-center justify-center">
-                                <span className="text-gray-500 text-xs">No img</span>
-                              </div>
-                            )}
-                            <div>
-                              <div>{product.name}</div>
-                              <div className="text-sm text-gray-500">
-                                Stock: {product.stock} | Rating: {product.rating.toFixed(1)} ({product.reviewCount})
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{product.category.name}</TableCell>
-                        <TableCell>{product.merchant.companyName}</TableCell>
-                        <TableCell>
-                          <div className="font-medium">${product.price.toFixed(2)}</div>
-                          {product.discountPrice && (
-                            <div className="text-sm text-gray-500 line-through">
-                              ${product.discountPrice.toFixed(2)}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusBadgeColor(product.status)}>
-                            {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {product.featured ? (
-                            <Badge className="bg-purple-100 text-purple-800">
-                              <Star className="h-3 w-3 mr-1" /> Featured
-                            </Badge>
-                          ) : (
-                            <span className="text-gray-500 text-sm">No</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewProductDetails(product)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleToggleProductStatus(product._id, product.status)}>
-                                {product.status === 'active' ? (
-                                  <>
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Deactivate
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Activate
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleToggleFeatured(product._id, product.featured)}>
-                                <Star className="mr-2 h-4 w-4" />
-                                {product.featured ? 'Remove from Featured' : 'Add to Featured'}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteProduct(product._id)}
-                                className="text-red-600"
-                              >
-                                <Trash className="mr-2 h-4 w-4" />
-                                Delete Product
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                        </TableHead>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Merchant</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Featured</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-            
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-between items-center mt-4">
-                <div className="text-sm text-gray-500">
-                  Page {currentPage} of {totalPages}
+                    </TableHeader>
+                    <TableBody>
+                      {filteredProducts.map((product) => (
+                        <TableRow key={product._id}>
+                          <TableCell>
+                            <Checkbox 
+                              checked={selectedProductIds.includes(product._id)}
+                              onCheckedChange={(checked) => handleSelectProduct(product._id, !!checked)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center">
+                              {product.images && product.images.length > 0 ? (
+                                <img 
+                                  src={product.images[0]} 
+                                  alt={product.name}
+                                  className="w-10 h-10 object-cover rounded mr-2"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 bg-gray-200 rounded mr-2 flex items-center justify-center text-gray-500">
+                                  No img
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-medium">{product.name}</div>
+                                <div className="text-xs text-gray-500">
+                                  Stock: {product.stock}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {product.category?.name || "Uncategorized"}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              {product.discountPrice ? (
+                                <>
+                                  <span className="font-medium">${product.discountPrice.toFixed(2)}</span>
+                                  <span className="text-xs text-gray-500 line-through ml-1">
+                                    ${product.price.toFixed(2)}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="font-medium">${product.price.toFixed(2)}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {product.merchant?.companyName || "Unknown"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusBadgeColor(product.status)}>
+                              {product.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {product.featured ? (
+                              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                            ) : (
+                              <Star className="h-5 w-5 text-gray-300" />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewProductDetails(product)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleToggleProductStatus(product._id, product.status)}>
+                                  {product.status === 'active' ? (
+                                    <>
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Deactivate
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      Activate
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleToggleFeatured(product._id, product.featured)}>
+                                  <Star className="mr-2 h-4 w-4" />
+                                  {product.featured ? 'Remove from Featured' : 'Add to Featured'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteProduct(product._id)}>
+                                  <Trash className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
+              )}
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-between items-center mt-4">
+                  <div className="text-sm text-gray-500">
+                    Showing {filteredProducts.length} of {totalProducts} products
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
-      
-      {/* Product Details Dialog */}
-      <Dialog open={isProductDetailsOpen} onOpenChange={setIsProductDetailsOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Product Details</DialogTitle>
-          </DialogHeader>
-          
-          {selectedProduct && (
-            <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  {selectedProduct.images && selectedProduct.images.length > 0 ? (
-                    <div className="aspect-square overflow-hidden rounded-lg">
-                      <img 
-                        src={selectedProduct.images[0]} 
-                        alt={selectedProduct.name} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center">
-                      <span className="text-gray-500">No image available</span>
-                    </div>
-                  )}
-                  
-                  {selectedProduct.images && selectedProduct.images.length > 1 && (
-                    <div className="grid grid-cols-4 gap-2 mt-2">
-                      {selectedProduct.images.slice(1, 5).map((image, index) => (
-                        <div key={index} className="aspect-square overflow-hidden rounded-lg">
-                          <img 
-                            src={image} 
-                            alt={`${selectedProduct.name} ${index + 2}`} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-xl font-bold">{selectedProduct.name}</h2>
-                    <div className="flex items-center mt-1">
-                      <div className="flex items-center">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`h-4 w-4 ${
-                              i < Math.floor(selectedProduct.rating) 
-                                ? 'text-yellow-400 fill-yellow-400' 
-                                : 'text-gray-300'
-                            }`} 
-                          />
-                        ))}
-                      </div>
-                      <span className="ml-2 text-sm text-gray-600">
-                        {selectedProduct.rating.toFixed(1)} ({selectedProduct.reviewCount} reviews)
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-baseline">
-                    <span className="text-2xl font-bold">${selectedProduct.price.toFixed(2)}</span>
-                    {selectedProduct.discountPrice && (
-                      <span className="ml-2 text-gray-500 line-through">
-                        ${selectedProduct.discountPrice.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Category</h3>
-                    <p>{selectedProduct.category.name}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Merchant</h3>
-                    <p>{selectedProduct.merchant.companyName}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Status</h3>
-                    <Badge className={getStatusBadgeColor(selectedProduct.status)}>
-                      {selectedProduct.status.charAt(0).toUpperCase() + selectedProduct.status.slice(1)}
-                    </Badge>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Stock</h3>
-                    <p>{selectedProduct.stock} units</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Featured</h3>
-                    <p>{selectedProduct.featured ? 'Yes' : 'No'}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Created At</h3>
-                    <p>{new Date(selectedProduct.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Description</h3>
-                <p className="text-gray-700">{selectedProduct.description}</p>
-              </div>
-              
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setIsProductDetailsOpen(false)}>
-                  Close
-                </Button>
-                <Button 
-                  variant={selectedProduct.status === 'active' ? 'destructive' : 'default'}
-                  onClick={() => {
-                    handleToggleProductStatus(selectedProduct._id, selectedProduct.status);
-                    setIsProductDetailsOpen(false);
-                  }}
-                >
-                  {selectedProduct.status === 'active' ? 'Deactivate' : 'Activate'} Product
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
       
       {/* Bulk Action Dialog */}
       <Dialog open={isBulkActionDialogOpen} onOpenChange={setIsBulkActionDialogOpen}>
@@ -806,47 +677,166 @@ export default function AdminProductsPage() {
           <DialogHeader>
             <DialogTitle>Bulk Actions</DialogTitle>
             <DialogDescription>
-              Apply an action to {selectedProductIds.length} selected products.
+              Choose an action to perform on {selectedProductIds.length} selected products.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="py-4">
-            <Select value={bulkAction} onValueChange={setBulkAction}>
+          <div className="grid gap-4 py-4">
+            <Select
+              value={bulkAction}
+              onValueChange={setBulkAction}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Select an action" />
+                <SelectValue placeholder="Select action" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="activate">Activate Products</SelectItem>
                 <SelectItem value="deactivate">Deactivate Products</SelectItem>
-                <SelectItem value="feature">Add to Featured</SelectItem>
-                <SelectItem value="unfeature">Remove from Featured</SelectItem>
                 <SelectItem value="delete">Delete Products</SelectItem>
               </SelectContent>
             </Select>
-            
-            {bulkAction === 'delete' && (
-              <div className="mt-4 p-4 bg-red-50 text-red-800 rounded-md">
-                <p className="text-sm">
-                  <strong>Warning:</strong> This action will permanently delete the selected products and cannot be undone.
-                </p>
-              </div>
-            )}
           </div>
-          
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsBulkActionDialogOpen(false)}>
               Cancel
             </Button>
             <Button 
-              variant={bulkAction === 'delete' ? 'destructive' : 'default'}
-              onClick={handleBulkAction}
+              onClick={handleBulkAction} 
               disabled={!bulkAction}
+              variant={bulkAction === 'delete' ? 'destructive' : 'default'}
             >
-              Apply to {selectedProductIds.length} Products
+              Apply
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Product Details Dialog */}
+      {selectedProduct && (
+        <Dialog open={isProductDetailsOpen} onOpenChange={setIsProductDetailsOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Product Details</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                {selectedProduct.images && selectedProduct.images.length > 0 ? (
+                  <img 
+                    src={selectedProduct.images[0]} 
+                    alt={selectedProduct.name}
+                    className="w-full h-64 object-cover rounded-md"
+                  />
+                ) : (
+                  <div className="w-full h-64 bg-gray-200 rounded-md flex items-center justify-center text-gray-500">
+                    No image available
+                  </div>
+                )}
+                
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  {selectedProduct.images && selectedProduct.images.slice(1, 5).map((img, index) => (
+                    <img 
+                      key={index}
+                      src={img} 
+                      alt={`${selectedProduct.name} ${index + 2}`}
+                      className="w-full h-16 object-cover rounded-md"
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold">{selectedProduct.name}</h3>
+                  <div className="flex items-center mt-1">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <Star 
+                          key={i}
+                          className={`h-4 w-4 ${
+                            i < Math.floor(selectedProduct.rating) 
+                              ? 'text-yellow-500 fill-yellow-500' 
+                              : 'text-gray-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-gray-500 ml-2">
+                      ({selectedProduct.reviewCount} reviews)
+                    </span>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="text-sm text-gray-500">Price</div>
+                  <div className="text-xl font-bold">
+                    {selectedProduct.discountPrice ? (
+                      <>
+                        ${selectedProduct.discountPrice.toFixed(2)}
+                        <span className="text-sm text-gray-500 line-through ml-2">
+                          ${selectedProduct.price.toFixed(2)}
+                        </span>
+                      </>
+                    ) : (
+                      <>${selectedProduct.price.toFixed(2)}</>
+                    )}
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="text-sm text-gray-500">Category</div>
+                  <div>{selectedProduct.category?.name || "Uncategorized"}</div>
+                </div>
+                
+                <div>
+                  <div className="text-sm text-gray-500">Merchant</div>
+                  <div>{selectedProduct.merchant?.companyName || "Unknown"}</div>
+                </div>
+                
+                <div>
+                  <div className="text-sm text-gray-500">Status</div>
+                  <Badge className={getStatusBadgeColor(selectedProduct.status)}>
+                    {selectedProduct.status}
+                  </Badge>
+                </div>
+                
+                <div>
+                  <div className="text-sm text-gray-500">Stock</div>
+                  <div>{selectedProduct.stock} units</div>
+                </div>
+                
+                <div>
+                  <div className="text-sm text-gray-500">Featured</div>
+                  <div>{selectedProduct.featured ? "Yes" : "No"}</div>
+                </div>
+                
+                <div>
+                  <div className="text-sm text-gray-500">Created At</div>
+                  <div>{new Date(selectedProduct.createdAt).toLocaleDateString()}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <div className="text-sm text-gray-500">Description</div>
+              <div className="mt-1">{selectedProduct.description}</div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsProductDetailsOpen(false)}>
+                Close
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={() => {
+                  handleDeleteProduct(selectedProduct._id);
+                  setIsProductDetailsOpen(false);
+                }}
+              >
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </AdminLayout>
   );
 }

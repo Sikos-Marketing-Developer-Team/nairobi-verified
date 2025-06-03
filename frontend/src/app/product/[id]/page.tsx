@@ -6,7 +6,41 @@ import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
 import { FiStar, FiShoppingCart, FiHeart, FiShare2, FiMapPin, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import { apiService } from '@/lib/api';
-import { ProductDetail as ProductDetailType, ProductSpecification } from '@/types/api';
+
+type ProductSpecification = {
+  name: string;
+  value: string;
+};
+// Define ProductDetailType here if not exported from '@/types/api'
+type ProductDetailType = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  discountPrice?: number;
+  stock: number;
+  images: string[];
+  category?: { id: string; name: string };
+  merchant?: {
+    id: string;
+    businessName: string;
+    isVerified?: boolean;
+    address?: string;
+    city?: string;
+  };
+  isNew?: boolean;
+  rating?: number;
+  reviewCount?: number;
+  reviews?: {
+    id: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+    user: { firstName: string; lastName: string };
+  }[];
+  specifications?: ProductSpecification[];
+  relatedProducts?: any[];
+};
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useAuth } from '@/context/AuthContext';

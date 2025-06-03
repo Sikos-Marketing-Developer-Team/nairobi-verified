@@ -9,8 +9,18 @@ import {
   FiArrowLeft, FiUser, FiMail, FiPhone, FiCamera, FiCheck, FiLock
 } from 'react-icons/fi';
 
-// Mock user data - will be replaced with API call
-const mockUser = {
+// User interface
+interface User {
+  _id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  avatar: string | null;
+  createdAt: string;
+}
+
+// Initial user data
+const initialUser: User = {
   _id: '1',
   fullName: 'John Doe',
   email: 'john@example.com',
@@ -23,7 +33,7 @@ export default function EditProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [user, setUser] = useState(mockUser);
+  const [user, setUser] = useState<User>(initialUser);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,17 +73,55 @@ export default function EditProfilePage() {
         // });
         // setAvatar(data.user.avatar);
         
-        // Using mock data for now
-        setTimeout(() => {
-          setUser(mockUser);
+        // Use real API call
+        try {
+          const { apiService } = await import('@/lib/api');
+          
+          // Get user profile
+          const userResponse = await apiService.user.getProfile();
+          
+          if (userResponse.data) {
+            const userData = userResponse.data;
+            
+            setUser({
+              _id: userData.id || userData._id || '1',
+              fullName: userData.fullName || userData.name || 'User',
+              email: userData.email || '',
+              phone: userData.phone || '',
+              avatar: userData.avatar || userData.profileImage || null,
+              createdAt: userData.createdAt || new Date().toISOString()
+            });
+            
+            setFormData({
+              fullName: userData.fullName || userData.name || 'User',
+              email: userData.email || '',
+              phone: userData.phone || ''
+            });
+            
+            setAvatar(userData.avatar || userData.profileImage || null);
+          } else {
+            // Fallback to initial data if API returns nothing
+            setUser(initialUser);
+            setFormData({
+              fullName: initialUser.fullName,
+              email: initialUser.email,
+              phone: initialUser.phone
+            });
+            setAvatar(initialUser.avatar);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          // Fallback to initial data on error
+          setUser(initialUser);
           setFormData({
-            fullName: mockUser.fullName,
-            email: mockUser.email,
-            phone: mockUser.phone || ''
+            fullName: initialUser.fullName,
+            email: initialUser.email,
+            phone: initialUser.phone
           });
-          setAvatar(mockUser.avatar);
-          setLoading(false);
-        }, 500);
+          setAvatar(initialUser.avatar);
+        }
+        
+        setLoading(false);
       } catch (err) {
         setError('Failed to load user data');
         setLoading(false);
@@ -219,8 +267,16 @@ export default function EditProfilePage() {
       //   throw new Error(data.message || 'Failed to update profile');
       // }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use real API call
+      const { apiService } = await import('@/lib/api');
+      
+      // Update profile
+      await apiService.user.updateProfile({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        avatar: avatar || undefined
+      });
       
       // Update local state
       setUser({

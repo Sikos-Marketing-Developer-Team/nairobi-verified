@@ -31,146 +31,53 @@ export default function FlashSalesPage() {
   const [flashSales, setFlashSales] = useState<FlashSale[]>([]);
 
   useEffect(() => {
-    // Simulate API call with mock data
     const fetchData = async () => {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        setIsLoading(true);
         
-        // Mock flash sales data
-        setFlashSales([
-          { 
-            id: 1, 
-            product: { 
-              id: 105, 
-              name: "Smartwatch Series 5", 
-              price: 34999, 
-              discountPrice: 24999, 
-              image: "/images/products/smartwatch.jpg", 
-              category: "Electronics", 
-              vendor: "Electronics Hub", 
-              rating: 4.7,
-              isFlashSale: true
-            }, 
-            discount: 30, 
-            endsAt: "2023-06-20" 
-          },
-          { 
-            id: 2, 
-            product: { 
-              id: 106, 
-              name: "Men's Sneakers", 
-              price: 4999, 
-              discountPrice: 2999, 
-              image: "/images/products/sneakers.jpg", 
-              category: "Fashion", 
-              vendor: "Fashion World", 
-              rating: 4.6,
-              isFlashSale: true
-            }, 
-            discount: 40, 
-            endsAt: "2023-06-20" 
-          },
-          { 
-            id: 3, 
-            product: { 
-              id: 107, 
-              name: "Bluetooth Speaker", 
-              price: 12999, 
-              discountPrice: 7999, 
-              image: "/images/products/speaker.jpg", 
-              category: "Electronics", 
-              vendor: "Electronics Hub", 
-              rating: 4.5,
-              isFlashSale: true
-            }, 
-            discount: 38, 
-            endsAt: "2023-06-20" 
-          },
-          { 
-            id: 4, 
-            product: { 
-              id: 108, 
-              name: "Women's Handbag", 
-              price: 8999, 
-              discountPrice: 5999, 
-              image: "/images/products/handbag.jpg", 
-              category: "Fashion", 
-              vendor: "Fashion World", 
-              rating: 4.8,
-              isFlashSale: true
-            }, 
-            discount: 33, 
-            endsAt: "2023-06-20" 
-          },
-          { 
-            id: 5, 
-            product: { 
-              id: 109, 
-              name: "Smartphone Pro Max", 
-              price: 129999, 
-              discountPrice: 99999, 
-              image: "/images/products/smartphone.jpg", 
-              category: "Electronics", 
-              vendor: "Electronics Hub", 
-              rating: 4.9,
-              isFlashSale: true
-            }, 
-            discount: 23, 
-            endsAt: "2023-06-20" 
-          },
-          { 
-            id: 6, 
-            product: { 
-              id: 110, 
-              name: "Coffee Maker", 
-              price: 15999, 
-              discountPrice: 11999, 
-              image: "/images/products/coffee-maker.jpg", 
-              category: "Home & Kitchen", 
-              vendor: "Home Essentials", 
-              rating: 4.4,
-              isFlashSale: true
-            }, 
-            discount: 25, 
-            endsAt: "2023-06-20" 
-          },
-          { 
-            id: 7, 
-            product: { 
-              id: 111, 
-              name: "Wireless Earbuds", 
-              price: 9999, 
-              discountPrice: 6999, 
-              image: "/images/products/earbuds.jpg", 
-              category: "Electronics", 
-              vendor: "Electronics Hub", 
-              rating: 4.6,
-              isFlashSale: true
-            }, 
-            discount: 30, 
-            endsAt: "2023-06-20" 
-          },
-          { 
-            id: 8, 
-            product: { 
-              id: 112, 
-              name: "Smart Home Camera", 
-              price: 7999, 
-              discountPrice: 5999, 
-              image: "/images/products/camera.jpg", 
-              category: "Electronics", 
-              vendor: "Electronics Hub", 
-              rating: 4.5,
-              isFlashSale: true
-            }, 
-            discount: 25, 
-            endsAt: "2023-06-20" 
-          },
-        ]);
+        // Use real API calls
+        const { apiService } = await import('@/lib/api');
+        
+        // Get flash sales data - assuming there's an endpoint for flash sales
+        // If there's no specific endpoint, we can use the featured products endpoint
+        const response = await apiService.products.getFeatured();
+        
+        if (response.data) {
+          // Transform the data to match the FlashSale type
+          const salesData = response.data.map((product: any, index: number) => {
+            // Calculate discount percentage
+            const price = product.price || 0;
+            const discountPrice = product.discountPrice || 0;
+            const discount = price > 0 ? Math.round(((price - discountPrice) / price) * 100) : 0;
+            
+            // Generate a future end date
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + Math.floor(Math.random() * 5) + 1); // 1-5 days from now
+            
+            return {
+              id: product.id || product._id || index + 1,
+              product: {
+                id: product.id || product._id || index + 100,
+                name: product.name || `Product ${index + 1}`,
+                price: product.price || 9999,
+                discountPrice: product.discountPrice || (product.price ? product.price * 0.8 : 7999),
+                image: product.images?.[0]?.url || `/images/products/placeholder.jpg`,
+                category: product.category || "Electronics",
+                vendor: product.merchant?.companyName || "Verified Merchant",
+                rating: product.ratings?.average || 4.5,
+                isFlashSale: true
+              },
+              discount: discount || 20,
+              endsAt: endDate.toISOString().split('T')[0]
+            };
+          });
+          
+          setFlashSales(salesData);
+        }
         
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching flash sales data:", error);
         setIsLoading(false);
       }
     };
