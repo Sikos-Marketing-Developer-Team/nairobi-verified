@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { AxiosError, AxiosResponse } from 'axios';
-import { ApiResponse } from '@/types/api';
+import { ApiResponse } from '../types/api';
 
 interface UseApiOptions<T> {
   onSuccess?: (data: T) => void;
@@ -17,7 +17,7 @@ interface UseApiState<T> {
   error: AxiosError | null;
 }
 
-type ApiFunction<T, P> = (params: P) => Promise<AxiosResponse<ApiResponse<T>>>;
+type ApiFunction<T, P> = (params: P) => Promise<AxiosResponse<ApiResponse<T>> | { data: any }>;
 
 /**
  * Custom hook for making API calls with loading, error, and data states
@@ -40,7 +40,8 @@ export function useApi<T, P = any>(
       
       try {
         const response = await apiFunction(params as P);
-        const data = response.data.data;
+        // Handle both AxiosResponse and direct data object
+        const data = 'status' in response ? response.data.data : response.data;
         
         setState({ data, isLoading: false, error: null });
         
@@ -84,9 +85,9 @@ export function useApi<T, P = any>(
  * Hook for fetching featured products
  */
 export function useFeaturedProducts() {
-  const { data, isLoading, error } = useApi(
-    async () => {
-      const { apiService } = await import('@/lib/api');
+  const { data, isLoading, error } = useApi<any, any>(
+    async (params) => {
+      const { apiService } = await import('../lib/api');
       return apiService.products.getFeatured();
     },
     { immediate: true }
@@ -99,9 +100,9 @@ export function useFeaturedProducts() {
  * Hook for fetching featured categories
  */
 export function useFeaturedCategories() {
-  const { data, isLoading, error } = useApi(
-    async () => {
-      const { apiService } = await import('@/lib/api');
+  const { data, isLoading, error } = useApi<any, any>(
+    async (params) => {
+      const { apiService } = await import('../lib/api');
       return apiService.categories.getFeatured();
     },
     { immediate: true }
@@ -114,9 +115,9 @@ export function useFeaturedCategories() {
  * Hook for fetching featured merchants
  */
 export function useFeaturedMerchants() {
-  const { data, isLoading, error } = useApi(
-    async () => {
-      const { apiService } = await import('@/lib/api');
+  const { data, isLoading, error } = useApi<any, any>(
+    async (params) => {
+      const { apiService } = await import('../lib/api');
       return apiService.merchants.getFeatured();
     },
     { immediate: true }
@@ -129,9 +130,9 @@ export function useFeaturedMerchants() {
  * Hook for fetching product details
  */
 export function useProductDetails(productId: string) {
-  const { data, isLoading, error } = useApi(
-    async () => {
-      const { apiService } = await import('@/lib/api');
+  const { data, isLoading, error } = useApi<any, any>(
+    async (params) => {
+      const { apiService } = await import('../lib/api');
       return apiService.products.getById(productId);
     },
     { immediate: !!productId }
@@ -144,9 +145,9 @@ export function useProductDetails(productId: string) {
  * Hook for fetching products by category
  */
 export function useCategoryProducts(categoryId: string, params?: any) {
-  const { data, isLoading, error, execute } = useApi(
+  const { data, isLoading, error, execute } = useApi<any, any>(
     async (p) => {
-      const { apiService } = await import('@/lib/api');
+      const { apiService } = await import('../lib/api');
       return apiService.products.getByCategory(categoryId, p);
     },
     { immediate: !!categoryId }
@@ -166,9 +167,9 @@ export function useCategoryProducts(categoryId: string, params?: any) {
  * Hook for searching products
  */
 export function useProductSearch() {
-  const { data, isLoading, error, execute } = useApi(
+  const { data, isLoading, error, execute } = useApi<any, { query: string; [key: string]: any }>(
     async (params: { query: string; [key: string]: any }) => {
-      const { apiService } = await import('@/lib/api');
+      const { apiService } = await import('../lib/api');
       return apiService.products.search(params.query, params);
     }
   );
@@ -193,9 +194,9 @@ export function useProductSearch() {
  * Hook for fetching merchant details
  */
 export function useMerchantDetails(merchantId: string) {
-  const { data, isLoading, error } = useApi(
-    async () => {
-      const { apiService } = await import('@/lib/api');
+  const { data, isLoading, error } = useApi<any, any>(
+    async (params) => {
+      const { apiService } = await import('../lib/api');
       return apiService.merchants.getById(merchantId);
     },
     { immediate: !!merchantId }
@@ -208,9 +209,9 @@ export function useMerchantDetails(merchantId: string) {
  * Hook for fetching merchant products
  */
 export function useMerchantProducts(merchantId: string, params?: any) {
-  const { data, isLoading, error, execute } = useApi(
+  const { data, isLoading, error, execute } = useApi<any, any>(
     async (p) => {
-      const { apiService } = await import('@/lib/api');
+      const { apiService } = await import('../lib/api');
       return apiService.merchants.getProducts(merchantId, p);
     },
     { immediate: !!merchantId }
@@ -230,9 +231,9 @@ export function useMerchantProducts(merchantId: string, params?: any) {
  * Hook for fetching user orders
  */
 export function useUserOrders(params?: any) {
-  const { data, isLoading, error, execute } = useApi(
+  const { data, isLoading, error, execute } = useApi<any, any>(
     async (p) => {
-      const { apiService } = await import('@/lib/api');
+      const { apiService } = await import('../lib/api');
       return apiService.user.getOrders(p);
     },
     { immediate: true }
@@ -252,9 +253,9 @@ export function useUserOrders(params?: any) {
  * Hook for fetching order details
  */
 export function useOrderDetails(orderId: string) {
-  const { data, isLoading, error } = useApi(
-    async () => {
-      const { apiService } = await import('@/lib/api');
+  const { data, isLoading, error } = useApi<any, any>(
+    async (params) => {
+      const { apiService } = await import('../lib/api');
       return apiService.user.getOrderById(orderId);
     },
     { immediate: !!orderId }

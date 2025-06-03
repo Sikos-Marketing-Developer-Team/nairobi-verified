@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Merchant } from '@/types/api';
+import { Merchant } from '../types/api';
 
 interface VendorCardProps {
   merchant: Merchant;

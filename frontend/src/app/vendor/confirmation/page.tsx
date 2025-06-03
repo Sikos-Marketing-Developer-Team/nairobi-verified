@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import MainLayout from "@/components/MainLayout";
+import MainLayout from "../../../components/MainLayout";
 import { FaCheckCircle, FaHome } from "react-icons/fa";
 import { Suspense } from "react";
 
@@ -12,9 +12,11 @@ function VendorConfirmationContent() {
   const [businessName, setBusinessName] = useState("");
 
   useEffect(() => {
-    const name = searchParams.get("businessName");
-    if (name) {
-      setBusinessName(decodeURIComponent(name));
+    if (searchParams) {
+      const name = searchParams.get("businessName");
+      if (name) {
+        setBusinessName(decodeURIComponent(name));
+      }
     }
   }, [searchParams]);
 

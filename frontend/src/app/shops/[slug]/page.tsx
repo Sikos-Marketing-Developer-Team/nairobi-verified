@@ -17,7 +17,7 @@ import {
   FiCheck,
   FiFilter
 } from 'react-icons/fi';
-import MainLayout from '@/components/MainLayout';
+import MainLayout from '../../../components/MainLayout';
 
 // Mock data for shops
 const shopsData = {
@@ -316,7 +316,7 @@ export default function ShopPage({ params }: { params: { slug: string } }) {
           // Get merchant products
           const productsResponse = await apiService.merchants.getProducts(params.slug);
           if (productsResponse.data) {
-            setShop(prevShop => ({
+            setShop((prevShop: any) => ({
               ...prevShop,
               products: productsResponse.data
             }));

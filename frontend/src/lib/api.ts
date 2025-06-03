@@ -69,7 +69,7 @@ export const apiService = {
     
     register: (userData: any, endpoint?: string) =>
       MOCK_ENABLED
-        ? mockApi.auth.register(userData, endpoint)
+        ? mockApi.auth.register(userData, endpoint || '/api/auth/register')
         : api.post(endpoint || '/api/auth/register', userData),
     
     forgotPassword: (email: string) =>

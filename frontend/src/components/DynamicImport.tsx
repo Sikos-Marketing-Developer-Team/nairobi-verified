@@ -28,7 +28,7 @@ const DynamicImport: React.FC<DynamicImportProps> = ({
   props = {}
 }) => {
   const DynamicComponent = dynamic(importFunc, {
-    loading: Loading,
+    loading: Loading ? () => <Loading /> : undefined,
     ssr
   });
 
