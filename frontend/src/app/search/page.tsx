@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import MainLayout from '@/components/MainLayout';
-import { apiService } from '@/lib/api';
-import { Product } from '@/types/api';
-import ProductCard from '@/components/ProductCard';
-import FilterSidebar from '@/components/FilterSidebar';
+import MainLayout from '../../components/MainLayout';
+import { apiService } from '../../lib/api';
+import { Product } from '../../types/api';
+import ProductCard from '../../components/ProductCard';
+import FilterSidebar from '../../components/FilterSidebar';
 import { FiFilter, FiGrid, FiList, FiSearch, FiSliders, FiStar } from 'react-icons/fi';
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams?.get('q') || '';
   const categoryId = searchParams?.get('category') || '';
@@ -383,23 +383,23 @@ export default function SearchPage() {
                 </select>
               </div>
               
-              <div className="flex items-center">
+              <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-l-md ${
+                  className={`p-2 rounded-md ${
                     viewMode === 'grid'
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 text-gray-700'
+                      ? 'bg-orange-100 text-orange-600'
+                      : 'bg-gray-100 text-gray-600'
                   }`}
                 >
                   <FiGrid />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-r-md ${
+                  className={`p-2 rounded-md ${
                     viewMode === 'list'
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 text-gray-700'
+                      ? 'bg-orange-100 text-orange-600'
+                      : 'bg-gray-100 text-gray-600'
                   }`}
                 >
                   <FiList />
@@ -409,39 +409,39 @@ export default function SearchPage() {
             
             {/* Loading State */}
             {loading && (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+                <p className="text-gray-600 dark:text-gray-400">Loading products...</p>
               </div>
             )}
             
             {/* Error State */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-                {error}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+                <p className="text-red-500">{error}</p>
               </div>
             )}
             
-            {/* Empty State */}
+            {/* No Results */}
             {!loading && !error && products.length === 0 && (
-              <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-                <FiSearch className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">
-                  No products found
-                </h3>
-                <p className="mt-1 text-gray-500 dark:text-gray-400">
-                  Try adjusting your search or filter to find what you're looking for.
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+                <p className="text-gray-600 dark:text-gray-400">
+                  No products found. Try adjusting your search or filters.
                 </p>
               </div>
             )}
             
             {/* Product Grid */}
             {!loading && !error && products.length > 0 && (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
-                {products.map((product) => (
-                  <ProductCard 
-                    key={product.id} 
-                    product={product} 
-                    viewMode={viewMode} 
+              <div className={viewMode === 'grid' 
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "space-y-4"
+              }>
+                {products.map(product => (
+                  <ProductCard
+                    key={product._id}
+                    product={product}
+                    onAddToCart={() => {}}
+                    onAddToWishlist={() => {}}
                   />
                 ))}
               </div>
@@ -449,7 +449,7 @@ export default function SearchPage() {
             
             {/* Pagination */}
             {!loading && !error && totalPages > 1 && (
-              <div className="flex justify-center mt-8 space-x-2">
+              <div className="mt-8 flex justify-center space-x-2">
                 {renderPagination()}
               </div>
             )}
@@ -457,5 +457,21 @@ export default function SearchPage() {
         </div>
       </div>
     </MainLayout>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <MainLayout>
+        <div className="container mx-auto px-4 py-8 text-center">
+          <div className="bg-white rounded-lg shadow-md p-8">
+            <p>Loading search results...</p>
+          </div>
+        </div>
+      </MainLayout>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 }

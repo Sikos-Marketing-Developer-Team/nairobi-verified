@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import MainLayout from "@/components/MainLayout";
+import MainLayout from "../../components/MainLayout";
 import { 
   FaShoppingBag, 
   FaHeart, 
@@ -132,7 +132,7 @@ export default function Dashboard() {
         }
 
         // Use real API calls
-        const { apiService } = await import('@/lib/api');
+        const { apiService } = await import('../../lib/api');
         
         // Get user profile data
         const userProfileResponse = await apiService.user.getProfile();

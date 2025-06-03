@@ -1,23 +1,23 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import MainLayout from "@/components/MainLayout";
-import { useAuth } from "@/context/AuthContext";
+import MainLayout from "../../../components/MainLayout";
+import { useAuth } from "../../../context/AuthContext";
 import { FiUser, FiLock, FiAlertCircle } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 
-export default function SignIn() {
+function SignInContent() {
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams?.get('redirect') || '/dashboard';
+  const router = useRouter();
+  const { login, isLoading, error: authError, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false,
   });
   const [formError, setFormError] = useState('');
-  const { login, isLoading, error: authError, isAuthenticated } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectPath = searchParams?.get('redirect') || '/dashboard';
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -64,9 +64,6 @@ export default function SignIn() {
     window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`;
   };
 
-  const handleRegisterClick = (type: "client" | "merchant") => {
-    router.push(`/auth/register/${type}`);
-  };
   return (
     <MainLayout className="bg-gray-100 py-10">
       <div className="container mx-auto px-4">
@@ -167,7 +164,7 @@ export default function SignIn() {
 
             <div className="mt-8 text-center">
               <p className="text-sm text-gray-600">
-                Don’t have an account?{' '}
+                Don't have an account?{' '}
                 <Link href="/auth/register/client" className="text-orange-600 hover:text-orange-500 font-medium">
                   Register as Client
                 </Link>{' '}
@@ -181,5 +178,21 @@ export default function SignIn() {
         </div>
       </div>
     </MainLayout>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={
+      <MainLayout className="bg-gray-100 py-10">
+        <div className="container mx-auto px-4 text-center">
+          <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-8">
+            <p>Loading sign in page...</p>
+          </div>
+        </div>
+      </MainLayout>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }
