@@ -1,8 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useFeaturedCategories } from '@/hooks/useApi';
-import { Category } from '@/types/api';
+import { useFeaturedCategories } from '../hooks/useApi';
+import { Category } from '../types/api';
 
 // Default icons for categories without images
 const categoryIcons: Record<string, string> = {
@@ -28,7 +28,7 @@ const FeaturedCategories: React.FC<FeaturedCategoriesProps> = ({
   title = "Shop by Category",
   subtitle = "Browse our wide selection of categories from verified vendors"
 }) => {
-  const { data: categories, isLoading, error } = useFeaturedCategories();
+  const { categories, isLoading, error } = useFeaturedCategories();
   
   // Get appropriate icon for a category
   const getCategoryIcon = (category: Category): string => {

@@ -2,10 +2,10 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
-import { useApi } from '@/hooks/useApi';
-import { apiService } from '@/lib/api';
+import { useApi } from '../hooks/useApi';
+import { apiService } from '../lib/api';
 import VendorCard from './VendorCard';
-import { Merchant } from '@/types/api';
+import { Merchant } from '../types/api';
 
 interface FeaturedVendorsProps {
   title?: string;
@@ -46,7 +46,7 @@ export default function FeaturedVendors({
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">{title}</h2>
           <p className="text-gray-600 mb-8">{subtitle}</p>
-          <div className="text-center text-red-600">Error loading vendors: {error}</div>
+          <div className="text-center text-red-600">Error loading vendors: {error?.message || 'Unknown error'}</div>
         </div>
       </section>
     );

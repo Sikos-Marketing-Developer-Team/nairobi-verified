@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Navbar from '@/components/Navbar';
-import ProductCard from '@/components/ProductCard';
+import Navbar from '../../../components/Navbar';
+import ProductCard from '../../../components/ProductCard';
 import { FiFilter, FiChevronDown, FiX, FiCheck } from 'react-icons/fi';
 import { Loader2 } from 'lucide-react';
 
@@ -672,14 +672,27 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
             {/* Product Grid */}
             {products.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map(product => (
-                  <ProductCard
-                    key={product._id}
-                    product={product}
-                    onAddToCart={handleAddToCart}
-                    onAddToWishlist={handleAddToWishlist}
-                  />
-                ))}
+                {products.map(product => {
+                  // Adapt product to match the expected Product type
+                  const adaptedProduct = {
+                    ...product,
+                    id: product._id,
+                    category: (product as any).category || params.slug || '',
+                    merchantId: product.merchant?._id || '',
+                    rating: product.ratings?.average || 0,
+                    reviewCount: product.ratings?.count || 0,
+                    images: product.images || []
+                  };
+                  
+                  return (
+                    <ProductCard
+                      key={product._id}
+                      product={adaptedProduct}
+                      onAddToCart={handleAddToCart}
+                      onAddToWishlist={handleAddToWishlist}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">

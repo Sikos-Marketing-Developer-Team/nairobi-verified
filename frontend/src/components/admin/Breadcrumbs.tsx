@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { FaChevronRight, FaHome } from 'react-icons/fa';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 
 interface BreadcrumbsProps {
   homeLabel?: string;
@@ -20,7 +20,7 @@ export default function Breadcrumbs({
   const { theme } = useTheme();
   
   // If no items are provided, generate them from the pathname
-  const breadcrumbItems = items.length > 0 ? items : generateBreadcrumbItems(pathname);
+  const breadcrumbItems = items.length > 0 ? items : (pathname ? generateBreadcrumbItems(pathname) : []);
   
   return (
     <nav className="mb-4" aria-label="Breadcrumb">

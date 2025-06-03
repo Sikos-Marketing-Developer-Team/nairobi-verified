@@ -6,8 +6,8 @@ import ProductCard from './ProductCard';
 import LoadingSpinner from './LoadingSpinner';
 import LazyComponent from './LazyComponent';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { useFeaturedProducts } from '@/hooks/useApi';
-import { Product } from '@/types/api';
+import { useFeaturedProducts } from '../hooks/useApi';
+import { Product } from '../types/api';
 
 interface FeaturedProductsProps {
   title?: string;
@@ -18,7 +18,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
   title = "Featured Products", 
   subtitle = "Discover our handpicked selection of top products from verified vendors" 
 }) => {
-  const { data: products, isLoading, error } = useFeaturedProducts();
+  const { products, isLoading, error } = useFeaturedProducts();
   const [isClient, setIsClient] = useState(false);
   
   // For mobile scrolling

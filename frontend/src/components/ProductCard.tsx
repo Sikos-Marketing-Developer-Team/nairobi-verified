@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { FiShoppingCart, FiHeart, FiStar } from 'react-icons/fi';
-import { Product } from '@/types/api';
-import { useCart } from '@/context/CartContext';
-import { useWishlist } from '@/context/WishlistContext';
-import { useAuth } from '@/context/AuthContext';
+import { Product } from '../types/api';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import OptimizedImage from './OptimizedImage';
 
@@ -30,7 +30,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const router = useRouter();
   
   // Get main image or first image
-  const mainImage = images && images.length > 0 ? images[0] : null;
+  const getImageUrl = (img: string | { url: string; isMain: boolean }) => {
+    if (typeof img === 'string') return img;
+    return img.url;
+  };
+  
+  const mainImage = images && images.length > 0 ? getImageUrl(images[0]) : null;
   
   // Calculate discount percentage if applicable
   const discountPercentage = discountPrice && price > discountPrice 

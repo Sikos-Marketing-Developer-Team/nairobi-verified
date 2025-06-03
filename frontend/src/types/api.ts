@@ -42,8 +42,8 @@ export interface Product {
   id?: string;
   name: string;
   price: number;
-  discountPrice?: number;
-  images: string[];
+  discountPrice?: number | null;
+  images: string[] | { url: string; isMain: boolean }[];
   category: string;
   merchantId: string;
   rating: number;
@@ -52,4 +52,60 @@ export interface Product {
   isFeatured?: boolean;
   isFlashSale?: boolean;
   description?: string;
+  // Additional fields that might be present in the API response
+  ratings?: { average: number; count: number };
+  merchant?: { _id: string; companyName: string; isVerified: boolean };
+}
+
+export interface Category {
+  _id: string;
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  isFeatured?: boolean;
+}
+
+export interface Merchant {
+  _id: string;
+  id?: string;
+  companyName: string;
+  businessType: string;
+  location: string;
+  coverImage?: string;
+  logo?: string;
+  description?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  website?: string;
+  socialMedia?: {
+    facebook?: string;
+    twitter?: string;
+    instagram?: string;
+    linkedin?: string;
+  };
+  rating?: number;
+  reviewCount?: number;
+  isVerified?: boolean;
+  isFeatured?: boolean;
+}
+
+export interface CartItem {
+  _id: string;
+  productId: string;
+  product: Product;
+  quantity: number;
+  price: number;
+  subtotal: number;
+}
+
+export interface Cart {
+  _id: string;
+  userId: string;
+  items: CartItem[];
+  totalItems: number;
+  subtotal: number;
+  createdAt: string;
+  updatedAt: string;
 }
