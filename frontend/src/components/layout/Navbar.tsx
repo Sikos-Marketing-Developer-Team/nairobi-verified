@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { FiSearch, FiShoppingCart, FiUser, FiChevronDown, FiX, FiMenu } from 'react-icons/fi';
+import { FiSearch, FiShoppingCart, FiUser, FiChevronDown, FiX, FiMenu, FiHeart, FiHelpCircle, FiTruck, FiShield, FiHeadphones } from 'react-icons/fi';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -17,8 +17,10 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isBusinessMenuOpen, setIsBusinessMenuOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const businessMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -28,6 +30,9 @@ export default function Navbar() {
       }
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
+      }
+      if (businessMenuRef.current && !businessMenuRef.current.contains(event.target as Node)) {
+        setIsBusinessMenuOpen(false);
       }
     }
 
@@ -45,8 +50,33 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="bg-white shadow-md sticky top-0 z-[100]">
+      {/* Top bar with contact and support */}
+      <div className="bg-orange-600 text-white py-1.5 relative z-[101]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center text-sm">
+            <div className="flex items-center space-x-4">
+              <a href="tel:+254700000000" className="hover:text-orange-100 transition-colors">
+                <FiHeadphones className="inline-block mr-1" /> +254 700 000 000
+              </a>
+              <a href="mailto:support@nairobiverified.com" className="hover:text-orange-100 transition-colors">
+                support@nairobiverified.com
+              </a>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link href="/track-order" className="hover:text-orange-100 transition-colors">
+                <FiTruck className="inline-block mr-1" /> Track Order
+              </Link>
+              <Link href="/help-center" className="hover:text-orange-100 transition-colors">
+                <FiHelpCircle className="inline-block mr-1" /> Help Center
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main navbar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-[102]">
         <div className="flex justify-between h-20">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
@@ -64,7 +94,7 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden sm:flex sm:items-center sm:space-x-8">
+          <div className="hidden lg:flex lg:items-center lg:space-x-8">
             <Link href="/products" className="text-gray-700 hover:text-orange-600 font-medium transition duration-150">
               Products
             </Link>
@@ -74,6 +104,43 @@ export default function Navbar() {
             <Link href="/merchants" className="text-gray-700 hover:text-orange-600 font-medium transition duration-150">
               Merchants
             </Link>
+            <div className="relative" ref={businessMenuRef}>
+              <button
+                onClick={() => setIsBusinessMenuOpen(!isBusinessMenuOpen)}
+                className="text-gray-700 hover:text-orange-600 font-medium transition duration-150 flex items-center"
+              >
+                For Business
+                <FiChevronDown className="ml-1" />
+              </button>
+              {isBusinessMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl py-2 border border-gray-100 z-[103]">
+                  <Link
+                    href="/business/register"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition duration-150"
+                  >
+                    Register Your Business
+                  </Link>
+                  <Link
+                    href="/business/benefits"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition duration-150"
+                  >
+                    Business Benefits
+                  </Link>
+                  <Link
+                    href="/business/verification"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition duration-150"
+                  >
+                    Verification Process
+                  </Link>
+                  <Link
+                    href="/business/support"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition duration-150"
+                  >
+                    Business Support
+                  </Link>
+                </div>
+              )}
+            </div>
             <Link href="/about" className="text-gray-700 hover:text-orange-600 font-medium transition duration-150">
               About
             </Link>
@@ -91,7 +158,7 @@ export default function Navbar() {
                 <FiSearch className="h-5 w-5" />
               </button>
               {isSearchOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl p-4 border border-gray-100">
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl p-4 border border-gray-100 z-[103]">
                   <div className="relative">
                     <input
                       type="text"
@@ -105,6 +172,16 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+
+            {/* Wishlist */}
+            <Link href="/wishlist" className="p-2 text-gray-600 hover:text-orange-600 relative transition duration-150" aria-label="Wishlist">
+              <FiHeart className="h-5 w-5" />
+              {wishlistItems.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                  {wishlistItems.length}
+                </span>
+              )}
+            </Link>
 
             {/* Cart */}
             <Link href="/cart" className="p-2 text-gray-600 hover:text-orange-600 relative transition duration-150" aria-label="Shopping Cart">
@@ -129,7 +206,7 @@ export default function Navbar() {
                 </span>
               </button>
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl py-2 border border-gray-100">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl py-2 border border-gray-100 z-[103]">
                   {user ? (
                     <>
                       <div className="px-4 py-2 border-b border-gray-100">
@@ -153,6 +230,12 @@ export default function Navbar() {
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition duration-150"
                       >
                         Wishlist
+                      </Link>
+                      <Link
+                        href="/notifications"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition duration-150"
+                      >
+                        Notifications
                       </Link>
                       <div className="border-t border-gray-100 my-1"></div>
                       <button
@@ -183,6 +266,12 @@ export default function Navbar() {
                       >
                         Help Center
                       </Link>
+                      <Link
+                        href="/contact"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition duration-150"
+                      >
+                        Contact Us
+                      </Link>
                     </>
                   )}
                 </div>
@@ -192,7 +281,7 @@ export default function Navbar() {
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="sm:hidden p-2 text-gray-600 hover:text-orange-600 transition duration-150"
+              className="lg:hidden p-2 text-gray-600 hover:text-orange-600 transition duration-150"
               aria-label={isMenuOpen ? "Close menu" : "Open menu"}
             >
               {isMenuOpen ? (
@@ -207,7 +296,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {isMenuOpen && (
-        <div className="sm:hidden bg-white border-t border-gray-100 shadow-lg">
+        <div className="lg:hidden bg-white border-t border-gray-100 shadow-lg absolute w-full z-[103]">
           <div className="px-4 pt-3 pb-4 space-y-2">
             <Link
               href="/products"
@@ -230,12 +319,50 @@ export default function Navbar() {
             >
               Merchants
             </Link>
+            <div className="border-t border-gray-100 my-2"></div>
+            <p className="px-3 py-2 text-sm font-semibold text-gray-500 uppercase">For Business</p>
+            <Link
+              href="/business/register"
+              className="block px-3 py-2.5 text-base font-medium text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-md transition duration-150"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Register Your Business
+            </Link>
+            <Link
+              href="/business/benefits"
+              className="block px-3 py-2.5 text-base font-medium text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-md transition duration-150"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Business Benefits
+            </Link>
+            <Link
+              href="/business/verification"
+              className="block px-3 py-2.5 text-base font-medium text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-md transition duration-150"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Verification Process
+            </Link>
+            <div className="border-t border-gray-100 my-2"></div>
             <Link
               href="/about"
               className="block px-3 py-2.5 text-base font-medium text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-md transition duration-150"
               onClick={() => setIsMenuOpen(false)}
             >
               About
+            </Link>
+            <Link
+              href="/help-center"
+              className="block px-3 py-2.5 text-base font-medium text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-md transition duration-150"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Help Center
+            </Link>
+            <Link
+              href="/contact"
+              className="block px-3 py-2.5 text-base font-medium text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-md transition duration-150"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Contact Us
             </Link>
             <div className="border-t border-gray-100 my-2"></div>
             {!user && (
