@@ -5,6 +5,8 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import ErrorBoundary from './ErrorBoundary';
 import dynamic from 'next/dynamic';
+import CookieConsent from './CookieConsent';
+import { Toaster } from 'react-hot-toast';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -53,6 +55,16 @@ const MainLayout = ({
     });
   };
 
+  const handleCookieAccept = () => {
+    // Handle cookie acceptance
+    console.log('Cookies accepted');
+  };
+
+  const handleCookieReject = () => {
+    // Handle cookie rejection
+    console.log('Cookies rejected');
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {showNavbar && (
@@ -91,6 +103,12 @@ const MainLayout = ({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
         </svg>
       </button>
+
+      <CookieConsent
+        onAccept={handleCookieAccept}
+        onReject={handleCookieReject}
+      />
+      <Toaster position="top-right" />
     </div>
   );
 };

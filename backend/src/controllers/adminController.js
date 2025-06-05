@@ -3,6 +3,9 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const VendorSubscription = require('../models/VendorSubscription');
 const PaymentTransaction = require('../models/PaymentTransaction');
+const Business = require("../models/Business");
+const { generatePassword } = require("../utils/auth");
+const { sendWelcomeEmail } = require("../services/emailService");
 
 // Get dashboard statistics
 const getDashboardStats = async (req, res) => {
@@ -1233,6 +1236,97 @@ const saveLayoutChanges = async (req, res) => {
   }
 };
 
+exports.bulkImportBusinesses = async (req, res) => {
+  try {
+    const { businesses } = req.body;
+
+    if (!Array.isArray(businesses) || businesses.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No businesses provided",
+      });
+    }
+
+    const results = await Promise.all(
+      businesses.map(async (businessData) => {
+        try {
+          // Generate a temporary password
+          const tempPassword = generatePassword();
+
+          // Create user account
+          const user = await User.create({
+            name: businessData.name,
+            email: businessData.email,
+            password: tempPassword,
+            role: "merchant",
+            phone: businessData.phone,
+            location: businessData.address,
+          });
+
+          // Create business profile
+          const business = await Business.create({
+            userId: user._id,
+            name: businessData.name,
+            email: businessData.email,
+            phone: businessData.phone,
+            address: businessData.address,
+            category: businessData.category,
+            description: businessData.description,
+            openingHours: businessData.openingHours,
+            website: businessData.website,
+            socialMedia: businessData.socialMedia,
+            status: "pending",
+          });
+
+          // Send welcome email with credentials
+          await sendWelcomeEmail({
+            email: user.email,
+            name: user.name,
+            password: tempPassword,
+          });
+
+          return {
+            success: true,
+            business: {
+              id: business._id,
+              name: business.name,
+              email: business.email,
+            },
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error.message,
+            business: {
+              name: businessData.name,
+              email: businessData.email,
+            },
+          };
+        }
+      })
+    );
+
+    const successful = results.filter((r) => r.success);
+    const failed = results.filter((r) => !r.success);
+
+    res.status(200).json({
+      success: true,
+      message: `Imported ${successful.length} businesses successfully`,
+      results: {
+        successful,
+        failed,
+      },
+    });
+  } catch (error) {
+    console.error("Bulk import error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error importing businesses",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getPendingVerifications,
@@ -1253,5 +1347,6 @@ module.exports = {
   deleteFeatureToggle,
   getContentBanners,
   getHomepageSections,
-  saveLayoutChanges
+  saveLayoutChanges,
+  bulkImportBusinesses
 };

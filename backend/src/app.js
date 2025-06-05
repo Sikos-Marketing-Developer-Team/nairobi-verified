@@ -50,14 +50,18 @@ connectDB().then(() => {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({
+
+// CORS configuration
+const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-}));
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 600 // Cache preflight request for 10 minutes
+};
+
+app.use(cors(corsOptions));
 
 // Session configuration with MongoDB store
 app.use(session({
@@ -100,10 +104,68 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });
 
-// Error handling
+// Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  // Log the full error stack for debugging
+  console.error('Error details:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    body: req.body,
+    query: req.query,
+    params: req.params,
+    headers: req.headers,
+    timestamp: new Date().toISOString()
+  });
+
+  // Handle specific error types
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Validation Error',
+      errors: Object.values(err.errors).map(e => e.message)
+    });
+  }
+
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      status: 'error',
+      message: 'Invalid token. Please log in again.'
+    });
+  }
+
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      status: 'error',
+      message: 'Your session has expired. Please log in again.'
+    });
+  }
+
+  if (err.name === 'MongoError' && err.code === 11000) {
+    return res.status(409).json({
+      status: 'error',
+      message: 'Duplicate entry. This record already exists.'
+    });
+  }
+
+  // Handle mongoose errors
+  if (err.name === 'CastError') {
+    return res.status(400).json({
+      status: 'error',
+      message: `Invalid ${err.path}: ${err.value}`
+    });
+  }
+
+  // Default error response
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Something went wrong!';
+  
+  res.status(statusCode).json({
+    status: 'error',
+    message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
 // Set up cron jobs for subscription management

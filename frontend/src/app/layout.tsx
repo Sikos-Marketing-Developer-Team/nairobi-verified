@@ -1,16 +1,21 @@
-import './globals.css';
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { ThemeProviderWrapper } from "../components/ThemeProviderWrapper";
-import { ThemeToggle } from "../components/ThemeToggle"; // Import the ThemeToggle
-import FooterWrapper from "../components/FooterWrapper";
-// (feat: Implement admin user creation utility and enhance application routes and UI)
+import localFont from "next/font/local";
+import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import { Toaster } from "react-hot-toast";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = localFont({
+  src: "../fonts/Inter-Regular.woff2",
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Nairobi Verified",
-  description: "A trusted e-commerce platform that helps users discover and shop from verified vendors in Nairobi CBD",
+  title: "Nairobi Verified - Your Trusted Marketplace",
+  description: "Find verified businesses, products, and services in Nairobi",
 };
 
 export default function RootLayout({
@@ -19,26 +24,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <head>
-        <link
-          href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
-          rel="stylesheet"
-        />
-      </head>
-      <body className={inter.className}>
-        <ThemeProviderWrapper>
-          <div className="flex flex-col min-h-screen">
-            <div className="fixed bottom-4 right-4 z-50">
-              <ThemeToggle />
+    <html lang="en" className={inter.variable}>
+      <body>
+        <AuthProvider>
+          <ThemeProvider>
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <main className="flex-grow">{children}</main>
+              <Footer />
             </div>
-            <main className="flex-grow">
-              {children}
-            </main>
-            {/* FooterWrapper will conditionally render the footer only for non-admin pages */}
-            <FooterWrapper />
-          </div>
-        </ThemeProviderWrapper>
+            <Toaster position="top-right" />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

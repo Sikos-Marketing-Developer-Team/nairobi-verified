@@ -1,63 +1,111 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
-interface User {
-  displayName: string;
-  id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  role: 'client' | 'merchant';
-}
-
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-}
+import { useState, useCallback, useEffect } from 'react';
+import { apiService } from '@/lib/api';
+import { User } from '@/types';
+import { toast } from 'react-hot-toast';
 
 export const useAuth = () => {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-    isLoading: true,
-  });
-  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Check authentication status on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/check`, {
-          credentials: 'include',
+    const token = localStorage.getItem('token');
+    if (token) {
+      apiService.auth.check()
+        .then(response => {
+          setUser(response.data.user);
+          setIsAuthenticated(true);
+        })
+        .catch(() => {
+          localStorage.removeItem('token');
+          setUser(null);
+          setIsAuthenticated(false);
+        })
+        .finally(() => {
+          setLoading(false);
         });
-        const data = await response.json();
-        if (data.isAuthenticated) {
-          setAuthState({
-            user: data.user,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } else {
-          setAuthState({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
-          router.push('/auth/signin');
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
-        router.push('/auth/signin');
-      }
-    };
+    } else {
+      setLoading(false);
+    }
+  }, []);
 
-    checkAuth();
-  }, [router]);
+  const login = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
+    try {
+      const response = await apiService.auth.login(email, password, rememberMe);
+      const { token, user } = response.data;
+      
+      localStorage.setItem('token', token);
+      setUser(user);
+      setIsAuthenticated(true);
+      
+      return user;
+    } catch (error) {
+      throw error;
+    }
+  }, []);
 
-  return authState;
+  const register = useCallback(async (userData: any) => {
+    try {
+      const response = await apiService.auth.register(userData);
+      const { token, user } = response.data;
+      
+      localStorage.setItem('token', token);
+      setUser(user);
+      setIsAuthenticated(true);
+      
+      return user;
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await apiService.auth.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('token');
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+  }, []);
+
+  const check = useCallback(async () => {
+    try {
+      const response = await apiService.auth.check();
+      setUser(response.data.user);
+      setIsAuthenticated(true);
+      return response.data.user;
+    } catch (error) {
+      setUser(null);
+      setIsAuthenticated(false);
+      throw error;
+    }
+  }, []);
+
+  const me = useCallback(async () => {
+    try {
+      const response = await apiService.auth.me();
+      setUser(response.data.user);
+      setIsAuthenticated(true);
+      return response.data.user;
+    } catch (error) {
+      setUser(null);
+      setIsAuthenticated(false);
+      throw error;
+    }
+  }, []);
+
+  return {
+    user,
+    loading,
+    isAuthenticated,
+    login,
+    register,
+    logout,
+    check,
+    me,
+  };
 };

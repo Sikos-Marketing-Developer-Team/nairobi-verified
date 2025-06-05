@@ -2,98 +2,100 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { FiShoppingCart, FiHeart, FiStar } from 'react-icons/fi';
+import { FiShoppingCart, FiStar } from 'react-icons/fi';
 import { Product } from '../types/api';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import OptimizedImage from './OptimizedImage';
+import { toast } from 'react-hot-toast';
+import { FaHeart, FaRegHeart } from 'react-icons/fa';
+import Image from 'next/image';
 
 interface ProductCardProps {
   product: Product;
   viewMode?: 'grid' | 'list';
-  onAddToCart?: (productId: string) => void;
-  onAddToWishlist?: (productId: string) => void;
+  onAddToCart?: (product: Product) => void;
+  onAddToWishlist?: (product: Product) => void;
+  className?: string;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ 
   product, 
   viewMode = 'grid',
   onAddToCart,
-  onAddToWishlist
+  onAddToWishlist,
+  className = ''
 }) => {
-  const { id, name, price, discountPrice, images, rating, reviewCount, merchantId } = product;
+  const { _id, name, price, salePrice, images, rating, merchant } = product;
   const { addToCart, isLoading: isCartLoading } = useCart();
   const { addToWishlist: addToWishlistContext, removeFromWishlist, isInWishlist, isLoading: isWishlistLoading } = useWishlist();
   const { isAuthenticated } = useAuth();
   const router = useRouter();
-  
-  // Get main image or first image
-  const getImageUrl = (img: string | { url: string; isMain: boolean }) => {
-    if (typeof img === 'string') return img;
-    return img.url;
-  };
-  
-  const mainImage = images && images.length > 0 ? getImageUrl(images[0]) : null;
+  const [isHovered, setIsHovered] = useState(false);
   
   // Calculate discount percentage if applicable
-  const discountPercentage = discountPrice && price > discountPrice 
-    ? Math.round(((price - discountPrice) / price) * 100) 
+  const discountPercentage = salePrice && price > salePrice 
+    ? Math.round(((price - salePrice) / price) * 100) 
     : null;
   
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
-      router.push('/auth/signin?redirect=' + encodeURIComponent(`/product/${id}`));
+      router.push('/auth/signin?redirect=' + encodeURIComponent(`/product/${_id}`));
       return;
     }
     
     try {
       if (onAddToCart) {
-        onAddToCart(id || product._id);
+        onAddToCart(product);
       } else {
-        await addToCart(id || product._id, 1);
+        await addToCart(_id, 1);
+        toast.success('Added to cart');
       }
     } catch (error) {
-      console.error('Failed to add to cart:', error);
+      toast.error('Failed to add to cart');
     }
   };
   
   const handleWishlistToggle = async () => {
     if (!isAuthenticated) {
-      router.push('/auth/signin?redirect=' + encodeURIComponent(`/product/${id}`));
+      router.push('/auth/signin?redirect=' + encodeURIComponent(`/product/${_id}`));
       return;
     }
     
     try {
       if (onAddToWishlist) {
-        onAddToWishlist(id || product._id);
-      } else if (isInWishlist(id || product._id)) {
-        await removeFromWishlist(id || product._id);
+        onAddToWishlist(product);
+      } else if (isInWishlist(_id)) {
+        await removeFromWishlist(_id);
+        toast.success('Removed from wishlist');
       } else {
-        await addToWishlistContext(id || product._id);
+        await addToWishlistContext(product);
+        toast.success('Added to wishlist');
       }
     } catch (error) {
-      console.error('Failed to update wishlist:', error);
+      toast.error('Failed to update wishlist');
     }
   };
   
-  const isProductInWishlist = isInWishlist(id || product._id);
+  const isProductInWishlist = isInWishlist(_id);
   
   if (viewMode === 'list') {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow ${className}`} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
         <div className="flex flex-col md:flex-row">
           {/* Product Image */}
           <div className="relative h-48 md:h-auto md:w-48 bg-gray-200 dark:bg-gray-700 flex-shrink-0">
-            <Link href={`/product/${id}`}>
+            <Link href={`/product/${_id}`}>
               <div className="w-full h-full relative">
-                {mainImage ? (
-                  <OptimizedImage
-                    src={mainImage}
+                {images && images.length > 0 ? (
+                  <Image
+                    src={images[0].url || "/images/placeholder.png"}
                     alt={name}
-                    fill
-                    className="object-cover"
+                    width={500}
+                    height={500}
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700">
@@ -114,17 +116,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {/* Product Info */}
           <div className="p-4 flex-1 flex flex-col">
             <div className="flex-1">
-              <Link href={`/product/${id}`}>
+              <Link href={`/product/${_id}`}>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-1 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
                   {name}
                 </h3>
               </Link>
               
               {/* Merchant */}
-              <Link href={`/shop/${merchantId}`}>
+              <Link href={`/shop/${merchant._id}`}>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
-                  {/* Merchant name would go here */}
-                  {merchantId}
+                  {merchant.name}
                 </p>
               </Link>
               
@@ -139,7 +140,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     <FiStar className={`${rating >= 5 ? 'fill-current' : ''}`} />
                   </div>
                   <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                    ({reviewCount || 0})
+                    ({product.reviews?.length || 0})
                   </span>
                 </div>
               )}
@@ -155,18 +156,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex items-center justify-between mt-2">
               {/* Price */}
               <div className="flex items-center">
-                {discountPrice && discountPrice < price ? (
+                {salePrice && salePrice < price ? (
                   <>
                     <span className="font-bold text-gray-900 dark:text-white">
-                      KSh {discountPrice.toLocaleString()}
+                      KES {salePrice.toLocaleString()}
                     </span>
                     <span className="ml-2 text-sm text-gray-500 dark:text-gray-400 line-through">
-                      KSh {price.toLocaleString()}
+                      KES {price.toLocaleString()}
                     </span>
                   </>
                 ) : (
                   <span className="font-bold text-gray-900 dark:text-white">
-                    KSh {price.toLocaleString()}
+                    KES {price.toLocaleString()}
                   </span>
                 )}
               </div>
@@ -183,9 +184,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   }`}
                   aria-label={isProductInWishlist ? "Remove from wishlist" : "Add to wishlist"}
                 >
-                  <FiHeart className={`${
-                    isProductInWishlist ? 'text-white fill-current' : 'text-gray-600 dark:text-gray-300'
-                  }`} />
+                  {isProductInWishlist ? (
+                    <FaHeart className="text-white" />
+                  ) : (
+                    <FaRegHeart className="text-gray-600 dark:text-gray-300" />
+                  )}
                 </button>
                 <button 
                   onClick={handleAddToCart}
@@ -205,17 +208,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
   
   // Default Grid View
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+    <div className={`group relative bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg ${className}`} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       {/* Product Image */}
-      <div className="relative h-48 bg-gray-200 dark:bg-gray-700">
-        <Link href={`/product/${id}`}>
+      <div className="relative aspect-square bg-gray-200 dark:bg-gray-700">
+        <Link href={`/product/${_id}`}>
           <div className="w-full h-full relative">
-            {mainImage ? (
-              <OptimizedImage
-                src={mainImage}
+            {images && images.length > 0 ? (
+              <Image
+                src={images[0].url || "/images/placeholder.png"}
                 alt={name}
-                fill
-                className="object-cover"
+                width={500}
+                height={500}
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700">
@@ -233,7 +238,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
         
         {/* Action Buttons */}
-        <div className="absolute bottom-2 right-2 flex space-x-1">
+        <div className="absolute top-2 right-2 flex space-x-1">
           <button 
             onClick={handleWishlistToggle}
             disabled={isWishlistLoading}
@@ -244,70 +249,67 @@ const ProductCard: React.FC<ProductCardProps> = ({
             }`}
             aria-label={isProductInWishlist ? "Remove from wishlist" : "Add to wishlist"}
           >
-            <FiHeart className={`${
-              isProductInWishlist ? 'text-white fill-current' : 'text-gray-600 dark:text-gray-300'
-            }`} />
-          </button>
-          <button 
-            onClick={handleAddToCart}
-            disabled={isCartLoading}
-            className="bg-orange-600 p-2 rounded-full shadow-md hover:bg-orange-700 transition-colors"
-            aria-label="Add to cart"
-          >
-            <FiShoppingCart className="text-white" />
+            {isProductInWishlist ? (
+              <FaHeart className="text-white" />
+            ) : (
+              <FaRegHeart className="text-gray-600 dark:text-gray-300" />
+            )}
           </button>
         </div>
       </div>
       
       {/* Product Info */}
       <div className="p-4">
-        <Link href={`/product/${id}`}>
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-1 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
-            {name.length > 40 ? `${name.substring(0, 40)}...` : name}
+        <Link href={`/product/${_id}`}>
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-1 hover:text-orange-500 dark:hover:text-orange-400 transition-colors line-clamp-2">
+            {name}
           </h3>
         </Link>
         
-        {/* Merchant - We'll add this when we have merchant data */}
-        <Link href={`/shop/${merchantId}`}>
+        <Link href={`/shop/${merchant._id}`}>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
-            {/* Merchant name would go here */}
-            {merchantId}
+            {merchant.name}
           </p>
         </Link>
         
-        {/* Rating */}
-        {rating && (
-          <div className="flex items-center mb-2">
-            <div className="flex items-center text-yellow-400">
-              <FiStar className={`${rating >= 1 ? 'fill-current' : ''}`} />
-              <FiStar className={`${rating >= 2 ? 'fill-current' : ''}`} />
-              <FiStar className={`${rating >= 3 ? 'fill-current' : ''}`} />
-              <FiStar className={`${rating >= 4 ? 'fill-current' : ''}`} />
-              <FiStar className={`${rating >= 5 ? 'fill-current' : ''}`} />
-            </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-              ({reviewCount || 0})
-            </span>
+        <div className="flex items-center justify-between">
+          <div>
+            {salePrice && salePrice < price ? (
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-semibold text-orange-600">
+                  KES {salePrice.toLocaleString()}
+                </span>
+                <span className="text-sm text-gray-500 line-through">
+                  KES {price.toLocaleString()}
+                </span>
+              </div>
+            ) : (
+              <span className="text-lg font-semibold text-orange-600">
+                KES {price.toLocaleString()}
+              </span>
+            )}
           </div>
-        )}
-        
-        {/* Price */}
-        <div className="flex items-center">
-          {discountPrice && discountPrice < price ? (
-            <>
-              <span className="font-bold text-gray-900 dark:text-white">
-                KSh {discountPrice.toLocaleString()}
+          
+          {rating && (
+            <div className="flex items-center gap-1">
+              <span className="text-yellow-400">★</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {rating.toFixed(1)}
               </span>
-              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400 line-through">
-                KSh {price.toLocaleString()}
-              </span>
-            </>
-          ) : (
-            <span className="font-bold text-gray-900 dark:text-white">
-              KSh {price.toLocaleString()}
-            </span>
+            </div>
           )}
         </div>
+        
+        {/* Add to Cart Button */}
+        <button
+          onClick={handleAddToCart}
+          disabled={isCartLoading}
+          className={`w-full mt-3 bg-orange-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-orange-700 transition-colors ${
+            isHovered ? 'opacity-100' : 'opacity-0 md:opacity-100'
+          }`}
+        >
+          Add to Cart
+        </button>
       </div>
     </div>
   );

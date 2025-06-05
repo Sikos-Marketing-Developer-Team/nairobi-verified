@@ -6,14 +6,22 @@ export interface ApiResponse<T> {
 }
 
 export interface User {
-  id: string;
-  fullName: string;
+  _id: string;
+  name: string;
   email: string;
-  phone?: string;
   role: 'client' | 'merchant' | 'admin';
-  companyName?: string;
-  location?: string;
-  isEmailVerified?: boolean;
+  avatar?: string;
+  phone?: string;
+  addresses?: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    zipCode: string;
+    isDefault: boolean;
+  }[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LoginCredentials {
@@ -39,56 +47,67 @@ export interface AuthResponse {
 
 export interface Product {
   _id: string;
-  id?: string;
   name: string;
+  description: string;
   price: number;
-  discountPrice?: number | null;
-  images: string[] | { url: string; isMain: boolean }[];
+  salePrice?: number;
+  images: string[];
   category: string;
-  merchantId: string;
-  rating: number;
-  reviewCount: number;
-  isNew?: boolean;
-  isFeatured?: boolean;
-  isFlashSale?: boolean;
-  description?: string;
-  // Additional fields that might be present in the API response
-  ratings?: { average: number; count: number };
-  merchant?: { _id: string; companyName: string; isVerified: boolean };
+  merchant: {
+    _id: string;
+    name: string;
+    logo?: string;
+  };
+  stock: number;
+  rating?: number;
+  reviews?: number;
+  tags?: string[];
+  specifications?: Record<string, string>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Category {
   _id: string;
-  id: string;
   name: string;
   slug: string;
   description?: string;
   image?: string;
-  isFeatured?: boolean;
+  parent?: string;
+  children?: Category[];
 }
 
 export interface Merchant {
   _id: string;
-  id?: string;
-  companyName: string;
-  businessType: string;
-  location: string;
-  coverImage?: string;
+  name: string;
+  description: string;
   logo?: string;
-  description?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  website?: string;
+  coverImage?: string;
+  email: string;
+  phone: string;
+  address: string;
+  location?: {
+    type: string;
+    coordinates: [number, number];
+  };
+  categories: string[];
+  rating?: number;
+  reviews?: number;
+  isVerified: boolean;
+  openingHours?: {
+    [key: string]: {
+      open: string;
+      close: string;
+    };
+  };
   socialMedia?: {
     facebook?: string;
     twitter?: string;
     instagram?: string;
-    linkedin?: string;
+    website?: string;
   };
-  rating?: number;
-  reviewCount?: number;
-  isVerified?: boolean;
-  isFeatured?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CartItem {
@@ -106,6 +125,31 @@ export interface Cart {
   items: CartItem[];
   totalItems: number;
   subtotal: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Order {
+  _id: string;
+  user: string;
+  merchant: string;
+  items: {
+    product: string;
+    quantity: number;
+    price: number;
+  }[];
+  total: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  shippingAddress: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    zipCode: string;
+  };
+  paymentMethod: string;
+  paymentStatus: 'pending' | 'paid' | 'failed';
+  trackingNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
