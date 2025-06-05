@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Navbar from '@/components/layout/Navbar';
+import Navbar from '@/components/Navbar';
 import { 
   FiUser, FiShoppingBag, FiHeart, FiMapPin, FiCreditCard, 
   FiLogOut, FiPlus, FiEdit, FiTrash2, FiCheck, FiX
