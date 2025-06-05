@@ -2,7 +2,7 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-hot-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nairobi-verified-backend.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -100,8 +100,12 @@ export const apiService = {
     login: (email: string, password: string, rememberMe: boolean = false) =>
       api.post('/auth/login', { email, password, rememberMe }),
     
-    register: (userData: any) =>
-      api.post('/auth/register', userData),
+    register: (userData: any) => {
+      const endpoint = userData.role === 'merchant' 
+        ? '/auth/register/merchant' 
+        : '/auth/register/client';
+      return api.post(endpoint, userData);
+    },
     
     forgotPassword: (email: string) =>
       api.post('/auth/forgot-password', { email }),
@@ -123,6 +127,42 @@ export const apiService = {
     
     verifyEmail: (token: string) =>
       api.get(`/auth/verify-email/${token}`),
+    
+    resendVerificationEmail: (email: string) =>
+      api.post('/auth/resend-verification', { email }),
+  },
+  
+  // User endpoints
+  user: {
+    getProfile: () => 
+      api.get('/user/profile'),
+    
+    updateProfile: (data: any) => 
+      api.put('/user/profile', data),
+    
+    changePassword: (currentPassword: string, newPassword: string) => 
+      api.post('/user/change-password', { currentPassword, newPassword }),
+    
+    getAddresses: () => 
+      api.get('/user/addresses'),
+    
+    addAddress: (address: any) => 
+      api.post('/user/addresses', address),
+    
+    updateAddress: (addressId: string, address: any) => 
+      api.put(`/user/addresses/${addressId}`, address),
+    
+    deleteAddress: (addressId: string) => 
+      api.delete(`/user/addresses/${addressId}`),
+    
+    getNotifications: () => 
+      api.get('/user/notifications'),
+    
+    markNotificationRead: (notificationId: string) => 
+      api.put(`/user/notifications/${notificationId}/read`),
+    
+    deleteNotification: (notificationId: string) => 
+      api.delete(`/user/notifications/${notificationId}`),
   },
 
   // Product endpoints
@@ -208,5 +248,29 @@ export const apiService = {
       api.delete(`/media/${id}`),
     get: (id: string) =>
       api.get(`/media/${id}`),
+  },
+  
+  // Checkout endpoints
+  checkout: {
+    getPaymentMethods: () => 
+      api.get('/checkout/payment-methods'),
+    
+    addPaymentMethod: (data: any) => 
+      api.post('/checkout/payment-methods', data),
+    
+    deletePaymentMethod: (id: string) => 
+      api.delete(`/checkout/payment-methods/${id}`),
+    
+    createCheckoutSession: (data: any) => 
+      api.post('/checkout/create-session', data),
+    
+    getOrderSummary: (cartId: string) => 
+      api.get(`/checkout/order-summary/${cartId}`),
+    
+    processPayment: (data: any) => 
+      api.post('/checkout/process-payment', data),
+    
+    verifyPayment: (paymentId: string) => 
+      api.get(`/checkout/verify-payment/${paymentId}`),
   },
 };

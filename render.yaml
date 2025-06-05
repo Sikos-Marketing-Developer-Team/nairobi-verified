@@ -1,7 +1,7 @@
 services:
   # Backend service
   - type: web
-    name: nairobi-verified-api
+    name: nairobi-verified-backend
     env: node
     buildCommand: cd backend && npm install && npm run build
     startCommand: cd backend && npm start
@@ -19,14 +19,16 @@ services:
       - key: CLOUDINARY_API_SECRET
         sync: false
       - key: FRONTEND_URL
-        value: https://nairobi-verified.onrender.com
+        value: https://nairobi-verified-frontend.onrender.com
 
   # Frontend service
   - type: web
-    name: nairobi-verified
+    name: nairobi-verified-frontend
     env: node
     buildCommand: cd frontend && npm install && npm run build
     startCommand: cd frontend && npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://nairobi-verified-api.onrender.com/api 
+        value: https://nairobi-verified-backend.onrender.com/api
+      - key: NODE_ENV
+        value: production

@@ -1,7 +1,6 @@
 "use client";
 import MainLayout from "@/components/MainLayout";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import LazyLoad from "@/components/LazyLoad";
 import { FiMapPin, FiShoppingBag, FiUsers, FiStar, FiShield, FiTruck, FiClock, FiHeart } from "react-icons/fi";
 import { FaSearch, FaMapMarkerAlt, FaStore, FaShoppingCart, FaRegCreditCard } from "react-icons/fa";
 import Image from "next/image";
@@ -38,18 +37,31 @@ export default function Home() {
       />
       {/* Hero Section with Background Image */}
       <section className="relative bg-gradient-to-r from-orange-600 to-orange-500 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black opacity-50 z-0"></div>
+        {/* Background overlay */}
+        <div className="absolute inset-0 bg-black opacity-40 z-0"></div>
+        
+        {/* Background image */}
         <div className="absolute inset-0 bg-[url('/images/nairobi-skyline.jpg')] bg-cover bg-center mix-blend-overlay"></div>
         
         {/* Animated gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-orange-600/30 to-orange-500/30 animate-pulse z-0"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-600/40 to-orange-500/30 z-0"></div>
+        
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 opacity-10">
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full"></div>
+          <div className="absolute top-1/4 right-0 w-64 h-64 bg-white rounded-full transform translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-white rounded-full transform translate-y-1/2"></div>
+        </div>
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-24 md:py-32 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 md:pr-12 mb-10 md:mb-0">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-shadow">
-              Discover Verified Vendors in Nairobi CBD
+            <div className="inline-block px-4 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-semibold mb-6 animate-pulse">
+              Trusted Marketplace in Nairobi
+            </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+              Discover <span className="text-yellow-300">Verified Vendors</span> in Nairobi CBD
             </h1>
-            <p className="text-lg md:text-xl mb-8 text-white max-w-xl">
+            <p className="text-lg md:text-xl mb-8 text-white/90 max-w-xl leading-relaxed">
               Shop with confidence from trusted local businesses with easy navigation to physical stores.
             </p>
             
@@ -58,15 +70,29 @@ export default function Home() {
                 <FiShoppingBag className="mr-2" />
                 Shop Now
               </Link>
-              <Link href="/auth/register/merchant" className="bg-black bg-opacity-60 text-white border border-white py-3 px-8 rounded-lg hover:bg-black hover:bg-opacity-80 transition-all duration-300 font-medium flex items-center justify-center shadow-lg hover:shadow-xl">
+              <Link href="/auth/register/merchant" className="bg-black/40 backdrop-blur-sm text-white border border-white/30 py-3 px-8 rounded-lg hover:bg-black/60 transition-all duration-300 font-medium flex items-center justify-center shadow-lg hover:shadow-xl">
                 <FaStore className="mr-2" />
                 Become a Vendor
               </Link>
             </div>
+            
+            <div className="mt-10 flex items-center">
+              <div className="flex -space-x-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-orange-200 flex items-center justify-center text-orange-800 text-xs font-bold">
+                    {String.fromCharCode(64 + i)}
+                  </div>
+                ))}
+              </div>
+              <div className="ml-4">
+                <p className="text-sm text-white/80">Trusted by</p>
+                <p className="font-bold text-white">5,000+ Shoppers</p>
+              </div>
+            </div>
           </div>
           
           <div className="md:w-1/2 relative">
-            <div className="bg-white p-6 rounded-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
+            <div className="bg-white/95 backdrop-blur-sm p-6 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
               <h3 className="text-gray-800 font-bold text-xl mb-4">Find What You Need</h3>
               <div className="relative mb-4">
                 <input 
@@ -96,6 +122,18 @@ export default function Home() {
                 <FaSearch className="mr-2" />
                 Search Now
               </Link>
+              
+              {/* Popular searches */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-sm text-gray-500 mb-2">Popular searches:</p>
+                <div className="flex flex-wrap gap-2">
+                  {['Electronics', 'Fashion', 'Home', 'Beauty'].map((tag) => (
+                    <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full hover:bg-orange-100 hover:text-orange-600 cursor-pointer transition-colors">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
             
             <div className="absolute -bottom-4 -right-4 bg-orange-100 p-4 rounded-lg shadow-md hidden md:block transform hover:scale-105 transition-transform duration-300">
@@ -104,8 +142,8 @@ export default function Home() {
                   <FiStar className="text-white w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-gray-800 font-medium">Trusted by</p>
-                  <p className="text-orange-600 font-bold">5,000+ Shoppers</p>
+                  <p className="text-gray-800 font-medium">Verified</p>
+                  <p className="text-orange-600 font-bold">Businesses</p>
                 </div>
               </div>
             </div>
