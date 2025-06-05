@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -13,13 +15,21 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   webpack: (config) => {
+    // 🔥 Add alias config here
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      '@': path.resolve(__dirname, 'src'),
+    };
+
+    // Preserve fallback (if needed)
     config.resolve.fallback = {
+      ...config.resolve.fallback,
       fs: false,
       path: false,
     };
+
     return config;
   },
-  // Enable optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
