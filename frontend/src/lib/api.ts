@@ -163,6 +163,9 @@ export const apiService = {
     
     deleteNotification: (notificationId: string) => 
       api.delete(`/user/notifications/${notificationId}`),
+    
+    setDefaultAddress: (addressId: string) =>
+      api.put(`/user/addresses/${addressId}/set-default`),
   },
 
   // Product endpoints
@@ -273,4 +276,14 @@ export const apiService = {
     verifyPayment: (paymentId: string) => 
       api.get(`/checkout/verify-payment/${paymentId}`),
   },
+
+  // Order endpoints
+  orders: {
+    getAll: () => api.get('/orders'),
+    getById: (id: string) => api.get(`/orders/${id}`),
+    create: (orderData: any) => api.post('/orders', orderData),
+    cancel: (id: string) => api.post(`/orders/${id}/cancel`),
+  },
 };
+
+export default apiService;

@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
+import Navbar from '@/components/layout/Navbar';
+import { apiService } from '@/lib/api';
 import { 
   FiArrowLeft, FiUser, FiMail, FiPhone, FiCamera, FiCheck, FiLock
 } from 'react-icons/fi';
