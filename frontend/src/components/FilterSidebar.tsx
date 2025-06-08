@@ -125,16 +125,16 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         ) : (
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {categories.map((category) => (
-              <div key={category.id} className="flex items-center">
+              <div key={category._id} className="flex items-center">
                 <input
                   type="checkbox"
-                  id={`category-${category.id}`}
-                  checked={selectedCategories.includes(category.id)}
-                  onChange={(e) => onCategoryChange(category.id, e.target.checked)}
+                  id={`category-${category._id}`}
+                  checked={selectedCategories.includes(category._id)}
+                  onChange={(e) => onCategoryChange(category._id, e.target.checked)}
                   className="h-4 w-4 text-orange-500 focus:ring-orange-400 border-gray-300 rounded"
                 />
                 <label
-                  htmlFor={`category-${category.id}`}
+                  htmlFor={`category-${category._id}`}
                   className="ml-2 text-sm text-gray-700 dark:text-gray-300"
                 >
                   {category.name}
