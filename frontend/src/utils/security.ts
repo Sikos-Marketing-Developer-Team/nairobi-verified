@@ -21,15 +21,18 @@ export const validatePassword = (password: string): boolean => {
 };
 
 /**
- * Checks if a user has a specific permission
- * @param user The user object
- * @param permission The permission to check
- * @returns True if the user has the permission, false otherwise
+ * Checks if a user has a specific role
+ * @param userRole The user's role
+ * @param requiredRoles The roles to check against
+ * @returns True if the user has one of the required roles, false otherwise
  */
-export const hasPermission = (user: any, permission: string): boolean => {
-  if (!user || !user.permissions) {
+export const hasPermission = (userRole: string, requiredRoles: string | string[]): boolean => {
+  if (!userRole) {
     return false;
   }
   
-  return user.permissions.includes(permission);
+  // If requiredRoles is a string, convert it to an array
+  const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+  
+  return roles.includes(userRole);
 };

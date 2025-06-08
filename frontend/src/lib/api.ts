@@ -171,8 +171,8 @@ export const apiService = {
     setDefaultAddress: (addressId: string) =>
       api.put(`/user/addresses/${addressId}/set-default`),
       
-    getOrders: () =>
-      api.get('/user/orders'),
+    getOrders: (params?: any) =>
+      api.get('/user/orders', { params }),
       
     getOrderById: (orderId: string) =>
       api.get(`/user/orders/${orderId}`),
@@ -268,9 +268,12 @@ export const apiService = {
 
   // Media endpoints
   media: {
-    upload: (file: File) => {
+    upload: (file: File, folder?: string) => {
       const formData = new FormData();
       formData.append('file', file);
+      if (folder) {
+        formData.append('folder', folder);
+      }
       return api.post('/media/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',

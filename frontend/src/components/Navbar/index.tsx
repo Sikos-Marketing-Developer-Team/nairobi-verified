@@ -10,8 +10,8 @@ import { useWishlist } from '@/hooks/useWishlist';
 const Navbar = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { cart } = useCart();
-  const { wishlist } = useWishlist();
+  const { items: cart, getItemCount } = useCart();
+  const { items: wishlist } = useWishlist();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -110,9 +110,9 @@ const Navbar = () => {
 
             <Link href="/cart" className="text-gray-600 hover:text-orange-500 p-2 relative">
               <FiShoppingCart className="h-5 w-5" />
-              {cart.length > 0 && (
+              {getItemCount() > 0 && (
                 <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cart.length}
+                  {getItemCount()}
                 </span>
               )}
             </Link>

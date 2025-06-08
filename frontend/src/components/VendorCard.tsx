@@ -14,7 +14,7 @@ export default function VendorCard({ merchant }: VendorCardProps) {
         {merchant.coverImage ? (
           <Image
             src={merchant.coverImage}
-            alt={merchant.companyName}
+            alt={merchant.name}
             fill
             className="object-cover"
             sizes="(max-width: 256px) 100vw, 256px"
@@ -26,9 +26,9 @@ export default function VendorCard({ merchant }: VendorCardProps) {
         )}
       </div>
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-900 truncate">{merchant.companyName}</h3>
-        <p className="text-sm text-gray-600 mt-1">{merchant.businessType}</p>
-        <p className="text-sm text-gray-500 mt-1 truncate">{merchant.location}</p>
+        <h3 className="text-lg font-semibold text-gray-900 truncate">{merchant.name}</h3>
+        <p className="text-sm text-gray-600 mt-1">{merchant.categories.join(', ')}</p>
+        <p className="text-sm text-gray-500 mt-1 truncate">{merchant.address}</p>
       </div>
     </div>
   );
