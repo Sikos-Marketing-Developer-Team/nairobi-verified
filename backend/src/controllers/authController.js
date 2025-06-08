@@ -1,7 +1,10 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const User = require('../models/User');
+const ActivityLog = require('../models/ActivityLog');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/emailService');
+const { sendPasswordResetNotificationEmail } = require('../services/emailService');
+const { validatePasswordStrength } = require('../utils/auth');
 const { validationResult } = require('express-validator');
 
 const registerClient = async (req, res) => {
@@ -119,39 +122,124 @@ const registerMerchant = async (req, res) => {
 
 const login = async (req, res) => {
   console.log('login: Request received:', req.body);
-  const { email, password } = req.body;
+  const { email, password, rememberMe } = req.body;
 
   try {
     const user = await User.findOne({ email });
     if (!user) {
       console.log('login: User not found:', email);
+      
+      // Log failed login attempt
+      await ActivityLog.logSystemActivity('login_failed', {
+        email,
+        reason: 'user_not_found',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
       return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if account is locked
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      console.log('login: Account locked:', email);
+      return res.status(403).json({ 
+        message: 'Account is temporarily locked due to too many failed attempts. Please try again later.' 
+      });
+    }
+
+    // Check if account is suspended
+    if (user.status === 'suspended') {
+      console.log('login: Account suspended:', email);
+      return res.status(403).json({ message: 'Your account has been suspended. Please contact support.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       console.log('login: Password mismatch:', email);
+      
+      // Increment login attempts
+      user.loginAttempts = (user.loginAttempts || 0) + 1;
+      
+      // Lock account after 5 failed attempts
+      if (user.loginAttempts >= 5) {
+        user.lockUntil = Date.now() + 30 * 60 * 1000; // Lock for 30 minutes
+        console.log('login: Account locked due to too many failed attempts:', email);
+      }
+      
+      await user.save();
+      
+      // Log failed login attempt
+      await ActivityLog.logUserActivity(
+        user._id,
+        'login_failed',
+        { 
+          reason: 'invalid_password',
+          attempts: user.loginAttempts,
+          locked: !!user.lockUntil
+        },
+        req
+      );
+      
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    if (!user.isEmailVerified) {
+    // Reset login attempts on successful login
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
+    user.lastLogin = new Date();
+    
+    // Update metadata
+    if (!user.metadata) user.metadata = {};
+    user.metadata.lastActivity = new Date();
+    user.metadata.ipAddress = req.ip;
+    user.metadata.userAgent = req.headers['user-agent'];
+    
+    await user.save();
+
+    if (!user.isEmailVerified && user.metadata?.registrationSource !== 'admin_import') {
       console.log('login: Email not verified:', email);
       return res.status(403).json({ message: 'Please verify your email' });
     }
 
+    // Create session with user data
     req.session.user = {
       id: user._id,
       fullName: user.fullName,
       email: user.email,
       phone: user.phone || '',
       role: user.role,
-      companyName: user.companyName
+      companyName: user.companyName,
+      requirePasswordChange: user.requirePasswordChange
     };
+    
+    // Set session expiration based on rememberMe
+    if (rememberMe) {
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      user.rememberMe = true;
+    } else {
+      req.session.cookie.expires = false; // Session cookie
+      user.rememberMe = false;
+    }
+    
+    await user.save();
     console.log('login: Session set:', req.session.user);
+
+    // Log successful login
+    await ActivityLog.logUserActivity(
+      user._id,
+      'login_successful',
+      { 
+        rememberMe: !!rememberMe,
+        requirePasswordChange: user.requirePasswordChange
+      },
+      req
+    );
 
     res.json({
       message: 'Login successful',
-      user: req.session.user
+      user: req.session.user,
+      requirePasswordChange: user.requirePasswordChange
     });
   } catch (error) {
     console.error('login: Error:', error);
@@ -314,6 +402,82 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
+// Change password endpoint for first login and regular password changes
+const changePassword = async (req, res) => {
+  console.log('changePassword: Request received');
+  const { currentPassword, newPassword } = req.body;
+  const userId = req.session.user?.id;
+
+  if (!userId) {
+    console.log('changePassword: No authenticated user');
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log('changePassword: User not found:', userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Validate current password (skip for admin-imported users on first login)
+    if (!user.requirePasswordChange) {
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        console.log('changePassword: Current password mismatch');
+        
+        // Log failed attempt
+        await ActivityLog.logUserActivity(
+          user._id,
+          'password_change_failed',
+          { reason: 'incorrect_current_password' },
+          req
+        );
+        
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+    }
+
+    // Validate new password strength
+    const passwordValidation = validatePasswordStrength(newPassword);
+    if (!passwordValidation.isValid) {
+      console.log('changePassword: Password strength validation failed');
+      return res.status(400).json({ message: passwordValidation.message });
+    }
+
+    // Update password
+    await user.updatePassword(newPassword);
+    console.log('changePassword: Password updated for user:', user.email);
+
+    // Log the password change
+    await ActivityLog.logUserActivity(
+      user._id,
+      'password_changed',
+      { 
+        wasFirstLogin: user.requirePasswordChange,
+        source: user.requirePasswordChange ? 'first_login' : 'user_initiated'
+      },
+      req
+    );
+
+    // If this was a first login password change, update the session
+    if (user.requirePasswordChange) {
+      req.session.user = {
+        ...req.session.user,
+        requirePasswordChange: false
+      };
+    }
+
+    res.json({ 
+      message: 'Password changed successfully',
+      requirePasswordChange: false
+    });
+  } catch (error) {
+    console.error('changePassword: Error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   registerClient,
   registerMerchant,
@@ -324,5 +488,6 @@ module.exports = {
   requestPasswordReset,
   resetPassword,
   logout,
-  getCurrentUser
+  getCurrentUser,
+  changePassword
 };

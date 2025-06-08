@@ -25,7 +25,9 @@ import {
   FaFileAlt,
   FaClipboardList,
   FaUserShield,
-  FaHome
+  FaHome,
+  FaUpload,
+  FaBuilding
 } from "react-icons/fa";
 import { apiService } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -122,6 +124,13 @@ export default function AdminLayout({ children, notificationCount = 0 }: AdminLa
           icon: <FaStore className="w-5 h-5" />,
           badge: 3,
           badgeColor: "bg-yellow-500"
+        },
+        { 
+          name: "Import Businesses", 
+          href: "/admin/businesses/import", 
+          icon: <FaUpload className="w-5 h-5" />,
+          badge: "New",
+          badgeColor: "bg-green-500"
         },
         { 
           name: "Products", 

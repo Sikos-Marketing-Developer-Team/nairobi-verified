@@ -4,8 +4,10 @@ const Order = require('../models/Order');
 const VendorSubscription = require('../models/VendorSubscription');
 const PaymentTransaction = require('../models/PaymentTransaction');
 const Business = require("../models/Business");
-const { generatePassword } = require("../utils/auth");
-const { sendWelcomeEmail } = require("../services/emailService");
+const ActivityLog = require("../models/ActivityLog");
+const { generatePassword, validatePasswordStrength } = require("../utils/auth");
+const { sendWelcomeEmail, sendPasswordResetNotificationEmail } = require("../services/emailService");
+const mongoose = require('mongoose');
 
 // Get dashboard statistics
 const getDashboardStats = async (req, res) => {
@@ -1238,80 +1240,223 @@ const saveLayoutChanges = async (req, res) => {
 
 exports.bulkImportBusinesses = async (req, res) => {
   try {
-    const { businesses } = req.body;
+    // Check if file is provided
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No CSV file provided",
+      });
+    }
+    
+    // Parse CSV file to get businesses array
+    const csvData = req.file.buffer.toString('utf8');
+    const businesses = await parseCSVToBusinesses(csvData);
+    
+    const MAX_BATCH_SIZE = 50; // Limit batch size for performance
 
     if (!Array.isArray(businesses) || businesses.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "No businesses provided",
+        message: "No businesses found in the CSV file or invalid format",
       });
     }
 
-    const results = await Promise.all(
-      businesses.map(async (businessData) => {
-        try {
-          // Generate a temporary password
-          const tempPassword = generatePassword();
+    if (businesses.length > MAX_BATCH_SIZE) {
+      return res.status(400).json({
+        success: false,
+        message: `Maximum batch size exceeded. Please limit to ${MAX_BATCH_SIZE} businesses per import.`,
+      });
+    }
 
-          // Create user account
-          const user = await User.create({
-            name: businessData.name,
-            email: businessData.email,
-            password: tempPassword,
-            role: "merchant",
-            phone: businessData.phone,
-            location: businessData.address,
-          });
+    // Validate all businesses before processing
+    const validationErrors = [];
+    for (let i = 0; i < businesses.length; i++) {
+      const business = businesses[i];
+      
+      // Check required fields
+      const requiredFields = ['name', 'email', 'phone', 'address', 'category', 'description', 'openingHours'];
+      const missingFields = requiredFields.filter(field => !business[field]);
+      
+      if (missingFields.length > 0) {
+        validationErrors.push({
+          index: i,
+          business: {
+            name: business.name || 'Unknown',
+            email: business.email || 'Unknown',
+          },
+          error: `Missing required fields: ${missingFields.join(', ')}`
+        });
+        continue;
+      }
+      
+      // Validate email format
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(business.email)) {
+        validationErrors.push({
+          index: i,
+          business: {
+            name: business.name,
+            email: business.email,
+          },
+          error: 'Invalid email format'
+        });
+        continue;
+      }
+      
+      // Validate phone format (basic validation)
+      if (!/^\+?[0-9\s-]{10,15}$/.test(business.phone.replace(/\s/g, ''))) {
+        validationErrors.push({
+          index: i,
+          business: {
+            name: business.name,
+            email: business.email,
+          },
+          error: 'Invalid phone format'
+        });
+      }
+    }
+    
+    // If validation errors exist, return them without processing
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation errors found in import data",
+        errors: validationErrors
+      });
+    }
 
-          // Create business profile
-          const business = await Business.create({
-            userId: user._id,
-            name: businessData.name,
-            email: businessData.email,
-            phone: businessData.phone,
-            address: businessData.address,
-            category: businessData.category,
-            description: businessData.description,
-            openingHours: businessData.openingHours,
-            website: businessData.website,
-            socialMedia: businessData.socialMedia,
-            status: "pending",
-          });
+    // Process businesses in smaller batches
+    const BATCH_SIZE = 10;
+    const allResults = [];
+    
+    for (let i = 0; i < businesses.length; i += BATCH_SIZE) {
+      const batch = businesses.slice(i, i + BATCH_SIZE);
+      
+      // Process each batch
+      const batchResults = await Promise.all(
+        batch.map(async (businessData) => {
+          try {
+            // Check for existing user with same email
+            const existingUser = await User.findOne({ email: businessData.email });
+            if (existingUser) {
+              return {
+                success: false,
+                error: "Email already exists in the system",
+                business: {
+                  name: businessData.name,
+                  email: businessData.email,
+                },
+              };
+            }
+            
+            // Generate a temporary password
+            const tempPassword = generatePassword();
 
-          // Send welcome email with credentials
-          await sendWelcomeEmail({
-            email: user.email,
-            name: user.name,
-            password: tempPassword,
-          });
+            // Create user account with proper fields
+            const user = await User.create({
+              fullName: businessData.name,
+              email: businessData.email,
+              password: tempPassword,
+              role: "merchant",
+              phone: businessData.phone,
+              location: businessData.address,
+              companyName: businessData.name,
+              requirePasswordChange: true, // Force password change on first login
+              metadata: {
+                registrationSource: 'admin_import',
+                ipAddress: req.ip,
+                userAgent: req.headers['user-agent'],
+                lastActivity: new Date()
+              }
+            });
 
-          return {
-            success: true,
-            business: {
-              id: business._id,
-              name: business.name,
-              email: business.email,
-            },
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: error.message,
-            business: {
+            // Create business profile
+            const business = await Business.create({
+              userId: user._id,
               name: businessData.name,
               email: businessData.email,
-            },
-          };
-        }
-      })
-    );
+              phone: businessData.phone,
+              address: businessData.address,
+              category: businessData.category,
+              description: businessData.description,
+              openingHours: businessData.openingHours,
+              website: businessData.website || '',
+              socialMedia: businessData.socialMedia || {},
+              status: "pending",
+              verificationStatus: "unverified",
+              metadata: {
+                lastActive: new Date()
+              }
+            });
 
-    const successful = results.filter((r) => r.success);
-    const failed = results.filter((r) => !r.success);
+            // Send welcome email with credentials
+            await sendWelcomeEmail({
+              email: user.email,
+              name: user.fullName,
+              password: tempPassword,
+            });
+
+            // Log the import activity
+            await ActivityLog.create({
+              userId: req.user._id,
+              action: 'business_import',
+              details: {
+                businessId: business._id,
+                businessName: business.name,
+                businessEmail: business.email
+              },
+              ipAddress: req.ip,
+              userAgent: req.headers['user-agent']
+            });
+
+            return {
+              success: true,
+              business: {
+                id: business._id,
+                name: business.name,
+                email: business.email,
+              },
+            };
+          } catch (error) {
+            console.error(`Error importing business ${businessData.name}:`, error);
+            return {
+              success: false,
+              error: error.message,
+              business: {
+                name: businessData.name,
+                email: businessData.email,
+              },
+            };
+          }
+        })
+      );
+      
+      allResults.push(...batchResults);
+      
+      // Add a small delay between batches to prevent overwhelming the server
+      if (i + BATCH_SIZE < businesses.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    const successful = allResults.filter((r) => r.success);
+    const failed = allResults.filter((r) => !r.success);
+
+    // Log the overall import activity
+    await ActivityLog.create({
+      userId: req.user._id,
+      action: 'bulk_import_completed',
+      details: {
+        totalBusinesses: businesses.length,
+        successCount: successful.length,
+        failureCount: failed.length
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     res.status(200).json({
       success: true,
-      message: `Imported ${successful.length} businesses successfully`,
+      message: `Imported ${successful.length} businesses successfully. Failed: ${failed.length}`,
       results: {
         successful,
         failed,
@@ -1319,12 +1464,78 @@ exports.bulkImportBusinesses = async (req, res) => {
     });
   } catch (error) {
     console.error("Bulk import error:", error);
+    
+    // Log the error
+    await ActivityLog.create({
+      userId: req.user?._id,
+      action: 'bulk_import_error',
+      details: {
+        error: error.message
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+    
     res.status(500).json({
       success: false,
       message: "Error importing businesses",
       error: error.message,
     });
   }
+};
+
+// Helper function to parse CSV data to businesses array
+const parseCSVToBusinesses = async (csvData) => {
+  // Split by lines and get headers
+  const lines = csvData.split('\n');
+  if (lines.length < 2) return [];
+  
+  const headers = lines[0].split(',').map(header => header.trim());
+  
+  // Map required fields to CSV headers
+  const fieldMap = {
+    name: headers.indexOf('name') !== -1 ? 'name' : 'business_name',
+    email: headers.indexOf('email') !== -1 ? 'email' : 'business_email',
+    phone: headers.indexOf('phone') !== -1 ? 'phone' : 'phone_number',
+    address: headers.indexOf('address') !== -1 ? 'address' : 'location',
+    category: headers.indexOf('category') !== -1 ? 'category' : 'business_category',
+    description: headers.indexOf('description') !== -1 ? 'description' : 'business_description',
+    openingHours: headers.indexOf('openingHours') !== -1 ? 'openingHours' : 'opening_hours',
+    website: headers.indexOf('website') !== -1 ? 'website' : 'business_website',
+  };
+  
+  // Check if all required fields are present
+  const requiredFields = ['name', 'email', 'phone', 'address', 'category', 'description', 'openingHours'];
+  const missingFields = requiredFields.filter(field => 
+    headers.indexOf(field) === -1 && headers.indexOf(fieldMap[field]) === -1
+  );
+  
+  if (missingFields.length > 0) {
+    throw new Error(`CSV is missing required columns: ${missingFields.join(', ')}`);
+  }
+  
+  // Parse businesses from CSV
+  const businesses = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue; // Skip empty lines
+    
+    const values = lines[i].split(',').map(value => value.trim());
+    if (values.length !== headers.length) continue; // Skip malformed lines
+    
+    const business = {};
+    headers.forEach((header, index) => {
+      // Map to the correct field name
+      const fieldName = Object.keys(fieldMap).find(key => 
+        fieldMap[key] === header || key === header
+      ) || header;
+      
+      business[fieldName] = values[index];
+    });
+    
+    businesses.push(business);
+  }
+  
+  return businesses;
 };
 
 module.exports = {

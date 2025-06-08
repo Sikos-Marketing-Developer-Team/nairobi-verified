@@ -45,7 +45,7 @@ export default function BusinessImport() {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/admin/business/import', {
+      const response = await fetch('/api/admin/businesses/bulk-import', {
         method: 'POST',
         body: formData,
       });

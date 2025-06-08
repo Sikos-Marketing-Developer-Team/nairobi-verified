@@ -129,12 +129,12 @@ const center = {
 };
 
 export default function UserDashboard() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  if (isLoading) {
+  if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 

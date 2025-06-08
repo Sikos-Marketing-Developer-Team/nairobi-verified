@@ -42,12 +42,9 @@
 
 5. **Product Search and Filtering:**
    - Implemented product search functionality
-   - Addeded category filtering
-   - Createdd price range filters
-   - Implementeded sorting options
-   - Added grid and list view modes
-   - Created FilterSidebar component for reusability
-   - Updated Navbar search to use the search page
+   - Added category filtering
+   - Created price range filters
+   - Implemented sorting options
    - Added grid and list view modes
    - Created FilterSidebar component for reusability
    - Updated Navbar search to use the search page
@@ -100,19 +97,8 @@
 
 1. Start by implementing cart and checkout:
    - Create cart page with API integration
-   - Imcart and checkout:
-   - Create cart page with API integration
-   - Implement checkout proImplement order history and tracking
-   - Build merchant profile management
-   - Add product management features
-   - Implement order management
-
-4. Finally, add advanced features:
-   - Admin dashboard
-   - Map integrationAdd address management
-
-2. Then move on to user merchant dashboard:
-   - Create user profileplement csheckout - Add payment integration
+   - Implement checkout process
+   - Add payment integration
 
 2. Then move on to user dashboard:
    - Create user profile pages

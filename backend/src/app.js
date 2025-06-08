@@ -15,6 +15,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const { requirePasswordChange } = require('./middleware/authMiddleware');
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
@@ -86,6 +87,9 @@ app.use(passport.session());
 
 // Serve uploaded files (for temporary files before Cloudinary upload)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Apply password change middleware to check if user needs to change password
+app.use(requirePasswordChange);
 
 // Routes
 app.use('/api/auth', authRoutes);

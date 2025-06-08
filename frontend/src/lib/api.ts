@@ -116,17 +116,21 @@ export const apiService = {
     validateResetToken: (token: string) => 
       api.post('/auth/validate-reset-token', { token }),
     
+    changePassword: (currentPassword: string, newPassword: string) =>
+      api.post('/auth/change-password', { currentPassword, newPassword }),
+    
+    me: () => api.get('/auth/me'),
+    
+    verifyEmail: (token: string) => api.get(`/auth/verify-email/${token}`),
+    
+    resendVerification: (email: string) => 
+      api.post('/auth/send-verification', { email }),
+    
     logout: () =>
       api.post('/auth/logout'),
     
     check: () =>
       api.get('/auth/check'),
-    
-    me: () =>
-      api.get('/auth/me'),
-    
-    verifyEmail: (token: string) =>
-      api.get(`/auth/verify-email/${token}`),
     
     resendVerificationEmail: (email: string) =>
       api.post('/auth/resend-verification', { email }),
@@ -166,6 +170,12 @@ export const apiService = {
     
     setDefaultAddress: (addressId: string) =>
       api.put(`/user/addresses/${addressId}/set-default`),
+      
+    getOrders: () =>
+      api.get('/user/orders'),
+      
+    getOrderById: (orderId: string) =>
+      api.get(`/user/orders/${orderId}`),
   },
 
   // Product endpoints
@@ -208,6 +218,26 @@ export const apiService = {
     create: (data: any) => api.post('/merchants', data),
     update: (id: string, data: any) => api.put(`/merchants/${id}`, data),
     delete: (id: string) => api.delete(`/merchants/${id}`),
+  },
+  
+  // Merchant account endpoints
+  merchant: {
+    getProfile: () => 
+      api.get('/merchant/profile'),
+    getOrders: () => 
+      api.get('/merchant/orders'),
+    getProducts: () => 
+      api.get('/merchant/products'),
+    updateProfile: (data: any) => 
+      api.put('/merchant/profile', data),
+    createProduct: (data: any) => 
+      api.post('/merchant/products', data),
+    updateProduct: (productId: string, data: any) => 
+      api.put(`/merchant/products/${productId}`, data),
+    deleteProduct: (productId: string) => 
+      api.delete(`/merchant/products/${productId}`),
+    getDashboardStats: () => 
+      api.get('/merchant/dashboard'),
   },
 
   // Cart endpoints
@@ -283,6 +313,91 @@ export const apiService = {
     getById: (id: string) => api.get(`/orders/${id}`),
     create: (orderData: any) => api.post('/orders', orderData),
     cancel: (id: string) => api.post(`/orders/${id}/cancel`),
+  },
+  
+  // Admin endpoints
+  admin: {
+    getDashboardStats: () => 
+      api.get('/admin/dashboard'),
+    
+    getUsers: (params?: any) => 
+      api.get('/admin/users', { params }),
+    
+    updateUser: (userId: string, data: any) => 
+      api.put(`/admin/users/${userId}`, data),
+    
+    getPendingVerifications: () => 
+      api.get('/admin/verifications'),
+    
+    processMerchantVerification: (merchantId: string, action: string, notes?: string) => 
+      api.put(`/admin/verifications/${merchantId}`, { action, notes }),
+    
+    getTransactions: (params?: any) => 
+      api.get('/admin/transactions', { params }),
+    
+    getAnalytics: (params?: any) => 
+      api.get('/admin/analytics', { params }),
+    
+    exportAnalytics: (params?: any) => 
+      api.get('/admin/analytics/export', { params }),
+    
+    getProducts: (params?: any) => 
+      api.get('/admin/products', { params }),
+    
+    updateProductStatus: (productId: string, status: string) => 
+      api.put(`/admin/products/${productId}/status`, { status }),
+    
+    updateProductFeatured: (productId: string, isFeatured: boolean) => 
+      api.put(`/admin/products/${productId}/featured`, { isFeatured }),
+    
+    deleteProduct: (productId: string) => 
+      api.delete(`/admin/products/${productId}`),
+    
+    bulkUpdateProducts: (data: any) => 
+      api.post('/admin/products/bulk', data),
+    
+    getFeatureToggles: () => 
+      api.get('/admin/features'),
+    
+    createFeatureToggle: (data: any) => 
+      api.post('/admin/features', data),
+    
+    updateFeatureToggle: (featureId: string, data: any) => 
+      api.put(`/admin/features/${featureId}`, data),
+    
+    deleteFeatureToggle: (featureId: string) => 
+      api.delete(`/admin/features/${featureId}`),
+    
+    getContentBanners: () => 
+      api.get('/admin/content/banners'),
+    
+    getHomepageSections: () => 
+      api.get('/admin/content/homepage-sections'),
+    
+    saveLayoutChanges: (data: any) => 
+      api.post('/admin/content/save-layout', data),
+    
+    getSettings: () => 
+      api.get('/admin/settings'),
+    
+    updateSettings: (section: string, data: any) => 
+      api.put(`/admin/settings/${section}`, data),
+    
+    uploadFile: (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return api.post('/admin/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    },
+    
+    bulkImportBusinesses: (businesses: any[]) => 
+      api.post('/admin/businesses/bulk-import', { businesses }),
+      
+    logActivity: (data: any) =>
+      api.post('/admin/activity-log', data),
   },
 };
 

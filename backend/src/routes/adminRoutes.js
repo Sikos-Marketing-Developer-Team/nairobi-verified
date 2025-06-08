@@ -1,9 +1,24 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const adminController = require('../controllers/adminController');
 const settingsController = require('../controllers/settingsController');
 const adminNotificationController = require('../controllers/adminNotificationController');
 const { isAuthenticated, isAdmin } = require('../middleware/authMiddleware');
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'), false);
+    }
+  }
+});
 
 // Protect all admin routes
 router.use(isAuthenticated, isAdmin);
@@ -63,6 +78,6 @@ router.put('/email-templates/:templateId', adminNotificationController.updateEma
 router.delete('/email-templates/:templateId', adminNotificationController.deleteEmailTemplate);
 
 // Bulk import businesses
-router.post('/businesses/bulk-import', isAdmin, adminController.bulkImportBusinesses);
+router.post('/businesses/bulk-import', upload.single('file'), adminController.bulkImportBusinesses);
 
 module.exports = router;

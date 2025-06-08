@@ -22,7 +22,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const callbackUrl = searchParams?.get("callbackUrl") || "/";
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

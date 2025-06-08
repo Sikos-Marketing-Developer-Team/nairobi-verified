@@ -8,11 +8,7 @@ export const useWishlist = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load wishlist items on mount
-  useEffect(() => {
-    loadWishlist();
-  }, []);
-
+  // Define loadWishlist function first
   const loadWishlist = useCallback(async () => {
     try {
       setLoading(true);
@@ -74,6 +70,11 @@ export const useWishlist = () => {
       setLoading(false);
     }
   }, []);
+
+  // Load wishlist items on mount
+  useEffect(() => {
+    loadWishlist();
+  }, [loadWishlist]);
 
   const isInWishlist = useCallback((productId: string) => {
     return items.some(item => item.id === productId);

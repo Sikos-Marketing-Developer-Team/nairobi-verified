@@ -8,11 +8,7 @@ export const useCart = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load cart items on mount
-  useEffect(() => {
-    loadCart();
-  }, []);
-
+  // Define loadCart function first
   const loadCart = useCallback(async () => {
     try {
       setLoading(true);
@@ -89,6 +85,11 @@ export const useCart = () => {
       setLoading(false);
     }
   }, []);
+
+  // Load cart items on mount
+  useEffect(() => {
+    loadCart();
+  }, [loadCart]);
 
   const getTotal = useCallback(() => {
     return items.reduce((total, item) => total + (item.product.price * item.quantity), 0);

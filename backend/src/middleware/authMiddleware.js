@@ -336,6 +336,56 @@ const hasActiveSubscription = async (req, res, next) => {
   }
 };
 
+// Middleware to check if user needs to change password
+const requirePasswordChange = async (req, res, next) => {
+  try {
+    // Skip for password change route and public routes
+    const publicRoutes = [
+      '/api/auth/login',
+      '/api/auth/register',
+      '/api/auth/forgot-password',
+      '/api/auth/reset-password',
+      '/api/auth/verify-email',
+      '/api/auth/change-password'
+    ];
+
+    if (publicRoutes.some(route => req.path.includes(route))) {
+      return next();
+    }
+
+    // Check if user is authenticated
+    if (!req.user && !req.session?.user) {
+      return next();
+    }
+
+    // Get user from session or request
+    const userId = req.user?._id || req.session?.user?.id;
+    if (!userId) {
+      return next();
+    }
+
+    // Find user in database to get current requirePasswordChange status
+    const user = await User.findById(userId);
+    if (!user) {
+      return next();
+    }
+
+    // If user requires password change, redirect
+    if (user.requirePasswordChange) {
+      return res.status(403).json({
+        success: false,
+        message: 'Password change required before proceeding',
+        requirePasswordChange: true
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Password change check error:', error);
+    next();
+  }
+};
+
 // Export all middleware functions
 module.exports = {
   isAuthenticated,
@@ -348,5 +398,6 @@ module.exports = {
   isClient,
   restrictTo,
   isVerifiedMerchant,
-  hasActiveSubscription
+  hasActiveSubscription,
+  requirePasswordChange
 };

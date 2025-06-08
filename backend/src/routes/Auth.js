@@ -11,7 +11,8 @@ const {
   requestPasswordReset,
   resetPassword,
   resendVerificationEmail,
-  verifyEmail
+  verifyEmail,
+  changePassword
 } = require('../controllers/authController');
 const { isAuthenticated, isEmailVerified } = require('../middleware/authMiddleware');
 
@@ -26,9 +27,10 @@ router.post('/login', login);
 // Auth check route
 router.get('/check', checkAuth);
 
-// Password reset routes
+// Password routes
 router.post('/forgot-password', requestPasswordReset);
 router.post('/reset-password', resetPassword);
+router.post('/change-password', isAuthenticated, changePassword);
 
 // Email verification routes
 router.post('/send-verification', resendVerificationEmail);

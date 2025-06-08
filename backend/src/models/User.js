@@ -58,6 +58,17 @@ const userSchema = new mongoose.Schema({
   emailVerificationExpires: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  requirePasswordChange: {
+    type: Boolean,
+    default: false,
+  },
+  lastPasswordChange: Date,
+  loginAttempts: {
+    type: Number,
+    default: 0,
+  },
+  lockUntil: Date,
+  lastLogin: Date,
   google: {
     id: String,
     email: String,
@@ -67,6 +78,21 @@ const userSchema = new mongoose.Schema({
   rememberMe: {
     type: Boolean,
     default: false,
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'suspended'],
+    default: 'active',
+  },
+  metadata: {
+    lastActivity: Date,
+    registrationSource: {
+      type: String,
+      enum: ['direct', 'google', 'admin_import', 'invitation'],
+      default: 'direct',
+    },
+    ipAddress: String,
+    userAgent: String,
   },
 }, { timestamps: true });
 
@@ -83,6 +109,13 @@ userSchema.pre('save', async function (next) {
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+userSchema.methods.updatePassword = async function (newPassword) {
+  this.password = newPassword;
+  this.requirePasswordChange = false;
+  this.lastPasswordChange = new Date();
+  return this.save();
 };
 
 userSchema.methods.generateEmailVerificationToken = function () {

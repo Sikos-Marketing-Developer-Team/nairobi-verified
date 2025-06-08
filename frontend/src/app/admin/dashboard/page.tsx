@@ -2,8 +2,22 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiService } from "@/lib/api";
-import { FaUsers, FaStore, FaShoppingCart, FaMoneyBillWave, FaCheckCircle, FaTimesCircle, FaEye, FaFileAlt, FaSignOutAlt, FaChartLine } from "react-icons/fa";
+import { 
+  FaUsers, 
+  FaStore, 
+  FaShoppingCart, 
+  FaMoneyBillWave, 
+  FaCheckCircle, 
+  FaTimesCircle, 
+  FaEye, 
+  FaFileAlt, 
+  FaSignOutAlt, 
+  FaChartLine,
+  FaCog,
+  FaBell
+} from "react-icons/fa";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { useSocket } from "@/context/SocketContext";
@@ -13,6 +27,9 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import AnimatedStatCard from "@/components/admin/AnimatedStatCard";
 import EnhancedChart from "@/components/admin/EnhancedChart";
 import MerchantVerificationCard from "@/components/admin/MerchantVerificationCard";
+import DashboardSummaryCard from "@/components/admin/DashboardSummaryCard";
+import QuickActionCard from "@/components/admin/QuickActionCard";
+import ActivityFeed from "@/components/admin/ActivityFeed";
 import Breadcrumbs from "@/components/admin/Breadcrumbs";
 import { motion } from "framer-motion";
 
@@ -316,50 +333,82 @@ export default function AdminDashboard() {
   return (
     <AdminLayout notificationCount={notifications.length}>
       <div className="space-y-6">
-        <Breadcrumbs />
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Dashboard Overview</h1>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <Breadcrumbs />
+            <h1 className="text-2xl font-bold mt-2">Dashboard Overview</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
+              Welcome to your admin dashboard. Here's what's happening today.
+            </p>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <Link href="/admin/analytics">
+              <motion.button
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 text-sm font-medium"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <FaChartLine className="h-4 w-4" />
+                <span>Analytics</span>
+              </motion.button>
+            </Link>
+            
+            <Link href="/admin/settings">
+              <motion.button
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg flex items-center space-x-2 text-sm font-medium"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <FaCog className="h-4 w-4" />
+                <span>Settings</span>
+              </motion.button>
+            </Link>
+          </div>
         </div>
         
         {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200">
-          <nav className="flex -mb-px">
+        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex flex-wrap -mb-px">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`mr-8 py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`mr-8 py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
                 activeTab === "overview"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-orange-500 text-orange-600 dark:text-orange-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300"
               }`}
             >
+              <FaChartLine className="mr-2 h-4 w-4" />
               Overview
             </button>
             <button
               onClick={() => setActiveTab("merchants")}
-              className={`mr-8 py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`mr-8 py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
                 activeTab === "merchants"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-orange-500 text-orange-600 dark:text-orange-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300"
               }`}
             >
+              <FaStore className="mr-2 h-4 w-4" />
               Pending Verifications
               {merchants.length > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-300">
                   {merchants.length}
                 </span>
               )}
             </button>
             <button
               onClick={() => setActiveTab("notifications")}
-              className={`mr-8 py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`mr-8 py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
                 activeTab === "notifications"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-orange-500 text-orange-600 dark:text-orange-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300"
               }`}
             >
+              <FaBell className="mr-2 h-4 w-4" />
               Notifications
               {notifications.length > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-300">
                   {notifications.length}
                 </span>
               )}
@@ -441,6 +490,96 @@ export default function AdminDashboard() {
               />
             </div>
 
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              <DashboardSummaryCard
+                title="Business Growth"
+                icon={<FaChartLine className="h-5 w-5" />}
+                iconBgColor="bg-blue-100"
+                iconColor="text-blue-600"
+                description="Overview of business growth metrics for the current period."
+                stats={[
+                  { 
+                    label: "New Merchants", 
+                    value: stats?.merchantCount ? Math.round(stats.merchantCount * 0.15) : 0,
+                    change: 12,
+                    changeLabel: "vs last month"
+                  },
+                  { 
+                    label: "New Products", 
+                    value: stats?.productCount ? Math.round(stats.productCount * 0.2) : 0,
+                    change: 8,
+                    changeLabel: "vs last month"
+                  },
+                  { 
+                    label: "Conversion Rate", 
+                    value: "3.2%",
+                    change: -0.5,
+                    changeLabel: "vs last month"
+                  },
+                  { 
+                    label: "Avg. Order Value", 
+                    value: `$${(stats?.totalRevenue ? stats.totalRevenue / (stats.orderCount || 1) : 0).toFixed(2)}`,
+                    change: 5.3,
+                    changeLabel: "vs last month"
+                  }
+                ]}
+                actionLabel="View Analytics"
+                actionLink="/admin/analytics"
+                gradient={true}
+              />
+              
+              <QuickActionCard
+                title="Quick Actions"
+                description="Common tasks you can perform right now"
+                icon={<FaMoneyBillWave className="h-5 w-5" />}
+                iconBgColor="bg-orange-100"
+                iconColor="text-orange-600"
+                actions={[
+                  {
+                    label: "Import Businesses",
+                    href: "/admin/businesses/import",
+                    color: "bg-orange-500 hover:bg-orange-600"
+                  },
+                  {
+                    label: "Manage Products",
+                    href: "/admin/products",
+                    color: "bg-blue-500 hover:bg-blue-600"
+                  },
+                  {
+                    label: "View Orders",
+                    href: "/admin/orders",
+                    color: "bg-green-500 hover:bg-green-600"
+                  },
+                  {
+                    label: "Manage Users",
+                    href: "/admin/users"
+                  }
+                ]}
+              />
+              
+              <ActivityFeed
+                title="Recent Activity"
+                activities={notifications.map((notification, index) => ({
+                  id: notification.id,
+                  type: notification.message.includes('verified') ? 'success' : 
+                        notification.message.includes('rejected') ? 'warning' : 
+                        notification.message.includes('registration') ? 'login' : 'system',
+                  user: {
+                    name: 'System',
+                    avatar: '/images/admin-avatar.png'
+                  },
+                  action: notification.message,
+                  timestamp: notification.time,
+                  metadata: {
+                    time: notification.time.toLocaleTimeString()
+                  }
+                }))}
+                maxItems={5}
+                onViewAll={() => setActiveTab("notifications")}
+              />
+            </div>
+            
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <EnhancedChart
@@ -509,23 +648,24 @@ export default function AdminDashboard() {
 
             {/* Pending Verifications Preview */}
             <motion.div 
-              className="bg-white rounded-lg shadow-md overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <div className="flex items-center">
-                  <h3 className="text-lg font-medium text-gray-900">Recent Pending Verifications</h3>
+                  <FaStore className="h-5 w-5 text-orange-500 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Verifications</h3>
                   {merchants.length > 0 && (
-                    <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                    <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-300">
                       {merchants.length}
                     </span>
                   )}
                 </div>
                 <motion.button 
                   onClick={() => setActiveTab("merchants")}
-                  className="text-sm text-orange-600 hover:text-orange-800 flex items-center"
+                  className="text-sm font-medium text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 flex items-center"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -538,21 +678,22 @@ export default function AdminDashboard() {
               
               {merchants.length === 0 ? (
                 <div className="p-8 text-center">
-                  <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <p className="mt-4 text-gray-500">No pending verifications at the moment</p>
+                  <div className="mx-auto h-20 w-20 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                    <FaStore className="h-10 w-10 text-gray-300 dark:text-gray-500" />
+                  </div>
+                  <p className="mt-4 text-gray-500 dark:text-gray-400">No pending verifications at the moment</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">New merchant registrations will appear here</p>
                 </div>
               ) : (
-                <div className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {merchants.slice(0, 6).map((merchant) => (
                       <MerchantVerificationCard
-                        key={merchant.id}
+                        key={merchant._id || merchant.id}
                         merchant={merchant}
-                        onVerify={(id) => handleVerification(id, "verify")}
-                        onReject={(id) => handleVerification(id, "reject")}
-                        onViewDetails={viewMerchantDetails}
+                        onVerify={() => handleVerification(merchant._id || merchant.id, "verify")}
+                        onReject={() => handleVerification(merchant._id || merchant.id, "reject")}
+                        onViewDetails={() => viewMerchantDetails(merchant)}
                         onViewDocument={viewDocument}
                       />
                     ))}

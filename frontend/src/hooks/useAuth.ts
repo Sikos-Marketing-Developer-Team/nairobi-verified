@@ -1,12 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiService } from '@/lib/api';
 import { User } from '@/types';
 import { toast } from 'react-hot-toast';
 
 export const useAuth = () => {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [requirePasswordChange, setRequirePasswordChange] = useState(false);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -33,17 +36,30 @@ export const useAuth = () => {
   const login = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
     try {
       const response = await apiService.auth.login(email, password, rememberMe);
-      const { token, user } = response.data;
+      const { token, user, requirePasswordChange } = response.data;
       
       localStorage.setItem('token', token);
+      if (user?.role) {
+        localStorage.setItem('userRole', user.role);
+      }
+      
       setUser(user);
       setIsAuthenticated(true);
+      
+      // Check if password change is required
+      if (requirePasswordChange) {
+        setRequirePasswordChange(true);
+        // Redirect to password change page
+        router.push('/auth/change-password');
+        toast.success('Please change your temporary password before continuing');
+        return { user, requirePasswordChange: true };
+      }
       
       return user;
     } catch (error) {
       throw error;
     }
-  }, []);
+  }, [router]);
 
   const register = useCallback(async (userData: any) => {
     try {
@@ -98,14 +114,32 @@ export const useAuth = () => {
     }
   }, []);
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    try {
+      const response = await apiService.auth.changePassword(currentPassword, newPassword);
+      setRequirePasswordChange(false);
+      
+      // Update user in state if returned in response
+      if (response.data?.user) {
+        setUser(response.data.user);
+      }
+      
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
   return {
     user,
     loading,
     isAuthenticated,
+    requirePasswordChange,
     login,
     register,
     logout,
     check,
     me,
+    changePassword,
   };
 };

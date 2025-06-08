@@ -7,12 +7,12 @@ import { FiMapPin, FiPhone, FiMail, FiGlobe, FiUpload, FiDollarSign, FiPackage, 
 import { FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
 
 export default function VendorDashboard() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [selectedSubscription, setSelectedSubscription] = useState('basic');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
 
-  if (isLoading) {
+  if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 

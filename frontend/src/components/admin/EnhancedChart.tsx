@@ -161,19 +161,28 @@ export default function EnhancedChart({
   return (
     <motion.div 
       className={`${
-        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-      } rounded-lg shadow-md overflow-hidden transition-colors duration-200`}
+        theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'
+      } rounded-xl shadow-lg overflow-hidden transition-colors duration-200`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className={`p-4 border-b ${
+      <div className={`p-5 border-b ${
         theme === 'dark' ? 'border-gray-700' : 'border-gray-100'
       }`}>
         <div className="flex justify-between items-center">
-          <h3 className={`text-lg font-medium ${
-            theme === 'dark' ? 'text-white' : 'text-gray-900'
-          }`}>{title}</h3>
+          <div>
+            <h3 className={`text-lg font-semibold ${
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>{title}</h3>
+            {onTimeRangeChange && (
+              <p className={`text-xs mt-1 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                Showing data for {getTimeRangeLabel(selectedTimeRange)}
+              </p>
+            )}
+          </div>
           
           <div className="flex items-center space-x-2">
             {onTimeRangeChange && (
@@ -181,18 +190,19 @@ export default function EnhancedChart({
                 <div className={`flex items-center space-x-1 text-sm ${
                   theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
                 }`}>
-                  <FiCalendar className="w-4 h-4" />
                   <select 
                     value={selectedTimeRange}
                     onChange={(e) => handleTimeRangeChange(e.target.value)}
-                    className={`appearance-none bg-transparent border-none focus:outline-none pr-8 py-1 ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                    }`}
+                    className={`appearance-none bg-transparent rounded-md border ${
+                      theme === 'dark' 
+                        ? 'border-gray-600 text-gray-300 focus:border-blue-500' 
+                        : 'border-gray-300 text-gray-700 focus:border-blue-500'
+                    } focus:outline-none px-3 py-1.5 pr-8`}
                     style={{ 
                       backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='${
                         theme === 'dark' ? '%239ca3af' : '%236b7280'
                       }' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                      backgroundPosition: 'right 0.25rem center',
+                      backgroundPosition: 'right 0.5rem center',
                       backgroundRepeat: 'no-repeat',
                       backgroundSize: '1.5em 1.5em',
                     }}
@@ -209,82 +219,92 @@ export default function EnhancedChart({
               </div>
             )}
             
-            {onRefresh && (
-              <motion.button 
-                onClick={onRefresh}
-                className={`p-1.5 rounded-full ${
-                  theme === 'dark' 
-                    ? 'text-gray-300 hover:text-gray-100 hover:bg-gray-700' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                } transition-colors`}
-                title="Refresh data"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <FiRefreshCw className="w-4 h-4" />
-              </motion.button>
-            )}
-            
-            {onDownload && (
-              <div className="relative">
+            <div className="flex items-center space-x-1">
+              {onRefresh && (
                 <motion.button 
-                  onClick={() => setIsDownloadMenuOpen(!isDownloadMenuOpen)}
-                  className={`p-1.5 rounded-full ${
+                  onClick={onRefresh}
+                  className={`p-2 rounded-md ${
                     theme === 'dark' 
                       ? 'text-gray-300 hover:text-gray-100 hover:bg-gray-700' 
                       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                   } transition-colors`}
-                  title="Download chart"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  title="Refresh data"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <FiDownload className="w-4 h-4" />
+                  <FiRefreshCw className="w-4 h-4" />
                 </motion.button>
-                
-                {isDownloadMenuOpen && (
-                  <div className={`absolute right-0 mt-2 w-36 rounded-md shadow-lg z-10 py-1 ${
-                    theme === 'dark' ? 'bg-gray-700' : 'bg-white'
-                  }`}>
-                    <button 
-                      onClick={() => handleDownload('png')}
-                      className={`block w-full text-left px-4 py-2 text-sm ${
-                        theme === 'dark' 
-                          ? 'text-gray-300 hover:bg-gray-600' 
-                          : 'text-gray-700 hover:bg-gray-100'
+              )}
+              
+              {onDownload && (
+                <div className="relative">
+                  <motion.button 
+                    onClick={() => setIsDownloadMenuOpen(!isDownloadMenuOpen)}
+                    className={`p-2 rounded-md ${
+                      theme === 'dark' 
+                        ? 'text-gray-300 hover:text-gray-100 hover:bg-gray-700' 
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                    } transition-colors`}
+                    title="Download chart"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <FiDownload className="w-4 h-4" />
+                  </motion.button>
+                  
+                  {isDownloadMenuOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className={`absolute right-0 mt-2 w-40 rounded-md shadow-lg z-10 py-1 ${
+                        theme === 'dark' ? 'bg-gray-700 border border-gray-600' : 'bg-white border border-gray-200'
                       }`}
                     >
-                      Download PNG
-                    </button>
-                    <button 
-                      onClick={() => handleDownload('jpg')}
-                      className={`block w-full text-left px-4 py-2 text-sm ${
-                        theme === 'dark' 
-                          ? 'text-gray-300 hover:bg-gray-600' 
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      Download JPG
-                    </button>
-                    <button 
-                      onClick={() => handleDownload('pdf')}
-                      className={`block w-full text-left px-4 py-2 text-sm ${
-                        theme === 'dark' 
-                          ? 'text-gray-300 hover:bg-gray-600' 
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      Download PDF
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+                      <button 
+                        onClick={() => handleDownload('png')}
+                        className={`block w-full text-left px-4 py-2 text-sm ${
+                          theme === 'dark' 
+                            ? 'text-gray-300 hover:bg-gray-600' 
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        Download PNG
+                      </button>
+                      <button 
+                        onClick={() => handleDownload('jpg')}
+                        className={`block w-full text-left px-4 py-2 text-sm ${
+                          theme === 'dark' 
+                            ? 'text-gray-300 hover:bg-gray-600' 
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        Download JPG
+                      </button>
+                      <button 
+                        onClick={() => handleDownload('pdf')}
+                        className={`block w-full text-left px-4 py-2 text-sm ${
+                          theme === 'dark' 
+                            ? 'text-gray-300 hover:bg-gray-600' 
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        Download PDF
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
       
-      <div className={`p-4 ${theme === 'dark' ? 'bg-gray-800' : ''}`} style={{ height }}>
-        {renderChart()}
+      <div className={`p-5 ${theme === 'dark' ? 'bg-gray-800' : ''}`} style={{ height }}>
+        <div className="h-full w-full">
+          {renderChart()}
+        </div>
       </div>
     </motion.div>
   );

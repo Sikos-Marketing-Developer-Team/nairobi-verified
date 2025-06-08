@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { FiShoppingCart, FiStar } from 'react-icons/fi';
 import { Product } from '../types/api';
+import { Product as ProductType } from '../types';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
@@ -14,10 +15,10 @@ import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import Image from 'next/image';
 
 interface ProductCardProps {
-  product: Product;
+  product: Product | ProductType;
   viewMode?: 'grid' | 'list';
-  onAddToCart?: (product: Product) => void;
-  onAddToWishlist?: (product: Product) => void;
+  onAddToCart?: (product: Product | ProductType) => void;
+  onAddToWishlist?: (product: Product | ProductType) => void;
   className?: string;
 }
 
@@ -28,7 +29,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onAddToWishlist,
   className = ''
 }) => {
-  const { _id, name, price, salePrice, images, rating, merchant } = product;
+  // Handle both Product and ProductType interfaces
+  const id = 'id' in product ? product.id : product._id;
+  const { name, price, images, rating } = product;
+  const merchant = product.merchant || { id: '', _id: '', name: 'Unknown Merchant' };
+  const salePrice = 'salePrice' in product ? product.salePrice : ('discountPrice' in product ? product.discountPrice : undefined);
   const { addToCart, isLoading: isCartLoading } = useCart();
   const { addToWishlist: addToWishlistContext, removeFromWishlist, isInWishlist, isLoading: isWishlistLoading } = useWishlist();
   const { isAuthenticated } = useAuth();
@@ -42,7 +47,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
-      router.push('/auth/signin?redirect=' + encodeURIComponent(`/product/${_id}`));
+      router.push('/auth/signin?redirect=' + encodeURIComponent(`/product/${id}`));
       return;
     }
     
@@ -50,7 +55,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       if (onAddToCart) {
         onAddToCart(product);
       } else {
-        await addToCart(_id, 1);
+        await addToCart(id, 1);
         toast.success('Added to cart');
       }
     } catch (error) {
@@ -60,18 +65,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
   
   const handleWishlistToggle = async () => {
     if (!isAuthenticated) {
-      router.push('/auth/signin?redirect=' + encodeURIComponent(`/product/${_id}`));
+      router.push('/auth/signin?redirect=' + encodeURIComponent(`/product/${id}`));
       return;
     }
     
     try {
       if (onAddToWishlist) {
         onAddToWishlist(product);
-      } else if (isInWishlist(_id)) {
-        await removeFromWishlist(_id);
+      } else if (isInWishlist(id)) {
+        await removeFromWishlist(id);
         toast.success('Removed from wishlist');
       } else {
-        await addToWishlistContext(product);
+        await addToWishlistContext(id);
         toast.success('Added to wishlist');
       }
     } catch (error) {
@@ -79,7 +84,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
   
-  const isProductInWishlist = isInWishlist(_id);
+  const isProductInWishlist = isInWishlist(id);
   
   if (viewMode === 'list') {
     return (
@@ -87,11 +92,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div className="flex flex-col md:flex-row">
           {/* Product Image */}
           <div className="relative h-48 md:h-auto md:w-48 bg-gray-200 dark:bg-gray-700 flex-shrink-0">
-            <Link href={`/product/${_id}`}>
+            <Link href={`/product/${id}`}>
               <div className="w-full h-full relative">
                 {images && images.length > 0 ? (
                   <Image
-                    src={images[0].url || "/images/placeholder.png"}
+                    src={typeof images[0] === 'string' ? images[0] : images[0].url || "/images/placeholder.png"}
                     alt={name}
                     width={500}
                     height={500}
@@ -116,14 +121,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {/* Product Info */}
           <div className="p-4 flex-1 flex flex-col">
             <div className="flex-1">
-              <Link href={`/product/${_id}`}>
+              <Link href={`/product/${id}`}>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-1 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
                   {name}
                 </h3>
               </Link>
               
               {/* Merchant */}
-              <Link href={`/shop/${merchant._id}`}>
+              <Link href={`/shop/${'id' in merchant ? merchant.id : merchant._id}`}>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
                   {merchant.name}
                 </p>
@@ -140,7 +145,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     <FiStar className={`${rating >= 5 ? 'fill-current' : ''}`} />
                   </div>
                   <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                    ({product.reviews?.length || 0})
+                    ({'reviews' in product && Array.isArray((product as any).reviews) ? (product as any).reviews.length : 0})
                   </span>
                 </div>
               )}
@@ -211,11 +216,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
     <div className={`group relative bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg ${className}`} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       {/* Product Image */}
       <div className="relative aspect-square bg-gray-200 dark:bg-gray-700">
-        <Link href={`/product/${_id}`}>
+        <Link href={`/product/${id}`}>
           <div className="w-full h-full relative">
             {images && images.length > 0 ? (
               <Image
-                src={images[0].url || "/images/placeholder.png"}
+                src={typeof images[0] === 'string' ? images[0] : images[0].url || "/images/placeholder.png"}
                 alt={name}
                 width={500}
                 height={500}
@@ -260,13 +265,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
       
       {/* Product Info */}
       <div className="p-4">
-        <Link href={`/product/${_id}`}>
+        <Link href={`/product/${id}`}>
           <h3 className="font-semibold text-gray-900 dark:text-white mb-1 hover:text-orange-500 dark:hover:text-orange-400 transition-colors line-clamp-2">
             {name}
           </h3>
         </Link>
         
-        <Link href={`/shop/${merchant._id}`}>
+        <Link href={`/shop/${'id' in merchant ? merchant.id : merchant._id}`}>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
             {merchant.name}
           </p>

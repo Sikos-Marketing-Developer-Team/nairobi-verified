@@ -287,14 +287,14 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
   };
   
   // Handle add to cart
-  const handleAddToCart = (productId: string) => {
-    console.log(`Adding product ${productId} to cart`);
+  const handleAddToCart = (product: any) => {
+    console.log(`Adding product ${product._id || product.id} to cart`);
     // Implement cart functionality
   };
   
   // Handle add to wishlist
-  const handleAddToWishlist = (productId: string) => {
-    console.log(`Adding product ${productId} to wishlist`);
+  const handleAddToWishlist = (product: any) => {
+    console.log(`Adding product ${product._id || product.id} to wishlist`);
     // Implement wishlist functionality
   };
   
@@ -673,15 +673,31 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
             {products.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map(product => {
+                  // Create a new object without the discountPrice property
+                  const { discountPrice, ...productWithoutDiscountPrice } = product;
+                  
                   // Adapt product to match the expected Product type
                   const adaptedProduct = {
-                    ...product,
+                    ...productWithoutDiscountPrice,
                     id: product._id,
                     category: (product as any).category || params.slug || '',
                     merchantId: product.merchant?._id || '',
                     rating: product.ratings?.average || 0,
                     reviewCount: product.ratings?.count || 0,
-                    images: product.images || []
+                    images: product.images || [],
+                    // Use discountPrice as salePrice if it exists
+                    salePrice: discountPrice || undefined,
+                    // Add missing properties required by the Product type
+                    description: (product as any).description || '',
+                    stock: (product as any).stock || 0,
+                    createdAt: (product as any).createdAt || new Date().toISOString(),
+                    updatedAt: (product as any).updatedAt || new Date().toISOString(),
+                    // Fix merchant property
+                    merchant: {
+                      id: product.merchant?._id || '',
+                      name: product.merchant?.companyName || '',
+                      logo: (product.merchant as any)?.logo
+                    }
                   };
                   
                   return (

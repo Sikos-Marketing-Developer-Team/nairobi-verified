@@ -89,7 +89,7 @@ export default function BulkImportPage() {
         const batch = preview.slice(i * batchSize, (i + 1) * batchSize);
         await Promise.all(
           batch.map((business) =>
-            apiService.admin.businesses.bulkImport([business])
+            apiService.admin.bulkImportBusinesses([business])
           )
         );
         setProgress(((i + 1) / batches) * 100);
