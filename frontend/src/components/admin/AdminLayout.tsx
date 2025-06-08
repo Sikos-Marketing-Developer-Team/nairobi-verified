@@ -126,8 +126,8 @@ export default function AdminLayout({ children, notificationCount = 0 }: AdminLa
           badgeColor: "bg-yellow-500"
         },
         { 
-          name: "Import Businesses", 
-          href: "/admin/businesses/import", 
+          name: "Import Merchants", 
+          href: "/admin/merchants/import", 
           icon: <FaUpload className="w-5 h-5" />,
           badge: "New",
           badgeColor: "bg-green-500"
@@ -230,9 +230,14 @@ export default function AdminLayout({ children, notificationCount = 0 }: AdminLa
               </svg>
             </button>
             <Link href="/admin/dashboard" className="flex items-center">
-              <span className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                Nairobi <span className="text-orange-500">Admin</span>
-              </span>
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-md bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center mr-2 shadow-lg">
+                  <FaUserShield className="h-4 w-4 text-white" />
+                </div>
+                <span className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Nairobi <span className="text-orange-500 font-extrabold">Verified</span>
+                </span>
+              </div>
             </Link>
           </div>
           

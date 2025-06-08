@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { 
   Card, 
@@ -75,6 +76,7 @@ interface Merchant {
 }
 
 export default function AdminMerchantsPage() {
+  const router = useRouter();
   const { toast } = useToast();
   
   // State for merchants
@@ -315,8 +317,30 @@ export default function AdminMerchantsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Merchant Management</h1>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Merchant Management</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
+              Manage all merchants and their verification status
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => router.push('/admin/merchants/import')} className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-upload">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Import
+            </Button>
+            <Button onClick={() => router.push('/admin/merchants/add-sample')} className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add Merchant
+            </Button>
+          </div>
         </div>
         
         {/* Filters */}
@@ -328,7 +352,7 @@ export default function AdminMerchantsPage() {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                   <Input
                     type="search"
-                    placeholder="Search merchants..."
+                    placeholder="Search merchants by name, email or company..."
                     className="pl-8"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -375,10 +399,32 @@ export default function AdminMerchantsPage() {
         {/* Merchants Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Merchants</CardTitle>
-            <CardDescription>
-              Showing {filteredMerchants.length} of {merchants.length} total merchants
-            </CardDescription>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+              <div>
+                <CardTitle>Merchants</CardTitle>
+                <CardDescription>
+                  Showing {filteredMerchants.length} of {merchants.length} total merchants
+                </CardDescription>
+              </div>
+              <div className="flex items-center space-x-2 mt-2 md:mt-0">
+                <Badge variant="outline" className="bg-gray-100 dark:bg-gray-800">
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">Total:</span> 
+                  <span className="ml-1 font-bold text-gray-900 dark:text-gray-100">{merchants.length}</span>
+                </Badge>
+                <Badge variant="outline" className="bg-green-100 dark:bg-green-900/30">
+                  <span className="font-semibold text-green-700 dark:text-green-300">Verified:</span> 
+                  <span className="ml-1 font-bold text-green-900 dark:text-green-100">
+                    {merchants.filter(m => m.isVerified).length}
+                  </span>
+                </Badge>
+                <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900/30">
+                  <span className="font-semibold text-yellow-700 dark:text-yellow-300">Pending:</span> 
+                  <span className="ml-1 font-bold text-yellow-900 dark:text-yellow-100">
+                    {merchants.filter(m => m.verificationStatus === 'pending').length}
+                  </span>
+                </Badge>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -386,22 +432,39 @@ export default function AdminMerchantsPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
               </div>
             ) : error ? (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+              <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded">
                 <div className="flex">
                   <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                  <p className="text-sm text-red-700">{error}</p>
+                  <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
                 </div>
               </div>
             ) : filteredMerchants.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No merchants found matching your filters.
+              <div className="text-center py-12 px-4">
+                <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                  <Search className="h-6 w-6 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">No merchants found</h3>
+                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                  No merchants match your current filter criteria. Try adjusting your filters or search terms.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setVerificationFilter("all");
+                  }}
+                >
+                  Reset Filters
+                </Button>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Company</TableHead>
+                    <TableRow className="bg-gray-50 dark:bg-gray-800">
+                      <TableHead className="font-semibold">Company</TableHead>
                       <TableHead>Contact Person</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Status</TableHead>
