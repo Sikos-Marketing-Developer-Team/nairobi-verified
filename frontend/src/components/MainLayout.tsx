@@ -7,6 +7,7 @@ import ErrorBoundary from './ErrorBoundary';
 import dynamic from 'next/dynamic';
 import CookieConsent from './CookieConsent';
 import { Toaster } from 'react-hot-toast';
+import ConnectionStatus from './ConnectionStatus';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -109,6 +110,7 @@ const MainLayout = ({
         onReject={handleCookieReject}
       />
       <Toaster position="top-right" />
+      <ConnectionStatus apiUrl={process.env.NEXT_PUBLIC_API_URL || 'https://nairobi-verified-backend.onrender.com/api'} />
     </div>
   );
 };

@@ -18,7 +18,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
   title = "Featured Products", 
   subtitle = "Discover our handpicked selection of top products from verified vendors" 
 }) => {
-  const { products, isLoading, error } = useFeaturedProducts();
+  const { products, isLoading, error, usedFallback } = useFeaturedProducts();
   const [isClient, setIsClient] = useState(false);
   
   // For mobile scrolling
@@ -112,6 +112,18 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{title}</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-8">{subtitle}</p>
         
+        {/* Fallback data notice */}
+        {usedFallback && (
+          <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-yellow-700 text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              Showing sample products. Unable to connect to the server. The data shown may not reflect current inventory.
+            </p>
+          </div>
+        )}
+        
         {/* Mobile Scroll Controls */}
         {isClient && (
           <div className="flex justify-end mb-4 md:hidden">
@@ -154,6 +166,21 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
             />
           ))}
         </div>
+        
+        {/* Retry button when using fallback data */}
+        {usedFallback && (
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-6 rounded-md transition-colors inline-flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+              </svg>
+              Retry Connection
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

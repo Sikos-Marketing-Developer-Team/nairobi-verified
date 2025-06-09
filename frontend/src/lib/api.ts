@@ -4,12 +4,13 @@ import { toast } from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nairobi-verified-backend.onrender.com/api';
 
+// Increase timeout to account for cold starts on render.com
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 30000, // Increased from 10000 to 30000 ms to handle potential cold starts
   withCredentials: true,
 });
 
@@ -79,7 +80,24 @@ api.interceptors.response.use(
     } else if (response?.status && response.status >= 500) {
       toast.error('Server error. Please try again later.');
     } else if (error.message === 'Network Error') {
-      toast.error('Network error. Please check your internet connection.');
+      console.error('Network Error Details:', {
+        url: API_URL,
+        endpoint: error.config?.url,
+        method: error.config?.method
+      });
+      
+      // Check if it's likely a Render.com cold start issue
+      if (API_URL.includes('render.com')) {
+        toast.error(
+          'The server may be starting up. Please wait a moment and try again.',
+          { duration: 5000 }
+        );
+      } else {
+        toast.error(
+          'Unable to connect to the server. Please check your internet connection or try again later.',
+          { duration: 5000 }
+        );
+      }
     } else {
       const errorData = response?.data as { message?: string };
       toast.error(errorData?.message || 'An unexpected error occurred.');
