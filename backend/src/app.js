@@ -15,6 +15,10 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const mediaRoutes = require('./routes/mediaRoutes');
+const userRoutes = require('./routes/userRoutes');
+const wishlistRoutes = require('./routes/wishlistRoutes');
+const checkoutRoutes = require('./routes/checkoutRoutes');
 const { requirePasswordChange } = require('./middleware/authMiddleware');
 const cors = require('cors');
 const path = require('path');
@@ -102,10 +106,19 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/checkout', checkoutRoutes);
 
-// Health check route
+// Health check routes
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK' });
+});
+
+// Additional health check route to match frontend
+app.get('/health', (req, res) => {
+  res.redirect('/api/health');
 });
 
 // Error handling middleware

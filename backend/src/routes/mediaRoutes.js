@@ -4,7 +4,7 @@ const mediaController = require('../controllers/mediaController');
 const { authenticate } = require('../middleware/auth');
 
 // Upload image
-router.post('/upload', authenticate, mediaController.upload.single('image'), mediaController.uploadImage);
+router.post('/upload', authenticate, mediaController.upload.single('file'), mediaController.uploadImage);
 
 // Delete image
 router.delete('/:publicId', authenticate, mediaController.deleteImage);
