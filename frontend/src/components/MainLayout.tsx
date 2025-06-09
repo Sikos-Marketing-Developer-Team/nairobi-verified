@@ -109,8 +109,28 @@ const MainLayout = ({
         onAccept={handleCookieAccept}
         onReject={handleCookieReject}
       />
-      <Toaster position="top-right" />
-      <ConnectionStatus apiUrl={process.env.NEXT_PUBLIC_API_URL || 'https://nairobi-verified-backend.onrender.com/api'} />
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#fff',
+            color: '#333',
+          },
+          error: {
+            duration: 5000,
+            style: {
+              background: '#FEF2F2',
+              color: '#B91C1C',
+              border: '1px solid #FCA5A5',
+            },
+          },
+        }}
+      />
+      {/* Only show connection status in production */}
+      {process.env.NODE_ENV === 'production' && (
+        <ConnectionStatus apiUrl={process.env.NEXT_PUBLIC_API_URL || 'https://nairobi-verified-backend.onrender.com/api'} />
+      )}
     </div>
   );
 };

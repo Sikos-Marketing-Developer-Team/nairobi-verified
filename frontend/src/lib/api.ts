@@ -10,7 +10,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // Increased from 10000 to 30000 ms to handle potential cold starts
+  timeout: 60000, // Increased to 60 seconds to handle potential cold starts on Render.com
   withCredentials: true,
 });
 
@@ -40,10 +40,15 @@ api.interceptors.response.use(
     console.error('API Error:', {
       url: error.config?.url,
       method: error.config?.method,
+      baseURL: error.config?.baseURL,
+      timeout: error.config?.timeout,
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
-      message: error.message
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      stack: error.stack
     });
 
     const { response } = error;
@@ -68,11 +73,33 @@ api.interceptors.response.use(
       toast.error('The requested resource was not found.');
     } else if (response?.status === 422) {
       // Handle validation errors
-      const errorData = response.data as { errors?: Array<{ message: string }> };
-      const errors = errorData.errors || [];
-      if (Array.isArray(errors)) {
-        errors.forEach(err => toast.error(err.message));
-      } else {
+      try {
+        const data = response.data as Record<string, any>;
+        
+        if (data.errors && Array.isArray(data.errors)) {
+          // Handle array of error objects with message property
+          data.errors.forEach((err: any) => {
+            if (err && typeof err === 'object' && 'message' in err) {
+              toast.error(String(err.message));
+            }
+          });
+        } else if (data.errors && typeof data.errors === 'object') {
+          // Handle object with error messages
+          Object.values(data.errors).forEach((errorMsg: any) => {
+            if (typeof errorMsg === 'string') {
+              toast.error(errorMsg);
+            } else if (Array.isArray(errorMsg)) {
+              errorMsg.forEach((msg: any) => {
+                if (typeof msg === 'string') toast.error(msg);
+              });
+            }
+          });
+        } else {
+          // Fallback error message
+          toast.error('Please check your input and try again.');
+        }
+      } catch (validationError) {
+        console.error('Error parsing validation errors:', validationError);
         toast.error('Please check your input and try again.');
       }
     } else if (response?.status === 429) {
@@ -86,21 +113,53 @@ api.interceptors.response.use(
         method: error.config?.method
       });
       
-      // Check if it's likely a Render.com cold start issue
-      if (API_URL.includes('render.com')) {
-        toast.error(
-          'The server may be starting up. Please wait a moment and try again.',
-          { duration: 5000 }
-        );
-      } else {
-        toast.error(
-          'Unable to connect to the server. Please check your internet connection or try again later.',
-          { duration: 5000 }
-        );
+      // Limit the number of network error toasts to avoid spamming the user
+      const lastNetworkErrorTime = localStorage.getItem('lastNetworkErrorTime');
+      const currentTime = Date.now();
+      
+      // Only show a toast if we haven't shown one in the last 30 seconds
+      if (!lastNetworkErrorTime || currentTime - parseInt(lastNetworkErrorTime) > 30000) {
+        localStorage.setItem('lastNetworkErrorTime', currentTime.toString());
+        
+        // Check if it's likely a Render.com cold start issue
+        if (API_URL.includes('render.com')) {
+          toast.error(
+            'The server may be starting up. Please wait a moment and try again.',
+            { duration: 5000, id: 'network-error' }
+          );
+        } else {
+          toast.error(
+            'Unable to connect to the server. Please check your internet connection or try again later.',
+            { duration: 5000, id: 'network-error' }
+          );
+        }
       }
+    } else if (error.code === 'ECONNABORTED') {
+      // Handle timeout errors
+      toast.error('Request timed out. The server might be under heavy load or temporarily unavailable.');
     } else {
-      const errorData = response?.data as { message?: string };
-      toast.error(errorData?.message || 'An unexpected error occurred.');
+      // Try to extract a meaningful error message
+      let errorMessage = 'An unexpected error occurred.';
+      
+      if (response?.data) {
+        if (typeof response.data === 'string') {
+          errorMessage = response.data;
+        } else if (typeof response.data === 'object') {
+          // Safely access properties that might not exist
+          const data = response.data as Record<string, any>;
+          if (data.message && typeof data.message === 'string') {
+            errorMessage = data.message;
+          } else if (data.error) {
+            errorMessage = typeof data.error === 'string' 
+              ? data.error 
+              : 'Server error. Please try again.';
+          }
+        }
+      } else if (error.message && error.message !== 'Network Error') {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     }
     
     return Promise.reject(error);
