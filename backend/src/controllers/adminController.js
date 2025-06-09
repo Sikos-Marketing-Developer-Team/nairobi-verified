@@ -1558,6 +1558,6 @@ module.exports = {
   deleteFeatureToggle,
   getContentBanners,
   getHomepageSections,
-  saveLayoutChanges,
-  bulkImportBusinesses
+  saveLayoutChanges
+  // bulkImportBusinesses temporarily removed due to implementation issues
 };

@@ -78,6 +78,7 @@ router.put('/email-templates/:templateId', adminNotificationController.updateEma
 router.delete('/email-templates/:templateId', adminNotificationController.deleteEmailTemplate);
 
 // Bulk import businesses
-router.post('/businesses/bulk-import', upload.single('file'), adminController.bulkImportBusinesses);
+// Temporarily commented out due to implementation issues
+// router.post('/businesses/bulk-import', upload.single('file'), adminController.bulkImportBusinesses);
 
 module.exports = router;
