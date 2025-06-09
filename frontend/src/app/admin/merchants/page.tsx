@@ -52,10 +52,16 @@ import {
   Loader2, 
   MoreHorizontal, 
   Search, 
-  Trash, 
+  Trash,
+  Trash2, 
   XCircle 
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { 
+  sendEmail, 
+  generateVerificationApprovalEmail, 
+  generateVerificationRejectionEmail 
+} from "@/services/notification";
 
 interface Merchant {
   _id: string;
@@ -98,64 +104,107 @@ export default function AdminMerchantsPage() {
   const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false);
   const [verificationNotes, setVerificationNotes] = useState("");
   
-  // Mock data for demonstration
+  // Fetch merchants from localStorage or use mock data
   useEffect(() => {
     // Simulate API call
     setTimeout(() => {
-      const mockMerchants: Merchant[] = [
-        {
-          _id: "1",
-          fullName: "John Doe",
-          email: "john@example.com",
-          companyName: "Doe Enterprises",
-          phone: "+254712345678",
-          isVerified: true,
-          isActive: true,
-          createdAt: "2023-01-15T08:30:00Z",
-          lastLogin: "2023-06-20T14:45:00Z",
-          verificationStatus: 'approved',
-          verificationDocuments: {
-            businessRegistration: "https://example.com/docs/business1.pdf",
-            identificationDocument: "https://example.com/docs/id1.pdf",
-            addressProof: "https://example.com/docs/address1.pdf"
-          }
-        },
-        {
-          _id: "2",
-          fullName: "Jane Smith",
-          email: "jane@example.com",
-          companyName: "Smith Traders",
-          phone: "+254723456789",
-          isVerified: false,
-          isActive: true,
-          createdAt: "2023-02-20T10:15:00Z",
-          verificationStatus: 'pending',
-          verificationDocuments: {
-            businessRegistration: "https://example.com/docs/business2.pdf",
-            identificationDocument: "https://example.com/docs/id2.pdf"
-          }
-        },
-        {
-          _id: "3",
-          fullName: "Robert Johnson",
-          email: "robert@example.com",
-          companyName: "Johnson Supplies",
-          phone: "+254734567890",
-          isVerified: false,
-          isActive: false,
-          createdAt: "2023-03-10T09:45:00Z",
-          verificationStatus: 'rejected',
-          verificationDocuments: {
-            businessRegistration: "https://example.com/docs/business3.pdf"
-          }
-        }
-      ];
+      // Check if we have merchants in localStorage
+      const storedMerchantsJSON = localStorage.getItem('merchants');
+      let merchantsData: Merchant[] = [];
       
-      setMerchants(mockMerchants);
-      setFilteredMerchants(mockMerchants);
+      if (storedMerchantsJSON) {
+        try {
+          // Parse stored merchants
+          const parsedMerchants = JSON.parse(storedMerchantsJSON);
+          
+          // Map the imported merchants to match our Merchant interface
+          merchantsData = parsedMerchants.map((m: any) => ({
+            _id: m.id || m._id || String(Math.floor(Math.random() * 10000)),
+            fullName: m.name || m.fullName || '',
+            email: m.email || '',
+            companyName: m.businessName || m.companyName || '',
+            phone: m.phone || '',
+            isVerified: m.isVerified || false,
+            isActive: m.status === 'active' || m.isActive || true,
+            createdAt: m.createdAt || new Date().toISOString(),
+            lastLogin: m.lastLogin || null,
+            verificationStatus: m.verificationStatus || 'pending',
+            verificationDocuments: {
+              businessRegistration: m.documents?.businessRegistration || '',
+              identificationDocument: m.documents?.idDocument || '',
+              addressProof: m.documents?.addressProof || ''
+            }
+          }));
+        } catch (error) {
+          console.error("Error parsing merchants from localStorage:", error);
+          // If there's an error, use mock data
+          merchantsData = getMockMerchants();
+        }
+      } else {
+        // If no merchants in localStorage, use mock data
+        merchantsData = getMockMerchants();
+        
+        // Save mock data to localStorage for future use
+        localStorage.setItem('merchants', JSON.stringify(merchantsData));
+      }
+      
+      setMerchants(merchantsData);
+      setFilteredMerchants(merchantsData);
       setIsLoading(false);
     }, 1000);
   }, []);
+  
+  // Function to get mock merchants data
+  const getMockMerchants = (): Merchant[] => {
+    return [
+      {
+        _id: "1",
+        fullName: "John Doe",
+        email: "john@example.com",
+        companyName: "Doe Enterprises",
+        phone: "+254712345678",
+        isVerified: true,
+        isActive: true,
+        createdAt: "2023-01-15T08:30:00Z",
+        lastLogin: "2023-06-20T14:45:00Z",
+        verificationStatus: 'approved',
+        verificationDocuments: {
+          businessRegistration: "https://example.com/docs/business1.pdf",
+          identificationDocument: "https://example.com/docs/id1.pdf",
+          addressProof: "https://example.com/docs/address1.pdf"
+        }
+      },
+      {
+        _id: "2",
+        fullName: "Jane Smith",
+        email: "jane@example.com",
+        companyName: "Smith Traders",
+        phone: "+254723456789",
+        isVerified: false,
+        isActive: true,
+        createdAt: "2023-02-20T10:15:00Z",
+        verificationStatus: 'pending',
+        verificationDocuments: {
+          businessRegistration: "https://example.com/docs/business2.pdf",
+          identificationDocument: "https://example.com/docs/id2.pdf"
+        }
+      },
+      {
+        _id: "3",
+        fullName: "Robert Johnson",
+        email: "robert@example.com",
+        companyName: "Johnson Supplies",
+        phone: "+254734567890",
+        isVerified: false,
+        isActive: false,
+        createdAt: "2023-03-10T09:45:00Z",
+        verificationStatus: 'rejected',
+        verificationDocuments: {
+          businessRegistration: "https://example.com/docs/business3.pdf"
+        }
+      }
+    ];
+  };
   
   // Apply search filter
   useEffect(() => {
@@ -219,7 +268,27 @@ export default function AdminMerchantsPage() {
     setIsVerificationDialogOpen(true);
   };
   
-  const handleApproveVerification = () => {
+  const handleDeleteMerchant = (merchant: Merchant) => {
+    if (confirm(`Are you sure you want to delete ${merchant.companyName}? This action cannot be undone.`)) {
+      // Filter out the merchant to delete
+      const updatedMerchants = merchants.filter(m => m._id !== merchant._id);
+      
+      // Update state
+      setMerchants(updatedMerchants);
+      setFilteredMerchants(filteredMerchants.filter(m => m._id !== merchant._id));
+      
+      // Update localStorage
+      localStorage.setItem('merchants', JSON.stringify(updatedMerchants));
+      
+      // Show success message
+      toast({
+        title: "Merchant Deleted",
+        description: `${merchant.companyName} has been deleted successfully.`
+      });
+    }
+  };
+  
+  const handleApproveVerification = async () => {
     if (!selectedMerchant) return;
     
     // In a real application, this would be an API call
@@ -234,6 +303,7 @@ export default function AdminMerchantsPage() {
       return merchant;
     });
     
+    // Update state
     setMerchants(updatedMerchants);
     setFilteredMerchants(
       filteredMerchants.map(merchant => {
@@ -248,15 +318,45 @@ export default function AdminMerchantsPage() {
       })
     );
     
-    toast({
-      title: "Verification Approved",
-      description: `${selectedMerchant.companyName} has been verified successfully.`
-    });
+    // Update localStorage
+    localStorage.setItem('merchants', JSON.stringify(updatedMerchants));
+    
+    // Send verification approval email
+    try {
+      const dashboardUrl = `${window.location.origin}/merchant/dashboard`;
+      const emailOptions = generateVerificationApprovalEmail(
+        selectedMerchant.fullName,
+        selectedMerchant.email,
+        selectedMerchant.companyName,
+        dashboardUrl
+      );
+      
+      const emailResult = await sendEmail(emailOptions);
+      
+      if (emailResult.success) {
+        toast({
+          title: "Verification Approved",
+          description: `${selectedMerchant.companyName} has been verified successfully and notification email sent.`
+        });
+      } else {
+        toast({
+          title: "Verification Approved",
+          description: `${selectedMerchant.companyName} has been verified successfully but notification email failed to send.`
+        });
+        console.error("Email sending failed:", emailResult.error);
+      }
+    } catch (error) {
+      console.error("Error sending verification email:", error);
+      toast({
+        title: "Verification Approved",
+        description: `${selectedMerchant.companyName} has been verified successfully but notification email failed to send.`
+      });
+    }
     
     setIsVerificationDialogOpen(false);
   };
   
-  const handleRejectVerification = () => {
+  const handleRejectVerification = async () => {
     if (!selectedMerchant || !verificationNotes.trim()) return;
     
     // In a real application, this would be an API call
@@ -271,6 +371,7 @@ export default function AdminMerchantsPage() {
       return merchant;
     });
     
+    // Update state
     setMerchants(updatedMerchants);
     setFilteredMerchants(
       filteredMerchants.map(merchant => {
@@ -285,10 +386,41 @@ export default function AdminMerchantsPage() {
       })
     );
     
-    toast({
-      title: "Verification Rejected",
-      description: `${selectedMerchant.companyName}'s verification has been rejected.`
-    });
+    // Update localStorage
+    localStorage.setItem('merchants', JSON.stringify(updatedMerchants));
+    
+    // Send verification rejection email
+    try {
+      const supportUrl = `${window.location.origin}/merchant/support`;
+      const emailOptions = generateVerificationRejectionEmail(
+        selectedMerchant.fullName,
+        selectedMerchant.email,
+        selectedMerchant.companyName,
+        verificationNotes,
+        supportUrl
+      );
+      
+      const emailResult = await sendEmail(emailOptions);
+      
+      if (emailResult.success) {
+        toast({
+          title: "Verification Rejected",
+          description: `${selectedMerchant.companyName}'s verification has been rejected and notification email sent.`
+        });
+      } else {
+        toast({
+          title: "Verification Rejected",
+          description: `${selectedMerchant.companyName}'s verification has been rejected but notification email failed to send.`
+        });
+        console.error("Email sending failed:", emailResult.error);
+      }
+    } catch (error) {
+      console.error("Error sending verification email:", error);
+      toast({
+        title: "Verification Rejected",
+        description: `${selectedMerchant.companyName}'s verification has been rejected but notification email failed to send.`
+      });
+    }
     
     setIsVerificationDialogOpen(false);
   };
@@ -333,13 +465,26 @@ export default function AdminMerchantsPage() {
               </svg>
               Import
             </Button>
-            <Button onClick={() => router.push('/admin/merchants/add-sample')} className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Add Merchant
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => router.push('/admin/merchants/add')} className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Add Merchant
+              </Button>
+              <Button onClick={() => router.push('/admin/merchants/add-sample')} variant="outline" className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-list">
+                  <line x1="8" y1="6" x2="21" y2="6"/>
+                  <line x1="8" y1="12" x2="21" y2="12"/>
+                  <line x1="8" y1="18" x2="21" y2="18"/>
+                  <line x1="3" y1="6" x2="3.01" y2="6"/>
+                  <line x1="3" y1="12" x2="3.01" y2="12"/>
+                  <line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+                Add Sample Data
+              </Button>
+            </div>
           </div>
         </div>
         
@@ -498,6 +643,13 @@ export default function AdminMerchantsPage() {
                               <DropdownMenuItem onClick={() => handleVerification(merchant)}>
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Verification
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteMerchant(merchant)}
+                                className="text-red-600 dark:text-red-400"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

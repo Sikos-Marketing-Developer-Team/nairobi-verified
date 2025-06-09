@@ -121,40 +121,99 @@ export default function MerchantImport() {
     setProgress(0);
     
     try {
-      // In a real application, this would be an API call
-      // For demonstration, we'll simulate the import process
-      const formData = new FormData();
-      formData.append('file', file);
-
+      // Get existing merchants from localStorage
+      const existingMerchantsJSON = localStorage.getItem('merchants');
+      const existingMerchants = existingMerchantsJSON ? JSON.parse(existingMerchantsJSON) : [];
+      
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       setProgress(30);
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setProgress(60);
+      // Process merchants
+      const successfulImports: any[] = [];
+      const failedImports: string[] = [];
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Check for duplicates and validate
+      const existingEmails = new Set(existingMerchants.map((m: any) => m.email));
+      
+      for (let i = 0; i < preview.length; i++) {
+        const merchant = preview[i];
+        
+        // Simulate progress
+        if (i % 5 === 0) {
+          setProgress(30 + Math.min(60 * (i / preview.length), 60));
+          // Small delay to show progress
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Validate merchant data
+        if (!merchant.email || !merchant.email.includes('@')) {
+          failedImports.push(`Row ${i + 2}: Invalid email format for ${merchant.name}`);
+          continue;
+        }
+        
+        if (!merchant.phone) {
+          failedImports.push(`Row ${i + 2}: Missing required field "phone" for ${merchant.name}`);
+          continue;
+        }
+        
+        if (existingEmails.has(merchant.email)) {
+          failedImports.push(`Row ${i + 2}: Duplicate email ${merchant.email} for ${merchant.name}`);
+          continue;
+        }
+        
+        // Add to successful imports
+        const newMerchant = {
+          id: Math.floor(Math.random() * 10000).toString(),
+          name: merchant.name,
+          businessName: merchant.name, // Using name as business name if not provided
+          email: merchant.email,
+          phone: merchant.phone,
+          address: merchant.address,
+          isVerified: false,
+          verificationStatus: 'pending',
+          salesAmount: 'KSh 0.00',
+          earnings: 'KSh 0.00',
+          withdrawal: 'KSh 0.00',
+          createdAt: new Date().toISOString(),
+          category: merchant.category,
+          description: merchant.description,
+          openingHours: merchant.openingHours,
+          website: merchant.website,
+          socialMedia: merchant.socialMedia
+        };
+        
+        successfulImports.push(newMerchant);
+        existingEmails.add(merchant.email);
+      }
+      
+      // Update progress to 90%
+      setProgress(90);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Save to localStorage
+      const updatedMerchants = [...existingMerchants, ...successfulImports];
+      localStorage.setItem('merchants', JSON.stringify(updatedMerchants));
+      
+      // Complete the progress
       setProgress(100);
       
-      // Simulate successful import with some failures
-      const mockStatus: ImportStatus = {
+      // Set import status
+      const status: ImportStatus = {
         total: preview.length,
         processed: preview.length,
-        success: preview.length - 2,
-        failed: 2,
-        errors: [
-          'Row 3: Invalid email format',
-          'Row 5: Missing required field "phone"'
-        ]
+        success: successfulImports.length,
+        failed: failedImports.length,
+        errors: failedImports
       };
       
-      setImportStatus(mockStatus);
+      setImportStatus(status);
       setActiveTab("results");
       
-      if (mockStatus.failed === 0) {
-        toast.success(`All ${mockStatus.total} merchants imported successfully!`);
+      if (status.failed === 0) {
+        toast.success(`All ${status.total} merchants imported successfully!`);
       } else {
-        toast.error(`${mockStatus.failed} merchants failed to import`);
+        toast.error(`${status.failed} merchants failed to import`);
       }
     } catch (error) {
       console.error('Import error:', error);

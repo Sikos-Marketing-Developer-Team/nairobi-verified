@@ -146,22 +146,55 @@ export default function AddSampleMerchantsPage() {
     setIsLoading(true);
     
     try {
-      // In a real application, this would be an API call to add the merchants
-      // For demonstration, we'll simulate the import process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get existing merchants from localStorage
+      const existingMerchantsJSON = localStorage.getItem('merchants');
+      const existingMerchants = existingMerchantsJSON ? JSON.parse(existingMerchantsJSON) : [];
       
-      // Simulate successful import with some random failures
-      const successCount = parsedMerchants.length - 1;
-      const failedCount = 1;
-      const errors = ['Failed to import merchant #4: Database connection error'];
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Process merchants
+      const successfulImports: Merchant[] = [];
+      const failedImports: string[] = [];
+      
+      // Check for duplicates
+      const existingEmails = new Set(existingMerchants.map((m: any) => m.email));
+      
+      for (const merchant of parsedMerchants) {
+        // Simulate some random failures for demonstration
+        const shouldFail = Math.random() < 0.1; // 10% chance of failure
+        
+        if (shouldFail) {
+          failedImports.push(`Failed to import ${merchant.businessName}: Random validation error`);
+          continue;
+        }
+        
+        if (merchant.email && existingEmails.has(merchant.email)) {
+          failedImports.push(`Failed to import ${merchant.businessName}: Email ${merchant.email} already exists`);
+          continue;
+        }
+        
+        successfulImports.push(merchant);
+        if (merchant.email) {
+          existingEmails.add(merchant.email);
+        }
+      }
+      
+      // Combine merchants
+      const updatedMerchants = [...existingMerchants, ...successfulImports];
+      
+      // Save to localStorage
+      localStorage.setItem('merchants', JSON.stringify(updatedMerchants));
+      
+      // Set results
       setImportResults({
-        success: successCount,
-        failed: failedCount,
-        errors
+        success: successfulImports.length,
+        failed: failedImports.length,
+        errors: failedImports
       });
       
-      toast.success(`Successfully imported ${successCount} merchants`);
+      // Show success toast
+      toast.success(`Successfully imported ${successfulImports.length} merchants`);
     } catch (error) {
       console.error('Import error:', error);
       toast.error('Failed to import merchants');
