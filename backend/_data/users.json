@@ -1,0 +1,38 @@
+[
+  {
+    "id": "60d0fe4f5311236168a10001",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@email.com",
+    "password": "password123",
+    "phone": "+254 712 345 678",
+    "role": "user"
+  },
+  {
+    "id": "60d0fe4f5311236168a10002",
+    "firstName": "Mary",
+    "lastName": "Wanjiku",
+    "email": "mary@techhub.com",
+    "password": "password123",
+    "phone": "+254 723 456 789",
+    "role": "user"
+  },
+  {
+    "id": "60d0fe4f5311236168a10003",
+    "firstName": "Admin",
+    "lastName": "User",
+    "email": "admin@nairobiverified.com",
+    "password": "password123",
+    "phone": "+254 700 000 000",
+    "role": "admin"
+  },
+  {
+    "id": "60d0fe4f5311236168a10004",
+    "firstName": "Peter",
+    "lastName": "Ochieng",
+    "email": "peter@example.com",
+    "password": "password123",
+    "phone": "+254 734 567 890",
+    "role": "user"
+  }
+] 
