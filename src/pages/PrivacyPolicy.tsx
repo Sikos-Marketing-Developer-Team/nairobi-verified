@@ -1,235 +1,479 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Lock, Shield, AlertTriangle } from 'lucide-react';
+import { Lock, Shield, AlertTriangle, Eye, Database, UserCheck, Clock, ArrowUp, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const PrivacyPolicy = () => {
+  const [activeSection, setActiveSection] = useState('');
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  const sections = [
+    { id: 'introduction', title: '1. Introduction', icon: Eye },
+    { id: 'information-collection', title: '2. Information We Collect', icon: Database },
+    { id: 'usage-data', title: '2.2 Usage Data', icon: Database },
+    { id: 'cookies', title: '2.3 Cookies', icon: Database },
+    { id: 'information-use', title: '3. How We Use Information', icon: UserCheck },
+    { id: 'legal-basis', title: '4. Legal Basis', icon: Shield },
+    { id: 'disclosure', title: '5. Information Disclosure', icon: Shield },
+    { id: 'retention', title: '6. Data Retention', icon: Clock },
+    { id: 'security', title: '7. Data Security', icon: Lock },
+    { id: 'rights', title: '8. Your Rights', icon: UserCheck },
+    { id: 'contact', title: '12. Contact Us', icon: Eye }
+  ];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+      
+      // Update active section based on scroll position
+      const sectionElements = sections.map(section => document.getElementById(section.id));
+      const currentSection = sectionElements.find(element => {
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          return rect.top <= 100 && rect.bottom > 100;
+        }
+        return false;
+      });
+      
+      if (currentSection) {
+        setActiveSection(currentSection.id);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setShowMobileMenu(false);
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <Header />
       
-      {/* Hero Section */}
-      <section className="py-12 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-block p-3 bg-blue-100 rounded-full mb-6">
-            <Lock className="h-10 w-10 text-blue-600" />
+      {/* Enhanced Hero Section */}
+      <section className="relative py-20 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full animate-pulse"></div>
+          <div className="absolute top-40 right-20 w-16 h-16 bg-white/10 rounded-full animate-pulse delay-1000"></div>
+          <div className="absolute bottom-20 left-1/4 w-12 h-12 bg-white/10 rounded-full animate-pulse delay-500"></div>
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-block p-4 bg-white/20 backdrop-blur-sm rounded-2xl mb-8 animate-scale-in">
+            <Lock className="h-12 w-12 text-white" />
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold font-garamond text-gray-900 mb-6">
+          <h1 className="text-5xl lg:text-7xl font-bold font-garamond text-white mb-6 animate-fade-in">
             Privacy Policy
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Last Updated: December 20, 2024
+          <div className="bg-white/20 backdrop-blur-sm rounded-full px-6 py-3 inline-block">
+            <p className="text-lg text-white/90">
+              Last Updated: December 20, 2024
+            </p>
+          </div>
+          <p className="text-xl text-white/80 max-w-3xl mx-auto mt-6 leading-relaxed">
+            Your privacy is our priority. Learn how we protect and handle your personal information.
           </p>
         </div>
       </section>
       
-      {/* Privacy Policy Content */}
-      <section className="py-12 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="prose prose-lg max-w-none">
-            <h2>1. Introduction</h2>
-            <p>
-              At Nairobi Verified, we respect your privacy and are committed to protecting your personal data. 
-              This Privacy Policy explains how we collect, use, disclose, and safeguard your information when 
-              you use our website, mobile applications, and services (collectively, the "Services").
-            </p>
-            <p>
-              Please read this Privacy Policy carefully. If you do not agree with the terms of this Privacy Policy, 
-              please do not access or use our Services.
-            </p>
+      {/* Table of Contents & Content */}
+      <section className="py-16 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
             
-            <h2>2. Information We Collect</h2>
-            <p>
-              We collect several types of information from and about users of our Services, including:
-            </p>
-            
-            <h3>2.1 Personal Data</h3>
-            <p>
-              Personal Data refers to information that identifies you or can be used to identify you. We may collect 
-              the following Personal Data:
-            </p>
-            <ul>
-              <li><strong>Contact Information:</strong> Name, email address, phone number, and mailing address</li>
-              <li><strong>Account Information:</strong> Username, password, and account preferences</li>
-              <li><strong>Profile Information:</strong> Profile picture, bio, and other information you choose to provide</li>
-              <li><strong>Payment Information:</strong> Credit card details, bank account information, and billing address</li>
-              <li><strong>Identity Verification Information:</strong> For merchants, we may collect business registration documents, identification documents, and other verification information</li>
-            </ul>
-            
-            <h3>2.2 Usage Data</h3>
-            <p>
-              We may also collect information about how you access and use our Services, including:
-            </p>
-            <ul>
-              <li><strong>Device Information:</strong> IP address, device type, operating system, browser type, and mobile network information</li>
-              <li><strong>Usage Information:</strong> Pages visited, time spent on pages, links clicked, and search queries</li>
-              <li><strong>Location Information:</strong> General location based on IP address or more precise location if you grant permission</li>
-              <li><strong>Log Data:</strong> Server logs, error reports, and performance data</li>
-            </ul>
-            
-            <h3>2.3 Cookies and Similar Technologies</h3>
-            <p>
-              We use cookies and similar tracking technologies to track activity on our Services and hold certain information. 
-              Cookies are files with a small amount of data which may include an anonymous unique identifier.
-            </p>
-            <p>
-              We use the following types of cookies:
-            </p>
-            <ul>
-              <li><strong>Essential Cookies:</strong> Necessary for the functioning of our Services</li>
-              <li><strong>Analytical/Performance Cookies:</strong> Allow us to recognize and count the number of visitors and see how visitors move around our Services</li>
-              <li><strong>Functionality Cookies:</strong> Enable us to personalize content and remember your preferences</li>
-              <li><strong>Targeting Cookies:</strong> Record your visit to our Services, the pages you have visited, and the links you have followed</li>
-            </ul>
-            <p>
-              You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent. However, 
-              if you do not accept cookies, you may not be able to use some portions of our Services.
-            </p>
-            
-            <h2>3. How We Use Your Information</h2>
-            <p>
-              We use the information we collect for various purposes, including:
-            </p>
-            <ul>
-              <li>To provide and maintain our Services</li>
-              <li>To process transactions and send related information</li>
-              <li>To verify merchant identities and physical locations</li>
-              <li>To notify you about changes to our Services</li>
-              <li>To allow you to participate in interactive features of our Services</li>
-              <li>To provide customer support</li>
-              <li>To gather analysis or valuable information to improve our Services</li>
-              <li>To monitor the usage of our Services</li>
-              <li>To detect, prevent, and address technical issues</li>
-              <li>To send you promotional communications, if you have opted in to receive them</li>
-              <li>To protect our rights, property, or safety, and that of our users or others</li>
-            </ul>
-            
-            <h2>4. Legal Basis for Processing</h2>
-            <p>
-              We process your personal data on the following legal bases:
-            </p>
-            <ul>
-              <li><strong>Contractual Necessity:</strong> Processing is necessary for the performance of a contract with you or to take steps at your request before entering into a contract</li>
-              <li><strong>Legitimate Interests:</strong> Processing is necessary for our legitimate interests, such as improving our Services and growing our business</li>
-              <li><strong>Compliance with Legal Obligations:</strong> Processing is necessary for compliance with a legal obligation to which we are subject</li>
-              <li><strong>Consent:</strong> You have given consent to the processing of your personal data for one or more specific purposes</li>
-            </ul>
-            
-            <h2>5. Disclosure of Your Information</h2>
-            <p>
-              We may disclose your personal information to the following categories of recipients:
-            </p>
-            <ul>
-              <li><strong>Service Providers:</strong> Third-party vendors who perform services on our behalf, such as payment processing, data analysis, email delivery, hosting services, and customer service</li>
-              <li><strong>Business Partners:</strong> Partners with whom we jointly offer products or services</li>
-              <li><strong>Affiliates:</strong> Our parent company, subsidiaries, and affiliates</li>
-              <li><strong>Merchants:</strong> If you interact with a merchant through our Services, we may share information necessary to facilitate the interaction</li>
-              <li><strong>Legal Requirements:</strong> To comply with any court order, law, or legal process, including to respond to any government or regulatory request</li>
-              <li><strong>Business Transfers:</strong> In connection with any merger, sale of company assets, financing, or acquisition of all or a portion of our business</li>
-              <li><strong>With Your Consent:</strong> In other ways we may describe when you provide the information or with your consent</li>
-            </ul>
-            
-            <h2>6. Data Retention</h2>
-            <p>
-              We will retain your personal data only for as long as is necessary for the purposes set out in this 
-              Privacy Policy. We will retain and use your personal data to the extent necessary to comply with our 
-              legal obligations, resolve disputes, and enforce our legal agreements and policies.
-            </p>
-            <p>
-              We will also retain usage data for internal analysis purposes. Usage data is generally retained for a 
-              shorter period, except when this data is used to strengthen the security or to improve the functionality 
-              of our Services, or we are legally obligated to retain this data for longer periods.
-            </p>
-            
-            <h2>7. Data Security</h2>
-            <p>
-              We have implemented appropriate technical and organizational security measures designed to protect the 
-              security of any personal information we process. However, please also remember that we cannot guarantee 
-              that the internet itself is 100% secure.
-            </p>
-            <p>
-              Although we will do our best to protect your personal information, transmission of personal information 
-              to and from our Services is at your own risk. You should only access the Services within a secure environment.
-            </p>
-            
-            <h2>8. Your Data Protection Rights</h2>
-            <p>
-              Depending on your location, you may have the following data protection rights:
-            </p>
-            <ul>
-              <li><strong>Access:</strong> The right to request copies of your personal data</li>
-              <li><strong>Rectification:</strong> The right to request that we correct any information you believe is inaccurate or complete information you believe is incomplete</li>
-              <li><strong>Erasure:</strong> The right to request that we erase your personal data, under certain conditions</li>
-              <li><strong>Restriction:</strong> The right to request that we restrict the processing of your personal data, under certain conditions</li>
-              <li><strong>Object:</strong> The right to object to our processing of your personal data, under certain conditions</li>
-              <li><strong>Data Portability:</strong> The right to request that we transfer the data we have collected to another organization, or directly to you, under certain conditions</li>
-            </ul>
-            <p>
-              If you wish to exercise any of these rights, please contact us using the contact information provided below.
-            </p>
-            
-            <h2>9. Children's Privacy</h2>
-            <p>
-              Our Services are not intended for children under the age of 18. We do not knowingly collect personal 
-              information from children under 18. If you are a parent or guardian and you are aware that your child 
-              has provided us with personal information, please contact us. If we become aware that we have collected 
-              personal information from children without verification of parental consent, we take steps to remove that 
-              information from our servers.
-            </p>
-            
-            <h2>10. Third-Party Links</h2>
-            <p>
-              Our Services may contain links to third-party websites and services that are not owned or controlled by 
-              Nairobi Verified. We have no control over, and assume no responsibility for, the content, privacy policies, 
-              or practices of any third-party websites or services. We strongly advise you to review the privacy policy 
-              of every site you visit.
-            </p>
-            
-            <h2>11. Changes to This Privacy Policy</h2>
-            <p>
-              We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new 
-              Privacy Policy on this page and updating the "Last Updated" date at the top of this Privacy Policy.
-            </p>
-            <p>
-              You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy 
-              are effective when they are posted on this page.
-            </p>
-            
-            <h2>12. Contact Us</h2>
-            <p>
-              If you have any questions about this Privacy Policy, please contact us:
-            </p>
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <p className="font-semibold text-gray-900 mb-2">Nairobi Verified Ltd.</p>
-              <div className="space-y-1 text-gray-700">
-                <p>📧 Email: privacy@nairobiverified.com</p>
-                <p>📞 Phone: +254 700 123 456</p>
-                <p>📍 Address: Nairobi CBD, Kenya</p>
-                <p>🌐 Website: www.nairobiverified.com</p>
+            {/* Table of Contents - Desktop */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-8">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900">Contents</h3>
+                    <button
+                      onClick={() => setShowMobileMenu(!showMobileMenu)}
+                      className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+                    >
+                      {showMobileMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                    </button>
+                  </div>
+                  
+                  <nav className={`space-y-2 ${showMobileMenu ? 'block' : 'hidden lg:block'}`}>
+                    {sections.map((section) => {
+                      const Icon = section.icon;
+                      return (
+                        <button
+                          key={section.id}
+                          onClick={() => scrollToSection(section.id)}
+                          className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                            activeSection === section.id
+                              ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          }`}
+                        >
+                          <Icon className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{section.title}</span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div className="mt-12 p-6 bg-blue-50 border border-blue-100 rounded-lg">
-            <div className="flex items-start gap-3">
-              <Shield className="h-6 w-6 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Your Privacy Matters</h3>
-                <p className="text-gray-700">
-                  We are committed to protecting your personal information and respecting your privacy. If you have any concerns 
-                  about how we handle your data, please don't hesitate to contact us.
-                </p>
+
+            {/* Main Content */}
+            <div className="lg:col-span-3">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 lg:p-12">
+                <div className="prose prose-lg max-w-none">
+                  
+                  <div id="introduction" className="scroll-mt-8">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Eye className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-0">1. Introduction</h2>
+                    </div>
+                    <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg mb-6">
+                      <p className="text-blue-800 font-medium mb-2">Welcome to Nairobi Verified's Privacy Policy</p>
+                      <p className="text-blue-700 text-sm">
+                        We respect your privacy and are committed to protecting your personal data. This policy explains our practices clearly and transparently.
+                      </p>
+                    </div>
+                    <p>
+                      At Nairobi Verified, we respect your privacy and are committed to protecting your personal data. 
+                      This Privacy Policy explains how we collect, use, disclose, and safeguard your information when 
+                      you use our website, mobile applications, and services (collectively, the "Services").
+                    </p>
+                    <p>
+                      Please read this Privacy Policy carefully. If you do not agree with the terms of this Privacy Policy, 
+                      please do not access or use our Services.
+                    </p>
+                  </div>
+                  
+                  <div id="information-collection" className="scroll-mt-8">
+                    <div className="flex items-center gap-3 mb-6 mt-12">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Database className="h-6 w-6 text-green-600" />
+                      </div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-0">2. Information We Collect</h2>
+                    </div>
+                    <p>
+                      We collect several types of information from and about users of our Services, including:
+                    </p>
+                    
+                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 my-8">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-gray-600" />
+                        2.1 Personal Data
+                      </h3>
+                      <p className="text-gray-700 mb-4">
+                        Personal Data refers to information that identifies you or can be used to identify you. We may collect 
+                        the following Personal Data:
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-lg border border-gray-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">📞 Contact Information</h4>
+                          <p className="text-sm text-gray-600">Name, email address, phone number, and mailing address</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border border-gray-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">👤 Account Information</h4>
+                          <p className="text-sm text-gray-600">Username, password, and account preferences</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border border-gray-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">📸 Profile Information</h4>
+                          <p className="text-sm text-gray-600">Profile picture, bio, and other information you choose to provide</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border border-gray-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">💳 Payment Information</h4>
+                          <p className="text-sm text-gray-600">Credit card details, bank account information, and billing address</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white border border-orange-200 rounded-xl p-6 my-8">
+                      <div className="flex items-center gap-2 mb-3">
+                        <UserCheck className="h-5 w-5 text-orange-600" />
+                        <h4 className="font-semibold text-gray-900">📋 Identity Verification Information</h4>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        For merchants, we may collect business registration documents, identification documents, and other verification information
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div id="usage-data" className="scroll-mt-8">
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 my-8">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Database className="h-5 w-5 text-purple-600" />
+                        2.2 Usage Data
+                      </h3>
+                      <p className="text-gray-700 mb-4">
+                        We may also collect information about how you access and use our Services, including:
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-lg border border-purple-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">📱 Device Information</h4>
+                          <p className="text-sm text-gray-600">IP address, device type, operating system, browser type, and mobile network information</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border border-purple-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">📊 Usage Information</h4>
+                          <p className="text-sm text-gray-600">Pages visited, time spent on pages, links clicked, and search queries</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border border-purple-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">📍 Location Information</h4>
+                          <p className="text-sm text-gray-600">General location based on IP address or more precise location if you grant permission</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border border-purple-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">📋 Log Data</h4>
+                          <p className="text-sm text-gray-600">Server logs, error reports, and performance data</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div id="cookies" className="scroll-mt-8">
+                    <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 my-8">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Database className="h-5 w-5 text-yellow-600" />
+                        2.3 Cookies and Similar Technologies
+                      </h3>
+                      <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-r-lg mb-6">
+                        <p className="text-yellow-800 text-sm">
+                          🍪 <strong>About Cookies:</strong> We use cookies and similar tracking technologies to track activity on our Services. 
+                          Cookies are files with a small amount of data which may include an anonymous unique identifier.
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-lg border border-yellow-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">🔧 Essential Cookies</h4>
+                          <p className="text-sm text-gray-600">Necessary for the functioning of our Services</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border border-yellow-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">📈 Analytical Cookies</h4>
+                          <p className="text-sm text-gray-600">Allow us to recognize and count visitors and see how they move around our Services</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border border-yellow-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">⚙️ Functionality Cookies</h4>
+                          <p className="text-sm text-gray-600">Enable us to personalize content and remember your preferences</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border border-yellow-200">
+                          <h4 className="font-semibold text-gray-900 mb-2">🎯 Targeting Cookies</h4>
+                          <p className="text-sm text-gray-600">Record your visit and track the pages you have visited and links you have followed</p>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 p-4 bg-orange-100 rounded-lg">
+                        <p className="text-orange-800 text-sm">
+                          <strong>Note:</strong> You can instruct your browser to refuse all cookies, but if you do not accept cookies, 
+                          you may not be able to use some portions of our Services.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div id="information-use" className="scroll-mt-8">
+                    <div className="flex items-center gap-3 mb-6 mt-12">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <UserCheck className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-0">3. How We Use Your Information</h2>
+                    </div>
+                    
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 my-8">
+                      <p className="text-gray-700 mb-6">
+                        We use the information we collect for various purposes to provide you with the best possible service:
+                      </p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-blue-600 text-sm font-bold">1</span>
+                            </div>
+                            <h4 className="font-semibold text-gray-900">Service Provision</h4>
+                          </div>
+                          <p className="text-sm text-gray-600">To provide and maintain our Services</p>
+                        </div>
+                        
+                        <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <span className="text-green-600 text-sm font-bold">2</span>
+                            </div>
+                            <h4 className="font-semibold text-gray-900">Transaction Processing</h4>
+                          </div>
+                          <p className="text-sm text-gray-600">To process transactions and send related information</p>
+                        </div>
+                        
+                        <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                              <span className="text-purple-600 text-sm font-bold">3</span>
+                            </div>
+                            <h4 className="font-semibold text-gray-900">Verification</h4>
+                          </div>
+                          <p className="text-sm text-gray-600">To verify merchant identities and physical locations</p>
+                        </div>
+                        
+                        <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                              <span className="text-yellow-600 text-sm font-bold">4</span>
+                            </div>
+                            <h4 className="font-semibold text-gray-900">Communication</h4>
+                          </div>
+                          <p className="text-sm text-gray-600">To notify you about changes and provide customer support</p>
+                        </div>
+                        
+                        <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                              <span className="text-red-600 text-sm font-bold">5</span>
+                            </div>
+                            <h4 className="font-semibold text-gray-900">Improvement</h4>
+                          </div>
+                          <p className="text-sm text-gray-600">To analyze usage and improve our Services</p>
+                        </div>
+                        
+                        <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                              <span className="text-orange-600 text-sm font-bold">6</span>
+                            </div>
+                            <h4 className="font-semibold text-gray-900">Security</h4>
+                          </div>
+                          <p className="text-sm text-gray-600">To detect, prevent, and address technical and security issues</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Compact presentation of remaining important sections */}
+                  <div className="space-y-8 mt-12">
+                    <div id="contact" className="scroll-mt-8">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <Eye className="h-6 w-6 text-green-600" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-0">Contact Us</h2>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-8 border border-green-200">
+                        <p className="text-gray-700 mb-6">
+                          If you have any questions about this Privacy Policy, please contact us:
+                        </p>
+                        
+                        <div className="bg-white rounded-xl p-6 shadow-sm border border-green-100">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                              <Shield className="h-5 w-5 text-green-600" />
+                            </div>
+                            <h3 className="font-bold text-gray-900 text-lg">Nairobi Verified Ltd.</h3>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                              <span className="text-2xl">📧</span>
+                              <div>
+                                <p className="font-medium text-gray-900">Email</p>
+                                <p className="text-sm text-gray-600">privacy@nairobiverified.com</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                              <span className="text-2xl">📞</span>
+                              <div>
+                                <p className="font-medium text-gray-900">Phone</p>
+                                <p className="text-sm text-gray-600">+254 700 123 456</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                              <span className="text-2xl">📍</span>
+                              <div>
+                                <p className="font-medium text-gray-900">Address</p>
+                                <p className="text-sm text-gray-600">Nairobi CBD, Kenya</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                              <span className="text-2xl">🌐</span>
+                              <div>
+                                <p className="font-medium text-gray-900">Website</p>
+                                <p className="text-sm text-gray-600">www.nairobiverified.com</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Enhanced Privacy commitment section */}
+                <div className="mt-12 p-8 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-2xl">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-blue-100 rounded-full">
+                      <Shield className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 mb-3">Your Privacy is Our Priority</h3>
+                      <p className="text-gray-700 mb-4 leading-relaxed">
+                        We are committed to protecting your personal information and respecting your privacy. 
+                        Our privacy practices are designed to provide transparency and give you control over your data.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">GDPR Compliant</span>
+                        <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">Data Minimization</span>
+                        <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">User Control</span>
+                        <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">Transparent Practices</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Related Links */}
+                <div className="mt-8 flex flex-wrap justify-center gap-4">
+                  <Link 
+                    to="/terms-of-service" 
+                    className="px-6 py-3 bg-primary text-white rounded-full hover:bg-primary-dark transition-colors font-medium"
+                  >
+                    Terms of Service
+                  </Link>
+                  <Link 
+                    to="/cookie-policy" 
+                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-medium"
+                  >
+                    Cookie Policy
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div className="mt-8 text-center">
-            <Link to="/terms-of-service" className="text-primary hover:underline">
-              View our Terms of Service
-            </Link>
           </div>
         </div>
+        
+        {/* Scroll to top button */}
+        {showScrollTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 p-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary-dark transition-all duration-300 z-50 animate-fade-in"
+            aria-label="Scroll to top"
+          >
+            <ArrowUp className="h-6 w-6" />
+          </button>
+        )}
       </section>
       
       <Footer />
