@@ -1,0 +1,90 @@
+
+import React from 'react';
+import { Shield, MapPin, Star, Users } from 'lucide-react';
+
+const features = [
+  {
+    icon: Shield,
+    title: 'Verified Merchants Only',
+    description: 'Every merchant undergoes thorough verification including business registration and physical location confirmation.',
+    stats: '100% Verified'
+  },
+  {
+    icon: MapPin,
+    title: 'Physical Store Locations',
+    description: 'Visit actual stores in Nairobi CBD. Get directions and see the business in person before you buy.',
+    stats: '200+ Locations'
+  },
+  {
+    icon: Star,
+    title: 'Quality Guaranteed',
+    description: 'All products are quality checked by our merchants. Return policy and buyer protection included.',
+    stats: '4.8/5 Rating'
+  },
+  {
+    icon: Users,
+    title: 'Trusted Community',
+    description: 'Join thousands of satisfied customers who shop with confidence on Nairobi Verified.',
+    stats: '10,000+ Users'
+  }
+];
+
+const TrustSection = () => {
+  return (
+    <section className="py-16 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            Why Choose Nairobi Verified?
+          </h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            We bridge the gap between online shopping and physical retail, 
+            ensuring you can trust every purchase you make.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {features.map((feature, index) => (
+            <div 
+              key={index} 
+              className="text-center group hover:shadow-lg transition-shadow duration-300 p-6 rounded-lg"
+            >
+              <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
+                <feature.icon className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {feature.title}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {feature.description}
+              </p>
+              <div className="text-2xl font-bold text-primary">
+                {feature.stats}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Call to Action */}
+        <div className="mt-16 bg-gradient-to-r from-primary to-primary-dark rounded-2xl p-8 lg:p-12 text-center text-white">
+          <h3 className="text-2xl lg:text-3xl font-bold font-garamond mb-4">
+            Ready to Start Shopping Safely?
+          </h3>
+          <p className="text-lg opacity-90 mb-6 max-w-2xl mx-auto">
+            Join thousands of satisfied customers who trust Nairobi Verified for their online shopping needs.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button className="bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+              Create Account
+            </button>
+            <button className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors">
+              Browse Products
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default TrustSection;

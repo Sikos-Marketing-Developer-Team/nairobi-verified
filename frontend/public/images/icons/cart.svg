@@ -1,8 +1,0 @@
-<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-  <!-- Cart -->
-  <path d="M4 4 L6 16 L20 16 L22 7 L7 7" stroke="#ea580c" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-  
-  <!-- Wheels -->
-  <circle cx="9" cy="20" r="2" fill="#ea580c" />
-  <circle cx="17" cy="20" r="2" fill="#ea580c" />
-</svg>
