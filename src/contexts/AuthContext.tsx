@@ -86,11 +86,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     try {
       const response = await authAPI.register(userData);
-      const { user } = response.data;
       
-      // With session auth, user is automatically logged in
-      setUser(user);
-      navigate('/');
+      // After successful registration, redirect to login page
+      navigate('/auth?message=Registration successful! Please sign in with your credentials.');
       return response.data;
     } catch (error) {
       console.error('Registration failed:', error);

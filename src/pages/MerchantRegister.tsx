@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,10 @@ import Footer from '@/components/Footer';
 
 const MerchantRegister = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const businessRegRef = useRef<HTMLInputElement>(null);
+  const idDocRef = useRef<HTMLInputElement>(null);
+  const utilityBillRef = useRef<HTMLInputElement>(null);
+  const additionalDocsRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     // Step 1: Basic Information
     businessName: '',
@@ -72,18 +76,111 @@ const MerchantRegister = () => {
     }));
   };
 
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        // Validate basic information
+        if (!formData.businessName.trim()) {
+          alert('Business name is required');
+          return false;
+        }
+        if (!formData.email.trim()) {
+          alert('Email is required');
+          return false;
+        }
+        if (!formData.phone.trim()) {
+          alert('Phone number is required');
+          return false;
+        }
+        if (!formData.password.trim()) {
+          alert('Password is required');
+          return false;
+        }
+        if (formData.password !== formData.confirmPassword) {
+          alert('Passwords do not match');
+          return false;
+        }
+        return true;
+      
+      case 2:
+        // Validate business details
+        if (!formData.businessType.trim()) {
+          alert('Business type is required');
+          return false;
+        }
+        if (!formData.description.trim()) {
+          alert('Business description is required');
+          return false;
+        }
+        if (!formData.yearEstablished.trim()) {
+          alert('Year established is required');
+          return false;
+        }
+        return true;
+      
+      case 3:
+        // Validate location and hours
+        if (!formData.address.trim()) {
+          alert('Business address is required');
+          return false;
+        }
+        if (!formData.landmark.trim()) {
+          alert('Landmark is required');
+          return false;
+        }
+        return true;
+      
+      case 4:
+        // Validate documents
+        if (!formData.businessRegistration) {
+          alert('Business registration document is required');
+          return false;
+        }
+        if (!formData.idDocument) {
+          alert('ID document is required');
+          return false;
+        }
+        if (!formData.utilityBill) {
+          alert('Utility bill is required');
+          return false;
+        }
+        return true;
+      
+      default:
+        return true;
+    }
+  };
+
   const handleNext = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1);
+    if (validateStep(currentStep)) {
+      if (currentStep < 4) setCurrentStep(currentStep + 1);
+    }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
+  const handleFileChange = (field: string, file: File | null) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: file
+    }));
+  };
+
+  const handleFileButtonClick = (fileInputRef: React.RefObject<HTMLInputElement>) => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Merchant registration submitted:', formData);
-    // Handle form submission
+    if (validateStep(4)) {
+      console.log('Merchant registration submitted:', formData);
+      // Handle form submission here - call API
+      alert('Registration submitted successfully! We will review your application and get back to you within 2-3 business days.');
+    }
   };
 
   return (
@@ -370,36 +467,81 @@ const MerchantRegister = () => {
                       <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <h4 className="font-medium text-gray-900 mb-1">Business Registration *</h4>
                       <p className="text-sm text-gray-500 mb-3">Certificate of incorporation or business permit</p>
-                      <Button variant="outline" size="sm">
-                        Choose File
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleFileButtonClick(businessRegRef)}
+                      >
+                        {formData.businessRegistration ? formData.businessRegistration.name : 'Choose File'}
                       </Button>
+                      <input
+                        type="file"
+                        ref={businessRegRef}
+                        onChange={(e) => handleFileChange('businessRegistration', e.target.files?.[0] || null)}
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                      />
                     </div>
                     
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
                       <User className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <h4 className="font-medium text-gray-900 mb-1">ID Document *</h4>
                       <p className="text-sm text-gray-500 mb-3">National ID or passport of business owner</p>
-                      <Button variant="outline" size="sm">
-                        Choose File
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleFileButtonClick(idDocRef)}
+                      >
+                        {formData.idDocument ? formData.idDocument.name : 'Choose File'}
                       </Button>
+                      <input
+                        type="file"
+                        ref={idDocRef}
+                        onChange={(e) => handleFileChange('idDocument', e.target.files?.[0] || null)}
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                      />
                     </div>
                     
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
                       <MapPin className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <h4 className="font-medium text-gray-900 mb-1">Utility Bill *</h4>
                       <p className="text-sm text-gray-500 mb-3">Recent utility bill for address verification</p>
-                      <Button variant="outline" size="sm">
-                        Choose File
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleFileButtonClick(utilityBillRef)}
+                      >
+                        {formData.utilityBill ? formData.utilityBill.name : 'Choose File'}
                       </Button>
+                      <input
+                        type="file"
+                        ref={utilityBillRef}
+                        onChange={(e) => handleFileChange('utilityBill', e.target.files?.[0] || null)}
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                      />
                     </div>
                     
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
                       <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <h4 className="font-medium text-gray-900 mb-1">Additional Documents</h4>
                       <p className="text-sm text-gray-500 mb-3">Any other supporting documents</p>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleFileButtonClick(additionalDocsRef)}
+                      >
                         Choose Files
                       </Button>
+                      <input
+                        type="file"
+                        ref={additionalDocsRef}
+                        onChange={(e) => handleFileChange('additionalDocs', e.target.files?.[0] || null)}
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        multiple
+                      />
                     </div>
                   </div>
                   

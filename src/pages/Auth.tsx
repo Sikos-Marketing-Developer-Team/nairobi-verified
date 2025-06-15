@@ -25,6 +25,10 @@ const Auth = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
+  // Get success message from URL params
+  const searchParams = new URLSearchParams(location.search);
+  const successMessage = searchParams.get('message');
+  
   // Google login handler
   const googleLogin = useGoogleLogin({
     onSuccess: tokenResponse => {
@@ -119,6 +123,11 @@ const Auth = () => {
             <div className="text-center text-sm text-gray-500">
               Enter your credentials to {isLogin ? 'access your account' : 'create your account'}
             </div>
+            {successMessage && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded text-sm text-center">
+                {successMessage}
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">

@@ -19,7 +19,9 @@ export const authAPI = {
   login: (email: string, password: string) => api.post('/auth/login', { email, password }),
   loginMerchant: (email: string, password: string) => api.post('/auth/login/merchant', { email, password }),
   getMe: () => api.get('/auth/me'),
-  logout: () => api.get('/auth/logout')
+  logout: () => api.get('/auth/logout'),
+  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string) => api.post(`/auth/reset-password/${token}`, { password })
 };
 
 // Users API

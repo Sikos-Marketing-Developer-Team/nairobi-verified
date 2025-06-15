@@ -153,7 +153,7 @@ const Merchants = () => {
                       <span className="text-sm text-gray-500">{merchant.location}</span>
                     </div>
                     
-                    <Link to={`/merchants/${merchant._id}`}>
+                    <Link to={`/merchant/${merchant._id}`}>
                       <Button className="bg-primary hover:bg-primary-dark text-white">
                         View Profile
                       </Button>

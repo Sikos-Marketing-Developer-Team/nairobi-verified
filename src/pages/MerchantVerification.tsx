@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { CheckCircle, Clock, Upload, FileText, AlertCircle, MessageSquare, X, Eye, Download, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,11 @@ import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
 import { merchantsAPI } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MerchantVerification = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -18,77 +20,100 @@ const MerchantVerification = () => {
   const [documentType, setDocumentType] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documents, setDocuments] = useState<any[]>([]);
-  
-  const verificationData = {
-    status: 'pending', // verified, pending, rejected, incomplete
-    submittedDate: '2024-01-10',
-    reviewedDate: '2024-01-12',
-    verificationSteps: [
-      { 
-        id: 1, 
-        title: 'Application Submitted', 
-        completed: true, 
-        date: '2024-01-10',
-        description: 'Your verification application has been received'
-      },
-      { 
-        id: 2, 
-        title: 'Documents Reviewed', 
-        completed: true, 
-        date: '2024-01-11',
-        description: 'All submitted documents have been reviewed'
-      },
-      { 
-        id: 3, 
-        title: 'Physical Verification', 
-        completed: true, 
-        date: '2024-01-12',
-        description: 'Your business location has been verified'
-      },
-      { 
-        id: 4, 
-        title: 'Verification Complete', 
-        completed: true, 
-        date: '2024-01-12',
-        description: 'Your business is now verified and visible to customers'
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [verificationData, setVerificationData] = useState<any>(null);
+
+  // Load verification data
+  useEffect(() => {
+    const loadVerificationData = async () => {
+      try {
+        setLoading(true);
+        
+        // For now, use mock data since the API might not have the verification endpoint yet
+        const mockData = {
+          status: 'pending', // verified, pending, rejected, incomplete
+          submittedDate: '2024-01-10',
+          reviewedDate: '2024-01-12',
+          verificationSteps: [
+            { 
+              id: 1, 
+              title: 'Application Submitted', 
+              completed: true, 
+              date: '2024-01-10',
+              description: 'Your verification application has been received'
+            },
+            { 
+              id: 2, 
+              title: 'Documents Reviewed', 
+              completed: false, 
+              date: null,
+              description: 'All submitted documents have been reviewed'
+            },
+            { 
+              id: 3, 
+              title: 'Physical Verification', 
+              completed: false, 
+              date: null,
+              description: 'Your business location has been verified'
+            },
+            { 
+              id: 4, 
+              title: 'Verification Complete', 
+              completed: false, 
+              date: null,
+              description: 'Your business is now verified and visible to customers'
+            }
+          ],
+          documents: [
+            { 
+              id: 1,
+              type: 'Business Registration', 
+              status: 'pending', 
+              uploadDate: '2024-05-10',
+              notes: 'Under review',
+              fileName: 'business_registration.pdf',
+              fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
+            },
+            { 
+              id: 2,
+              type: 'ID Document', 
+              status: 'pending', 
+              uploadDate: '2024-05-10',
+              notes: 'Under review',
+              fileName: 'id_document.pdf',
+              fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
+            },
+            { 
+              id: 3,
+              type: 'Utility Bill', 
+              status: 'rejected', 
+              uploadDate: '2024-05-10',
+              notes: 'Document is too old. Please upload a utility bill from the last 3 months.',
+              fileName: 'utility_bill.pdf',
+              fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
+            }
+          ],
+          requiredDocuments: [
+            'Business Registration',
+            'ID Document',
+            'Utility Bill',
+            'Business Photos'
+          ]
+        };
+        
+        setVerificationData(mockData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading verification data:', error);
+        setLoading(false);
       }
-    ],
-    documents: [
-      { 
-        id: 1,
-        type: 'Business Registration', 
-        status: 'pending', 
-        uploadDate: '2024-05-10',
-        notes: 'Under review',
-        fileName: 'business_registration.pdf',
-        fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
-      },
-      { 
-        id: 2,
-        type: 'ID Document', 
-        status: 'pending', 
-        uploadDate: '2024-05-10',
-        notes: 'Under review',
-        fileName: 'id_document.pdf',
-        fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
-      },
-      { 
-        id: 3,
-        type: 'Utility Bill', 
-        status: 'rejected', 
-        uploadDate: '2024-05-10',
-        notes: 'Document is too old. Please upload a utility bill from the last 3 months.',
-        fileName: 'utility_bill.pdf',
-        fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
-      }
-    ],
-    requiredDocuments: [
-      'Business Registration',
-      'ID Document',
-      'Utility Bill',
-      'Business Photos'
-    ]
-  };
+    };
+
+    if (user?.isMerchant) {
+      loadVerificationData();
+    }
+  }, [user]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -131,8 +156,19 @@ const MerchantVerification = () => {
       });
       return;
     }
+
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
+      setUploading(true);
+      
       // Convert document type to API field name
       const fieldMap: Record<string, string> = {
         "Business Registration": "businessRegistration",
@@ -143,16 +179,8 @@ const MerchantVerification = () => {
       
       const fieldName = fieldMap[documentType] || "additionalDocs";
       
-      // Use the merchantsAPI to upload the document
-      // Mock merchant ID for demo purposes
-      const merchantId = "60d0fe4f5311236168a109cd"; 
-      
-      // In a real app, you would get the merchant ID from context or redux
-      // Here we're using the API from src/lib/api.ts
-      // import { merchantsAPI } from '@/lib/api';
-      
-      // Use the actual API to upload the document
-      await merchantsAPI.uploadDocuments(merchantId, { [fieldName]: selectedFile });
+      // Use the actual user ID from the auth context
+      await merchantsAPI.uploadDocuments(user.id, { [fieldName]: selectedFile });
       
       // Create a new document object to add to the state
       const newDoc = {
@@ -180,6 +208,7 @@ const MerchantVerification = () => {
         variant: "destructive",
       });
     } finally {
+      setUploading(false);
       setUploadDialogOpen(false);
       setSelectedFile(null);
       setDocumentType('');
@@ -191,6 +220,38 @@ const MerchantVerification = () => {
       fileInputRef.current.click();
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <Clock className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-gray-600">Loading verification status...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!verificationData) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <p className="text-gray-600">Unable to load verification data</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -558,8 +619,15 @@ const MerchantVerification = () => {
             <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpload} disabled={!selectedFile || !documentType}>
-              Upload Document
+            <Button onClick={handleUpload} disabled={!selectedFile || !documentType || uploading}>
+              {uploading ? (
+                <>
+                  <Clock className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                'Upload Document'
+              )}
             </Button>
           </div>
         </DialogContent>

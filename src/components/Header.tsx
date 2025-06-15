@@ -1,32 +1,37 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Menu } from 'lucide-react';
+import { Menu, User } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<'user' | 'merchant' | 'admin'>('user');
-
-  // Mock login status - in real app, this would come from auth context
-  const mockLogin = (role: 'user' | 'merchant' | 'admin') => {
-    setIsLoggedIn(true);
-    setUserRole(role);
-  };
+  const { user, isAuthenticated, logout } = useAuth();
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserRole('user');
+    logout();
+    setIsMenuOpen(false);
   };
 
   const getDashboardLink = () => {
-    switch (userRole) {
-      case 'admin':
-        return '/admin/dashboard';
-      case 'merchant':
-        return '/merchant/dashboard';
-      default:
-        return '/dashboard';
+    if (user?.role === 'admin') {
+      return '/admin/dashboard';
+    } else if (user?.isMerchant || user?.businessName) {
+      return '/merchant/dashboard';
+    } else {
+      return '/dashboard';
+    }
+  };
+
+  const getUserDisplayName = () => {
+    if (user?.businessName) {
+      return user.businessName;
+    } else if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    } else if (user?.name) {
+      return user.name;
+    } else {
+      return user?.email || 'User';
     }
   };
 
@@ -53,9 +58,9 @@ const Header = () => {
               About
             </Link>
             
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                {userRole === 'user' && (
+                {(!user?.isMerchant && !user?.businessName && user?.role !== 'admin') && (
                   <Link to="/favorites" className="text-gray-700 hover:text-primary transition-colors">
                     Favorites
                   </Link>
@@ -65,9 +70,10 @@ const Header = () => {
                   Dashboard
                 </Link>
                 
-                <Link to="/profile" className="text-gray-700 hover:text-primary transition-colors">
-                  Profile
-                </Link>
+                <div className="flex items-center space-x-2">
+                  <User className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-700">{getUserDisplayName()}</span>
+                </div>
                 
                 <Button onClick={handleLogout} variant="outline" size="sm">
                   Logout
@@ -77,6 +83,9 @@ const Header = () => {
               <div className="flex items-center space-x-4">
                 <Link to="/auth">
                   <Button variant="outline">Sign In</Button>
+                </Link>
+                <Link to="/auth/register">
+                  <Button variant="outline">Sign Up</Button>
                 </Link>
                 <Link to="/auth/register/merchant">
                   <Button className="bg-primary hover:bg-primary-dark">Register Business</Button>
@@ -115,9 +124,9 @@ const Header = () => {
               About
             </Link>
             
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <div className="space-y-4 pt-4 border-t">
-                {userRole === 'user' && (
+                {(!user?.isMerchant && !user?.businessName && user?.role !== 'admin') && (
                   <Link 
                     to="/favorites" 
                     className="block text-gray-700 hover:text-primary transition-colors"
@@ -135,19 +144,13 @@ const Header = () => {
                   Dashboard
                 </Link>
                 
-                <Link 
-                  to="/profile" 
-                  className="block text-gray-700 hover:text-primary transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Profile
-                </Link>
+                <div className="flex items-center space-x-2 text-gray-700">
+                  <User className="h-4 w-4" />
+                  <span className="text-sm">{getUserDisplayName()}</span>
+                </div>
                 
                 <Button 
-                  onClick={() => {
-                    handleLogout();
-                    setIsMenuOpen(false);
-                  }} 
+                  onClick={handleLogout} 
                   variant="outline" 
                   size="sm" 
                   className="w-full"
@@ -160,23 +163,15 @@ const Header = () => {
                 <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
                   <Button variant="outline" className="w-full">Sign In</Button>
                 </Link>
+                <Link to="/auth/register" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="outline" className="w-full">Sign Up</Button>
+                </Link>
                 <Link to="/auth/register/merchant" onClick={() => setIsMenuOpen(false)}>
                   <Button className="w-full bg-primary hover:bg-primary-dark">Register Business</Button>
                 </Link>
               </div>
             )}
-            
-            {/* Mock login buttons for demo */}
-            {!isLoggedIn && (
-              <div className="space-y-2 pt-4 border-t">
-                <p className="text-sm text-gray-500">Demo Login:</p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => mockLogin('user')}>User</Button>
-                  <Button size="sm" variant="outline" onClick={() => mockLogin('merchant')}>Merchant</Button>
-                  <Button size="sm" variant="outline" onClick={() => mockLogin('admin')}>Admin</Button>
-                </div>
-              </div>
-            )}
+
           </div>
         )}
       </div>
