@@ -98,7 +98,7 @@ const result = await MerchantOnboardingService.createMerchantProgrammatically({
   phone: '+254712345678',
   businessType: 'Services',
   description: 'Professional services',
-  address: 'Nairobi CBD, Kenya'
+  address: 'Kiambi Road, Nairobi Kenya'
 }, {
   autoVerify: false,
   createdBy: 'import-script',

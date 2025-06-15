@@ -106,7 +106,7 @@ async function sendWelcomeEmail(merchant, credentials, setupToken) {
           </p>
           <p style="color: #666;">
             📧 Email: support@nairobicbd.directory<br>
-            📱 WhatsApp: +254 700 000 000<br>
+            📱 WhatsApp: 0790120841 / 0713740807<br>
             🕒 Support Hours: Monday - Friday, 8 AM - 6 PM
           </p>
         </div>

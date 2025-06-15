@@ -215,7 +215,7 @@ async function main() {
           phone: args[3],
           businessType: args[4] || 'Services',
           description: `${args[1]} - Professional services in Nairobi CBD`,
-          address: 'Nairobi CBD, Kenya'
+          address: 'Kiambi Road, Nairobi Kenya'
         };
 
         await createSingleMerchant(customMerchant, {

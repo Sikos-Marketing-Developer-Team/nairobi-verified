@@ -120,7 +120,7 @@ const initialMerchants = [
     email: "maxwellwanjohi.s@gmail.com",
     phone: "+254700000000", // Placeholder - needs update
     businessType: "Professional Services",
-    address: "Nairobi CBD, Kenya", // Generic address - needs update
+    address: "Kiambi Road, Nairobi Kenya", // Generic address - needs update
     description: "Professional business services and consultancy",
     internalId: "NAIROBI-CBD-009",
     ownerName: "Maxwell Wanjohi",
@@ -141,7 +141,7 @@ const initialMerchants = [
     email: "mrwanjohi11@gmail.com",
     phone: "+254700000001", // Placeholder - needs update
     businessType: "Digital Services",
-    address: "Nairobi CBD, Kenya", // Generic address - needs update
+    address: "Kiambi Road, Nairobi Kenya", // Generic address - needs update
     description: "Digital solutions and online services provider",
     internalId: "NAIROBI-CBD-011",
     ownerName: "Mr. Wanjohi",

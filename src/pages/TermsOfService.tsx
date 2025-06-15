@@ -290,7 +290,7 @@ const TermsOfService = () => {
                             <span className="text-2xl">📍</span>
                             <div>
                               <p className="font-medium text-gray-900">Address</p>
-                              <p className="text-sm text-gray-600">Nairobi CBD, Kenya</p>
+                              <p className="text-sm text-gray-600">Kiambi Road, Nairobi Kenya</p>
                             </div>
                           </div>
                           
