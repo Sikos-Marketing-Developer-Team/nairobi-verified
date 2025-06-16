@@ -5,6 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { usePageLoading } from '@/hooks/use-loading';
+import { ProductGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const products = [
   {
@@ -100,6 +103,7 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const isLoading = usePageLoading(600);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -114,6 +118,51 @@ const Products = () => {
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <div className="space-y-8">
+            {/* Search and Filters Header Skeleton */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+                <div className="flex-1 max-w-2xl">
+                  <Skeleton className="h-12 w-full" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-10 w-24" />
+                  <Skeleton className="h-10 w-24" />
+                  <Skeleton className="h-10 w-10" />
+                  <Skeleton className="h-10 w-10" />
+                </div>
+              </div>
+              
+              {/* Categories Skeleton */}
+              <div className="flex flex-wrap gap-2 mt-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-20" />
+                ))}
+              </div>
+            </div>
+
+            {/* Results Header Skeleton */}
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-6 w-32" />
+            </div>
+
+            {/* Products Grid Skeleton */}
+            <ProductGridSkeleton />
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

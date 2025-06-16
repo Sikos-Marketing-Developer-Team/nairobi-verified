@@ -7,6 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
 import { adminAPI } from '@/lib/api';
+import { usePageLoading } from '@/hooks/use-loading';
+import { DashboardSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 
 const AdminDashboard = () => {
   // State for mock data removal dialog
@@ -18,6 +20,7 @@ const AdminDashboard = () => {
   // State for specific mock data type removal
   const [selectedDataType, setSelectedDataType] = useState<string | null>(null);
   const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false);
+  const isLoading = usePageLoading(500);
   
   // Mock data - in a real app, this would come from API
   const stats = {
@@ -83,6 +86,18 @@ const AdminDashboard = () => {
       setIsRemoving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <DashboardSkeleton />
+        </PageSkeleton>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

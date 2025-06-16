@@ -7,8 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
+import { usePageLoading } from '@/hooks/use-loading';
+import { PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Support = () => {
+  const isLoading = usePageLoading(550);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -74,6 +78,72 @@ const Support = () => {
       answer: "The merchant verification process typically takes 3-5 business days. This includes document review and physical location verification by our team."
     }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        
+        {/* Hero Section Skeleton */}
+        <section className="gradient-bg py-16">
+          <div className="max-w-4xl mx-auto text-center px-4">
+            <Skeleton className="h-12 w-3/4 mx-auto mb-6" />
+            <Skeleton className="h-6 w-full mb-4" />
+            <Skeleton className="h-6 w-5/6 mx-auto" />
+          </div>
+        </section>
+
+        <PageSkeleton>
+          <div className="space-y-16">
+            {/* Contact Options Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="text-center space-y-4">
+                  <Skeleton className="h-16 w-16 rounded-full mx-auto" />
+                  <Skeleton className="h-6 w-3/4 mx-auto" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3 mx-auto" />
+                </div>
+              ))}
+            </div>
+
+            {/* Contact Form & FAQ Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              {/* Contact Form Skeleton */}
+              <div className="space-y-6">
+                <Skeleton className="h-8 w-1/2" />
+                <div className="space-y-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="space-y-2">
+                      <Skeleton className="h-4 w-1/4" />
+                      <Skeleton className={`${i === 3 ? 'h-24' : 'h-12'} w-full`} />
+                    </div>
+                  ))}
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              </div>
+
+              {/* FAQ Skeleton */}
+              <div className="space-y-6">
+                <Skeleton className="h-8 w-1/2" />
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="border rounded-lg p-4 space-y-2">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-5/6" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -161,7 +231,7 @@ const Support = () => {
                 Call our customer service team
               </p>
               <p className="text-lg font-medium text-purple-700">
-                +254 700 123 456
+                0790120841 / 0713740807
               </p>
             </div>
             
@@ -176,7 +246,7 @@ const Support = () => {
                 Send us an email anytime
               </p>
               <p className="text-lg font-medium text-purple-700">
-                support@nairobiverified.com
+                info@sikosmarketing.com
               </p>
             </div>
             

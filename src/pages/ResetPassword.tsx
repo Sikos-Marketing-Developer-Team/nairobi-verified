@@ -6,6 +6,8 @@ import { Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import api from '@/lib/api';
+import { usePageLoading } from '@/hooks/use-loading';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ResetPassword = () => {
   const { token } = useParams();
@@ -14,6 +16,7 @@ const ResetPassword = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const isPageLoading = usePageLoading(400);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -74,6 +77,44 @@ const ResetPassword = () => {
       setIsLoading(false);
     }
   };
+
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full space-y-8">
+          {/* Logo Skeleton */}
+          <div className="text-center space-y-4">
+            <Skeleton className="h-16 w-16 rounded-full mx-auto" />
+            <Skeleton className="h-8 w-48 mx-auto" />
+            <Skeleton className="h-6 w-64 mx-auto" />
+          </div>
+
+          {/* Form Card Skeleton */}
+          <div className="bg-white rounded-lg shadow-xl border-t-4 border-primary p-6 space-y-6">
+            <div className="text-center space-y-2">
+              <Skeleton className="h-8 w-40 mx-auto" />
+              <Skeleton className="h-4 w-56 mx-auto" />
+            </div>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+              <Skeleton className="h-12 w-full" />
+              <div className="text-center">
+                <Skeleton className="h-4 w-40 mx-auto" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center px-4">

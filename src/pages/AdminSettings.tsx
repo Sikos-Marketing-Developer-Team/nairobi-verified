@@ -9,7 +9,7 @@ import Header from '@/components/Header';
 const AdminSettings = () => {
   const [settings, setSettings] = useState({
     platformName: 'Nairobi Verified',
-    contactEmail: 'support@nairobiverified.com',
+    contactEmail: 'info@sikosmarketing.com',
     contactPhone: '0790120841 / 0713740807',
     verificationEmail: 'verification@nairobiverified.com',
     autoApproveThreshold: '5',

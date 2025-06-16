@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Eye, EyeOff, Mail, Lock, User, Phone, Loader2 } from 'lucide-react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useGoogleLogin } from '@react-oauth/google';
+
 import { useAuth } from '@/contexts/AuthContext';
 
 const Auth = () => {
@@ -29,21 +29,14 @@ const Auth = () => {
   const searchParams = new URLSearchParams(location.search);
   const successMessage = searchParams.get('message');
   
-  // Google login handler
-  const googleLogin = useGoogleLogin({
-    onSuccess: tokenResponse => {
-      console.log('Google login successful:', tokenResponse);
-      setGoogleLoading(true);
-      // Redirect to the backend Google auth endpoint
-      // The backend will handle the OAuth flow and set the session
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      window.location.href = `${apiUrl}/auth/google`;
-    },
-    onError: error => {
-      console.error('Google login failed:', error);
-      setGoogleLoading(false);
-    }
-  });
+  // Google login handler - direct redirect to backend
+  const handleGoogleLogin = () => {
+    setGoogleLoading(true);
+    // Redirect directly to the backend Google auth endpoint
+    // The backend will handle the complete OAuth flow and set the session
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    window.location.href = `${apiUrl}/auth/google`;
+  };
 
   // Handle social login callback
   useEffect(() => {
@@ -291,7 +284,7 @@ const Auth = () => {
           <Button 
             variant="outline" 
             className="w-full max-w-sm bg-white hover:bg-gray-50"
-            onClick={() => googleLogin()}
+            onClick={handleGoogleLogin}
             disabled={googleLoading}
           >
             {googleLoading ? (

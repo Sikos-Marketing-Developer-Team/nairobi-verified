@@ -5,10 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
+import { usePageLoading } from '@/hooks/use-loading';
+import { TableSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 
 const AdminMerchants = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const isLoading = usePageLoading(600);
 
   // Mock merchants data
   const merchants = [
@@ -64,6 +67,18 @@ const AdminMerchants = () => {
     const matchesStatus = statusFilter === 'all' || merchant.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <TableSkeleton />
+        </PageSkeleton>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

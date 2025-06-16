@@ -4,8 +4,12 @@ import Footer from '@/components/Footer';
 import { FileText, CheckCircle, MapPin, ShoppingBag, Users, Shield, Building, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { PageSkeleton } from '@/components/ui/loading-skeletons';
+import { usePageLoading } from '@/hooks/use-loading';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const HowItWorks = () => {
+  const isLoading = usePageLoading(600);
   const steps = [
     {
       icon: FileText,
@@ -84,6 +88,95 @@ const HowItWorks = () => {
       answer: "Yes, we use industry-standard encryption and secure payment gateways to ensure all transactions are protected."
     }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        
+        {/* Hero Section Skeleton */}
+        <section className="py-16 bg-gradient-to-br from-orange-50 to-yellow-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <Skeleton className="h-12 w-3/4 mx-auto mb-6" />
+            <Skeleton className="h-6 w-full mb-4" />
+            <Skeleton className="h-6 w-5/6 mx-auto mb-8" />
+            <Skeleton className="h-12 w-48 mx-auto" />
+          </div>
+        </section>
+
+        <PageSkeleton>
+          <div className="space-y-16">
+            {/* Steps Section Skeleton */}
+            <div className="space-y-12">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-10 w-1/3 mx-auto" />
+                <Skeleton className="h-6 w-2/3 mx-auto" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="text-center space-y-4">
+                    <Skeleton className="h-16 w-16 rounded-full mx-auto" />
+                    <Skeleton className="h-6 w-3/4 mx-auto" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Benefits Section Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <Skeleton className="h-10 w-1/2" />
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-6 w-5/6" />
+                </div>
+                <div className="space-y-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex items-center space-x-3">
+                      <Skeleton className="h-6 w-6 rounded-full" />
+                      <Skeleton className="h-5 flex-1" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-start space-x-4 p-4">
+                    <Skeleton className="h-12 w-12 rounded" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* FAQ Section Skeleton */}
+            <div className="space-y-8">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-10 w-1/3 mx-auto" />
+                <Skeleton className="h-6 w-2/3 mx-auto" />
+              </div>
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="border rounded-lg p-6 space-y-3">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

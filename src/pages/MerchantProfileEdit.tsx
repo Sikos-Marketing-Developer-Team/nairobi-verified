@@ -12,7 +12,7 @@ const MerchantProfileEdit = () => {
     businessName: 'TechHub Kenya',
     tagline: 'Your trusted technology partner',
     description: 'Leading provider of laptops, computers and tech accessories in Nairobi CBD. We offer quality products at competitive prices with excellent customer service.',
-    phone: '+254 700 123 456',
+    phone: '0790120841 / 0713740807',
     email: 'info@techhubkenya.com',
     website: 'https://techhubkenya.com',
     address: 'Kimathi Street Building, 3rd Floor, Room 301',

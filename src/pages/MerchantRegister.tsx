@@ -6,8 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Upload, Building, User, Clock, FileText } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { usePageLoading } from '@/hooks/use-loading';
+import { PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MerchantRegister = () => {
+  const isLoading = usePageLoading(700);
   const [currentStep, setCurrentStep] = useState(1);
   const businessRegRef = useRef<HTMLInputElement>(null);
   const idDocRef = useRef<HTMLInputElement>(null);
@@ -182,6 +186,60 @@ const MerchantRegister = () => {
       alert('Registration submitted successfully! We will review your application and get back to you within 2-3 business days.');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <div className="space-y-8">
+            {/* Header Skeleton */}
+            <div className="text-center space-y-4">
+              <Skeleton className="h-10 w-1/2 mx-auto" />
+              <Skeleton className="h-6 w-3/4 mx-auto" />
+            </div>
+
+            {/* Progress Steps Skeleton */}
+            <div className="flex justify-center">
+              <div className="flex items-center space-x-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    {i < 3 && <Skeleton className="h-px w-16 mx-2" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Form Card Skeleton */}
+            <div className="bg-white rounded-lg shadow-sm p-8 space-y-6">
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-1/3" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex justify-between pt-6">
+                <Skeleton className="h-12 w-24" />
+                <Skeleton className="h-12 w-24" />
+              </div>
+            </div>
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

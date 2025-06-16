@@ -4,8 +4,12 @@ import Footer from '@/components/Footer';
 import { Shield, AlertTriangle, Eye, CreditCard, MapPin, MessageSquare, Users, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { usePageLoading } from '@/hooks/use-loading';
+import { PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const SafetyGuidelines = () => {
+  const isLoading = usePageLoading(600);
   const guidelines = [
     {
       icon: Shield,
@@ -58,6 +62,85 @@ const SafetyGuidelines = () => {
     "Include any relevant evidence (screenshots, photos, etc.)",
     "Submit your report for review by our team"
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        
+        {/* Hero Section Skeleton */}
+        <section className="py-16 bg-gradient-to-br from-red-50 to-orange-50">
+          <div className="max-w-4xl mx-auto text-center px-4">
+            <Skeleton className="h-12 w-3/4 mx-auto mb-6" />
+            <Skeleton className="h-6 w-full mb-4" />
+            <Skeleton className="h-6 w-5/6 mx-auto" />
+          </div>
+        </section>
+
+        <PageSkeleton>
+          <div className="space-y-16">
+            {/* Guidelines Grid Skeleton */}
+            <div className="space-y-12">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-10 w-1/3 mx-auto" />
+                <Skeleton className="h-6 w-2/3 mx-auto" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="text-center space-y-4 p-6">
+                    <Skeleton className="h-16 w-16 rounded-full mx-auto" />
+                    <Skeleton className="h-6 w-3/4 mx-auto" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Warning Signs Skeleton */}
+            <div className="bg-red-50 rounded-lg p-8 space-y-6">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-10 w-1/2 mx-auto" />
+                <Skeleton className="h-6 w-3/4 mx-auto" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-start space-x-3">
+                    <Skeleton className="h-6 w-6 rounded-full flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Reporting Section Skeleton */}
+            <div className="bg-blue-50 rounded-lg p-8 space-y-6">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-10 w-1/3 mx-auto" />
+                <Skeleton className="h-6 w-2/3 mx-auto" />
+              </div>
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center space-x-3">
+                    <Skeleton className="h-6 w-6 rounded-full" />
+                    <Skeleton className="h-5 flex-1" />
+                  </div>
+                ))}
+              </div>
+              <div className="text-center">
+                <Skeleton className="h-12 w-48 mx-auto" />
+              </div>
+            </div>
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

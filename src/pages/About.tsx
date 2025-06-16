@@ -5,8 +5,12 @@ import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Link } from 'react-router-dom';
+import { usePageLoading } from '@/hooks/use-loading';
+import { PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const About = () => {
+  const isLoading = usePageLoading(600);
   const stats = [
     { label: 'Verified Merchants', value: '200+', icon: Shield },
     { label: 'Happy Customers', value: '10,000+', icon: Users },
@@ -57,6 +61,77 @@ const About = () => {
       description: 'Expert in business development and merchant partnership strategies.'
     }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        
+        {/* Hero Section Skeleton */}
+        <section className="gradient-bg py-16">
+          <div className="max-w-4xl mx-auto text-center px-4">
+            <Skeleton className="h-12 w-3/4 mx-auto mb-6" />
+            <Skeleton className="h-6 w-full mb-4" />
+            <Skeleton className="h-6 w-5/6 mx-auto mb-8" />
+            <Skeleton className="h-12 w-48 mx-auto" />
+          </div>
+        </section>
+
+        <PageSkeleton>
+          <div className="space-y-16">
+            {/* Stats Section Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="text-center space-y-4">
+                  <Skeleton className="h-16 w-16 rounded-full mx-auto" />
+                  <Skeleton className="h-8 w-20 mx-auto" />
+                  <Skeleton className="h-6 w-32 mx-auto" />
+                </div>
+              ))}
+            </div>
+
+            {/* Values Section Skeleton */}
+            <div className="space-y-8">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-10 w-1/3 mx-auto" />
+                <Skeleton className="h-6 w-2/3 mx-auto" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-4">
+                    <Skeleton className="h-12 w-12" />
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Team Section Skeleton */}
+            <div className="space-y-8">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-10 w-1/3 mx-auto" />
+                <Skeleton className="h-6 w-2/3 mx-auto" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="text-center space-y-4">
+                    <Skeleton className="h-32 w-32 rounded-full mx-auto" />
+                    <Skeleton className="h-6 w-3/4 mx-auto" />
+                    <Skeleton className="h-4 w-2/3 mx-auto" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

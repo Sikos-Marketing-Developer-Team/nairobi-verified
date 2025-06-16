@@ -10,6 +10,9 @@ import Footer from '@/components/Footer';
 import ReviewsSection from '@/components/ReviewsSection';
 import { merchantsAPI, reviewsAPI, favoritesAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageLoading } from '@/hooks/use-loading';
+import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MerchantDetail = () => {
   const { id } = useParams();
@@ -18,6 +21,7 @@ const MerchantDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [merchant, setMerchant] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
+  const isPageLoading = usePageLoading(700);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -100,6 +104,91 @@ const MerchantDetail = () => {
       setFavoriteLoading(false);
     }
   };
+
+  if (loading || isPageLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          {/* Merchant Detail Skeleton - using custom layout for merchant details */}
+          <div className="space-y-8">
+            {/* Merchant Header Skeleton */}
+            <div className="bg-white rounded-lg shadow-sm p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Image Skeleton */}
+                <div className="space-y-4">
+                  <Skeleton className="aspect-square w-full rounded-lg" />
+                  <div className="grid grid-cols-4 gap-2">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <Skeleton key={i} className="aspect-square w-full rounded" />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Info Skeleton */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="space-y-4">
+                    <Skeleton className="h-10 w-3/4" />
+                    <div className="flex items-center space-x-4">
+                      <Skeleton className="h-6 w-32" />
+                      <Skeleton className="h-6 w-24" />
+                    </div>
+                    <Skeleton className="h-5 w-48" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons Skeleton */}
+                  <div className="flex flex-wrap gap-3">
+                    <Skeleton className="h-12 w-32" />
+                    <Skeleton className="h-12 w-28" />
+                    <Skeleton className="h-12 w-24" />
+                  </div>
+
+                  {/* Contact Info Skeleton */}
+                  <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex items-center space-x-3">
+                        <Skeleton className="h-5 w-5" />
+                        <Skeleton className="h-5 w-48" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs Skeleton */}
+            <div className="bg-white rounded-lg shadow-sm">
+              <div className="border-b p-6">
+                <div className="flex space-x-8">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-20" />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="p-8 space-y-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="h-6 w-1/3" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   if (loading) {
     return (

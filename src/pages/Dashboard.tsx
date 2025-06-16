@@ -11,6 +11,9 @@ import { Order, Merchant, Address } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { Link } from 'react-router-dom';
 import UserSettings from '@/components/UserSettings';
+import { usePageLoading } from '@/hooks/use-loading';
+import { DashboardSkeleton, ProfileSkeleton, PageSkeleton, TableSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Dashboard = () => {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
@@ -25,6 +28,7 @@ const Dashboard = () => {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [wishlistError, setWishlistError] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const isPageLoading = usePageLoading(500);
 
   const tabs = [
     { id: 'orders', label: 'My Orders', icon: Package },
@@ -168,11 +172,58 @@ const Dashboard = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || isPageLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2 text-gray-600">Loading dashboard...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-1/3" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+
+            {/* Tabs */}
+            <div className="flex space-x-8 border-b border-gray-200">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center space-x-2 pb-4">
+                  <Skeleton className="h-5 w-5" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
+
+            {/* Content based on active tab */}
+            {activeTab === 'profile' || activeTab === 'settings' ? (
+              <ProfileSkeleton />
+            ) : activeTab === 'orders' || activeTab === 'wishlist' || activeTab === 'addresses' ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="bg-white rounded-lg p-6 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-5 w-1/3" />
+                        <Skeleton className="h-6 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                      <div className="flex justify-between items-center">
+                        <Skeleton className="h-4 w-1/4" />
+                        <Skeleton className="h-8 w-20" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <DashboardSkeleton />
+            )}
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
       </div>
     );
   }

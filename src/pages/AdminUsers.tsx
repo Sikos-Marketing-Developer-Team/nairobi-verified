@@ -5,10 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Header from '@/components/Header';
+import { usePageLoading } from '@/hooks/use-loading';
+import { TableSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 
 const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const isLoading = usePageLoading(500);
 
   // Mock users data
   const users = [
@@ -79,6 +82,18 @@ const AdminUsers = () => {
     };
     return colors[role as keyof typeof colors] || colors.user;
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <TableSkeleton />
+        </PageSkeleton>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

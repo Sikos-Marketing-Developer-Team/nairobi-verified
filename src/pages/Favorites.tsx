@@ -10,6 +10,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { favoritesAPI, merchantsAPI } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
 import { Merchant } from '@/types';
+import { usePageLoading } from '@/hooks/use-loading';
+import { MerchantGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Favorites = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -17,6 +20,7 @@ const Favorites = () => {
   const [favorites, setFavorites] = useState<Merchant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isPageLoading = usePageLoading(500);
   
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'rating'>('recent');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -78,11 +82,34 @@ const Favorites = () => {
     return sortOrder === 'asc' ? comparison : -comparison;
   });
 
-  if (isLoading || authLoading) {
+  if (isLoading || authLoading || isPageLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2 text-gray-600">Loading favorites...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <div className="space-y-6">
+            {/* Header Skeleton */}
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-1/3" />
+              <Skeleton className="h-6 w-2/3" />
+            </div>
+
+            {/* Controls Skeleton */}
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-6 w-48" />
+              <div className="flex space-x-2">
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-10" />
+              </div>
+            </div>
+
+            {/* Favorites Grid Skeleton */}
+            <MerchantGridSkeleton />
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
       </div>
     );
   }
