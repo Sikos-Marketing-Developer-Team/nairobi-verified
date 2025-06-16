@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Shield, MapPin, Star, Users } from 'lucide-react';
+import {Link} from 'react-router-dom';
 
 const features = [
   {
@@ -74,12 +75,17 @@ const TrustSection = () => {
             Join thousands of satisfied customers who trust Nairobi Verified for their online shopping needs.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+           <Link to ="/auth/register">
             <button className="bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
               Create Account
             </button>
-            <button className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors">
+           </Link>
+           <Link to="/merchants">
+           <button className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors">
               Browse Products
             </button>
+           </Link>
+            
           </div>
         </div>
       </div>
