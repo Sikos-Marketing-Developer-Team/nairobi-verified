@@ -10,6 +10,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { userAPI } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
+import { usePageLoading } from '@/hooks/use-loading';
+import { ProfileSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 
 interface UserProfileData {
   firstName: string;
@@ -31,6 +33,7 @@ const UserProfile = () => {
     address: user?.address || '' // Assuming 'address' is a field in your User type
   });
   const [isSaving, setIsSaving] = useState(false);
+  const isPageLoading = usePageLoading(500);
 
   useEffect(() => {
     if (user) {
@@ -127,11 +130,16 @@ const UserProfile = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || isPageLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2 text-gray-600">Loading profile...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <ProfileSkeleton />
+        </PageSkeleton>
+        
+        <Footer />
       </div>
     );
   }

@@ -8,9 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
+import { usePageLoading } from '@/hooks/use-loading';
+import { DashboardSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MerchantDashboard = () => {
   const [timeRange, setTimeRange] = useState<'7days' | '30days' | '90days'>('30days');
+  const isLoading = usePageLoading(600);
   
   // Mock merchant data
   const merchantData = {
@@ -90,6 +94,18 @@ const MerchantDashboard = () => {
     { action: 'Contact information clicked', time: '2 hours ago' },
     { action: 'Added to favorites', time: '3 hours ago' }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <DashboardSkeleton />
+        </PageSkeleton>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -6,12 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { usePageLoading } from '@/hooks/use-loading';
+import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
+  const isLoading = usePageLoading(700);
 
   // Mock product data
   const product = {
@@ -76,6 +79,20 @@ const ProductDetail = () => {
     { id: 'specifications', label: 'Specifications' },
     { id: 'reviews', label: 'Reviews' }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        
+        <PageSkeleton>
+          <ProductDetailSkeleton />
+        </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

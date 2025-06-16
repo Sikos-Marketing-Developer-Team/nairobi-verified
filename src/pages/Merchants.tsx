@@ -9,6 +9,9 @@ import { merchantsAPI } from '@/lib/api';
 import { Merchant } from '@/types';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { usePageLoading } from '@/hooks/use-loading';
+import { MerchantGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const categories = ['All', 'Electronics', 'Fashion', 'Photography', 'Sports', 'Business Services'];
 
@@ -21,6 +24,7 @@ const Merchants = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const isPageLoading = usePageLoading(600);
 
   useEffect(() => {
     const fetchMerchants = async () => {
@@ -46,8 +50,49 @@ const Merchants = () => {
     return matchesSearch && matchesCategory;
   });
 
-  if (loading) {
-    return <div>Loading...</div>;
+  if (loading || isPageLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <div className="space-y-8">
+            {/* Search and Filter Section Skeleton */}
+            <div className="space-y-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <Skeleton className="h-12 w-full" />
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-12 w-32" />
+                  <Skeleton className="h-12 w-24" />
+                  <Skeleton className="h-12 w-10" />
+                  <Skeleton className="h-12 w-10" />
+                </div>
+              </div>
+              
+              {/* Categories Filter Skeleton */}
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-24" />
+                ))}
+              </div>
+            </div>
+
+            {/* Results Header Skeleton */}
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-6 w-32" />
+            </div>
+
+            {/* Merchants Grid Skeleton */}
+            <MerchantGridSkeleton />
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
   }
 
   if (error) {

@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Check, MapPin, Star, Heart, Filter, Search, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import { usePageLoading } from '@/hooks/use-loading';
+import { CategorySkeleton, ProductGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Categories data (same as in CategorySection component)
 const categories = [
