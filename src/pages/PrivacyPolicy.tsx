@@ -3,8 +3,12 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Lock, Shield, AlertTriangle, Eye, Database, UserCheck, Clock, ArrowUp, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { usePageLoading } from '@/hooks/use-loading';
+import { PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PrivacyPolicy = () => {
+  const isLoading = usePageLoading(550);
   const [activeSection, setActiveSection] = useState('');
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -57,6 +61,65 @@ const PrivacyPolicy = () => {
     }
     setShowMobileMenu(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <Header />
+        
+        {/* Hero Section Skeleton */}
+        <section className="relative py-16 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700">
+          <div className="max-w-4xl mx-auto text-center px-4">
+            <Skeleton className="h-12 w-3/4 mx-auto mb-6 bg-white/20" />
+            <Skeleton className="h-6 w-full mb-4 bg-white/20" />
+            <Skeleton className="h-6 w-5/6 mx-auto mb-8 bg-white/20" />
+            <Skeleton className="h-4 w-48 mx-auto bg-white/20" />
+          </div>
+        </section>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Sidebar Skeleton */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+                <Skeleton className="h-6 w-32" />
+                <div className="space-y-2">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Content Skeleton */}
+            <div className="lg:col-span-3">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-8">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="space-y-4">
+                    <Skeleton className="h-8 w-1/2" />
+                    <div className="space-y-3">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
+                    {i % 3 === 0 && (
+                      <div className="bg-blue-50 p-4 rounded-lg space-y-2">
+                        <Skeleton className="h-5 w-1/3" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
@@ -396,7 +459,7 @@ const PrivacyPolicy = () => {
                               <span className="text-2xl">📞</span>
                               <div>
                                 <p className="font-medium text-gray-900">Phone</p>
-                                <p className="text-sm text-gray-600">+254 700 123 456</p>
+                                <p className="text-sm text-gray-600">0790120841 / 0713740807</p>
                               </div>
                             </div>
                             

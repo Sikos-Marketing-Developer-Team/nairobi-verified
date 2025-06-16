@@ -3,8 +3,12 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { FileText, Shield, AlertTriangle, Users, Gavel, UserCheck, Building, ArrowUp, Menu, X, Scale, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { usePageLoading } from '@/hooks/use-loading';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageSkeleton } from '@/components/ui/loading-skeletons';
 
 const TermsOfService = () => {
+  const isLoading = usePageLoading(550);
   const [activeSection, setActiveSection] = useState('');
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -45,6 +49,64 @@ const TermsOfService = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50">
+        <Header />
+        
+        {/* Hero Section Skeleton */}
+        <section className="relative py-16 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10">
+          <div className="max-w-4xl mx-auto text-center px-4">
+            <Skeleton className="h-12 w-3/4 mx-auto mb-6" />
+            <Skeleton className="h-6 w-full mb-4" />
+            <Skeleton className="h-6 w-5/6 mx-auto mb-8" />
+            <Skeleton className="h-4 w-48 mx-auto" />
+          </div>
+        </section>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Sidebar Skeleton */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+                <Skeleton className="h-6 w-32" />
+                <div className="space-y-2">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Content Skeleton */}
+            <div className="lg:col-span-3">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-8">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-4">
+                    <Skeleton className="h-8 w-1/2" />
+                    <div className="space-y-3">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
+                    {i % 2 === 0 && (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <Footer />
+      </div>
+    );
+  }
+
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -52,6 +114,64 @@ const TermsOfService = () => {
     }
     setShowMobileMenu(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50">
+        <Header />
+        
+        {/* Hero Section Skeleton */}
+        <section className="relative py-16 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10">
+          <div className="max-w-4xl mx-auto text-center px-4">
+            <Skeleton className="h-12 w-3/4 mx-auto mb-6" />
+            <Skeleton className="h-6 w-full mb-4" />
+            <Skeleton className="h-6 w-5/6 mx-auto mb-8" />
+            <Skeleton className="h-4 w-48 mx-auto" />
+          </div>
+        </section>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Sidebar Skeleton */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+                <Skeleton className="h-6 w-32" />
+                <div className="space-y-2">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Content Skeleton */}
+            <div className="lg:col-span-3">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-8">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-4">
+                    <Skeleton className="h-8 w-1/2" />
+                    <div className="space-y-3">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
+                    {i % 2 === 0 && (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50">

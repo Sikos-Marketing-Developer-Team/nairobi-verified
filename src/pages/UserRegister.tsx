@@ -9,6 +9,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { usePageLoading } from '@/hooks/use-loading';
+import { PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const UserRegister = () => {
   const { register, isAuthenticated, isLoading } = useAuth();
@@ -16,6 +19,7 @@ const UserRegister = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const isPageLoading = usePageLoading(600);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -43,6 +47,67 @@ const UserRegister = () => {
   // Redirect if already authenticated
   if (isAuthenticated) {
     return <Navigate to="/dashboard" />;
+  }
+
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50">
+        <Header />
+        
+        <div className="flex items-center justify-center px-4 py-16">
+          <div className="max-w-md w-full space-y-8">
+            {/* Logo Skeleton */}
+            <div className="text-center space-y-4">
+              <Skeleton className="h-16 w-16 rounded-full mx-auto" />
+              <Skeleton className="h-8 w-48 mx-auto" />
+              <Skeleton className="h-6 w-64 mx-auto" />
+            </div>
+
+            {/* Form Card Skeleton */}
+            <div className="bg-white rounded-lg shadow-xl border-t-4 border-primary p-6 space-y-6">
+              <div className="text-center space-y-2">
+                <Skeleton className="h-8 w-32 mx-auto" />
+                <Skeleton className="h-4 w-48 mx-auto" />
+              </div>
+              
+              <div className="space-y-4">
+                {/* Name fields */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+                
+                {/* Other form fields */}
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+                
+                {/* Submit button */}
+                <Skeleton className="h-12 w-full" />
+                
+                {/* Link */}
+                <div className="text-center">
+                  <Skeleton className="h-4 w-48 mx-auto" />
+                </div>
+              </div>
+            </div>
+
+            {/* Social Login Skeleton */}
+            <div className="space-y-4">
+              <div className="relative">
+                <Skeleton className="h-px w-full" />
+                <div className="absolute inset-0 flex justify-center">
+                  <Skeleton className="h-4 w-32 bg-gradient-to-br from-orange-50 to-yellow-50" />
+                </div>
+              </div>
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </div>
+        </div>
+        
+        <Footer />
+      </div>
+    );
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
