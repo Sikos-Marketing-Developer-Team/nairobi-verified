@@ -11,7 +11,7 @@ const Hero = () => {
           {/* Hero Content */}
           <div className="space-y-8">
             <div className="space-y-4">
-              <h1 className="text-4xl lg:text-6xl font-bold font-garamond text-gray-900 leading-tight">
+              <h1 className="text-4xl lg:text-6xl font-bold inter text-gray-900 leading-tight">
                 Discover
                 <span className="text-primary block">Verified Merchants</span>
                 in Nairobi CBD

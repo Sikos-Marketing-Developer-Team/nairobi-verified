@@ -84,7 +84,7 @@ const UserRegister = () => {
       <div className="max-w-md mx-auto px-4 py-12">
         {/* Logo */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold font-garamond">
+          <h1 className="text-3xl font-bold inter">
             <span className="text-primary">Nairobi</span>
             <span className="text-secondary-dark"> Verified</span>
           </h1>

@@ -102,11 +102,11 @@ const Auth = () => {
         {/* Logo */}
         <div className="text-center">
           <div className="inline-block p-4 bg-white rounded-full shadow-md mb-2">
-            <div className="text-3xl font-bold font-garamond bg-gradient-to-r from-primary to-secondary-dark bg-clip-text text-transparent">
+            <div className="text-3xl font-bold inter bg-gradient-to-r from-primary to-secondary-dark bg-clip-text text-transparent">
               NV
             </div>
           </div>
-          <h1 className="text-3xl font-bold font-garamond">
+          <h1 className="text-3xl font-bold inter">
             <span className="text-primary">Nairobi</span>
             <span className="text-secondary-dark"> Verified</span>
           </h1>

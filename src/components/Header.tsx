@@ -46,7 +46,7 @@ const Header = () => {
               alt="Nairobi Verified Logo"
               className="w-10 h-10 object-contain rounded-lg shadow-sm transition-transform group-hover:scale-105"
             />
-            <span className="font-extrabold text-2xl text-gray-900 tracking-tight font-garamond group-hover:text-primary transition-colors">Nairobi Verified</span>
+            <span className="font-extrabold text-2xl text-gray-900 tracking-tight inter group-hover:text-primary transition-colors">Nairobi Verified</span>
           </Link>
 
           {/* Desktop Navigation */}

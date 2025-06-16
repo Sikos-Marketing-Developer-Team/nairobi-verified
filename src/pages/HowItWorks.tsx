@@ -92,7 +92,7 @@ const HowItWorks = () => {
       {/* Hero Section */}
       <section className="py-16 bg-gradient-to-br from-orange-50 to-yellow-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl lg:text-5xl font-bold font-garamond text-gray-900 mb-6">
+          <h1 className="text-4xl lg:text-5xl font-bold inter text-gray-900 mb-6">
             How Nairobi Verified Works
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
@@ -118,7 +118,7 @@ const HowItWorks = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Our Verification Process
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -153,7 +153,7 @@ const HowItWorks = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Benefits of Shopping with Verified Merchants
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -183,7 +183,7 @@ const HowItWorks = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Frequently Asked Questions
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -218,7 +218,7 @@ const HowItWorks = () => {
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-br from-primary/10 to-secondary/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-6">
+          <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-6">
             Ready to Shop with Confidence?
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
