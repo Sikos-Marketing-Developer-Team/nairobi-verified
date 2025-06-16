@@ -8,6 +8,7 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
+const rateLimit = require('express-rate-limit');
 
 // Load environment variables
 dotenv.config();
@@ -35,19 +36,49 @@ app.use(cors({
   credentials: true
 }));
 
+// Rate limiting for sensitive auth routes (login and register)
+const strictAuthLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // Limit each IP to 10 requests per window
+  message: {
+    success: false,
+    error: 'Too many login or registration attempts, please try again after 5 minutes'
+  },
+  standardHeaders: true, // Return rate limit info in headers
+  legacyHeaders: false // Disable legacy headers
+});
+
+// Rate limiting for all auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per window
+  message: {
+    success: false,
+    error: 'Too many requests from this IP, please try again after 15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Session configuration
+const mongoStore = MongoStore.create({
+  mongoUrl: process.env.MONGODB_URI,
+  collectionName: 'sessions',
+  ttl: 7 * 24 * 60 * 60 // 7 days
+});
+mongoStore.on('error', (error) => {
+  console.error('Session store error:', error);
+});
 app.use(session({
   secret: process.env.JWT_SECRET,
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI,
-    collectionName: 'sessions'
-  }),
+  store: mongoStore,
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (same as JWT_EXPIRE)
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    sameSite: 'lax' // Added for CSRF protection
   }
 }));
 
@@ -61,7 +92,14 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Static folder for uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
+
+// Apply rate limiting to auth routes
+app.use('/api/auth/login', strictAuthLimiter);
+app.use('/api/auth/register', strictAuthLimiter);
+app.use('/api/auth/register/merchant', strictAuthLimiter);
+app.use('/api/auth/login/merchant', strictAuthLimiter);
+app.use('/api/auth', authLimiter);
 
 // Health check endpoint for Render
 app.get('/api/health', (req, res) => {
