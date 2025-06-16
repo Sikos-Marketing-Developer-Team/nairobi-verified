@@ -65,7 +65,7 @@ const About = () => {
       {/* Hero Section */}
       <section className="gradient-bg py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl lg:text-6xl font-bold font-garamond text-gray-900 mb-6">
+          <h1 className="text-4xl lg:text-6xl font-bold inter text-gray-900 mb-6">
             About <span className="text-primary">Nairobi Verified</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -97,7 +97,7 @@ const About = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-6">
+              <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-6">
                 Our Story
               </h2>
               <div className="space-y-4 text-gray-700 text-lg">
@@ -132,7 +132,7 @@ const About = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Our Values
             </h2>
             <p className="text-xl text-gray-600">
@@ -164,7 +164,7 @@ const About = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Meet Our Team
             </h2>
             <p className="text-xl text-gray-600">
@@ -196,17 +196,17 @@ const About = () => {
       {/* CTA Section */}
       <section className="py-16 bg-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-white mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold inter text-white mb-4">
             Ready to Join Our Community?
           </h2>
-          <p className="text-xl text-primary-light max-w-3xl mx-auto mb-8">
+          <p className="text-xl text-white max-w-3xl mx-auto mb-8">
             Become a verified merchant or start shopping with confidence today.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button asChild className="bg-white text-primary hover:bg-gray-100 px-8 py-3 text-lg">
               <Link to="/auth/register/merchant">Become a Merchant</Link>
             </Button>
-            <Button asChild variant="outline" className="border-white text-white hover:bg-white hover:text-primary px-8 py-3 text-lg">
+            <Button asChild variant="outline" className="border-white text-white bg-text-primary hover:bg-gray-100 hover:text-primary px-8 py-3 text-lg">
               <Link to="/merchants">Explore Merchants</Link>
             </Button>
           </div>
@@ -216,7 +216,7 @@ const About = () => {
       {/* Contact Us Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
             Get in Touch
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
