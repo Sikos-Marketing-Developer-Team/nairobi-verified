@@ -305,6 +305,7 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState([0, 200000]);
   const [showFilters, setShowFilters] = useState(false);
+  const isLoading = usePageLoading(650);
 
   // Find the selected category
   const selectedCategory = categoryId 
@@ -324,6 +325,53 @@ const Categories = () => {
     
     return matchesCategory && matchesSearch && matchesPrice;
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <PageSkeleton>
+          <div className="space-y-8">
+            {/* Header Section Skeleton */}
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-1/3" />
+              <Skeleton className="h-6 w-2/3" />
+            </div>
+
+            {/* Categories or Filters Section Skeleton */}
+            {!categoryId ? (
+              <CategorySkeleton />
+            ) : (
+              <div className="space-y-6">
+                {/* Search and Filters Skeleton */}
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="flex flex-col lg:flex-row gap-4">
+                    <Skeleton className="h-12 flex-1" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-12 w-32" />
+                      <Skeleton className="h-12 w-24" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Results Header Skeleton */}
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-6 w-32" />
+                </div>
+
+                {/* Products Grid Skeleton */}
+                <ProductGridSkeleton />
+              </div>
+            )}
+          </div>
+        </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

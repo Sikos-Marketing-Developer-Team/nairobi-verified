@@ -10,6 +10,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { favoritesAPI, merchantsAPI } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
 import { Merchant } from '@/types';
+import { usePageLoading } from '@/hooks/use-loading';
+import { MerchantGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Favorites = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -17,6 +20,7 @@ const Favorites = () => {
   const [favorites, setFavorites] = useState<Merchant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isPageLoading = usePageLoading(500);
   
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'rating'>('recent');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
