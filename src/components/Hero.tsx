@@ -50,7 +50,7 @@ const Hero = () => {
                   Register Your Business
                 </Button>
               </Link>
-              <Link to="/auth/register">
+              <Link to="/auth">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-100">
                   Create Account
                 </Button>
