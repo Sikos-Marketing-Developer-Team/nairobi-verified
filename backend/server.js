@@ -9,6 +9,7 @@ const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const rateLimit = require('express-rate-limit');
+const { v4: uuidv4 } = require('uuid'); // ✅ Added
 
 // Load environment variables
 dotenv.config();
@@ -32,26 +33,26 @@ app.use(express.json());
 
 // Configure CORS with credentials support
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://nairobi-cbd-frontend.onrender.com/',
+  origin: process.env.FRONTEND_URL || 'https://nairobi-cbd-frontend.onrender.com', // ✅ Fixed trailing slash
   credentials: true
 }));
 
 // Rate limiting for sensitive auth routes (login and register)
 const strictAuthLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 10, // Limit each IP to 10 requests per window
+  max: 10,
   message: {
     success: false,
     error: 'Too many login or registration attempts, please try again after 5 minutes'
   },
-  standardHeaders: true, // Return rate limit info in headers
-  legacyHeaders: false // Disable legacy headers
+  standardHeaders: true,
+  legacyHeaders: false
 });
 
 // Rate limiting for all auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per window
+  max: 100,
   message: {
     success: false,
     error: 'Too many requests from this IP, please try again after 15 minutes'
@@ -64,12 +65,15 @@ const authLimiter = rateLimit({
 const mongoStore = MongoStore.create({
   mongoUrl: process.env.MONGODB_URI,
   collectionName: 'sessions',
-  ttl: 7 * 24 * 60 * 60 // 7 days
+  ttl: 7 * 24 * 60 * 60
 });
 mongoStore.on('error', (error) => {
   console.error('Session store error:', error);
 });
+
 app.use(session({
+  name: 'sid',
+  genid: (req) => uuidv4(), // ✅ Ensures unique session IDs
   secret: process.env.JWT_SECRET,
   resave: false,
   saveUninitialized: false,
@@ -77,8 +81,8 @@ app.use(session({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    sameSite: 'lax' // Added for CSRF protection
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    sameSite: 'lax'
   }
 }));
 
@@ -138,6 +142,5 @@ const server = app.listen(PORT, () => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   console.log(`Error: ${err.message}`);
-  // Close server & exit process
   server.close(() => process.exit(1));
 });
