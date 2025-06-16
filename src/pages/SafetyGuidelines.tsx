@@ -69,7 +69,7 @@ const SafetyGuidelines = () => {
           <div className="inline-block p-3 bg-blue-100 rounded-full mb-6">
             <Shield className="h-10 w-10 text-blue-600" />
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold font-garamond text-gray-900 mb-6">
+          <h1 className="text-4xl lg:text-5xl font-bold inter text-gray-900 mb-6">
             Safety Guidelines
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
@@ -83,7 +83,7 @@ const SafetyGuidelines = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Shopping Safety Guidelines
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -113,7 +113,7 @@ const SafetyGuidelines = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Watch Out for These Red Flags
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -138,7 +138,7 @@ const SafetyGuidelines = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               How to Report Issues
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -182,7 +182,7 @@ const SafetyGuidelines = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Online Security Tips
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -253,7 +253,7 @@ const SafetyGuidelines = () => {
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-6">
+          <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-6">
             Shop with Confidence
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">

@@ -74,8 +74,8 @@
 }
 
 @layer components {
-  .font-garamond {
-    font-family: 'EB Garamond', serif;
+  .inter {
+     font-family: "Inter", sans-serif;
   }
   
   .verified-badge {

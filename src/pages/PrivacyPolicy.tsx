@@ -76,7 +76,7 @@ const PrivacyPolicy = () => {
           <div className="inline-block p-4 bg-white/20 backdrop-blur-sm rounded-2xl mb-8 animate-scale-in">
             <Lock className="h-12 w-12 text-white" />
           </div>
-          <h1 className="text-5xl lg:text-7xl font-bold font-garamond text-white mb-6 animate-fade-in">
+          <h1 className="text-5xl lg:text-7xl font-bold inter text-white mb-6 animate-fade-in">
             Privacy Policy
           </h1>
           <div className="bg-white/20 backdrop-blur-sm rounded-full px-6 py-3 inline-block">

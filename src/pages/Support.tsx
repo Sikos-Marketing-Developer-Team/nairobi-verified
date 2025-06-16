@@ -85,7 +85,7 @@ const Support = () => {
           <div className="inline-block p-3 bg-purple-100 rounded-full mb-6">
             <MessageSquare className="h-10 w-10 text-purple-600" />
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold font-garamond text-gray-900 mb-6">
+          <h1 className="text-4xl lg:text-5xl font-bold inter text-gray-900 mb-6">
             Support Center
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
@@ -99,7 +99,7 @@ const Support = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               How Can We Help You?
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -141,7 +141,7 @@ const Support = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Contact Information
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -208,7 +208,7 @@ const Support = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Frequently Asked Questions
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -243,7 +243,7 @@ const Support = () => {
       <section id="contact-form" className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Get in Touch
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -350,7 +350,7 @@ const Support = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold font-garamond text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
               Additional Resources
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
