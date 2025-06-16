@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Mail, Lock, User, Phone, Loader2 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
-import { useGoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth-google';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,13 +34,17 @@ const UserRegister = () => {
     onSuccess: tokenResponse => {
       console.log('Google login successful:', tokenResponse);
       setGoogleLoading(true);
-      // Redirect to the backend Google auth endpoint
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       window.location.href = `${apiUrl}/auth/google`;
     },
     onError: error => {
       console.error('Google login failed:', error);
       setGoogleLoading(false);
+      toast({
+        title: 'Google Login Failed',
+        description: 'Unable to connect with Google. Please try again.',
+        variant: 'destructive'
+      });
     }
   });
 
@@ -53,46 +57,32 @@ const UserRegister = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50">
         <Header />
-        
         <div className="flex items-center justify-center px-4 py-16">
           <div className="max-w-md w-full space-y-8">
-            {/* Logo Skeleton */}
             <div className="text-center space-y-4">
               <Skeleton className="h-16 w-16 rounded-full mx-auto" />
               <Skeleton className="h-8 w-48 mx-auto" />
               <Skeleton className="h-6 w-64 mx-auto" />
             </div>
-
-            {/* Form Card Skeleton */}
             <div className="bg-white rounded-lg shadow-xl border-t-4 border-primary p-6 space-y-6">
               <div className="text-center space-y-2">
                 <Skeleton className="h-8 w-32 mx-auto" />
                 <Skeleton className="h-4 w-48 mx-auto" />
               </div>
-              
               <div className="space-y-4">
-                {/* Name fields */}
                 <div className="grid grid-cols-2 gap-4">
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
                 </div>
-                
-                {/* Other form fields */}
                 {Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
-                
-                {/* Submit button */}
                 <Skeleton className="h-12 w-full" />
-                
-                {/* Link */}
                 <div className="text-center">
                   <Skeleton className="h-4 w-48 mx-auto" />
                 </div>
               </div>
             </div>
-
-            {/* Social Login Skeleton */}
             <div className="space-y-4">
               <div className="relative">
                 <Skeleton className="h-px w-full" />
@@ -104,7 +94,6 @@ const UserRegister = () => {
             </div>
           </div>
         </div>
-        
         <Footer />
       </div>
     );
@@ -120,7 +109,7 @@ const UserRegister = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate passwords match
+    // Client-side validation
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -129,14 +118,40 @@ const UserRegister = () => {
       });
       return;
     }
-    
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters",
+        variant: "destructive"
+      });
+      return;
+    }
+    const normalizedPhone = formData.phone.replace(/\s|-/g, '');
+    if (!/^\+?\d{10,15}$/.test(normalizedPhone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Phone number must be 10-15 digits, optionally starting with + (e.g., +254123456789)",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLocalLoading(true);
     try {
-      // Remove confirmPassword before sending to API
-      const { confirmPassword, ...userData } = formData;
-      await register(userData);
-    } catch (error) {
+      // Remove confirmPassword and normalize phone before sending
+      const { confirmPassword, phone, ...userData } = formData;
+      const response = await register({ ...userData, phone: normalizedPhone });
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created! Redirecting to dashboard...",
+      });
+    } catch (error: any) {
       console.error('Registration error:', error);
+      toast({
+        title: "Registration Failed",
+        description: error.response?.data?.error || "An error occurred during registration. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setLocalLoading(false);
     }
@@ -145,9 +160,7 @@ const UserRegister = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50">
       <Header />
-      
       <div className="max-w-md mx-auto px-4 py-12">
-        {/* Logo */}
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold inter">
             <span className="text-primary">Nairobi</span>
@@ -157,7 +170,6 @@ const UserRegister = () => {
             Join our trusted marketplace
           </p>
         </div>
-
         <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-center text-2xl font-semibold">
@@ -192,7 +204,6 @@ const UserRegister = () => {
                   />
                 </div>
               </div>
-
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
@@ -205,26 +216,24 @@ const UserRegister = () => {
                   required
                 />
               </div>
-
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
                   type="tel"
                   name="phone"
-                  placeholder="Phone Number"
+                  placeholder="Phone Number (e.g., +254123456789)"
                   value={formData.phone}
                   onChange={handleInputChange}
                   className="pl-10"
                   required
                 />
               </div>
-
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
                   type={showPassword ? "text" : "password"}
                   name="password"
-                  placeholder="Password"
+                  placeholder="Password (min 6 characters)"
                   value={formData.password}
                   onChange={handleInputChange}
                   className="pl-10 pr-10"
@@ -238,7 +247,6 @@ const UserRegister = () => {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
@@ -251,7 +259,6 @@ const UserRegister = () => {
                   required
                 />
               </div>
-
               <div className="flex items-center">
                 <input 
                   type="checkbox" 
@@ -260,10 +267,9 @@ const UserRegister = () => {
                   required 
                 />
                 <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
-                  I agree to the <a href="#" className="text-primary hover:underline">Terms of Service</a> and <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+                  I agree to the <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
                 </label>
               </div>
-
               <Button 
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary-dark text-white"
@@ -278,7 +284,6 @@ const UserRegister = () => {
                   'Create Account'
                 )}
               </Button>
-
               <div className="text-center">
                 <span className="text-gray-600">
                   Already have an account?
@@ -293,8 +298,6 @@ const UserRegister = () => {
             </form>
           </CardContent>
         </Card>
-
-        {/* Social Login */}
         <Card className="mt-6">
           <CardContent className="pt-6">
             <div className="text-center text-gray-500 mb-4">Or continue with</div>
@@ -323,7 +326,6 @@ const UserRegister = () => {
             </Button>
           </CardContent>
         </Card>
-
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>Are you a business owner?</p>
           <Link to="/auth/register/merchant" className="text-primary hover:text-primary-dark font-medium">
@@ -331,7 +333,6 @@ const UserRegister = () => {
           </Link>
         </div>
       </div>
-      
       <Footer />
     </div>
   );

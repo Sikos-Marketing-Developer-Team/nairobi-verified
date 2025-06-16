@@ -9,9 +9,6 @@ const api = axios.create({
   withCredentials: true // Important for sending/receiving cookies with CORS
 });
 
-// No need for token interceptor with session-based auth
-// The session cookie will be automatically sent with each request
-
 // Auth API
 export const authAPI = {
   register: (userData: any) => api.post('/auth/register', userData),
@@ -21,7 +18,8 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   logout: () => api.get('/auth/logout'),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token: string, password: string) => api.post(`/auth/reset-password/${token}`, { password })
+  resetPassword: (token: string, password: string) => api.post(`/auth/reset-password/${token}`, { password }),
+  updateProfile: (userData: any) => api.put('/users/me', userData)
 };
 
 // Users API

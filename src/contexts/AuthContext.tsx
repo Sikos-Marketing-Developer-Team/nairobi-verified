@@ -24,7 +24,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
   registerMerchant: (merchantData: any) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (token: string, password: string) => Promise<void>;
   updateProfile: (userData: any) => Promise<void>;
@@ -40,15 +40,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Check if user is already logged in
+  // Check if user is logged in
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const response = await authAPI.getMe();
-        setUser(response.data);
+        setUser(response.data.data); // Adjust for backend response structure
       } catch (error) {
         console.error('Failed to fetch user data:', error);
-        // No need to clear localStorage with session auth
       }
       setIsLoading(false);
     };
@@ -62,16 +61,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await authAPI.login(email, password);
       const { user } = response.data;
-      
       setUser(user);
-      
-      // Redirect based on user role or isMerchant flag
       if (user.role === 'admin') {
         navigate('/admin/dashboard');
       } else if (user.isMerchant || user.businessName) {
         navigate('/merchant/dashboard');
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (error) {
       console.error('Login failed:', error);
@@ -86,10 +82,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     try {
       const response = await authAPI.register(userData);
-      
-      // After successful registration, redirect to login page
-      navigate('/auth?message=Registration successful! Please sign in with your credentials.');
-      return response.data;
+      const { user } = response.data;
+      setUser(user);
+      navigate('/dashboard');
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
@@ -104,11 +99,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await authAPI.registerMerchant(merchantData);
       const { user } = response.data;
-      
-      // With session auth, merchant is automatically logged in
       setUser(user);
       navigate('/merchant/dashboard');
-      return response.data;
     } catch (error) {
       console.error('Merchant registration failed:', error);
       throw error;
@@ -122,12 +114,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     try {
       await authAPI.logout();
-    } catch (error) {
-      console.error('Logout API call failed:', error);
-    } finally {
-      // With session auth, just clear the user state
       setUser(null);
       navigate('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      throw error;
+    } finally {
       setIsLoading(false);
     }
   };
@@ -158,11 +150,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateProfile = async (userData: any) => {
     setIsLoading(true);
     try {
-      // For session auth, we'll need to implement this API call
-      // For now, we'll just update the local state
-      setUser(prevUser => prevUser ? { ...prevUser, ...userData } : null);
-      
-      return userData;
+      const response = await authAPI.updateProfile(userData);
+      setUser(prevUser => prevUser ? { ...prevUser, ...response.data.data } : null);
+      return response.data;
     } catch (error) {
       console.error('Update profile failed:', error);
       throw error;
@@ -170,15 +160,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
     }
   };
-  
-  // Refresh user data function
+
+  // Refresh user data
   const refreshUser = async (): Promise<boolean> => {
     try {
       const response = await authAPI.getMe();
-      const userData = response.data;
-      
-      setUser(userData);
-      
+      setUser(response.data.data); // Adjust for backend response structure
       return true;
     } catch (error) {
       console.error('Failed to refresh user data:', error);
@@ -204,10 +191,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use the auth context
+// Custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
