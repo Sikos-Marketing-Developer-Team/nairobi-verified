@@ -1,5 +1,3 @@
-// New Navbar
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Menu, 
@@ -85,12 +83,12 @@ const Navbar = () => {
           <img
             src="/Nairobi Verified Logo.png"
             alt="Nairobi Verified Logo"
-            className="w-22 h-12 object-contain rounded-[7px] shadow-sm transition-transform group-hover:scale-105"
+            className="w-22 h-12 object-contain rounded-[16px] shadow-sm transition-transform group-hover:scale-105"
           />
         </a>
 
         {/* Search Bar (Desktop) */}
-        <div className="hidden md:flex items-center bg-white rounded-[7px] px-4 py-2 w-1/2 max-w-lg shadow-sm hover:shadow-md transition-shadow relative border border-[#F97316]"
+        <div className="hidden md:flex items-center bg-white rounded-[16px] px-4 py-2 w-1/2 max-w-lg shadow-sm hover:shadow-md transition-shadow relative border border-[#F97316]"
           style={{ minWidth: "300px" }}
         >
           <Search className="text-gray-500 w-4 h-4" />
@@ -109,7 +107,7 @@ const Navbar = () => {
           <button 
             type="button"
             onClick={handleSearch}
-            className="bg-[#EC5C0A] text-white px-4 py-1 rounded-[7px] hover:bg-[#fb923c] transition-colors"
+            className="bg-[#EC5C0A] text-white px-4 py-1 rounded-[16px] hover:bg-[#fb923c] transition-colors"
             aria-label="Submit search"
           >
             Search
@@ -132,7 +130,7 @@ const Navbar = () => {
               </div>
               <button 
                 onClick={handleLogout}
-                className="hidden sm:flex items-center gap-1 bg-[#EC5C0A] hover:bg-[#fb923c] transition-colors text-white font-semibold px-3 py-1.5 rounded-[7px]"
+                className="hidden sm:flex items-center gap-1 bg-[#EC5C0A] hover:bg-[#fb923c] transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px]"
               >
                 Logout
               </button>
@@ -140,7 +138,7 @@ const Navbar = () => {
           ) : (
             <a 
               href="/auth" 
-              className="hidden sm:flex items-center gap-1 bg-[#EC5C0A] hover:bg-[#fb923c] transition-colors text-white font-semibold px-3 py-1.5 rounded-[7px]"
+              className="hidden sm:flex items-center gap-1 bg-[#EC5C0A] hover:bg-[#fb923c] transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px]"
             >
               <LogIn className="w-4 h-4" />
               <span>Sign In</span>
@@ -149,31 +147,31 @@ const Navbar = () => {
           
           <a 
             href="/favorites" 
-            className="hover:scale-110 transition-transform duration-200 text-black text-xl bg-[#FEF1E7] p-2 rounded-[7px] relative"
+            className="hover:scale-110 transition-transform duration-200 text-black text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
           >
             <Heart className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[7px] w-5 h-5 flex items-center justify-center">0</span>
+            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
           </a>
           
           <a 
             href="/cart" 
-            className="hover:scale-110 transition-transform duration-200 text-black text-xl bg-[#FEF1E7] p-2 rounded-[7px] relative"
+            className="hover:scale-110 transition-transform duration-200 text-black text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
           >
             <ShoppingCart className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[7px] w-5 h-5 flex items-center justify-center">0</span>
+            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
           </a>
         </div>
       </div>
 
       {/* Desktop Navigation Links */}
-      <div className="hidden md:flex items-center justify-between px-6 py-2 border-t border-gray-200 text-black text-sm">
+      <div className="hidden md:flex items-center justify-between px-6 py-2 border-t border-gray-200 text-black text-base">
         <ul className="flex space-x-6 p-2">
           <li>
             <a 
               href="/deals" 
-              className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90"
+              className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 text-[#EC5C0A]"
             >
-              Hot Deals <Zap className="text-gray-700 w-4 h-4" />
+              Hot Deals <Zap className="text-[#EC5C0A] w-4 h-4" />
             </a>
           </li>
           
@@ -181,24 +179,24 @@ const Navbar = () => {
             <button className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90">
               Categories <ChevronDown className="w-4 h-4" />
             </button>
-            <ul className="absolute left-0 mt-2 w-48 rounded-[7px] bg-white text-gray-800 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-100">
+            <ul className="absolute left-0 mt-2 w-48 rounded-[16px] bg-white text-gray-800 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-100 text-base">
               <li>
-                <a href="/categories/electronics" className="block px-4 py-2.5 hover:bg-[#FEF1E7] hover:text-[#EC5C0A] transition-colors">
+                <a href="/categories/electronics" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
                   Electronics
                 </a>
               </li>
               <li>
-                <a href="/categories/fashion" className="block px-4 py-2.5 hover:bg-[#FEF1E7] hover:text-[#EC5C0A] transition-colors">
+                <a href="/categories/fashion" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
                   Fashion
                 </a>
               </li>
               <li>
-                <a href="/categories/home" className="block px-4 py-2.5 hover:bg-[#FEF1E7] hover:text-[#EC5C0A] transition-colors">
+                <a href="/categories/home" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
                   Home & Kitchen
                 </a>
               </li>
               <li>
-                <a href="/categories/beauty" className="block px-4 py-2.5 hover:bg-[#FEF1E7] hover:text-[#EC5C0A] transition-colors">
+                <a href="/categories/beauty" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
                   Beauty
                 </a>
               </li>
@@ -220,8 +218,8 @@ const Navbar = () => {
 
         <ul className="flex items-center space-x-6">
           <li>
-            <a href="/contact" className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90">
-              <Phone className="w-4 h-4" /> Contact Us
+            <a href="/contact" className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 text-[#EC5C0A]">
+              <Phone className="w-4 h-4 text-[#EC5C0A]"  /> Contact Us
             </a>
           </li>
           
@@ -232,14 +230,14 @@ const Navbar = () => {
           </li>
           
           <li className="flex space-x-2">
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-black text-sm bg-[#FEF1E7] p-1.5 rounded-[7px] opacity-90">
-              <Facebook className="w-4 h-4" />
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-black bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90">
+              <Facebook className="w-4 h-4 text-[#EC5C0A]" />
             </a>
-            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-black text-sm bg-[#FEF1E7] p-1.5 rounded-[7px] opacity-90">
-              <Twitter className="w-4 h-4" />
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-black bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90">
+              <Twitter className="w-4 h-4 text-[#EC5C0A]" />
             </a>
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-black text-sm bg-[#FEF1E7] p-1.5 rounded-[7px] opacity-90">
-              <Instagram className="w-4 h-4" />
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-black bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90">
+              <Instagram className="w-4 h-4 text-[#EC5C0A]" />
             </a>
           </li>
         </ul>
@@ -249,7 +247,7 @@ const Navbar = () => {
       <div className="flex md:hidden justify-between items-center px-4 py-2 border-t border-gray-200 text-black">
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="text-black focus:outline-none text-xl bg-[#FEF1E7] p-2 rounded-[7px]"
+          className="text-black focus:outline-none text-xl bg-[#FEEED5] p-2 rounded-[16px]"
           aria-expanded={isMenuOpen}
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
         >
@@ -262,7 +260,7 @@ const Navbar = () => {
             <input
               type="text"
               placeholder="Search..."
-              className="w-full py-2 px-4 pl-10 rounded-[7px] text-gray-700 bg-white border border-[#F97316]"
+              className="w-full py-2 px-4 pl-10 rounded-[16px] text-gray-700 bg-white border border-[#F97316]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -273,13 +271,13 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center space-x-2">
-          <a href="/favorites" className="text-black text-xl relative bg-[#FEF1E7] p-2 rounded-[7px]">
+          <a href="/favorites" className="text-black text-xl relative bg-[#FEEED5] p-2 rounded-[16px]">
             <Heart className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[7px] w-4 h-4 flex items-center justify-center">0</span>
+            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-4 h-4 flex items-center justify-center">0</span>
           </a>
-          <a href="/cart" className="text-black text-xl relative bg-[#FEF1E7] p-2 rounded-[7px]">
+          <a href="/cart" className="text-black text-xl relative bg-[#FEEED5] p-2 rounded-[16px]">
             <ShoppingCart className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[7px] w-4 h-4 flex items-center justify-center">0</span>
+            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-4 h-4 flex items-center justify-center">0</span>
           </a>
         </div>
       </div>
@@ -294,7 +292,7 @@ const Navbar = () => {
         <a 
           href="/deals" 
           onClick={() => setIsMenuOpen(false)}
-          className="hover:text-[#EC5C0A] transition-colors flex items-center gap-1"
+          className="hover:text-[#EC5C0A] transition-colors flex items-center gap-1 text-[#EC5C0A]"
         >
           Hot Deals <Zap className="text-[#EC5C0A] w-4 h-4" />
         </a>
@@ -360,7 +358,7 @@ const Navbar = () => {
         <a 
           href="/auth/register/merchant" 
           onClick={() => setIsMenuOpen(false)}
-          className="block bg-[#EC5C0A] text-white px-4 py-2 rounded-[7px] text-center font-semibold hover:bg-[#fb923c] transition-colors"
+          className="block bg-[#EC5C0A] text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-[#fb923c] transition-colors"
         >
           Sell on Nairobi Verified
         </a>
@@ -397,9 +395,9 @@ const Navbar = () => {
               <a 
                 href="/contact" 
                 onClick={() => setIsMenuOpen(false)}
-                className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
+                className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1 text-[#EC5C0A]"
               >
-                <Phone className="w-4 h-4" /> Contact Us
+                <Phone className="w-4 h-4 text-[#EC5C0A]" /> Contact Us
               </a>
             </li>
             <li>
