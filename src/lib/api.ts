@@ -122,6 +122,24 @@ export const settingsAPI = {
   updateSettings: (id: string, settingsData: any) => api.put(`/settings/${id}`, settingsData),
 };
 
+// Products API
+export const productsAPI = {
+  getProducts: (params = {}) => api.get('/products', { params }),
+  getFeaturedProducts: (limit = 8) => api.get('/products/featured', { params: { limit } }),
+  getProduct: (id: string) => api.get(`/products/${id}`),
+  getProductsByMerchant: (merchantId: string, params = {}) => api.get(`/products/merchant/${merchantId}`, { params }),
+  createProduct: (productData: any) => api.post('/products', productData),
+  updateProduct: (id: string, productData: any) => api.put(`/products/${id}`, productData),
+  deleteProduct: (id: string) => api.delete(`/products/${id}`),
+  getCategories: () => api.get('/products/meta/categories'),
+  searchProducts: (searchTerm: string, filters = {}) => api.get('/products', { 
+    params: { 
+      search: searchTerm,
+      ...filters
+    } 
+  })
+};
+
 // Cart API
 export const cartAPI = {
   getCart: () => api.get('/cart'),

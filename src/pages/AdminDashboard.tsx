@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Store, CheckCircle, AlertCircle, Clock, Trash2, Database, AlertTriangle } from 'lucide-react';
+import { Users, Store, CheckCircle, AlertCircle, Clock, Trash2, Database, AlertTriangle, Flame } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { adminAPI } from '@/lib/api';
 import { usePageLoading } from '@/hooks/use-loading';
 import { DashboardSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
+import FlashSalesMetrics from '@/components/FlashSalesMetrics';
 
 const AdminDashboard = () => {
   // State for mock data removal dialog
@@ -160,7 +161,10 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-8 mb-8">
+          {/* Flash Sales Metrics */}
+          <FlashSalesMetrics />
+          
           {/* Verification Queue */}
           <Card>
             <CardHeader>
@@ -199,6 +203,9 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8">
           {/* Quick Actions */}
           <Card>
             <CardHeader>
@@ -230,6 +237,13 @@ const AdminDashboard = () => {
                 <Button variant="outline" className="w-full">
                   <Users className="h-4 w-4 mr-2" />
                   Manage Users
+                </Button>
+              </Link>
+              
+              <Link to="/admin/flash-sales">
+                <Button variant="outline" className="w-full border-red-300 text-red-700 hover:bg-red-50">
+                  <Flame className="h-4 w-4 mr-2" />
+                  Manage Flash Sales
                 </Button>
               </Link>
               

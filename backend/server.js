@@ -119,8 +119,10 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/merchants', require('./routes/merchants'));
+app.use('/api/products', require('./routes/products'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/favorites', require('./routes/favorites'));
+app.use('/api/flash-sales', require('./routes/flashSales'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

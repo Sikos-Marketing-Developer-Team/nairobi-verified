@@ -10,6 +10,7 @@ dotenv.config();
 // Load models
 const Merchant = require('./models/Merchant');
 const User = require('./models/User');
+const FlashSale = require('./models/FlashSale');
 // If you have a Product model and schema, uncomment the line below
 // const Product = require('./models/Product'); 
 
@@ -51,6 +52,7 @@ const importData = async () => {
 
     await Merchant.deleteMany();
     await User.deleteMany();
+    await FlashSale.deleteMany();
     // If you have a Product model, uncomment the line below
     // await Product.deleteMany();
 
@@ -68,6 +70,20 @@ const importData = async () => {
 
     await Merchant.insertMany(merchantsWithObjectIds);
     await User.insertMany(usersWithObjectIds);
+    
+    // Create sample flash sales after users are created (need admin user)
+    const { sampleFlashSales } = require('./seeders/flashSalesSeeder');
+    const adminUser = await User.findOne({ role: 'admin' });
+    
+    if (adminUser && sampleFlashSales.length > 0) {
+      const flashSalesWithCreator = sampleFlashSales.map(sale => ({
+        ...sale,
+        createdBy: adminUser._id
+      }));
+      await FlashSale.insertMany(flashSalesWithCreator);
+      console.log(`✅ Created ${flashSalesWithCreator.length} flash sales`);
+    }
+    
     // If you have a Product model, uncomment the line below
     // await Product.insertMany(products);
 
@@ -86,6 +102,7 @@ const deleteData = async () => {
 
     await Merchant.deleteMany();
     await User.deleteMany();
+    await FlashSale.deleteMany();
     // If you have a Product model, uncomment the line below
     // await Product.deleteMany();
 

@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import HowItWorks from '@/components/HowItWorks';
 import CategorySection from '@/components/CategorySection';
+import FlashSales from '@/components/FlashSales';
 import FeaturedProducts from '@/components/FeaturedProducts';
 import TrustSection from '@/components/TrustSection';
 import Footer from '@/components/Footer';
@@ -42,6 +43,15 @@ const Index = () => {
 
             {/* Category Section Skeleton */}
             <CategorySkeleton />
+
+            {/* Flash Sales Section Skeleton */}
+            <div className="space-y-8">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-10 w-1/3 mx-auto" />
+                <Skeleton className="h-6 w-2/3 mx-auto" />
+              </div>
+              <ProductGridSkeleton />
+            </div>
 
             {/* Featured Products Section Skeleton */}
             <div className="space-y-8">
@@ -82,6 +92,7 @@ const Index = () => {
       <Hero />
       <HowItWorks />
       <CategorySection />
+      <FlashSales />
       <FeaturedProducts />
       <TrustSection />
       <Footer />
