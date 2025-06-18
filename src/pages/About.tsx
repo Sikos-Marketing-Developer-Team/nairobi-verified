@@ -1,5 +1,6 @@
 import React from 'react';
 import { Shield, MapPin, Users, Star, CheckCircle, Award } from 'lucide-react';
+import CountUp from 'react-countup';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
@@ -138,7 +139,7 @@ const About = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="gradient-bg py-16">
+      <section className="gradient-bg pt-36">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl lg:text-6xl font-bold inter text-gray-900 mb-6">
             About <span className="text-primary">Nairobi Verified</span>
@@ -151,21 +152,37 @@ const About = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <stat.icon className="h-8 w-8 text-primary" />
-                </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-                <div className="text-gray-600">{stat.label}</div>
-              </div>
-            ))}
+<section className="py-16 bg-white">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+      {stats.map((stat, index) => (
+        <div
+          key={index}
+          style={{
+            boxShadow: '0 2px 10px rgba(254, 248, 235, 0.8)',
+            border: '1px solid #FEF1E7'
+          }}
+          className="bg-white rounded-xl p-6 text-center transition-all duration-300 hover:scale-105"
+        >
+          <div className="flex items-center justify-center w-14 h-14 mx-auto rounded-full bg-primary/10 mb-4">
+            <stat.icon className="h-7 w-7 text-primary" />
           </div>
+          <div className="text-4xl font-extrabold text-gray-800 mb-1 tracking-tight">
+            {/* Use CountUp for rolling numbers */}
+            <CountUp
+              end={parseFloat(stat.value.replace(/[^\d.]/g, ''))}
+              duration={2}
+              decimals={stat.value.includes('.') ? 1 : 0}
+              suffix={stat.value.includes('+') ? '+' : ''}
+            />
+          </div>
+          <div className="text-sm text-gray-600 font-medium">{stat.label}</div>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
+
 
       {/* Story Section */}
       <section className="py-16 bg-gray-50">
