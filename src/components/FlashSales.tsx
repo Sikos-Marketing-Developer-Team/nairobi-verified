@@ -329,7 +329,7 @@ const FlashSales = () => {
 
             {flashSale.products.length > 4 && (
               <div className="text-center">
-                <Link to={`/flash-sale/${flashSale._id}`}>
+                <Link to="/products">
                   <Button size="lg" className="bg-red-500 hover:bg-red-600 text-white">
                     View All {flashSale.products.length} Products
                   </Button>

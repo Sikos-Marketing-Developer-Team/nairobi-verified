@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Menu, 
   X, 
@@ -79,13 +80,13 @@ const Navbar = () => {
       {/* Top Row - Logo, Search, Icons */}
       <div className="flex items-center justify-between px-4 sm:px-6 py-3 max-h-[90px]">
         {/* Logo */}
-        <a href="/" className="flex items-center space-x-3 group">
+        <Link to="/" className="flex items-center space-x-3 group">
           <img
             src="/Nairobi Verified Logo.png"
             alt="Nairobi Verified Logo"
             className="w-22 h-12 object-contain rounded-[16px] shadow-sm transition-transform group-hover:scale-105"
           />
-        </a>
+        </Link>
 
         {/* Search Bar (Desktop) */}
         <div className="hidden md:flex items-center bg-white rounded-[16px] px-4 py-2 w-1/2 max-w-lg shadow-sm hover:shadow-md transition-shadow relative border border-[#F97316]"
@@ -136,30 +137,30 @@ const Navbar = () => {
               </button>
             </>
           ) : (
-            <a 
-              href="/auth" 
+            <Link 
+              to="/auth" 
               className="hidden sm:flex items-center gap-1 bg-[#EC5C0A] hover:bg-[#fb923c] transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px]"
             >
               <LogIn className="w-4 h-4" />
               <span>Sign In</span>
-            </a>
+            </Link>
           )}
           
-          <a 
-            href="/favorites" 
+          <Link 
+            to="/favorites" 
             className="hover:scale-110 transition-transform duration-200 text-black text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
           >
             <Heart className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
-          </a>
+          </Link>
           
-          <a 
-            href="/cart" 
+          <Link 
+            to="/cart" 
             className="hover:scale-110 transition-transform duration-200 text-black text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
           >
             <ShoppingCart className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -167,12 +168,12 @@ const Navbar = () => {
       <div className="hidden md:flex items-center justify-between px-6 py-2 border-t border-gray-200 text-black text-base">
         <ul className="flex space-x-6 p-2">
           <li>
-            <a 
-              href="/deals" 
+            <Link 
+              to="/products" 
               className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 text-[#EC5C0A]"
             >
               Hot Deals <Zap className="text-[#EC5C0A] w-4 h-4" />
-            </a>
+            </Link>
           </li>
           
           <li className="relative group">
@@ -181,52 +182,52 @@ const Navbar = () => {
             </button>
             <ul className="absolute left-0 mt-2 w-48 rounded-[16px] bg-white text-gray-800 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-100 text-base">
               <li>
-                <a href="/categories/electronics" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
+                <Link to="/products?category=electronics" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
                   Electronics
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/categories/fashion" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
+                <Link to="/products?category=fashion" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
                   Fashion
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/categories/home" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
+                <Link to="/products?category=home" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
                   Home & Kitchen
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/categories/beauty" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
+                <Link to="/products?category=beauty" className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors">
                   Beauty
-                </a>
+                </Link>
               </li>
             </ul>
           </li>
           
           <li>
-            <a href="/merchants" className="hover:text-gray-700 transition-colors font-semibold opacity-90">
+            <Link to="/merchants" className="hover:text-gray-700 transition-colors font-semibold opacity-90">
               Find Vendors
-            </a>
+            </Link>
           </li>
           
           <li>
-            <a href="/about" className="hover:text-gray-700 transition-colors font-semibold opacity-90">
+            <Link to="/about" className="hover:text-gray-700 transition-colors font-semibold opacity-90">
               About
-            </a>
+            </Link>
           </li>
         </ul>
 
         <ul className="flex items-center space-x-6">
           <li>
-            <a href="/contact" className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 text-[#EC5C0A]">
+            <Link to="/support" className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 text-[#EC5C0A]">
               <Phone className="w-4 h-4 text-[#EC5C0A]"  /> Contact Us
-            </a>
+            </Link>
           </li>
           
           <li>
-            <a href="/orders" className="hover:text-gray-700 transition-colors font-semibold opacity-90">
+            <Link to="/dashboard" className="hover:text-gray-700 transition-colors font-semibold opacity-90">
               Track Order
-            </a>
+            </Link>
           </li>
           
           <li className="flex space-x-2">
@@ -271,14 +272,14 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center space-x-2">
-          <a href="/favorites" className="text-black text-xl relative bg-[#FEEED5] p-2 rounded-[16px]">
+          <Link to="/favorites" className="text-black text-xl relative bg-[#FEEED5] p-2 rounded-[16px]">
             <Heart className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-4 h-4 flex items-center justify-center">0</span>
-          </a>
-          <a href="/cart" className="text-black text-xl relative bg-[#FEEED5] p-2 rounded-[16px]">
+          </Link>
+          <Link to="/cart" className="text-black text-xl relative bg-[#FEEED5] p-2 rounded-[16px]">
             <ShoppingCart className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-4 h-4 flex items-center justify-center">0</span>
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -289,79 +290,79 @@ const Navbar = () => {
         }`}
         aria-hidden={!isMenuOpen}
       >
-        <a 
-          href="/deals" 
+        <Link 
+          to="/products" 
           onClick={() => setIsMenuOpen(false)}
           className="hover:text-[#EC5C0A] transition-colors flex items-center gap-1 text-[#EC5C0A]"
         >
           Hot Deals <Zap className="text-[#EC5C0A] w-4 h-4" />
-        </a>
+        </Link>
         
         <div>
           <span className="font-bold block mb-2 text-gray-900">Categories</span>
           <ul className="space-y-1">
             <li>
-              <a 
-                href="/categories/electronics" 
+              <Link 
+                to="/products?category=electronics" 
                 onClick={() => setIsMenuOpen(false)}
                 className="block pl-4 py-1.5 hover:text-[#EC5C0A] transition-colors"
               >
                 Electronics
-              </a>
+              </Link>
             </li>
             <li>
-              <a 
-                href="/categories/fashion" 
+              <Link 
+                to="/products?category=fashion" 
                 onClick={() => setIsMenuOpen(false)}
                 className="block pl-4 py-1.5 hover:text-[#EC5C0A] transition-colors"
               >
                 Fashion
-              </a>
+              </Link>
             </li>
             <li>
-              <a 
-                href="/categories/home" 
+              <Link 
+                to="/products?category=home" 
                 onClick={() => setIsMenuOpen(false)}
                 className="block pl-4 py-1.5 hover:text-[#EC5C0A] transition-colors"
               >
                 Home & Kitchen
-              </a>
+              </Link>
             </li>
             <li>
-              <a 
-                href="/categories/beauty" 
+              <Link 
+                to="/products?category=beauty" 
                 onClick={() => setIsMenuOpen(false)}
                 className="block pl-4 py-1.5 hover:text-[#EC5C0A] transition-colors"
               >
                 Beauty
-              </a>
+              </Link>
             </li>
           </ul>
         </div>
         
-        <a
-          href="/merchants" 
+        <Link
+          to="/merchants" 
           onClick={() => setIsMenuOpen(false)}
           className="block hover:text-[#EC5C0A] transition-colors"
         >
           Find Vendors
-        </a>
+        </Link>
         
-        <a 
-          href="/about" 
+        <Link 
+          to="/about" 
           onClick={() => setIsMenuOpen(false)}
           className="block hover:text-[#EC5C0A] transition-colors"
         >
           About
-        </a>
+        </Link>
         
-        <a 
-          href="/auth/register/merchant" 
+        <Link 
+          to="/auth/register/merchant" 
           onClick={() => setIsMenuOpen(false)}
           className="block bg-[#EC5C0A] text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-[#fb923c] transition-colors"
         >
           Sell on Nairobi Verified
-        </a>
+        </Link>
         
         <div className="pt-2 border-t border-gray-200 mt-2">
           <ul className="space-y-1">
@@ -382,32 +383,32 @@ const Navbar = () => {
               </>
             ) : (
               <li>
-                <a 
-                  href="/auth" 
+                <Link 
+                  to="/auth" 
                   onClick={() => setIsMenuOpen(false)}
                   className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
                 >
                   <LogIn className="w-4 h-4" /> Sign In
-                </a>
+                </Link>
               </li>
             )}
             <li>
-              <a 
-                href="/contact" 
+              <Link 
+                to="/support" 
                 onClick={() => setIsMenuOpen(false)}
                 className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1 text-[#EC5C0A]"
               >
                 <Phone className="w-4 h-4 text-[#EC5C0A]" /> Contact Us
-              </a>
+              </Link>
             </li>
             <li>
-              <a 
-                href="/orders" 
+              <Link 
+                to="/dashboard" 
                 onClick={() => setIsMenuOpen(false)}
                 className="block hover:text-[#EC5C0A] transition-colors py-1.5"
               >
                 Track Order
-              </a>
+              </Link>
             </li>
           </ul>
         </div>

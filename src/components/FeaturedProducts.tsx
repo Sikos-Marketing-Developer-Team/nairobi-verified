@@ -184,7 +184,7 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
             {product.name}
           </h3>
           
-          <Link to={`/merchants/${product.merchantId}`} className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-2 mb-2">
+          <Link to={`/merchant/${product.merchantId}`} className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-2 mb-2">
             <MapPin className="h-4 w-4 text-gray-400" />
             <span>{product.location}</span>
           </Link>
