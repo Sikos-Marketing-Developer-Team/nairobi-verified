@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const Merchant = require('../models/Merchant');
-const auth = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 // Get all products with filtering and pagination
 router.get('/', async (req, res) => {
@@ -168,7 +168,7 @@ router.get('/merchant/:merchantId', async (req, res) => {
 });
 
 // Create new product (merchant only)
-router.post('/', auth, async (req, res) => {
+router.post('/', protect, async (req, res) => {
   try {
     // Check if user is a merchant
     if (req.user.role !== 'merchant' && req.user.role !== 'admin') {
@@ -220,7 +220,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Update product
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', protect, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     
@@ -268,7 +268,7 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // Delete product
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     
