@@ -44,27 +44,38 @@ const TrustSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, index) => (
-            <div 
-              key={index} 
-              className="text-center group hover:shadow-lg transition-shadow duration-300 p-6 rounded-lg"
-            >
-              <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
-                <feature.icon className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {feature.description}
-              </p>
-              <div className="text-2xl font-bold text-primary">
-                {feature.stats}
-              </div>
-            </div>
-          ))}
+     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+  {features.map((feature, index) => (
+    <div
+      key={index}
+      style={{
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
+        border: '1px solid #FEEFD4'
+      }}
+      className="flex flex-col justify-between text-center bg-white transition-all duration-300 ease-in-out transform hover:scale-105 p-6 rounded-xl h-full"
+    >
+      <div>
+        <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
+          <feature.icon className="h-8 w-8 text-primary" />
         </div>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          {feature.title}
+        </h3>
+        <p className="text-gray-600 mb-6 leading-relaxed">
+          {feature.description}
+        </p>
+      </div>
+      <div className="text-2xl font-bold text-primary mt-auto">
+        {feature.stats}
+      </div>
+    </div>
+  ))}
+</div>
+
+
+
+
+
 
         {/* Call to Action */}
         <div className="mt-16 bg-gradient-to-r from-primary to-primary-dark rounded-2xl p-8 lg:p-12 text-center text-white">
