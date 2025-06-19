@@ -71,7 +71,7 @@ const Navbar = () => {
   return (
     <nav 
       ref={navbarRef}
-      className={`fixed w-full top-0 z-50 transition-all duration-300 max-h-[150px] text-[15px] bg-white ${
+      className={`fixed w-full top-0 z-50 transition-all duration-300 max-h-[150px] text-[15px] bg-[white] ${
         scrolled ? 'shadow-lg bg-opacity-95 backdrop-blur-sm' : 'shadow-md'
       }`}
       aria-label="Main navigation"
