@@ -12,8 +12,8 @@ const Hero = () => {
     console.log({ searchQuery, selectedCategory, selectedLocation });
   };
 
-  return (
-    <section className="relative bg-gradient-to-br from-orange-50 to-yellow-50 pt-36 pb-16 lg:pt-44 lg:pb-24">
+ return (
+    <section className="relative bg-gradient-to-br from-orange-50 to-yellow-50 pt-48 pb-16 sm:pt-40 lg:pt-44 lg:pb-24">
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Hero Content */}

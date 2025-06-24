@@ -24,4 +24,19 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react')) return 'react';
+            if (id.includes('lucide-react')) return 'lucide';
+            if (id.includes('@radix-ui')) return 'radix';
+            if (id.includes('shadcn')) return 'shadcn';
+            return 'vendor';
+          }
+        },
+      },
+    },
+  },
 }));
