@@ -389,10 +389,10 @@ const Categories = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Page Header */}
           <div className="mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-semibold text-gray-900">
               {selectedCategory ? selectedCategory.name : 'All Categories'}
             </h1>
-            <p className="text-orange-600 text-sm">
+            <p className="text-orange-600 ">
               {selectedCategory 
                 ? `Browse verified merchants offering ${selectedCategory.name.toLowerCase()}`
                 : 'Browse all categories or select one to filter products'}
@@ -402,7 +402,7 @@ const Categories = () => {
           {/* Categories Section (only show if no category is selected) */}
           {!selectedCategory && (
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Shop by Category</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-5 mx-1">Shop by Category</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {categories.map((category) => (
                   <Link key={category.id} to={`/categories/${category.id}`}>

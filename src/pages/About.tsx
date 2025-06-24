@@ -221,7 +221,7 @@ const About = () => {
       </section>
 
       {/* Values Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-[#FCFCF7]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
@@ -234,7 +234,7 @@ const About = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {values.map((value, index) => (
-              <Card key={index} className="text-center hover-scale">
+              <Card key={index} className="text-center hover-scale border border-[#FEEFD4] shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
                 <CardContent className="p-6">
                   <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <value.icon className="h-8 w-8 text-primary" />
