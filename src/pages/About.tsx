@@ -139,12 +139,12 @@ const About = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="gradient-bg pt-36">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl lg:text-6xl font-bold inter text-gray-900 mb-6">
-            About <span className="text-primary">Nairobi Verified</span>
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+      <section className="gradient-bg pt-36 bg-[#FCFCF7]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center ">
+          <h1 className="text-4xl lg:text-6xl font-bold inter text-gray-900 mb-4 mt-4 text-shadow-white">
+  About <span className="text-primary">Nairobi Verified</span>
+</h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto text-shadow-white">
             We're bridging the gap between online shopping and physical retail in Nairobi's CBD, 
             creating a trusted marketplace where every merchant is verified and every customer is protected.
           </p>
@@ -152,17 +152,17 @@ const About = () => {
       </section>
 
       {/* Stats Section */}
-<section className="py-16 bg-white">
+<section className="py-16 bg-[#FCFCF7]">
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
       {stats.map((stat, index) => (
         <div
           key={index}
-          style={{
-            boxShadow: '0 2px 10px rgba(254, 248, 235, 0.8)',
-            border: '1px solid #FEF1E7'
-          }}
-          className="bg-white rounded-xl p-6 text-center transition-all duration-300 hover:scale-105"
+          // style={{
+          //   boxShadow: '0 2px 10px (rgba(254, 241, 231, 1)',
+          //   border: '1px solid (rgba(254, 241, 231, 1)'
+          // }}
+          className="bg-[white] rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 border border-[#FEEFD4]"
         >
           <div className="flex items-center justify-center w-14 h-14 mx-auto rounded-full bg-primary/10 mb-4">
             <stat.icon className="h-7 w-7 text-primary" />
@@ -176,7 +176,7 @@ const About = () => {
               suffix={stat.value.includes('+') ? '+' : ''}
             />
           </div>
-          <div className="text-sm text-gray-600 font-medium">{stat.label}</div>
+          <div className="text-sm text-gray-500 font-medium">{stat.label}</div>
         </div>
       ))}
     </div>

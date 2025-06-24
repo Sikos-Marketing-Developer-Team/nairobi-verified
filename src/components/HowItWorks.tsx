@@ -42,7 +42,7 @@ const HowItWorks = () => {
   {steps.map((step, index) => (
     <div
       key={index}
-      className="text-center bg-white rounded-xl border border-[#FEEFD4] p-6 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-all duration-300 relative group hover:-translate-y-2"
+      className="text-center bg-white rounded-xl border border-[#FEEFD4]  p-6 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-all duration-300 relative group hover:-translate-y-2"
     >
       {/* Number badge with glow */}
       <div className="absolute -top-3 -right-3 z-10">
