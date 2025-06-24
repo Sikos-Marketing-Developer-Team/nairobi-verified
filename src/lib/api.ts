@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://nairobi-cbd-backend.onrender.com/api',
   headers: {
     'Content-Type': 'application/json'
   },
@@ -120,24 +120,6 @@ export const addressesAPI = {
 export const settingsAPI = {
   getSettings: () => api.get('/settings/me'),
   updateSettings: (id: string, settingsData: any) => api.put(`/settings/${id}`, settingsData),
-};
-
-// Products API
-export const productsAPI = {
-  getProducts: (params = {}) => api.get('/products', { params }),
-  getFeaturedProducts: (limit = 8) => api.get('/products/featured', { params: { limit } }),
-  getProduct: (id: string) => api.get(`/products/${id}`),
-  getProductsByMerchant: (merchantId: string, params = {}) => api.get(`/products/merchant/${merchantId}`, { params }),
-  createProduct: (productData: any) => api.post('/products', productData),
-  updateProduct: (id: string, productData: any) => api.put(`/products/${id}`, productData),
-  deleteProduct: (id: string) => api.delete(`/products/${id}`),
-  getCategories: () => api.get('/products/meta/categories'),
-  searchProducts: (searchTerm: string, filters = {}) => api.get('/products', { 
-    params: { 
-      search: searchTerm,
-      ...filters
-    } 
-  })
 };
 
 // Cart API

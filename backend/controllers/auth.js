@@ -62,7 +62,9 @@ exports.register = async (req, res) => {
   }
 };
 
-// ... rest of the controllers remain unchanged
+// @desc    Register merchant
+// @route   POST /api/auth/register/merchant
+// @access  Public
 exports.registerMerchant = async (req, res) => {
   try {
     const { 
@@ -137,6 +139,9 @@ exports.registerMerchant = async (req, res) => {
   }
 };
 
+// @desc    Login user
+// @route   POST /api/auth/login
+// @access  Public
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -200,6 +205,9 @@ exports.login = async (req, res) => {
   }
 };
 
+// @desc    Login merchant
+// @route   POST /api/auth/login/merchant
+// @access  Public
 exports.loginMerchant = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -263,6 +271,9 @@ exports.loginMerchant = async (req, res) => {
   }
 };
 
+// @desc    Get current logged in user
+// @route   GET /api/auth/me
+// @access  Private
 exports.getMe = async (req, res) => {
   try {
     if (!req.isAuthenticated()) {
@@ -286,6 +297,9 @@ exports.getMe = async (req, res) => {
   }
 };
 
+// @desc    Logout user
+// @route   GET /api/auth/logout
+// @access  Private
 exports.logout = async (req, res) => {
   // Handle passport logout
   req.logout(function(err) {
@@ -304,32 +318,48 @@ exports.logout = async (req, res) => {
   });
 };
 
-exports.googleAuth = passport.authenticate('google', { scope: true });
+// @desc    Initiate Google OAuth
+// @route   GET /api/auth/google
+// @access  Public
+exports.googleAuth = passport.authenticate('google', { 
+  scope: ['profile', 'email'] 
+});
 
+// @desc    Google OAuth callback
+// @route   GET /api/auth/google/callback
+// @access  Public
 exports.googleCallback = (req, res, next) => {
-  passport.authenticate('google', { session: true }, (err, user, info) => {
+  passport.authenticate('google', { 
+    failureRedirect: '/auth?error=Authentication failed',
+    session: true 
+  }, (err, user, info) => {
     if (err) {
       console.error('Google auth callback error:', err);
-      return res.redirect(`${process.env.NEXT_URL}/auth/login?error=${encodeURIComponent(err.message)}`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=${encodeURIComponent(err.message)}`);
     }
     
     if (!user) {
-      return res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=Authentication failed`);
+      console.error('Google auth failed - no user returned');
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=Authentication failed`);
     }
     
     // Log in user
     req.login(user, (loginErr) => {
       if (loginErr) {
         console.error('Google login error:', loginErr);
-        return res.redirect(`${process.env.NEXT_URL}/auth/login?error=${encodeURIComponent(loginErr.message)}`);
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=${encodeURIComponent(loginErr.message)}`);
       }
       
-      // Successful login
-      return res.redirect(`${process.env.NEXT_URL}/auth/social-callback?success=true`);
+      // Successful login - redirect to dashboard
+      console.log('Google login successful for user:', user.email);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`);
     });
   })(req, res, next);
 };
 
+// @desc    Forgot password
+// @route   POST /api/auth/forgot-password
+// @access  Public
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -374,7 +404,7 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // Create reset url
-    const resetUrl = `${process.env.FRONTEND_URL}/auth/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password/${resetToken}`;
     
     // In production app, send email with reset URL
     console.log('Reset URL:', resetUrl);
@@ -402,6 +432,9 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
+// @desc    Reset password
+// @route   POST /api/auth/reset-password/:resetToken
+// @access  Public
 exports.resetPassword = async (req, res) => {
   try {
     // Get hashed token

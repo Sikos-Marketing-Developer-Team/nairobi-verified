@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, registerMerchant, login, loginMerchant, getMe, logout, googleAuth, googleCallback, forgotPassword, resetPassword } = require('../controllers/auth');
+const { register, registerMerchant, login, loginMerchant, getMe, logout, googleAuth, googleCallback, forgotPassword, resetPassword, loginWithGoogle } = require('../controllers/auth');
 const { protect } = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');
 
@@ -36,14 +36,19 @@ const validateLogin = [
   }
 ];
 
+// Standard auth routes
 router.post('/register', validateRegister, register);
 router.post('/register/merchant', registerMerchant); // Add validation if needed
 router.post('/login', validateLogin, login);
 router.post('/login/merchant', validateLogin, loginMerchant);
 router.get('/me', protect, getMe);
 router.get('/logout', logout);
+
+// Google OAuth routes
 router.get('/google', googleAuth);
 router.get('/google/callback', googleCallback);
+
+// Password reset routes
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:resetToken', resetPassword);
 
