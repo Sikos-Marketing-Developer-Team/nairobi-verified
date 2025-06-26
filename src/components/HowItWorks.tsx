@@ -27,7 +27,7 @@ const HowItWorks = () => {
   ];
 
   return (
-    <section className="py-16 bg-white">
+    <section className="pt-16 pb-0 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
@@ -42,7 +42,7 @@ const HowItWorks = () => {
   {steps.map((step, index) => (
     <div
       key={index}
-      className="text-center bg-white rounded-xl border border-[#FEEFD4] p-6 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-all duration-300 relative group hover:-translate-y-2"
+      className="text-center bg-white rounded-xl border border-[#FEEFD4]  p-6 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-all duration-300 relative group hover:-translate-y-2"
     >
       {/* Number badge with glow */}
       <div className="absolute -top-3 -right-3 z-10">

@@ -27,15 +27,16 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          ui: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-          query: ['@tanstack/react-query'],
-          utils: ['axios', 'react-countup']
-        }
-      }
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react')) return 'react';
+            if (id.includes('lucide-react')) return 'lucide';
+            if (id.includes('@radix-ui')) return 'radix';
+            if (id.includes('shadcn')) return 'shadcn';
+            return 'vendor';
+          }
+        },
+      },
     },
-    chunkSizeWarningLimit: 1000
-  }
+  },
 }));

@@ -72,7 +72,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-gray-400">
-            © 2024 Nairobi Verified. All rights reserved.
+            © 2025 Nairobi Verified. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link to="/about" className="text-sm text-gray-400 hover:text-primary">Privacy Policy</Link>
