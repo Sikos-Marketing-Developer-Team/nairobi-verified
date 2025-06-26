@@ -301,21 +301,37 @@ exports.getMe = async (req, res) => {
 // @route   GET /api/auth/logout
 // @access  Private
 exports.logout = async (req, res) => {
-  // Handle passport logout
-  req.logout(function(err) {
-    if (err) {
-      console.error('Logout error:', err);
-      return res.status(500).json({
-        success: false,
-        error: 'Error logging out'
+  try {
+    req.logout((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({
+          success: false,
+          error: 'Error logging out'
+        });
+      }
+      
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destroy error:', err);
+          return res.status(500).json({
+            success: false,
+            error: 'Error destroying session'
+          });
+        }
+        res.status(200).json({
+          success: true,
+          data: {}
+        });
       });
-    }
-    
-    res.status(200).json({
-      success: true,
-      data: {}
     });
-  });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error logging out'
+    });
+  }
 };
 
 // @desc    Initiate Google OAuth
@@ -330,7 +346,8 @@ exports.googleAuth = passport.authenticate('google', {
 // @access  Public
 exports.googleCallback = (req, res, next) => {
   passport.authenticate('google', { 
-    failureRedirect: '/auth?error=Authentication failed',
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=authentication_failed`,
+    failureMessage: true,
     session: true 
   }, (err, user, info) => {
     if (err) {
@@ -339,20 +356,19 @@ exports.googleCallback = (req, res, next) => {
     }
     
     if (!user) {
-      console.error('Google auth failed - no user returned');
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=Authentication failed`);
+      console.error('Google auth failed:', info?.message || 'No user returned');
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=${encodeURIComponent(info?.message || 'Authentication failed')}`);
     }
     
-    // Log in user
     req.login(user, (loginErr) => {
       if (loginErr) {
         console.error('Google login error:', loginErr);
         return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=${encodeURIComponent(loginErr.message)}`);
       }
       
-      // Successful login - redirect to dashboard
       console.log('Google login successful for user:', user.email);
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`);
+      const redirectPath = user.isMerchant || user.businessName ? '/merchant/dashboard' : '/dashboard';
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}${redirectPath}`);
     });
   })(req, res, next);
 };
@@ -377,7 +393,6 @@ exports.forgotPassword = async (req, res) => {
     let user = await User.findOne({ email });
     
     if (!user) {
-      // Check if it's a merchant
       user = await Merchant.findOne({ email });
     }
 
@@ -392,33 +407,27 @@ exports.forgotPassword = async (req, res) => {
     // Get reset token
     const resetToken = crypto.randomBytes(20).toString('hex');
     
-    // Hash token and set to resetPasswordToken field
     user.resetPasswordToken = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
     
-    // Set expire
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
     
     await user.save();
 
-    // Create reset url
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password/${resetToken}`;
     
-    // In production app, send email with reset URL
     console.log('Reset URL:', resetUrl);
     
-    // For now, just log it and return success
     res.status(200).json({
       success: true,
       message: 'Password reset email sent',
-      resetUrl // Only include in development
+      resetUrl // Only in development
     });
   } catch (error) {
     console.error('Forgot password error:', error);
     
-    // If there is an error, clean user fields
     if (user) {
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
@@ -437,32 +446,27 @@ exports.forgotPassword = async (req, res) => {
 // @access  Public
 exports.resetPassword = async (req, res) => {
   try {
-    // Get hashed token
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(req.params.resetToken)
       .digest('hex');
     
-    // Use mock data in development
     if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
-      // In mock mode, just return success
       return res.status(200).json({
         success: true,
         message: 'Password reset successful'
       });
     }
 
-    // Find user with token and valid expire time
     let user = await User.findOne({
       resetPasswordToken,
-      resetPasswordExpires: { $gt: Date.now() }
+      resetPasswordExpire: { $gt: Date.now() }
     });
     
     if (!user) {
-      // Check if it's a merchant
       user = await Merchant.findOne({
         resetPasswordToken,
-        resetPasswordExpires: { $gt: Date.now() }
+        resetPasswordExpire: { $gt: Date.now() }
       });
     }
 
@@ -473,10 +477,9 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // Set new password
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.resetPasswordExpire = undefined;
     
     await user.save();
 

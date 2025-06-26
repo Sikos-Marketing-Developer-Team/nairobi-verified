@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, registerMerchant, login, loginMerchant, getMe, logout, googleAuth, googleCallback, forgotPassword, resetPassword, loginWithGoogle } = require('../controllers/auth');
+const { register, registerMerchant, login, loginMerchant, getMe, logout, googleAuth, googleCallback } = require('../controllers/auth');
 const { protect } = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');
 
@@ -17,7 +17,6 @@ const validateRegister = [
     if (!errors.isEmpty()) {
       return res.status(400).json({ success: false, error: errors.array().map(err => err.msg).join(', ') });
     }
-    // Normalize phone number (remove spaces, dashes)
     req.body.phone = req.body.phone.replace(/\s|-/g, '');
     next();
   }
@@ -36,9 +35,18 @@ const validateLogin = [
   }
 ];
 
+// Check session status
+router.get('/check', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({ success: true, isAuthenticated: true, user: req.user });
+  } else {
+    res.json({ success: true, isAuthenticated: false });
+  }
+});
+
 // Standard auth routes
 router.post('/register', validateRegister, register);
-router.post('/register/merchant', registerMerchant); // Add validation if needed
+router.post('/register/merchant', registerMerchant);
 router.post('/login', validateLogin, login);
 router.post('/login/merchant', validateLogin, loginMerchant);
 router.get('/me', protect, getMe);
@@ -46,7 +54,14 @@ router.get('/logout', logout);
 
 // Google OAuth routes
 router.get('/google', googleAuth);
-router.get('/google/callback', googleCallback);
+router.get(
+  '/google/callback',
+  passport.authenticate('google', {
+    failureRedirect: process.env.FRONTEND_URL + '/auth?error=authentication_failed',
+    failureMessage: true
+  }),
+  googleCallback
+);
 
 // Password reset routes
 router.post('/forgot-password', forgotPassword);
