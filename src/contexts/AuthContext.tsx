@@ -48,11 +48,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await authAPI.getMe();
-        const user = response.data.data;
+        // Check session status first
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || 'https://nairobi-cbd-backend.onrender.com/api'}/auth/check`,
+          { credentials: 'include' }
+        );
+        const data = await response.json();
+
+        if (data.success && data.isAuthenticated && data.user) {
+          setUser(data.user);
+          if (data.user.role === 'admin') {
+            navigate('/admin/dashboard', { replace: true });
+          } else if (data.user.isMerchant || data.user.businessName) {
+            navigate('/merchant/dashboard', { replace: true });
+          } else {
+            navigate('/dashboard', { replace: true });
+          }
+          toast({
+            title: 'Session Restored',
+            description: 'You are already logged in',
+          });
+          return;
+        }
+
+        // Fallback to getMe for OAuth callback
+        const meResponse = await authAPI.getMe();
+        const user = meResponse.data.data;
         setUser(user);
 
-        // Redirect based on user role or isMerchant flag
         if (user.role === 'admin') {
           navigate('/admin/dashboard', { replace: true });
         } else if (user.isMerchant || user.businessName) {
@@ -64,14 +87,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           title: 'Login Successful',
           description: 'You have been logged in with Google',
         });
-      } catch (error) {
-        console.error('Failed to fetch user data:', error);
+      } catch (error: any) {
+        console.error('Failed to check authentication:', error);
+        const urlParams = new URLSearchParams(location.search);
+        if (urlParams.get('error') === 'authentication_failed') {
+          toast({
+            title: 'Authentication Failed',
+            description: urlParams.get('message') || 'Failed to authenticate. Please try again or complete merchant registration.',
+            variant: 'destructive',
+          });
+        }
       }
       setIsLoading(false);
     };
 
     checkAuth();
-  }, [navigate, toast]);
+  }, [navigate, toast, location]);
 
   // Login function
   const login = async (email: string, password: string) => {
@@ -82,7 +113,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setUser(user);
       
-      // Redirect based on user role or isMerchant flag
       if (user.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else if (user.isMerchant || user.businessName) {
