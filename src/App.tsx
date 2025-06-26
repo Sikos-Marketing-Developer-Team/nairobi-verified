@@ -38,6 +38,13 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import MerchantAccountSetup from "./pages/MerchantAccountSetup";
+import Products from "./pages/Products";
+import ProductDetail from "./pages/ProductDetail";
+import Cart from "./pages/Cart";
+import AdminFlashSales from "./pages/AdminFlashSales";
+import AdminCreateFlashSale from "./pages/AdminCreateFlashSale";
+import AdminEditFlashSale from "./pages/AdminEditFlashSale";
+import FlashSaleDetail from "./pages/FlashSaleDetail";
 
 const queryClient = new QueryClient();
 
@@ -142,6 +149,21 @@ const App = () => (
                   <AdminSettings />
                 </ProtectedRoute>
               } />
+              <Route path="/admin/flash-sales" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminFlashSales />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/flash-sales/create" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminCreateFlashSale />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/flash-sales/edit/:id" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminEditFlashSale />
+                </ProtectedRoute>
+              } />
               
               {/* Merchant Routes */}
               <Route path="/merchant/dashboard" element={
@@ -164,6 +186,10 @@ const App = () => (
               <Route path="/auth/social-callback" element={<Auth />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/categories/:categoryId" element={<Categories />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/flash-sale/:id" element={<FlashSaleDetail />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/safety-guidelines" element={<SafetyGuidelines />} />
               <Route path="/merchant/subscription-plans" element={<SubscriptionPlans />} />

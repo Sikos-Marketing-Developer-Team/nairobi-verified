@@ -2,15 +2,12 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://nairobi-cbd-backend.onrender.com/api',
   headers: {
     'Content-Type': 'application/json'
   },
   withCredentials: true // Important for sending/receiving cookies with CORS
 });
-
-// No need for token interceptor with session-based auth
-// The session cookie will be automatically sent with each request
 
 // Auth API
 export const authAPI = {
@@ -21,7 +18,8 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   logout: () => api.get('/auth/logout'),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token: string, password: string) => api.post(`/auth/reset-password/${token}`, { password })
+  resetPassword: (token: string, password: string) => api.post(`/auth/reset-password/${token}`, { password }),
+  updateProfile: (userData: any) => api.put('/users/me', userData)
 };
 
 // Users API

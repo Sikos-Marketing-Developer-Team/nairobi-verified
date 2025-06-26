@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail, Facebook, Twitter, Instagram } from 'lucide-react';
 
 const Footer = () => {
@@ -27,12 +28,12 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold text-white mb-4">Quick Links</h4>
             <ul className="space-y-2">
-              <li><a href="/merchants" className="hover:text-primary transition-colors">Browse Products</a></li>
-              <li><a href="/merchants" className="hover:text-primary transition-colors">Verified Merchants</a></li>
-              <li><a href="/categories" className="hover:text-primary transition-colors">Categories</a></li>
-              <li><a href="/about" className="hover:text-primary transition-colors">About Us</a></li>
-              <li><a href="/how-it-works" className="hover:text-primary transition-colors">How It Works</a></li>
-              <li><a href="/safety-guidelines" className="hover:text-primary transition-colors">Safety Guidelines</a></li>
+              <li><Link to="/products" className="hover:text-primary transition-colors">Browse Products</Link></li>
+              <li><Link to="/merchants" className="hover:text-primary transition-colors">Verified Merchants</Link></li>
+              <li><Link to="/categories" className="hover:text-primary transition-colors">Categories</Link></li>
+              <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
+              <li><Link to="/about" className="hover:text-primary transition-colors">How It Works</Link></li>
+              <li><Link to="/about" className="hover:text-primary transition-colors">Safety Guidelines</Link></li>
             </ul>
           </div>
 
@@ -40,11 +41,11 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold text-white mb-4">For Merchants</h4>
             <ul className="space-y-2">
-              <li><a href="/auth/register/merchant" className="hover:text-primary transition-colors">Become a Merchant</a></li>
-              <li><a href="/merchant/verification" className="hover:text-primary transition-colors">Verification Process</a></li>
-              <li><a href="/merchant/subscription-plans" className="hover:text-primary transition-colors">Subscription Plans</a></li>
-              <li><a href="/merchant/dashboard" className="hover:text-primary transition-colors">Merchant Dashboard</a></li>
-              <li><a href="/support" className="hover:text-primary transition-colors">Support Center</a></li>
+              <li><Link to="/auth/register/merchant" className="hover:text-primary transition-colors">Become a Merchant</Link></li>
+              <li><Link to="/about" className="hover:text-primary transition-colors">Verification Process</Link></li>
+              <li><Link to="/about" className="hover:text-primary transition-colors">Subscription Plans</Link></li>
+              <li><Link to="/merchant/dashboard" className="hover:text-primary transition-colors">Merchant Dashboard</Link></li>
+              <li><Link to="/support" className="hover:text-primary transition-colors">Support Center</Link></li>
             </ul>
           </div>
 
@@ -74,9 +75,9 @@ const Footer = () => {
             © 2025 Nairobi Verified. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <a href="/privacy-policy" className="text-sm text-gray-400 hover:text-primary">Privacy Policy</a>
-            <a href="/terms-of-service" className="text-sm text-gray-400 hover:text-primary">Terms of Service</a>
-            <a href="/cookie-policy" className="text-sm text-gray-400 hover:text-primary">Cookie Policy</a>
+            <Link to="/about" className="text-sm text-gray-400 hover:text-primary">Privacy Policy</Link>
+            <Link to="/about" className="text-sm text-gray-400 hover:text-primary">Terms of Service</Link>
+            <Link to="/about" className="text-sm text-gray-400 hover:text-primary">Cookie Policy</Link>
           </div>
         </div>
       </div>

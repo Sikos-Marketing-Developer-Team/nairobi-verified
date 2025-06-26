@@ -8,6 +8,7 @@ const crypto = require('crypto');
 // @access  Public
 exports.register = async (req, res) => {
   try {
+    console.log('Register request body:', req.body);
     const { firstName, lastName, email, phone, password } = req.body;
 
     // Check if user already exists
@@ -32,6 +33,7 @@ exports.register = async (req, res) => {
     // Log the user in via session
     req.login(user, (err) => {
       if (err) {
+        console.error('Login error after registration:', err);
         return res.status(500).json({
           success: false,
           error: 'Error logging in after registration'
@@ -52,9 +54,10 @@ exports.register = async (req, res) => {
       });
     });
   } catch (error) {
+    console.error('Registration error:', error);
     res.status(400).json({
       success: false,
-      error: error.message
+      error: 'Invalid input data'
     });
   }
 };
@@ -128,9 +131,10 @@ exports.registerMerchant = async (req, res) => {
       });
     });
   } catch (error) {
+    console.error('Merchant registration error:', error);
     res.status(400).json({
       success: false,
-      error: error.message
+      error: 'Invalid input data'
     });
   }
 };
@@ -193,9 +197,10 @@ exports.login = async (req, res) => {
       });
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(400).json({
       success: false,
-      error: error.message
+      error: 'Invalid input data'
     });
   }
 };
@@ -258,9 +263,10 @@ exports.loginMerchant = async (req, res) => {
       });
     });
   } catch (error) {
+    console.error('Merchant login error:', error);
     res.status(400).json({
       success: false,
-      error: error.message
+      error: 'Invalid input data'
     });
   }
 };
@@ -283,59 +289,86 @@ exports.getMe = async (req, res) => {
       data: req.user
     });
   } catch (error) {
+    console.error('GetMe error:', error);
     res.status(400).json({
       success: false,
-      error: error.message
+      error: 'Invalid request'
     });
   }
 };
 
-// @desc    Log user out / clear cookie
+// @desc    Logout user
 // @route   GET /api/auth/logout
 // @access  Private
 exports.logout = async (req, res) => {
-  // Handle passport logout
-  req.logout(function(err) {
-    if (err) {
-      return res.status(500).json({
-        success: false,
-        error: 'Error logging out'
+  try {
+    req.logout((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({
+          success: false,
+          error: 'Error logging out'
+        });
+      }
+      
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destroy error:', err);
+          return res.status(500).json({
+            success: false,
+            error: 'Error destroying session'
+          });
+        }
+        res.status(200).json({
+          success: true,
+          data: {}
+        });
       });
-    }
-    
-    res.status(200).json({
-      success: true,
-      data: {}
     });
-  });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error logging out'
+    });
+  }
 };
 
-// @desc    Google OAuth login
+// @desc    Initiate Google OAuth
 // @route   GET /api/auth/google
 // @access  Public
-exports.googleAuth = passport.authenticate('google', { scope: ['profile', 'email'] });
+exports.googleAuth = passport.authenticate('google', { 
+  scope: ['profile', 'email'] 
+});
 
 // @desc    Google OAuth callback
 // @route   GET /api/auth/google/callback
 // @access  Public
 exports.googleCallback = (req, res, next) => {
-  passport.authenticate('google', { session: true }, (err, user, info) => {
+  passport.authenticate('google', { 
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=authentication_failed`,
+    failureMessage: true,
+    session: true 
+  }, (err, user, info) => {
     if (err) {
-      return res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=${err.message}`);
+      console.error('Google auth callback error:', err);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=${encodeURIComponent(err.message)}`);
     }
     
     if (!user) {
-      return res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=Authentication failed`);
+      console.error('Google auth failed:', info?.message || 'No user returned');
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=${encodeURIComponent(info?.message || 'Authentication failed')}`);
     }
     
-    // Log in the user
     req.login(user, (loginErr) => {
       if (loginErr) {
-        return res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=${loginErr.message}`);
+        console.error('Google login error:', loginErr);
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth?error=${encodeURIComponent(loginErr.message)}`);
       }
       
-      // Redirect to frontend after successful login
-      return res.redirect(`${process.env.FRONTEND_URL}/auth/social-callback?success=true`);
+      console.log('Google login successful for user:', user.email);
+      const redirectPath = user.isMerchant || user.businessName ? '/merchant/dashboard' : '/dashboard';
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}${redirectPath}`);
     });
   })(req, res, next);
 };
@@ -349,7 +382,7 @@ exports.forgotPassword = async (req, res) => {
 
     // Use mock data in development
     if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
-      // In mock mode, just return success
+      console.log('Mocking password reset for email:', email);
       return res.status(200).json({
         success: true,
         message: 'Password reset email sent'
@@ -360,7 +393,6 @@ exports.forgotPassword = async (req, res) => {
     let user = await User.findOne({ email });
     
     if (!user) {
-      // Check if it's a merchant
       user = await Merchant.findOne({ email });
     }
 
@@ -375,33 +407,27 @@ exports.forgotPassword = async (req, res) => {
     // Get reset token
     const resetToken = crypto.randomBytes(20).toString('hex');
     
-    // Hash token and set to resetPasswordToken field
     user.resetPasswordToken = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
     
-    // Set expire
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
     
     await user.save();
 
-    // Create reset url
-    const resetUrl = `${process.env.FRONTEND_URL}/auth/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password/${resetToken}`;
     
-    // In a production app, send email with reset URL
     console.log('Reset URL:', resetUrl);
     
-    // For now, just log it and return success
     res.status(200).json({
       success: true,
       message: 'Password reset email sent',
-      resetUrl // Only include in development
+      resetUrl // Only in development
     });
   } catch (error) {
     console.error('Forgot password error:', error);
     
-    // If there is an error, clean user fields
     if (user) {
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
@@ -420,29 +446,24 @@ exports.forgotPassword = async (req, res) => {
 // @access  Public
 exports.resetPassword = async (req, res) => {
   try {
-    // Get hashed token
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(req.params.resetToken)
       .digest('hex');
     
-    // Use mock data in development
     if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
-      // In mock mode, just return success
       return res.status(200).json({
         success: true,
         message: 'Password reset successful'
       });
     }
 
-    // Find user with token and valid expire time
     let user = await User.findOne({
       resetPasswordToken,
       resetPasswordExpire: { $gt: Date.now() }
     });
     
     if (!user) {
-      // Check if it's a merchant
       user = await Merchant.findOne({
         resetPasswordToken,
         resetPasswordExpire: { $gt: Date.now() }
@@ -456,7 +477,6 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // Set new password
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
@@ -476,4 +496,3 @@ exports.resetPassword = async (req, res) => {
     });
   }
 };
-

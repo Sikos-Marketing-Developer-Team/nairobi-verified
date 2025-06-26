@@ -64,7 +64,7 @@ const CategorySection = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((category) => (
-            <Link key={category.id} to={`/categories/${category.id}`}>
+            <Link key={category.id} to={`/products?category=${category.name.toLowerCase().replace(/\s+/g, '-').replace('&', 'and')}`}>
               <Card className="hover-scale cursor-pointer border-0 shadow-lg">
                 <CardContent className="p-0">
                   <div className="relative h-48 overflow-hidden rounded-t-lg">

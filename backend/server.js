@@ -9,7 +9,7 @@ const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const rateLimit = require('express-rate-limit');
-const { v4: uuidv4 } = require('uuid'); // ✅ Added
+const { v4: uuidv4 } = require('uuid');
 
 // Load environment variables
 dotenv.config();
@@ -34,11 +34,11 @@ app.use(express.json());
 
 // Configure CORS with credentials support
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://nairobi-cbd-frontend.onrender.com', // ✅ Fixed trailing slash
+  origin: process.env.FRONTEND_URL || 'https://nairobi-verified-frontend.onrender.com', // ✅ Corrected to match frontend
   credentials: true
 }));
 
-// Rate limiting for sensitive auth routes (login and register)
+// Rate limiting for sensitive auth routes
 const strictAuthLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 10,
@@ -66,7 +66,9 @@ const authLimiter = rateLimit({
 const mongoStore = MongoStore.create({
   mongoUrl: process.env.MONGODB_URI,
   collectionName: 'sessions',
-  ttl: 7 * 24 * 60 * 60
+  ttl: 7 * 24 * 60 * 60, // 7 days
+  autoRemove: 'native', // Automatically remove expired sessions
+  writeOperationOptions: { upsert: true } // Handle duplicates by updating
 });
 mongoStore.on('error', (error) => {
   console.error('Session store error:', error);
@@ -74,16 +76,16 @@ mongoStore.on('error', (error) => {
 
 app.use(session({
   name: 'sid',
-  genid: (req) => uuidv4(), // ✅ Ensures unique session IDs
-  secret: process.env.JWT_SECRET,
+  genid: (req) => uuidv4(),
+  secret: process.env.JWT_SECRET || 'your-session-secret', //Use SESSION_SECRET
   resave: false,
   saveUninitialized: false,
   store: mongoStore,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: 'lax'
+    secure: process.env.NODE_ENV === 'production', // Secure in production
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Cross-origin support
   }
 }));
 
@@ -120,8 +122,10 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/merchants', require('./routes/merchants'));
+app.use('/api/products', require('./routes/products'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/favorites', require('./routes/favorites'));
+app.use('/api/flash-sales', require('./routes/flashSales'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
