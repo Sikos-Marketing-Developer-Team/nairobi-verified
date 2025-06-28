@@ -24,19 +24,31 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    // Ensure React is available globally if needed
+    global: "globalThis",
+  },
   build: {
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'react';
+            // Keep React and React-DOM together in one chunk
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react';
+            }
+            // Other UI libraries
             if (id.includes('lucide-react')) return 'lucide';
             if (id.includes('@radix-ui')) return 'radix';
-            if (id.includes('shadcn')) return 'shadcn';
+            // All other vendor dependencies
             return 'vendor';
           }
         },
       },
     },
+    // Ensure proper source maps for debugging
+    sourcemap: mode === 'development',
+    // Target modern browsers that support ES modules
+    target: 'es2020',
   },
 }));

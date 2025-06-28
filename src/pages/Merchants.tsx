@@ -41,7 +41,7 @@ const Merchants = () => {
     fetchMerchants();
   }, []);
 
-  let filteredMerchants = merchants.filter(merchant => {
+  const filteredMerchants = merchants.filter(merchant => {
     const matchesSearch = 
       merchant.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       merchant.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
