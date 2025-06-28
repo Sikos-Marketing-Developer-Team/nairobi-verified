@@ -32,8 +32,8 @@ const Footer = () => {
               <li><Link to="/merchants" className="hover:text-primary transition-colors">Verified Merchants</Link></li>
               <li><Link to="/categories" className="hover:text-primary transition-colors">Categories</Link></li>
               <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
-              <li><Link to="/about" className="hover:text-primary transition-colors">How It Works</Link></li>
-              <li><Link to="/about" className="hover:text-primary transition-colors">Safety Guidelines</Link></li>
+              <li><Link to="/how-it-works" className="hover:text-primary transition-colors">How It Works</Link></li>
+              <li><Link to="/safety-guidelines" className="hover:text-primary transition-colors">Safety Guidelines</Link></li>
             </ul>
           </div>
 
@@ -42,8 +42,8 @@ const Footer = () => {
             <h4 className="text-lg font-semibold text-white mb-4">For Merchants</h4>
             <ul className="space-y-2">
               <li><Link to="/auth/register/merchant" className="hover:text-primary transition-colors">Become a Merchant</Link></li>
-              <li><Link to="/about" className="hover:text-primary transition-colors">Verification Process</Link></li>
-              <li><Link to="/about" className="hover:text-primary transition-colors">Subscription Plans</Link></li>
+              <li><Link to="/merchant/verification" className="hover:text-primary transition-colors">Verification Process</Link></li>
+              <li><Link to="/merchant/subscription-plans" className="hover:text-primary transition-colors">Subscription Plans</Link></li>
               <li><Link to="/merchant/dashboard" className="hover:text-primary transition-colors">Merchant Dashboard</Link></li>
               <li><Link to="/support" className="hover:text-primary transition-colors">Support Center</Link></li>
             </ul>
@@ -55,7 +55,7 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center">
                 <MapPin className="h-5 w-5 text-primary mr-3" />
-                <span className="text-sm">Kiambu Road, Nairobi Kenya</span>
+                <span className="text-sm">Tom Mboya Street, Nairobi CBD</span>
               </div>
               <div className="flex items-center">
                 <Phone className="h-5 w-5 text-primary mr-3" />
@@ -63,7 +63,16 @@ const Footer = () => {
               </div>
               <div className="flex items-center">
                 <Mail className="h-5 w-5 text-primary mr-3" />
-                <span className="text-sm">info@sikosmarketing.com</span>
+                <span className="text-sm">info@nairobiverified.com</span>
+              </div>
+              <div className="mt-4">
+                <Link to="/contact" className="text-primary hover:text-primary-dark text-sm underline">
+                  Contact Form
+                </Link>
+                {" • "}
+                <Link to="/status" className="text-primary hover:text-primary-dark text-sm underline">
+                  Service Status
+                </Link>
               </div>
             </div>
           </div>
@@ -75,9 +84,9 @@ const Footer = () => {
             © 2025 Nairobi Verified. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link to="/about" className="text-sm text-gray-400 hover:text-primary">Privacy Policy</Link>
-            <Link to="/about" className="text-sm text-gray-400 hover:text-primary">Terms of Service</Link>
-            <Link to="/about" className="text-sm text-gray-400 hover:text-primary">Cookie Policy</Link>
+            <Link to="/privacy-policy" className="text-sm text-gray-400 hover:text-primary">Privacy Policy</Link>
+            <Link to="/terms-of-service" className="text-sm text-gray-400 hover:text-primary">Terms of Service</Link>
+            <Link to="/cookie-policy" className="text-sm text-gray-400 hover:text-primary">Cookie Policy</Link>
           </div>
         </div>
       </div>

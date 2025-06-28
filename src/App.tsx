@@ -41,6 +41,8 @@ import MerchantAccountSetup from "./pages/MerchantAccountSetup";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
+import Contact from "./pages/Contact";
+import Status from "./pages/Status";
 import AdminFlashSales from "./pages/AdminFlashSales";
 import AdminCreateFlashSale from "./pages/AdminCreateFlashSale";
 import AdminEditFlashSale from "./pages/AdminEditFlashSale";
@@ -194,6 +196,8 @@ const App = () => (
               <Route path="/safety-guidelines" element={<SafetyGuidelines />} />
               <Route path="/merchant/subscription-plans" element={<SubscriptionPlans />} />
               <Route path="/support" element={<Support />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/status" element={<Status />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/cookie-policy" element={<CookiePolicy />} />

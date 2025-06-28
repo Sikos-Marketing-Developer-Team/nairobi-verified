@@ -10,13 +10,22 @@ interface SEOProps {
   type?: string;
 }
 
+const defaultSEOProps = {
+  title: 'Nairobi Verified - Trusted Marketplace in Nairobi CBD',
+  description: 'Shop with confidence from verified merchants in Nairobi CBD. Every merchant has a physical location you can visit. Secure payments, quality products, local support.',
+  keywords: 'Nairobi marketplace, verified merchants, CBD shopping, Kenya e-commerce, trusted sellers, flash sales, local business',
+  image: '/opengraph-image.svg',
+  url: 'https://nairobi-verified.onrender.com',
+  type: 'website'
+};
+
 const SEO: React.FC<SEOProps> = ({
-  title = 'Nairobi Verified - Trusted Marketplace in Nairobi CBD',
-  description = 'Shop with confidence from verified merchants in Nairobi CBD. Every merchant has a physical location you can visit. Secure payments, quality products, local support.',
-  keywords = 'Nairobi marketplace, verified merchants, CBD shopping, Kenya e-commerce, trusted sellers, flash sales, local business',
-  image = '/og-image.jpg',
-  url = 'https://nairobihub.com',
-  type = 'website'
+  title = defaultSEOProps.title,
+  description = defaultSEOProps.description,
+  keywords = defaultSEOProps.keywords,
+  image = defaultSEOProps.image,
+  url = defaultSEOProps.url,
+  type = defaultSEOProps.type
 }) => {
   return (
     <Helmet>
