@@ -1,4 +1,5 @@
 const express = require('express');
+const passport = require('passport');
 const { register, registerMerchant, login, loginMerchant, getMe, logout, googleAuth, googleCallback } = require('../controllers/auth');
 const { protect } = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');

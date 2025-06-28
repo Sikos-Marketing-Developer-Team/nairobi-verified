@@ -34,7 +34,7 @@ app.use(express.json());
 
 // Configure CORS with credentials support
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://nairobi-verified-frontend.onrender.com', // ✅ Corrected to match frontend
+  origin: process.env.FRONTEND_URL || 'https://nairobi-verified.onrender.com',
   credentials: true
 }));
 
@@ -112,7 +112,7 @@ app.use('/api/auth', authLimiter);
 app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
-    message: 'Nairobi CBD Backend is running',
+    message: 'Nairobi Verified Backend is running',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });
