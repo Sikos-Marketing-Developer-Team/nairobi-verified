@@ -2,6 +2,32 @@
 
 A trusted e-commerce platform that helps users discover and shop from verified vendors in Nairobi CBD — complete with directions to each shop!
 
+## 🔐 Admin Dashboard
+
+For security purposes, admin functionality has been separated into a dedicated admin dashboard:
+
+- **Location**: `/admin` folder
+- **Access**: Separate authentication system
+- **Security**: Enhanced access controls and monitoring
+- **Deployment**: Independent from main application
+
+### Quick Start (Admin)
+```bash
+# Start admin dashboard
+./start-admin.sh
+
+# Or manually:
+cd admin
+npm install
+npm run dev
+```
+
+**Admin Access**: http://localhost:3001
+- Email: admin@nairobiverfied.com
+- Password: admin123 (change after first login!)
+
+📖 **Full Documentation**: [ADMIN_MIGRATION_GUIDE.md](./ADMIN_MIGRATION_GUIDE.md)
+
 ## Application Routes
 
 We have a comprehensive list of all application routes available at:
@@ -25,6 +51,7 @@ For developers, the complete route list is available in:
 - **Subscription Packages**: Merchants can subscribe to different packages for enhanced visibility
 - **Automated Renewal Notifications**: Email notifications for expiring subscriptions
 - **Subscription Management**: Merchants can view, renew, and manage their subscriptions
+- **🔐 Secure Admin Dashboard**: Separate admin interface for platform management
 
 ## Tech Stack
 

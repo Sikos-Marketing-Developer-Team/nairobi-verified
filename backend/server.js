@@ -120,6 +120,8 @@ app.get('/api/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth/admin', require('./routes/adminAuth'));
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/merchants', require('./routes/merchants'));
 app.use('/api/products', require('./routes/products'));
