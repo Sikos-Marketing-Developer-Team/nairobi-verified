@@ -57,8 +57,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (data.success && data.isAuthenticated && data.user) {
           setUser(data.user);
+          // Admins should use the separate admin dashboard
           if (data.user.role === 'admin') {
-            navigate('/admin/dashboard', { replace: true });
+            toast({
+              title: 'Admin Access',
+              description: 'Please use the dedicated admin dashboard to access admin features.',
+              variant: 'destructive',
+            });
+            setUser(null);
+            setIsAuthenticated(false);
+            return;
           } else if (data.user.isMerchant || data.user.businessName) {
             navigate('/merchant/dashboard', { replace: true });
           } else {
@@ -76,8 +84,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const user = meResponse.data.data;
         setUser(user);
 
+        // Admins should use the separate admin dashboard
         if (user.role === 'admin') {
-          navigate('/admin/dashboard', { replace: true });
+          toast({
+            title: 'Admin Access',
+            description: 'Please use the dedicated admin dashboard to access admin features.',
+            variant: 'destructive',
+          });
+          setUser(null);
+          setIsAuthenticated(false);
+          return;
         } else if (user.isMerchant || user.businessName) {
           navigate('/merchant/dashboard', { replace: true });
         } else {
@@ -111,11 +127,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await authAPI.login(email, password);
       const { user } = response.data;
       
+      // Block admin users from logging into the main app
+      if (user.role === 'admin') {
+        toast({
+          title: 'Admin Access Restricted',
+          description: 'Admin users must use the dedicated admin dashboard. Please contact support if you need access.',
+          variant: 'destructive',
+        });
+        throw new Error('Admin access restricted in main application');
+      }
+      
       setUser(user);
       
-      if (user.role === 'admin') {
-        navigate('/admin/dashboard', { replace: true });
-      } else if (user.isMerchant || user.businessName) {
+      if (user.isMerchant || user.businessName) {
         navigate('/merchant/dashboard', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });

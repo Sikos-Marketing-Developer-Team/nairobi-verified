@@ -17,12 +17,6 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import UserProfile from "./pages/UserProfile";
 import Favorites from "./pages/Favorites";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminVerifications from "./pages/AdminVerifications";
-import AdminMerchants from "./pages/AdminMerchants";
-import AdminAddMerchant from "./pages/AdminAddMerchant";
-import AdminUsers from "./pages/AdminUsers";
-import AdminSettings from "./pages/AdminSettings";
 import MerchantDashboard from "./pages/MerchantDashboard";
 import MerchantProfileEdit from "./pages/MerchantProfileEdit";
 import MerchantVerification from "./pages/MerchantVerification";
@@ -44,9 +38,6 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Contact from "./pages/Contact";
 import Status from "./pages/Status";
-import AdminFlashSales from "./pages/AdminFlashSales";
-import AdminCreateFlashSale from "./pages/AdminCreateFlashSale";
-import AdminEditFlashSale from "./pages/AdminEditFlashSale";
 import FlashSaleDetail from "./pages/FlashSaleDetail";
 
 const queryClient = new QueryClient();
@@ -118,53 +109,6 @@ const App = () => (
               <Route path="/favorites" element={
                 <ProtectedRoute>
                   <Favorites />
-                </ProtectedRoute>
-              } />
-              
-              {/* Admin Routes */}
-              <Route path="/admin/dashboard" element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/verifications" element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminVerifications />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/merchants" element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminMerchants />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/merchants/add" element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminAddMerchant />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/users" element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminUsers />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/settings" element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminSettings />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/flash-sales" element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminFlashSales />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/flash-sales/create" element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminCreateFlashSale />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/flash-sales/edit/:id" element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminEditFlashSale />
                 </ProtectedRoute>
               } />
               
