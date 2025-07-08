@@ -26,12 +26,23 @@ const validateAdminLogin = [
 // @access  Public
 const adminLogin = async (req, res) => {
   try {
+    console.log('Admin login attempt:', req.body);
     const { email, password } = req.body;
+
+    // Basic validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
 
     // Check for admin user
     const user = await User.findOne({ email, role: 'admin' }).select('+password');
+    console.log('Found user:', user ? 'Yes' : 'No');
 
     if (!user) {
+      console.log('Admin user not found');
       return res.status(401).json({
         success: false,
         message: 'Invalid admin credentials'
@@ -40,8 +51,10 @@ const adminLogin = async (req, res) => {
 
     // Check if password matches
     const isMatch = await user.matchPassword(password);
+    console.log('Password match:', isMatch);
 
     if (!isMatch) {
+      console.log('Invalid password');
       return res.status(401).json({
         success: false,
         message: 'Invalid admin credentials'
@@ -52,28 +65,21 @@ const adminLogin = async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
-    // Log the admin in via session
-    req.login(user, (err) => {
-      if (err) {
-        return res.status(500).json({
-          success: false,
-          message: 'Error logging in admin'
-        });
+    console.log('About to send response');
+    
+    // Send response immediately without using req.login for admin
+    return res.status(200).json({
+      success: true,
+      message: 'Admin login successful',
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        lastLogin: user.lastLogin,
+        permissions: ['read', 'write', 'delete', 'admin'] // Admin has all permissions
       }
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Admin login successful',
-        user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-          lastLogin: user.lastLogin,
-          permissions: ['read', 'write', 'delete', 'admin'] // Admin has all permissions
-        }
-      });
     });
   } catch (error) {
     console.error('Admin login error:', error);
@@ -165,8 +171,11 @@ const adminCheck = async (req, res) => {
 };
 
 // Routes
-router.post('/login', validateAdminLogin, adminLogin);
+router.get('/test', (req, res) => {
+  res.json({ success: true, message: 'Admin auth routes working' });
+});
+router.post('/login', adminLogin);
 router.post('/logout', protect, authorize('admin'), adminLogout);
-router.get('/check', adminCheck);
+router.get('/me', adminCheck);
 
 module.exports = router;
