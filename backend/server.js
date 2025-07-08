@@ -34,7 +34,13 @@ app.use(express.json());
 
 // Configure CORS with credentials support
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://nairobi-verified.onrender.com',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:8080',
+    process.env.ADMIN_URL || 'http://localhost:3001',
+    'https://nairobi-verified.onrender.com',
+    'http://localhost:8080',
+    'http://localhost:3001'
+  ],
   credentials: true
 }));
 
@@ -68,8 +74,14 @@ const mongoStore = MongoStore.create({
   collectionName: 'sessions',
   ttl: 7 * 24 * 60 * 60, // 7 days
   autoRemove: 'native', // Automatically remove expired sessions
-  writeOperationOptions: { upsert: true } // Handle duplicates by updating
+  touchAfter: 24 * 3600, // lazy session update
+  stringify: false,
+  writeOperationOptions: { 
+    upsert: true,
+    retryWrites: false 
+  }
 });
+
 mongoStore.on('error', (error) => {
   console.error('Session store error:', error);
 });
@@ -77,15 +89,15 @@ mongoStore.on('error', (error) => {
 app.use(session({
   name: 'sid',
   genid: (req) => uuidv4(),
-  secret: process.env.JWT_SECRET || 'your-session-secret', //Use SESSION_SECRET
+  secret: process.env.JWT_SECRET || 'your-session-secret',
   resave: false,
   saveUninitialized: false,
   store: mongoStore,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Secure in production
+    secure: process.env.NODE_ENV === 'production',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Cross-origin support
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
 
@@ -132,6 +144,12 @@ app.use('/api/flash-sales', require('./routes/flashSales'));
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
+  
+  // Check if response was already sent
+  if (res.headersSent) {
+    return next(err);
+  }
+  
   res.status(500).json({
     success: false,
     error: err.message || 'Server Error'
