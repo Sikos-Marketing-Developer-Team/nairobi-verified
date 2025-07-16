@@ -23,24 +23,6 @@ const Index = () => {
         
         <PageSkeleton>
           <div className="space-y-16">
-            {/* How It Works Section Skeleton */}
-            <div className="space-y-8">
-              <div className="text-center space-y-4">
-                <Skeleton className="h-10 w-1/3 mx-auto" />
-                <Skeleton className="h-6 w-2/3 mx-auto" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="text-center space-y-4">
-                    <Skeleton className="h-16 w-16 rounded-full mx-auto" />
-                    <Skeleton className="h-6 w-3/4 mx-auto" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-5/6 mx-auto" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Category Section Skeleton */}
             <CategorySkeleton />
 
@@ -60,6 +42,24 @@ const Index = () => {
                 <Skeleton className="h-6 w-2/3 mx-auto" />
               </div>
               <ProductGridSkeleton />
+            </div>
+
+            {/* How It Works Section Skeleton */}
+            <div className="space-y-8">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-10 w-1/3 mx-auto" />
+                <Skeleton className="h-6 w-2/3 mx-auto" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="text-center space-y-4">
+                    <Skeleton className="h-16 w-16 rounded-full mx-auto" />
+                    <Skeleton className="h-6 w-3/4 mx-auto" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6 mx-auto" />
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Trust Section Skeleton */}
@@ -90,10 +90,10 @@ const Index = () => {
     <div className="min-h-screen bg-white">
       <Header />
       <Hero />
-      <HowItWorks />
       <CategorySection />
       <FlashSales />
       <FeaturedProducts />
+      <HowItWorks />
       <TrustSection />
       <Footer />
     </div>
