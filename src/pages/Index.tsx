@@ -26,7 +26,7 @@ const Index = () => {
             {/* Category Section Skeleton */}
             <CategorySkeleton />
 
-            {/* Flash Sales Section Skeleton */}
+            {/* Featured Products Section Skeleton */}
             <div className="space-y-8">
               <div className="text-center space-y-4">
                 <Skeleton className="h-10 w-1/3 mx-auto" />
@@ -35,7 +35,7 @@ const Index = () => {
               <ProductGridSkeleton />
             </div>
 
-            {/* Featured Products Section Skeleton */}
+            {/* Flash Sales Section Skeleton */}
             <div className="space-y-8">
               <div className="text-center space-y-4">
                 <Skeleton className="h-10 w-1/3 mx-auto" />
@@ -91,8 +91,8 @@ const Index = () => {
       <Header />
       <Hero />
       <CategorySection />
-      <FlashSales />
       <FeaturedProducts />
+      <FlashSales />
       <HowItWorks />
       <TrustSection />
       <Footer />
