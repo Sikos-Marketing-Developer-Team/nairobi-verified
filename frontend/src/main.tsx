@@ -3,7 +3,8 @@ if (typeof globalThis === 'undefined') {
   (window as any).globalThis = window;
 }
 
-// Force rebuild to fix createContext error - v2
+// Force rebuild to fix createContext error - v3 URGENT FIX
+console.log('🚀 Nairobi Verified - Build v3.0');
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from 'react-error-boundary'
