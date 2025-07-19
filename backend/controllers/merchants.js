@@ -557,3 +557,175 @@ exports.verifyMerchant = async (req, res) => {
     });
   }
 };
+
+// @desc    Send login credentials to merchant email
+// @route   POST /api/merchants/send-credentials
+// @access  Private (Merchant only)
+exports.sendCredentials = async (req, res) => {
+  try {
+    const merchant = await Merchant.findById(req.user.id);
+
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Import nodemailer
+    const nodemailer = require('nodemailer');
+
+    // Create transporter
+    const transporter = nodemailer.createTransporter({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    // Email HTML template
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background-color: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+          }
+          .content {
+            background-color: #f8fafc;
+            padding: 30px;
+            border: 1px solid #e2e8f0;
+            border-radius: 0 0 8px 8px;
+          }
+          .credentials {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin: 20px 0;
+          }
+          .button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #64748b;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Nairobi Verified - Merchant Login Credentials</h1>
+        </div>
+        <div class="content">
+          <h2>Hello ${merchant.businessName}!</h2>
+          <p>Here are your login credentials for the Nairobi Verified merchant portal:</p>
+          
+          <div class="credentials">
+            <p><strong>Email:</strong> ${merchant.email}</p>
+            <p><strong>Dashboard URL:</strong> <a href="${process.env.FRONTEND_URL}/merchant/dashboard">Merchant Dashboard</a></p>
+          </div>
+          
+          <p>You can use these credentials to:</p>
+          <ul>
+            <li>Access your merchant dashboard</li>
+            <li>Update your business information</li>
+            <li>View performance analytics</li>
+            <li>Manage your business profile</li>
+          </ul>
+          
+          <a href="${process.env.FRONTEND_URL}/merchant/dashboard" class="button">
+            Access Dashboard
+          </a>
+          
+          <p>If you have any questions or need support, please contact our team.</p>
+          
+          <div class="footer">
+            <p>© 2024 Nairobi Verified. All rights reserved.</p>
+            <p>This is an automated message. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Send email
+    await transporter.sendMail({
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: merchant.email,
+      subject: 'Your Nairobi Verified Merchant Login Credentials',
+      html: emailHtml
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Login credentials sent successfully to your email'
+    });
+
+  } catch (error) {
+    console.error('Error sending credentials:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send credentials'
+    });
+  }
+};
+
+// @desc    Set merchant as featured/unfeatured
+// @route   PUT /api/merchants/:id/featured
+// @access  Private (Admin only)
+exports.setFeatured = async (req, res) => {
+  try {
+    const { featured } = req.body;
+    
+    const merchant = await Merchant.findById(req.params.id);
+
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    merchant.featured = featured;
+    if (featured) {
+      merchant.featuredDate = Date.now();
+    } else {
+      merchant.featuredDate = null;
+    }
+    
+    await merchant.save();
+
+    res.status(200).json({
+      success: true,
+      data: merchant
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};

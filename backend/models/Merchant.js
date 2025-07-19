@@ -98,6 +98,13 @@ const MerchantSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  featured: {
+    type: Boolean,
+    default: false
+  },
+  featuredDate: {
+    type: Date
+  },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
   // Account setup fields

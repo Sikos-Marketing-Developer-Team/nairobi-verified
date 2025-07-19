@@ -35,11 +35,12 @@ app.use(express.json());
 // Configure CORS with credentials support
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'http://localhost:8080',
+    process.env.FRONTEND_URL || 'http://localhost:3000',
     process.env.ADMIN_URL || 'http://localhost:3001',
     'https://nairobi-verified.onrender.com',
-    'http://localhost:8080',
-    'http://localhost:3001'
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:8080'
   ],
   credentials: true
 }));
@@ -134,12 +135,17 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/auth/admin', require('./routes/adminAuth'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/admin/dashboard', require('./routes/adminDashboard'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/merchants', require('./routes/merchants'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/favorites', require('./routes/favorites'));
 app.use('/api/flash-sales', require('./routes/flashSales'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/cart', require('./routes/cart'));
+app.use('/api/addresses', require('./routes/addresses'));
+app.use('/api/settings', require('./routes/settings'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

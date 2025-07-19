@@ -1,0 +1,32 @@
+# Robots.txt for Nairobi Verified
+
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /merchant/dashboard
+Disallow: /profile
+Disallow: /favorites
+
+# Sitemap
+Sitemap: https://nairobi-verified.onrender.com/sitemap.xml
