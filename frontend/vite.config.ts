@@ -50,5 +50,11 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode === 'development',
     // Target modern browsers that support ES modules
     target: 'es2020',
+    // Optimize chunks
+    chunkSizeWarningLimit: 1000,
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react/jsx-runtime'],
+    exclude: [],
   },
 }));
