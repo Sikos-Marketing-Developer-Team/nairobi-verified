@@ -9,7 +9,8 @@
     "seed": "node seeder.js",
     "seed:enhanced": "node scripts/seedEnhancedData.js",
     "seed:flash-sales": "node seeders/flashSalesSeeder.js",
-    "seed:enhanced-flash-sales": "node seeders/enhancedFlashSalesSeeder.js"
+    "seed:enhanced-flash-sales": "node seeders/enhancedFlashSalesSeeder.js",
+    "test": "jest"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -34,7 +35,11 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "create-jest": "^30.0.5",
+    "jest": "^30.0.5",
+    "nodemailer-stub": "^1.2.2",
+    "nodemon": "^3.0.1",
+    "sinon": "^21.0.0"
   },
   "engines": {
     "node": ">=16.0.0"
