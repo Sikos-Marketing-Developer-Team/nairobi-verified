@@ -2,6 +2,10 @@ const AdminUser = require('../models/AdminUser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const asyncHandler = require('express-async-handler');
+const { HTTP_STATUS } = require('../config/constants');
+
+// Helper to construct admin full name
+const getAdminFullName = (admin) => admin.name || `${admin.firstName} ${admin.lastName}`;
 
 // @desc    Login admin
 // @route   POST /api/admin/auth/login
@@ -9,52 +13,41 @@ const asyncHandler = require('express-async-handler');
 const loginAdmin = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  // Validate email and password
   if (!email || !password) {
-    return res.status(400).json({
+    return res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: 'Please provide email and password'
+      message: 'Please provide email and password',
     });
   }
 
-  // Check for admin user
   const admin = await AdminUser.findOne({ email }).select('+password');
-
   if (!admin) {
-    return res.status(401).json({
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       success: false,
-      message: 'Invalid credentials'
+      message: 'Invalid credentials',
     });
   }
 
-  // Check if account is locked
   if (admin.accountLocked) {
-    return res.status(423).json({
+    return res.status(HTTP_STATUS.LOCKED).json({
       success: false,
-      message: 'Account is locked due to multiple failed login attempts'
+      message: 'Account is locked due to multiple failed login attempts',
     });
   }
 
-  // Check if password matches
   const isMatch = await admin.matchPassword(password);
-
   if (!isMatch) {
-    // Track failed login attempt
     await admin.trackFailedLogin();
-    return res.status(401).json({
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       success: false,
-      message: 'Invalid credentials'
+      message: 'Invalid credentials',
     });
   }
 
-  // Reset failed login attempts on successful login
   await admin.resetFailedLoginAttempts();
-  
-  // Update last login
   admin.lastLogin = new Date();
   await admin.save();
 
-  // Generate JWT token
   const token = admin.getSignedJwtToken();
 
   res.status(200).json({
@@ -64,12 +57,12 @@ const loginAdmin = asyncHandler(async (req, res) => {
       id: admin._id,
       firstName: admin.firstName,
       lastName: admin.lastName,
-      name: admin.name || `${admin.firstName} ${admin.lastName}`,
+      name: getAdminFullName(admin),
       email: admin.email,
       role: admin.role,
       permissions: admin.permissions,
-      lastLogin: admin.lastLogin
-    }
+      lastLogin: admin.lastLogin,
+    },
   });
 });
 
@@ -85,13 +78,13 @@ const getCurrentAdmin = asyncHandler(async (req, res) => {
       id: admin._id,
       firstName: admin.firstName,
       lastName: admin.lastName,
-      name: admin.name || `${admin.firstName} ${admin.lastName}`,
+      name: getAdminFullName(admin),
       email: admin.email,
       role: admin.role,
       permissions: admin.permissions,
       lastLogin: admin.lastLogin,
-      isActive: admin.isActive
-    }
+      isActive: admin.isActive,
+    },
   });
 });
 
@@ -101,7 +94,7 @@ const getCurrentAdmin = asyncHandler(async (req, res) => {
 const logoutAdmin = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Admin logged out successfully'
+    message: 'Admin logged out successfully',
   });
 });
 
@@ -111,11 +104,10 @@ const logoutAdmin = asyncHandler(async (req, res) => {
 const updatePassword = asyncHandler(async (req, res) => {
   const admin = await AdminUser.findById(req.admin.id).select('+password');
 
-  // Check current password
   if (!(await admin.matchPassword(req.body.currentPassword))) {
-    return res.status(401).json({
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       success: false,
-      message: 'Current password is incorrect'
+      message: 'Current password is incorrect',
     });
   }
 
@@ -127,7 +119,7 @@ const updatePassword = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     token,
-    message: 'Password updated successfully'
+    message: 'Password updated successfully',
   });
 });
 
@@ -138,36 +130,36 @@ const updateProfile = asyncHandler(async (req, res) => {
   const fieldsToUpdate = {
     firstName: req.body.firstName,
     lastName: req.body.lastName,
-    email: req.body.email
+    email: req.body.email,
   };
 
   const admin = await AdminUser.findByIdAndUpdate(req.admin.id, fieldsToUpdate, {
     new: true,
-    runValidators: true
+    runValidators: true,
   });
 
   res.status(200).json({
     success: true,
-    admin
+    admin,
   });
 });
 
 // @desc    Get admin activity log
 // @route   GET /api/admin/auth/activity
 // @access  Private (Admin)
-const getAdminActivity = asyncHandler(async (req, res) => {
+const getAdminActivityLog = asyncHandler(async (req, res) => {
   const admin = await AdminUser.findById(req.admin.id).select('activityLog');
 
   res.status(200).json({
     success: true,
-    activityLog: admin.activityLog
+    activityLog: admin.activityLog,
   });
 });
 
 // @desc    Update admin settings
 // @route   PUT /api/admin/auth/settings
 // @access  Private (Admin)
-const updateSettings = asyncHandler(async (req, res) => {
+const updateAdminSettings = asyncHandler(async (req, res) => {
   const admin = await AdminUser.findById(req.admin.id);
 
   if (req.body.theme) {
@@ -190,7 +182,7 @@ const updateSettings = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    settings: admin.settings
+    settings: admin.settings,
   });
 });
 
@@ -200,6 +192,6 @@ module.exports = {
   logoutAdmin,
   updatePassword,
   updateProfile,
-  getAdminActivity,
-  updateSettings
+  getAdminActivityLog,
+  updateAdminSettings,
 };

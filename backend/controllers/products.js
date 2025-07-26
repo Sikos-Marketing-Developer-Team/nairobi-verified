@@ -1,7 +1,31 @@
 const Product = require('../models/Product');
 const Merchant = require('../models/Merchant');
+const { HTTP_STATUS } = require('../config/constants');
 
-// Get all products with filtering and pagination
+// Error handling utility
+const handleError = (res, error, message) => {
+  console.error(message, error);
+  res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, error: message });
+};
+
+// Build product filter
+const buildProductFilter = ({ category, merchant, featured, minPrice, maxPrice, search }) => {
+  const productFilter = { isActive: true };
+  if (category) productFilter.category = category;
+  if (merchant) productFilter.merchant = merchant;
+  if (featured !== undefined) productFilter.featured = featured === 'true';
+  if (minPrice || maxPrice) {
+    productFilter.price = {};
+    if (minPrice) productFilter.price.$gte = Number(minPrice);
+    if (maxPrice) productFilter.price.$lte = Number(maxPrice);
+  }
+  if (search) productFilter.$text = { $search: search };
+  return productFilter;
+};
+
+// @desc    Get all products with filtering and pagination
+// @route   GET /api/products
+// @access  Public
 const getProducts = async (req, res) => {
   try {
     const {
@@ -14,39 +38,21 @@ const getProducts = async (req, res) => {
       maxPrice,
       search,
       sortBy = 'createdAt',
-      sortOrder = 'desc'
+      sortOrder = 'desc',
     } = req.query;
 
-    // Build filter object
-    const filter = { isActive: true };
-
-    if (category) filter.category = category;
-    if (merchant) filter.merchant = merchant;
-    if (featured !== undefined) filter.featured = featured === 'true';
-    
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = Number(minPrice);
-      if (maxPrice) filter.price.$lte = Number(maxPrice);
-    }
-
-    if (search) {
-      filter.$text = { $search: search };
-    }
-
-    // Build sort object
-    const sort = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
-
-    // Execute query with pagination
+    const productFilter = buildProductFilter({ category, merchant, featured, minPrice, maxPrice, search });
+    const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
     const skip = (page - 1) * limit;
-    const products = await Product.find(filter)
-      .populate('merchant', 'businessName address rating reviewCount verified')
+
+    const products = await Product.find(productFilter)
+      .populate('merchant', 'businessName address')
       .sort(sort)
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
-    const total = await Product.countDocuments(filter);
+    const total = await Product.countDocuments(productFilter);
 
     res.json({
       success: true,
@@ -55,93 +61,83 @@ const getProducts = async (req, res) => {
         page: Number(page),
         limit: Number(limit),
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
-
   } catch (error) {
-    console.error('Error fetching products:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch products'
-    });
+    handleError(res, error, 'Failed to fetch products');
   }
 };
 
-// Get featured products
+// @desc    Get featured products
+// @route   GET /api/products/featured
+// @access  Public
 const getFeaturedProducts = async (req, res) => {
   try {
     const { limit = 8 } = req.query;
 
-    const products = await Product.find({ 
-      featured: true, 
-      isActive: true 
-    })
-      .populate('merchant', 'businessName address rating reviewCount verified')
+    const products = await Product.find({ featured: true, isActive: true })
+      .populate('merchant', 'businessName address')
       .sort({ rating: -1, reviewCount: -1 })
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     res.json({
       success: true,
-      data: products
+      data: products,
     });
-
   } catch (error) {
-    console.error('Error fetching featured products:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch featured products'
-    });
+    handleError(res, error, 'Failed to fetch featured products');
   }
 };
 
-// Get product by ID
+// @desc    Get product by ID
+// @route   GET /api/products/:id
+// @access  Public
 const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('merchant', 'businessName address phone email website socialMedia businessHours rating reviewCount verified');
+      .populate('merchant', 'businessName address phone email')
+      .lean();
 
     if (!product) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        error: 'Product not found'
+        error: 'Product not found',
       });
     }
 
-    // Increment view count
     await Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
 
     res.json({
       success: true,
-      data: product
+      data: product,
     });
-
   } catch (error) {
-    console.error('Error fetching product:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch product'
-    });
+    handleError(res, error, 'Failed to fetch product');
   }
 };
 
-// Get products by merchant
+// @desc    Get products by merchant
+// @route   GET /api/products/merchant/:merchantId
+// @access  Public
 const getProductsByMerchant = async (req, res) => {
   try {
     const { page = 1, limit = 12 } = req.query;
     const skip = (page - 1) * limit;
 
-    const products = await Product.find({ 
+    const products = await Product.find({
       merchant: req.params.merchantId,
-      isActive: true 
+      isActive: true,
     })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
-    const total = await Product.countDocuments({ 
+    const total = await Product.countDocuments({
       merchant: req.params.merchantId,
-      isActive: true 
+      isActive: true,
     });
 
     res.json({
@@ -151,96 +147,87 @@ const getProductsByMerchant = async (req, res) => {
         page: Number(page),
         limit: Number(limit),
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
-
   } catch (error) {
-    console.error('Error fetching merchant products:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch merchant products'
-    });
+    handleError(res, error, 'Failed to fetch merchant products');
   }
 };
 
-// Create new product
+// @desc    Create new product
+// @route   POST /api/products
+// @access  Private (Merchant/Admin)
 const createProduct = async (req, res) => {
   try {
-    // Check if user is a merchant
     if (req.user.role !== 'merchant' && req.user.role !== 'admin') {
-      return res.status(403).json({
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
-        error: 'Only merchants can create products'
+        error: 'Only merchants or admins can create products',
       });
     }
 
-    // Get merchant info
     let merchantId;
     if (req.user.role === 'merchant') {
       const merchant = await Merchant.findOne({ owner: req.user.id });
       if (!merchant) {
-        return res.status(404).json({
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
           success: false,
-          error: 'Merchant profile not found'
+          error: 'Merchant profile not found',
         });
       }
       merchantId = merchant._id;
     } else {
-      // Admin can specify merchant
       merchantId = req.body.merchant;
     }
 
     const productData = {
       ...req.body,
-      merchant: merchantId
+      merchant: merchantId,
     };
 
     const product = new Product(productData);
     await product.save();
 
     const populatedProduct = await Product.findById(product._id)
-      .populate('merchant', 'businessName address rating reviewCount verified');
+      .populate('merchant', 'businessName address')
+      .lean();
 
-    res.status(201).json({
+    res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      data: populatedProduct
+      data: populatedProduct,
     });
-
   } catch (error) {
-    console.error('Error creating product:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create product'
-    });
+    handleError(res, error, 'Failed to create product');
   }
 };
 
-// Update product
+// @desc    Update product
+// @route   PUT /api/products/:id
+// @access  Private (Merchant/Admin)
 const updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    
+
     if (!product) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        error: 'Product not found'
+        error: 'Product not found',
       });
     }
 
-    // Check permissions
     if (req.user.role === 'merchant') {
       const merchant = await Merchant.findOne({ owner: req.user.id });
       if (!merchant || !product.merchant.equals(merchant._id)) {
-        return res.status(403).json({
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
-          error: 'Not authorized to update this product'
+          error: 'Not authorized to update this product',
         });
       }
     } else if (req.user.role !== 'admin') {
-      return res.status(403).json({
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
-        error: 'Not authorized to update products'
+        error: 'Not authorized to update products',
       });
     }
 
@@ -248,47 +235,45 @@ const updateProduct = async (req, res) => {
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate('merchant', 'businessName address rating reviewCount verified');
+    )
+      .populate('merchant', 'businessName address')
+      .lean();
 
     res.json({
       success: true,
-      data: updatedProduct
+      data: updatedProduct,
     });
-
   } catch (error) {
-    console.error('Error updating product:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update product'
-    });
+    handleError(res, error, 'Failed to update product');
   }
 };
 
-// Delete product
+// @desc    Delete product
+// @route   DELETE /api/products/:id
+// @access  Private (Merchant/Admin)
 const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    
+
     if (!product) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        error: 'Product not found'
+        error: 'Product not found',
       });
     }
 
-    // Check permissions
     if (req.user.role === 'merchant') {
       const merchant = await Merchant.findOne({ owner: req.user.id });
       if (!merchant || !product.merchant.equals(merchant._id)) {
-        return res.status(403).json({
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
-          error: 'Not authorized to delete this product'
+          error: 'Not authorized to delete this product',
         });
       }
     } else if (req.user.role !== 'admin') {
-      return res.status(403).json({
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
-        error: 'Not authorized to delete products'
+        error: 'Not authorized to delete products',
       });
     }
 
@@ -296,34 +281,26 @@ const deleteProduct = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Product deleted successfully'
+      message: 'Product deleted successfully',
     });
-
   } catch (error) {
-    console.error('Error deleting product:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete product'
-    });
+    handleError(res, error, 'Failed to delete product');
   }
 };
 
-// Get product categories
+// @desc    Get product categories
+// @route   GET /api/products/categories
+// @access  Public
 const getCategories = async (req, res) => {
   try {
     const categories = await Product.distinct('category', { isActive: true });
-    
+
     res.json({
       success: true,
-      data: categories
+      data: categories,
     });
-
   } catch (error) {
-    console.error('Error fetching categories:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch categories'
-    });
+    handleError(res, error, 'Failed to fetch categories');
   }
 };
 
@@ -335,5 +312,5 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
-  getCategories
+  getCategories,
 };

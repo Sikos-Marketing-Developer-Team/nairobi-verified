@@ -1,51 +1,54 @@
 const User = require('../models/User');
 const Merchant = require('../models/Merchant');
+const { HTTP_STATUS } = require('../config/constants');
 
-// Protect routes
+// @desc Protect routes with authentication
+// @route Middleware
+// @access Protected
 exports.protect = async (req, res, next) => {
-  // Check if user is authenticated via session
   if (!req.isAuthenticated()) {
-    return res.status(401).json({
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       success: false,
-      error: 'Not authorized to access this route'
+      error: 'Not authorized to access this route',
     });
   }
 
   try {
-    // User is already attached to req by passport
     if (req.user.businessName) {
-      // This is a merchant
       req.merchant = req.user;
     }
-
     next();
   } catch (err) {
-    return res.status(401).json({
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: 'Not authorized to access this route'
+      error: 'Not authorized to access this route',
     });
   }
 };
 
-// Grant access to specific roles
+// @desc Grant access to specific roles
+// @route Middleware
+// @access Protected roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
     if (req.user && !roles.includes(req.user.role)) {
-      return res.status(403).json({
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
-        error: `User role ${req.user.role} is not authorized to access this route`
+        error: `User role ${req.user.role} is not authorized to access this route`,
       });
     }
     next();
   };
 };
 
-// Check if user is a merchant
+// @desc Check if user is a merchant
+// @route Middleware
+// @access Protected
 exports.isMerchant = (req, res, next) => {
   if (!req.merchant) {
-    return res.status(403).json({
+    return res.status(HTTP_STATUS.FORBIDDEN).json({
       success: false,
-      error: 'Only merchants can access this route'
+      error: 'Only merchants can access this route',
     });
   }
   next();
