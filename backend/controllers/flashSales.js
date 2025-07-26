@@ -1,57 +1,56 @@
 const FlashSale = require('../models/FlashSale');
 const { validationResult } = require('express-validator');
+const { HTTP_STATUS, TIME } = require('../config/constants');
+
+// Error handling utility
+const handleError = (res, error, message) => {
+  console.error(message, error);
+  res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, error: message });
+};
+
+// Calculate time remaining for a flash sale
+const calculateTimeRemaining = (endDate, startDate) => {
+  const now = new Date();
+  const timeDiff = new Date(endDate).getTime() - now.getTime();
+  if (timeDiff <= 0) return { expired: true };
+  return {
+    days: Math.floor(timeDiff / TIME.DAY),
+    hours: Math.floor((timeDiff % TIME.DAY) / TIME.HOUR),
+    minutes: Math.floor((timeDiff % TIME.HOUR) / TIME.MINUTE),
+    seconds: Math.floor((timeDiff % TIME.MINUTE) / TIME.SECOND),
+    expired: false,
+  };
+};
 
 // @desc    Get all active flash sales
 // @route   GET /api/flash-sales
 // @access  Public
 const getActiveFlashSales = async (req, res) => {
   try {
-    const flashSales = await FlashSale.find({ 
+    const flashSales = await FlashSale.find({
       isActive: true,
-      endDate: { $gt: new Date() }
+      endDate: { $gt: new Date() },
     })
-    .populate('createdBy', 'name email')
-    .sort({ createdAt: -1 });
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 })
+      .lean();
 
-    // Calculate time remaining for each flash sale
-    const flashSalesWithTimeRemaining = flashSales.map(sale => {
-      const now = new Date();
-      const endDate = new Date(sale.endDate);
-      const timeDiff = endDate.getTime() - now.getTime();
-      
-      let timeRemaining = {
-        days: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0,
-        expired: timeDiff <= 0
-      };
-
-      if (timeDiff > 0) {
-        timeRemaining.days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-        timeRemaining.hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        timeRemaining.minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-        timeRemaining.seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-      }
-
+    const enhancedFlashSales = flashSales.map((sale) => {
+      const timeRemaining = calculateTimeRemaining(sale.endDate, sale.startDate);
       return {
-        ...sale.toObject(),
+        ...sale,
         timeRemaining,
-        isCurrentlyActive: !timeRemaining.expired && new Date(sale.startDate) <= now
+        isCurrentlyActive: !timeRemaining.expired && new Date(sale.startDate) <= new Date(),
       };
     });
 
     res.json({
       success: true,
-      count: flashSalesWithTimeRemaining.length,
-      data: flashSalesWithTimeRemaining
+      count: enhancedFlashSales.length,
+      data: enhancedFlashSales,
     });
   } catch (error) {
-    console.error('Get active flash sales error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
+    handleError(res, error, 'Failed to fetch active flash sales');
   }
 };
 
@@ -61,55 +60,32 @@ const getActiveFlashSales = async (req, res) => {
 const getFlashSale = async (req, res) => {
   try {
     const flashSale = await FlashSale.findById(req.params.id)
-      .populate('createdBy', 'name email');
+      .populate('createdBy', 'name email')
+      .lean();
 
     if (!flashSale) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        error: 'Flash sale not found'
+        error: 'Flash sale not found',
       });
     }
 
-    // Calculate time remaining
-    const now = new Date();
-    const endDate = new Date(flashSale.endDate);
-    const timeDiff = endDate.getTime() - now.getTime();
-    
-    let timeRemaining = {
-      days: 0,
-      hours: 0,
-      minutes: 0,
-      seconds: 0,
-      expired: timeDiff <= 0
-    };
+    const timeRemaining = calculateTimeRemaining(flashSale.endDate, flashSale.startDate);
 
-    if (timeDiff > 0) {
-      timeRemaining.days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-      timeRemaining.hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      timeRemaining.minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-      timeRemaining.seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-    }
+    await FlashSale.findByIdAndUpdate(req.params.id, { $inc: { totalViews: 1 } });
 
-    // Increment view count
-    flashSale.totalViews += 1;
-    await flashSale.save();
-
-    const flashSaleWithTimeRemaining = {
-      ...flashSale.toObject(),
+    const enhancedFlashSale = {
+      ...flashSale,
       timeRemaining,
-      isCurrentlyActive: !timeRemaining.expired && new Date(flashSale.startDate) <= now
+      isCurrentlyActive: !timeRemaining.expired && new Date(flashSale.startDate) <= new Date(),
     };
 
     res.json({
       success: true,
-      data: flashSaleWithTimeRemaining
+      data: enhancedFlashSale,
     });
   } catch (error) {
-    console.error('Get flash sale error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
+    handleError(res, error, 'Failed to fetch flash sale');
   }
 };
 
@@ -126,59 +102,36 @@ const getAllFlashSales = async (req, res) => {
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const total = await FlashSale.countDocuments();
 
-    // Add status and time remaining to each flash sale
-    const flashSalesWithStatus = flashSales.map(sale => {
+    const enhancedFlashSales = flashSales.map((sale) => {
       const now = new Date();
       const startDate = new Date(sale.startDate);
       const endDate = new Date(sale.endDate);
-      
+      const timeRemaining = calculateTimeRemaining(endDate, startDate);
       let status = 'Scheduled';
-      if (now >= startDate && now <= endDate) {
-        status = 'Active';
-      } else if (now > endDate) {
-        status = 'Expired';
-      }
-
-      const timeDiff = endDate.getTime() - now.getTime();
-      let timeRemaining = {
-        days: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0,
-        expired: timeDiff <= 0
-      };
-
-      if (timeDiff > 0) {
-        timeRemaining.days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-        timeRemaining.hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        timeRemaining.minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-        timeRemaining.seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-      }
+      if (now >= startDate && now <= endDate) status = 'Active';
+      else if (now > endDate) status = 'Expired';
 
       return {
-        ...sale.toObject(),
+        ...sale,
         status,
         timeRemaining,
-        isCurrentlyActive: status === 'Active'
+        isCurrentlyActive: status === 'Active',
       };
     });
 
     res.json({
       success: true,
-      count: flashSalesWithStatus.length,
+      count: enhancedFlashSales.length,
       total,
-      data: flashSalesWithStatus
+      data: enhancedFlashSales,
     });
   } catch (error) {
-    console.error('Get all flash sales error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
+    handleError(res, error, 'Failed to fetch all flash sales');
   }
 };
 
@@ -188,49 +141,40 @@ const getAllFlashSales = async (req, res) => {
 const getFlashSalesAnalytics = async (req, res) => {
   try {
     const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekAgo = new Date(now.getTime() - 7 * TIME.DAY);
 
-    // Get total stats
-    const totalSales = await FlashSale.aggregate([
-      { $group: { _id: null, total: { $sum: '$totalSales' } } }
+    const [stats, activeSales, recentSales, topPerformingSales] = await Promise.all([
+      FlashSale.aggregate([
+        {
+          $facet: {
+            totalSales: [{ $group: { _id: null, total: { $sum: '$totalSales' } } }],
+            totalViews: [{ $group: { _id: null, total: { $sum: '$totalViews' } } }],
+          },
+        },
+      ]),
+      FlashSale.countDocuments({
+        isActive: true,
+        startDate: { $lte: now },
+        endDate: { $gt: now },
+      }),
+      FlashSale.countDocuments({
+        createdAt: { $gte: weekAgo },
+      }),
+      FlashSale.find().sort({ totalSales: -1 }).limit(5).select('title totalSales totalViews').lean(),
     ]);
-
-    const totalViews = await FlashSale.aggregate([
-      { $group: { _id: null, total: { $sum: '$totalViews' } } }
-    ]);
-
-    const activeSales = await FlashSale.countDocuments({
-      isActive: true,
-      startDate: { $lte: now },
-      endDate: { $gt: now }
-    });
-
-    const recentSales = await FlashSale.countDocuments({
-      createdAt: { $gte: weekAgo }
-    });
-
-    // Get top performing sales
-    const topPerformingSales = await FlashSale.find()
-      .sort({ totalSales: -1 })
-      .limit(5)
-      .select('title totalSales totalViews');
 
     res.json({
       success: true,
       data: {
-        totalSales: totalSales[0]?.total || 0,
-        totalViews: totalViews[0]?.total || 0,
+        totalSales: stats[0]?.totalSales[0]?.total || 0,
+        totalViews: stats[0]?.totalViews[0]?.total || 0,
         activeSales,
         recentSales,
-        topPerformingSales
-      }
+        topPerformingSales,
+      },
     });
   } catch (error) {
-    console.error('Get flash sales analytics error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
+    handleError(res, error, 'Failed to fetch flash sales analytics');
   }
 };
 
@@ -241,38 +185,35 @@ const createFlashSale = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'Validation failed',
-        details: errors.array()
+        details: errors.array(),
       });
     }
 
     const { title, description, startDate, endDate, products } = req.body;
-
-    // Validate dates
     const start = new Date(startDate);
     const end = new Date(endDate);
     const now = new Date();
 
     if (start >= end) {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'End date must be after start date'
+        error: 'End date must be after start date',
       });
     }
 
     if (end <= now) {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'End date must be in the future'
+        error: 'End date must be in the future',
       });
     }
 
-    // Calculate discount percentages for products
-    const productsWithDiscounts = products.map(product => ({
+    const productsWithDiscounts = products.map((product) => ({
       ...product,
-      discountPercentage: Math.round(((product.originalPrice - product.salePrice) / product.originalPrice) * 100)
+      discountPercentage: Math.round(((product.originalPrice - product.salePrice) / product.originalPrice) * 100),
     }));
 
     const flashSale = await FlashSale.create({
@@ -282,21 +223,17 @@ const createFlashSale = async (req, res) => {
       endDate: end,
       products: productsWithDiscounts,
       createdBy: req.user._id,
-      isActive: true
+      isActive: true,
     });
 
     await flashSale.populate('createdBy', 'name email');
 
-    res.status(201).json({
+    res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      data: flashSale
+      data: flashSale,
     });
   } catch (error) {
-    console.error('Create flash sale error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
+    handleError(res, error, 'Failed to create flash sale');
   }
 };
 
@@ -307,39 +244,36 @@ const updateFlashSale = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'Validation failed',
-        details: errors.array()
+        details: errors.array(),
       });
     }
 
     let flashSale = await FlashSale.findById(req.params.id);
 
     if (!flashSale) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        error: 'Flash sale not found'
+        error: 'Flash sale not found',
       });
     }
 
     const { title, description, startDate, endDate, products, isActive } = req.body;
-
-    // Validate dates
     const start = new Date(startDate);
     const end = new Date(endDate);
 
     if (start >= end) {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'End date must be after start date'
+        error: 'End date must be after start date',
       });
     }
 
-    // Calculate discount percentages for products
-    const productsWithDiscounts = products.map(product => ({
+    const productsWithDiscounts = products.map((product) => ({
       ...product,
-      discountPercentage: Math.round(((product.originalPrice - product.salePrice) / product.originalPrice) * 100)
+      discountPercentage: Math.round(((product.originalPrice - product.salePrice) / product.originalPrice) * 100),
     }));
 
     flashSale = await FlashSale.findByIdAndUpdate(
@@ -351,21 +285,19 @@ const updateFlashSale = async (req, res) => {
         endDate: end,
         products: productsWithDiscounts,
         isActive,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       { new: true, runValidators: true }
-    ).populate('createdBy', 'name email');
+    )
+      .populate('createdBy', 'name email')
+      .lean();
 
     res.json({
       success: true,
-      data: flashSale
+      data: flashSale,
     });
   } catch (error) {
-    console.error('Update flash sale error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
+    handleError(res, error, 'Failed to update flash sale');
   }
 };
 
@@ -377,9 +309,9 @@ const deleteFlashSale = async (req, res) => {
     const flashSale = await FlashSale.findById(req.params.id);
 
     if (!flashSale) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        error: 'Flash sale not found'
+        error: 'Flash sale not found',
       });
     }
 
@@ -387,14 +319,10 @@ const deleteFlashSale = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Flash sale deleted successfully'
+      message: 'Flash sale deleted successfully',
     });
   } catch (error) {
-    console.error('Delete flash sale error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
+    handleError(res, error, 'Failed to delete flash sale');
   }
 };
 
@@ -405,5 +333,5 @@ module.exports = {
   getFlashSalesAnalytics,
   createFlashSale,
   updateFlashSale,
-  deleteFlashSale
+  deleteFlashSale,
 };
