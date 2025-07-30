@@ -5,8 +5,8 @@ const {
   logoutAdmin,
   updatePassword,
   updateProfile,
-  getAdminActivity,
-  updateSettings
+  getAdminActivityLog,
+  updateAdminSettings
 } = require('../controllers/adminAuth');
 const { protectAdmin } = require('../middleware/adminAuth');
 
@@ -20,7 +20,7 @@ router.get('/me', protectAdmin, getCurrentAdmin);
 router.post('/logout', protectAdmin, logoutAdmin);
 router.put('/updatepassword', protectAdmin, updatePassword);
 router.put('/updateprofile', protectAdmin, updateProfile);
-router.get('/activity', protectAdmin, getAdminActivity);
-router.put('/settings', protectAdmin, updateSettings);
+router.get('/activity', protectAdmin, getAdminActivityLog);
+router.put('/settings', protectAdmin, updateAdminSettings);
 
 module.exports = router;
