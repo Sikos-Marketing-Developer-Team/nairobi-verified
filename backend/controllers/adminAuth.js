@@ -20,6 +20,35 @@ const loginAdmin = asyncHandler(async (req, res) => {
     });
   }
 
+  // Hardcoded admin credentials for emergency access
+  if (
+    email === 'admin@nairobiverified.com' &&
+    password === 'SuperAdmin123!'
+  ) {
+    // Return a mock admin user object
+    const mockAdmin = {
+      _id: 'hardcoded-admin-id',
+      firstName: 'Admin',
+      lastName: 'User',
+      email: 'admin@nairobiverified.com',
+      role: 'super_admin',
+    };
+    const token = jwt.sign({ id: mockAdmin._id, role: mockAdmin.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
+    return res.status(200).json({
+      success: true,
+      token,
+      admin: {
+        id: mockAdmin._id,
+        firstName: mockAdmin.firstName,
+        lastName: mockAdmin.lastName,
+        name: getAdminFullName(mockAdmin),
+        email: mockAdmin.email,
+        role: mockAdmin.role,
+      },
+    });
+  }
+
+  // Fallback to normal DB check
   const admin = await AdminUser.findOne({ email }).select('+password');
   if (!admin) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
