@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import * as React from 'react';
+const { createContext, useContext, useEffect, useState } = React;
+type ReactNode = React.ReactNode;
 import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
 

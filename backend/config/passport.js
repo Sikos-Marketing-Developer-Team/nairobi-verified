@@ -16,7 +16,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: 'https://nairobi-verified-backend.onrender.com/api/auth/google/callback'
+      callbackURL: 'https://nairobi-cbd-backend.onrender.com/api/auth/google/callback'
     },
     async (accessToken, refreshToken, profile, done) => {
       try {

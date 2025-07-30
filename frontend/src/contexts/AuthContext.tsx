@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import * as React from 'react';
+const { createContext, useContext, useState, useEffect } = React;
+type ReactNode = React.ReactNode;
 import { authAPI } from '@/lib/api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';

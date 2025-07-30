@@ -37,6 +37,7 @@ app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
     process.env.ADMIN_URL || 'http://localhost:3001',
+    'https://nairobi-verified-frontend.onrender.com',
     'https://nairobi-verified.onrender.com',
     'http://localhost:3000',
     'http://localhost:3001',

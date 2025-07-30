@@ -12,7 +12,6 @@ import {
   TrendingDown,
   RefreshCw,
   AlertTriangle,
-  Eye,
   MoreVertical
 } from 'lucide-react';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
