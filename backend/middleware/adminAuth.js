@@ -30,6 +30,23 @@ const protectAdmin = asyncHandler(async (req, res, next) => {
       });
     }
 
+    // Handle hardcoded admin
+    if (decoded.id === 'hardcoded-admin-id') {
+      req.admin = {
+        _id: 'hardcoded-admin-id',
+        id: 'hardcoded-admin-id',
+        firstName: 'Admin',
+        lastName: 'User',
+        email: 'admin@nairobiverified.com',
+        role: 'super_admin',
+        isActive: true,
+        accountLocked: false,
+        hasPermission: function(permission) { return true; }, // Super admin has all permissions
+        permissions: ['*'] // All permissions
+      };
+      return next();
+    }
+
     // Get admin user from token
     const admin = await AdminUser.findById(decoded.id);
 
@@ -61,7 +78,7 @@ const protectAdmin = asyncHandler(async (req, res, next) => {
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: 'Not authorized to access this route'
+      error: 'Not authorized to access this route'
     });
   }
 });
@@ -69,7 +86,7 @@ const protectAdmin = asyncHandler(async (req, res, next) => {
 // Check admin permissions
 const checkPermission = (permission) => {
   return (req, res, next) => {
-    if (!req.admin.hasPermission(permission)) {
+    if (!req.admin || !req.admin.hasPermission(permission)) {
       return res.status(403).json({
         success: false,
         message: 'Insufficient permissions'

@@ -2,7 +2,7 @@ const express = require('express');
 const User = require('../models/User');
 const Merchant = require('../models/Merchant');
 const Product = require('../models/Product');
-const { protect, authorize } = require('../middleware/auth');
+const { protectAdmin, checkPermission } = require('../middleware/adminAuth');
 
 const router = express.Router();
 
@@ -231,10 +231,12 @@ const getPendingVerifications = async (req, res) => {
   }
 };
 
+// All routes require admin authentication
+router.use(protectAdmin);
+
 // Routes
-router.get('/dashboard/stats', protect, authorize('admin'), getDashboardStats);
-router.get('/users', protect, authorize('admin'), getUsers);
-router.get('/merchants', protect, authorize('admin'), getMerchants);
-router.get('/verifications/pending', protect, authorize('admin'), getPendingVerifications);
+router.get('/users', checkPermission('users.read'), getUsers);
+router.get('/merchants', checkPermission('merchants.read'), getMerchants);
+router.get('/verifications/pending', checkPermission('merchants.verify'), getPendingVerifications);
 
 module.exports = router;

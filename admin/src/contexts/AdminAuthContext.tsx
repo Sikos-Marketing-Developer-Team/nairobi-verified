@@ -45,8 +45,9 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
   const checkAuth = async () => {
     try {
       const response = await adminAPI.checkAuth();
-      if (response.data.success && response.data.user) {
-        setUser(response.data.user);
+      if (response.data.success && (response.data.admin || response.data.user)) {
+        const adminUser = response.data.admin || response.data.user;
+        setUser(adminUser);
         setIsAuthenticated(true);
       } else {
         setUser(null);
@@ -65,8 +66,16 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
     setIsLoading(true);
     try {
       const response = await adminAPI.login(email, password);
-      if (response.data.success && response.data.user) {
-        setUser(response.data.user);
+      if (response.data.success && (response.data.admin || response.data.user)) {
+        const adminUser = response.data.admin || response.data.user;
+        const token = response.data.token;
+        
+        // Store token in localStorage
+        if (token) {
+          localStorage.setItem('adminToken', token);
+        }
+        
+        setUser(adminUser);
         setIsAuthenticated(true);
         toast.success('Login successful!');
       } else {
@@ -87,6 +96,8 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Remove token from localStorage
+      localStorage.removeItem('adminToken');
       setUser(null);
       setIsAuthenticated(false);
       toast.success('Logged out successfully');

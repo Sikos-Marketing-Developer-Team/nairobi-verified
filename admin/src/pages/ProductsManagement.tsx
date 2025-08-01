@@ -47,6 +47,13 @@ const ProductsManagement: React.FC = () => {
   const loadProducts = async () => {
     try {
       setIsLoading(true);
+      const response = await adminAPI.getProducts();
+      if (response.data.success) {
+        setProducts(response.data.products || []);
+      }
+    } catch (error) {
+      console.error('Failed to load products:', error);
+      toast.error('Failed to load products');
       // Mock data for demonstration
       setProducts([
         {
@@ -89,9 +96,6 @@ const ProductsManagement: React.FC = () => {
           createdAt: '2024-01-20T14:20:00Z'
         }
       ]);
-    } catch (error) {
-      console.error('Failed to load products:', error);
-      toast.error('Failed to load products');
     } finally {
       setIsLoading(false);
     }

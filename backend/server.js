@@ -46,25 +46,25 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting for sensitive auth routes
+// Rate limiting for sensitive auth routes (relaxed for testing)
 const strictAuthLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 10,
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Increased for testing
   message: {
     success: false,
-    error: 'Too many login or registration attempts, please try again after 5 minutes'
+    error: 'Too many login or registration attempts, please try again after 1 minute'
   },
   standardHeaders: true,
   legacyHeaders: false
 });
 
-// Rate limiting for all auth routes
+// Rate limiting for all auth routes (relaxed for testing)
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 1000, // Increased for testing
   message: {
     success: false,
-    error: 'Too many requests from this IP, please try again after 15 minutes'
+    error: 'Too many requests from this IP, please try again after 1 minute'
   },
   standardHeaders: true,
   legacyHeaders: false

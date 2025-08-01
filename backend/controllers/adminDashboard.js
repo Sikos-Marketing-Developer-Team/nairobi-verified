@@ -69,7 +69,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    stats: {
+    data: {
       totalMerchants,
       totalUsers,
       totalProducts,
@@ -81,12 +81,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         merchantsThisMonth,
         usersThisMonth,
         reviewsThisMonth
+      },
+      recentActivity: {
+        recentMerchants,
+        recentUsers,
+        recentReviews
       }
-    },
-    recentActivity: {
-      recentMerchants,
-      recentUsers,
-      recentReviews
     }
   });
 });
@@ -190,16 +190,18 @@ const createMerchant = asyncHandler(async (req, res) => {
       html: emailContent
     });
 
-    // Log admin activity
-    await AdminUser.findByIdAndUpdate(req.admin.id, {
-      $push: {
-        activityLog: {
-          action: 'merchant_created',
-          details: `Created merchant account for ${businessName}`,
-          timestamp: new Date()
+    // Log admin activity (skip for hardcoded admin)
+    if (req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: 'merchant_created',
+            details: `Created merchant account for ${businessName}`,
+            timestamp: new Date()
+          }
         }
-      }
-    });
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -254,16 +256,18 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  // Log admin activity
-  await AdminUser.findByIdAndUpdate(req.admin.id, {
-    $push: {
-      activityLog: {
-        action: 'merchant_status_updated',
-        details: `${verified ? 'Verified' : 'Unverified'} merchant ${merchant.businessName}`,
-        timestamp: new Date()
+  // Log admin activity (skip for hardcoded admin)
+  if (req.admin.id !== 'hardcoded-admin-id') {
+    await AdminUser.findByIdAndUpdate(req.admin.id, {
+      $push: {
+        activityLog: {
+          action: 'merchant_status_updated',
+          details: `${verified ? 'Verified' : 'Unverified'} merchant ${merchant.businessName}`,
+          timestamp: new Date()
+        }
       }
-    }
-  });
+    });
+  }
 
   res.status(200).json({
     success: true,
@@ -393,16 +397,18 @@ const deleteReview = asyncHandler(async (req, res) => {
 
   await review.remove();
 
-  // Log admin activity
-  await AdminUser.findByIdAndUpdate(req.admin.id, {
-    $push: {
-      activityLog: {
-        action: 'review_deleted',
-        details: `Deleted review from ${review.user}`,
-        timestamp: new Date()
+  // Log admin activity (skip for hardcoded admin)
+  if (req.admin.id !== 'hardcoded-admin-id') {
+    await AdminUser.findByIdAndUpdate(req.admin.id, {
+      $push: {
+        activityLog: {
+          action: 'review_deleted',
+          details: `Deleted review from ${review.user}`,
+          timestamp: new Date()
+        }
       }
-    }
-  });
+    });
+  }
 
   res.status(200).json({
     success: true,

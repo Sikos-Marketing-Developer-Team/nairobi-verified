@@ -9,6 +9,32 @@ const api = axios.create({
   withCredentials: true // Important for sending/receiving cookies with CORS
 });
 
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('adminToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('adminToken');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth API
 export const authAPI = {
   register: (userData: any) => api.post('/auth/register', userData),
@@ -156,21 +182,32 @@ export const adminAPI = {
   
   // Dashboard methods
   getDashboardStats: () => api.get('/admin/dashboard/stats'),
-  getPendingVerifications: () => api.get('/admin/merchants', { params: { status: 'pending' } }),
+  getPendingVerifications: () => api.get('/admin/verifications/pending'),
   
   // User management
-  getUsers: (params?: any) => api.get('/admin/users', { params }),
+  getUsers: (params?: any) => api.get('/admin/dashboard/users', { params }),
   getUser: (userId: string) => api.get(`/admin/users/${userId}`),
   updateUser: (userId: string, userData: any) => api.put(`/admin/users/${userId}`, userData),
   deleteUser: (userId: string) => api.delete(`/admin/users/${userId}`),
   
   // Merchant management
-  getMerchants: (params?: any) => api.get('/admin/merchants', { params }),
+  getMerchants: (params?: any) => api.get('/admin/dashboard/merchants', { params }),
   getMerchant: (merchantId: string) => api.get(`/admin/merchants/${merchantId}`),
   updateMerchant: (merchantId: string, merchantData: any) => api.put(`/admin/merchants/${merchantId}`, merchantData),
   deleteMerchant: (merchantId: string) => api.delete(`/admin/merchants/${merchantId}`),
   verifyMerchant: (merchantId: string) => api.post(`/admin/merchants/${merchantId}/verify`),
   rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason }),
+  updateMerchantStatus: (merchantId: string, verified: boolean) => api.put(`/admin/dashboard/merchants/${merchantId}/status`, { verified }),
+  
+  // Product management
+  getProducts: (params?: any) => api.get('/admin/dashboard/products', { params }),
+  
+  // Review management
+  getReviews: (params?: any) => api.get('/admin/dashboard/reviews', { params }),
+  deleteReview: (reviewId: string) => api.delete(`/admin/dashboard/reviews/${reviewId}`),
+  
+  // Analytics
+  getAnalytics: (params?: any) => api.get('/admin/dashboard/analytics', { params }),
   
   // Data management
   removeMockData: () => api.delete('/admin/mock-data'),

@@ -33,7 +33,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
       email: 'admin@nairobiverified.com',
       role: 'super_admin',
     };
-    const token = jwt.sign({ id: mockAdmin._id, role: mockAdmin.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
+    const token = jwt.sign({ id: mockAdmin._id, role: mockAdmin.role, isAdmin: true }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
     return res.status(200).json({
       success: true,
       token,
@@ -99,6 +99,24 @@ const loginAdmin = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/auth/me
 // @access  Private (Admin)
 const getCurrentAdmin = asyncHandler(async (req, res) => {
+  // Handle hardcoded admin
+  if (req.admin.id === 'hardcoded-admin-id') {
+    return res.status(200).json({
+      success: true,
+      admin: {
+        id: req.admin.id,
+        firstName: req.admin.firstName,
+        lastName: req.admin.lastName,
+        name: getAdminFullName(req.admin),
+        email: req.admin.email,
+        role: req.admin.role,
+        permissions: req.admin.permissions,
+        lastLogin: new Date(),
+        isActive: req.admin.isActive,
+      },
+    });
+  }
+
   const admin = await AdminUser.findById(req.admin.id);
 
   res.status(200).json({
