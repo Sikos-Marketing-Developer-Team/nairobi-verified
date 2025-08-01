@@ -11,6 +11,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { adminAPI } from '@/lib/api';
 
 interface Product {
   _id: string;
