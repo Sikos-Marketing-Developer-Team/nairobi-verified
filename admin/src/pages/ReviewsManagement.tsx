@@ -4,8 +4,6 @@ import {
   Search, 
   Star, 
   Trash2, 
-  Eye,
-  Filter,
   Calendar,
   User,
   Store
