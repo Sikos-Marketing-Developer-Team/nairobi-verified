@@ -270,17 +270,6 @@ const Navbar = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
           </div>
         </div>
-        
-        <div className="flex items-center space-x-2">
-          <Link to="/favorites" className="text-black text-xl relative bg-[#FEEED5] p-2 rounded-[16px]">
-            <Heart className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-4 h-4 flex items-center justify-center">0</span>
-          </Link>
-          <Link to="/cart" className="text-black text-xl relative bg-[#FEEED5] p-2 rounded-[16px]">
-            <ShoppingCart className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-4 h-4 flex items-center justify-center">0</span>
-          </Link>
-        </div>
       </div>
 
       {/* Mobile Menu */}
