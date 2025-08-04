@@ -1,5 +1,4 @@
-import * as React from 'react';
-const { createContext, useContext, useState, useEffect } = React;
+import { createContext, useContext, useState, useEffect } from 'react';
 type ReactNode = React.ReactNode;
 import { cartAPI } from '@/lib/api';
 import { useAuth } from './AuthContext';
