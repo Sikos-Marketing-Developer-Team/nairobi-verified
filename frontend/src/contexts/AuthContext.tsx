@@ -1,5 +1,4 @@
-import * as React from 'react';
-const { createContext, useContext, useState, useEffect } = React;
+import { createContext, useContext, useState, useEffect } from 'react';
 type ReactNode = React.ReactNode;
 import { authAPI } from '@/lib/api';
 import { useNavigate, useLocation } from 'react-router-dom';
