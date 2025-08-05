@@ -25,36 +25,25 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    // Ensure React is available globally if needed
     global: "globalThis",
   },
   build: {
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            // Keep React and React-DOM together in one chunk
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react';
-            }
-            // Other UI libraries
-            if (id.includes('lucide-react')) return 'lucide';
-            if (id.includes('@radix-ui')) return 'radix';
-            // All other vendor dependencies
-            return 'vendor';
-          }
+        manualChunks: {
+          // Keep React and React-DOM together in a single chunk
+          'react-vendor': ['react', 'react-dom'],
+          // UI libraries in separate chunks
+          'lucide': ['lucide-react'],
+          'radix': ['@radix-ui/react-slot', '@radix-ui/react-dialog', '@radix-ui/react-toast'], // add your specific radix imports
         },
       },
     },
-    // Ensure proper source maps for debugging
     sourcemap: mode === 'development',
-    // Target modern browsers that support ES modules
     target: 'es2020',
-    // Optimize chunks
     chunkSizeWarningLimit: 1000,
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react/jsx-runtime'],
-    exclude: [],
   },
 }));
