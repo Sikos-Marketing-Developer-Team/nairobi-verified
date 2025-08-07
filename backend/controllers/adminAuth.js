@@ -100,7 +100,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const getCurrentAdmin = asyncHandler(async (req, res) => {
   // Handle hardcoded admin
-  if (req.admin.id === 'hardcoded-admin-id') {
+  if (req.admin && req.admin.id === 'hardcoded-admin-id') {
     return res.status(200).json({
       success: true,
       admin: {

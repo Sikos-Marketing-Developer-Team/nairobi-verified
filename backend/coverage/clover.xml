@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1753554650236" clover="3.2.0">
-  <project timestamp="1753554650236" name="All files">
+<coverage generated="1754559659679" clover="3.2.0">
+  <project timestamp="1754559659679" name="All files">
     <metrics statements="294" coveredstatements="206" conditionals="16" coveredconditionals="14" methods="11" coveredmethods="6" elements="321" coveredelements="226" complexity="0" loc="294" ncloc="294" packages="2" files="2" classes="2"/>
     <package name="config">
       <metrics statements="38" coveredstatements="38" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
-      <file name="constants.js" path="/home/kali/Sikos/nairobi-verified/backend/config/constants.js">
+      <file name="constants.js" path="/home/joe/Work Projects/nairobi-verified/backend/config/constants.js">
         <metrics statements="38" coveredstatements="38" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
         <line num="1" count="1" type="stmt"/>
         <line num="2" count="1" type="stmt"/>
@@ -48,7 +48,7 @@
     </package>
     <package name="utils">
       <metrics statements="256" coveredstatements="168" conditionals="16" coveredconditionals="14" methods="11" coveredmethods="6"/>
-      <file name="emailService.js" path="/home/kali/Sikos/nairobi-verified/backend/utils/emailService.js">
+      <file name="emailService.js" path="/home/joe/Work Projects/nairobi-verified/backend/utils/emailService.js">
         <metrics statements="256" coveredstatements="168" conditionals="16" coveredconditionals="14" methods="11" coveredmethods="6"/>
         <line num="1" count="1" type="stmt"/>
         <line num="2" count="1" type="stmt"/>

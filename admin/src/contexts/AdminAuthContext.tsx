@@ -44,19 +44,34 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
 
   const checkAuth = async () => {
     try {
+      // Check if there's a token in localStorage first
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        console.log('No token found in localStorage');
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Checking auth with token:', token.substring(0, 20) + '...');
       const response = await adminAPI.checkAuth();
       if (response.data.success && (response.data.admin || response.data.user)) {
         const adminUser = response.data.admin || response.data.user;
         setUser(adminUser);
         setIsAuthenticated(true);
+        console.log('Auth check successful, user:', adminUser.email);
       } else {
+        console.log('Auth check failed, invalid response');
         setUser(null);
         setIsAuthenticated(false);
+        localStorage.removeItem('adminToken');
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       setUser(null);
       setIsAuthenticated(false);
+      localStorage.removeItem('adminToken');
     } finally {
       setIsLoading(false);
     }
