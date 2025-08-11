@@ -14,7 +14,6 @@ const { v4: uuidv4 } = require('uuid');
 // Load environment variables
 dotenv.config();
 
-
 // Connect to database
 if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
   console.log('Using mock database for development');
@@ -28,14 +27,18 @@ require('./config/passport');
 // Initialize express app
 const app = express();
 
+// Trust proxy for accurate IP addresses
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Configure CORS with credentials support
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
+    process.env.FRONTEND_URL || 'http://localhost:8080',
     process.env.ADMIN_URL || 'http://localhost:3001',
     'https://nairobi-verified-frontend.onrender.com',
     'https://nairobi-verified.onrender.com',
@@ -43,7 +46,9 @@ app.use(cors({
     'http://localhost:3001',
     'http://localhost:8080'
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Rate limiting for sensitive auth routes (relaxed for testing)
@@ -55,7 +60,11 @@ const strictAuthLimiter = rateLimit({
     error: 'Too many login or registration attempts, please try again after 1 minute'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting in development
+    return process.env.NODE_ENV === 'development';
+  }
 });
 
 // Rate limiting for all auth routes (relaxed for testing)
@@ -67,7 +76,11 @@ const authLimiter = rateLimit({
     error: 'Too many requests from this IP, please try again after 1 minute'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting in development
+    return process.env.NODE_ENV === 'development';
+  }
 });
 
 // Session configuration
@@ -88,8 +101,12 @@ mongoStore.on('error', (error) => {
   console.error('Session store error:', error);
 });
 
+mongoStore.on('connected', () => {
+  console.log('Session store connected to MongoDB');
+});
+
 app.use(session({
-  name: 'sid',
+  name: 'nairobi_verified_session',
   genid: (req) => uuidv4(),
   secret: process.env.JWT_SECRET || 'your-session-secret',
   resave: false,
@@ -128,11 +145,26 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     message: 'Nairobi Verified Backend is running',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// Routes
+// API status endpoint
+app.get('/api/status', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'API is running',
+    authenticated: req.isAuthenticated ? req.isAuthenticated() : false,
+    user: req.user ? { 
+      id: req.user._id || req.user.id, 
+      email: req.user.email,
+      role: req.user.role 
+    } : null
+  });
+});
+
+// Routes - FIXED: Reordered to prevent conflicts
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/auth/admin', require('./routes/adminAuth'));
 app.use('/api/admin', require('./routes/admin'));
@@ -148,18 +180,57 @@ app.use('/api/cart', require('./routes/cart'));
 app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/settings', require('./routes/settings'));
 
+// 404 handler for undefined routes
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `Route ${req.originalUrl} not found`
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Error:', err);
   
   // Check if response was already sent
   if (res.headersSent) {
     return next(err);
   }
-  
-  res.status(500).json({
+
+  // Handle different types of errors
+  let error = { ...err };
+  error.message = err.message;
+
+  // Mongoose bad ObjectId
+  if (err.name === 'CastError') {
+    const message = 'Resource not found';
+    error = { message, statusCode: 404 };
+  }
+
+  // Mongoose duplicate key
+  if (err.code === 11000) {
+    const message = 'Duplicate field value entered';
+    error = { message, statusCode: 400 };
+  }
+
+  // Mongoose validation error
+  if (err.name === 'ValidationError') {
+    const message = Object.values(err.errors).map(error => error.message);
+    error = { message, statusCode: 400 };
+  }
+
+  res.status(error.statusCode || 500).json({
     success: false,
-    error: err.message || 'Server Error'
+    error: error.message || 'Server Error'
+  });
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+    process.exit(0);
   });
 });
 
@@ -168,11 +239,23 @@ const PORT = process.env.PORT || 5000;
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/api/health`);
+  console.log(`API status: http://localhost:${PORT}/api/status`);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  console.log(`Error: ${err.message}`);
-  server.close(() => process.exit(1));
+  console.log(`Unhandled Promise Rejection: ${err.message}`);
+  server.close(() => {
+    process.exit(1);
+  });
 });
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.log(`Uncaught Exception: ${err.message}`);
+  process.exit(1);
+});
+
+module.exports = app;
