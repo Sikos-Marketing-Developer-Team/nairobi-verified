@@ -412,14 +412,3 @@ exports.validateCart = async (req, res) => {
     handleError(res, error, 'Failed to validate cart');
   }
 };
-
-module.exports = {
-  getCart,
-  addToCart,
-  updateCartItem,
-  removeFromCart,
-  clearCart,
-  getCartSummary,
-  moveToWishlist,
-  validateCart
-};
