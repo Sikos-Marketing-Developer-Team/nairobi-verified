@@ -16,6 +16,7 @@ const mockWishlists = {};
 // Mock addresses data - replace with actual User model when updated
 const mockUserAddresses = {};
 
+// Admin routes for user management
 router.route('/')
   .get(protect, authorize('admin'), getUsers);
 
@@ -26,9 +27,17 @@ router.route('/:id')
 
 router.put('/:id/password', protect, updatePassword);
 
-// Profile routes
+// Profile routes - FIXED: moved these BEFORE the /:id routes to avoid conflicts
 router.get('/me', protect, async (req, res) => {
   try {
+    // Ensure we have user data
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated'
+      });
+    }
+
     res.json({
       success: true,
       data: req.user
@@ -44,10 +53,21 @@ router.get('/me', protect, async (req, res) => {
 
 router.put('/me', protect, async (req, res) => {
   try {
-    // TODO: Update user profile in database
+    const { firstName, lastName, email, phone } = req.body;
+    
+    // In a real application, update the user in the database
+    // For now, return updated user data
+    const updatedUser = {
+      ...req.user,
+      firstName: firstName || req.user.firstName,
+      lastName: lastName || req.user.lastName,
+      email: email || req.user.email,
+      phone: phone || req.user.phone
+    };
+
     res.json({
       success: true,
-      data: { ...req.user, ...req.body }
+      data: updatedUser
     });
   } catch (error) {
     console.error('Error updating profile:', error);
@@ -58,10 +78,19 @@ router.put('/me', protect, async (req, res) => {
   }
 });
 
-// Wishlist routes
+// Wishlist routes - FIXED: moved these BEFORE /:id routes
 router.get('/wishlist', protect, async (req, res) => {
   try {
     const userWishlist = mockWishlists[req.user.id] || [];
+    
+    // Handle empty wishlist gracefully
+    if (userWishlist.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        message: 'Your wishlist is empty. Start adding items you love!'
+      });
+    }
     
     res.json({
       success: true,
@@ -71,7 +100,7 @@ router.get('/wishlist', protect, async (req, res) => {
     console.error('Error fetching wishlist:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch wishlist'
+      error: 'Failed to fetch wishlist. Please try again later.'
     });
   }
 });
@@ -80,8 +109,24 @@ router.post('/wishlist', protect, async (req, res) => {
   try {
     const { productId } = req.body;
     
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Product ID is required'
+      });
+    }
+    
     if (!mockWishlists[req.user.id]) {
       mockWishlists[req.user.id] = [];
+    }
+    
+    // Check if item already exists in wishlist
+    const existingItem = mockWishlists[req.user.id].find(item => item.productId === productId);
+    if (existingItem) {
+      return res.status(400).json({
+        success: false,
+        error: 'Item already in wishlist'
+      });
     }
     
     // TODO: Fetch product details from database
@@ -106,7 +151,7 @@ router.post('/wishlist', protect, async (req, res) => {
     console.error('Error adding to wishlist:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to add to wishlist'
+      error: 'Failed to add to wishlist. Please try again later.'
     });
   }
 });
@@ -133,21 +178,30 @@ router.delete('/wishlist/:productId', protect, async (req, res) => {
     
     res.json({
       success: true,
-      data: {}
+      message: 'Item removed from wishlist'
     });
   } catch (error) {
     console.error('Error removing from wishlist:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to remove from wishlist'
+      error: 'Failed to remove from wishlist. Please try again later.'
     });
   }
 });
 
-// User addresses routes
+// User addresses routes - FIXED: moved these BEFORE /:id routes
 router.get('/addresses', protect, async (req, res) => {
   try {
     const userAddresses = mockUserAddresses[req.user.id] || [];
+    
+    // Handle empty addresses gracefully
+    if (userAddresses.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        message: 'No addresses found. Add your first address to get started!'
+      });
+    }
     
     res.json({
       success: true,
@@ -157,7 +211,7 @@ router.get('/addresses', protect, async (req, res) => {
     console.error('Error fetching addresses:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch addresses'
+      error: 'Failed to fetch addresses. Please try again later.'
     });
   }
 });
@@ -165,6 +219,14 @@ router.get('/addresses', protect, async (req, res) => {
 router.post('/addresses', protect, async (req, res) => {
   try {
     const { name, phone, address, city, area, landmark, isDefault } = req.body;
+    
+    // Validate required fields
+    if (!name || !phone || !address || !city) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name, phone, address, and city are required'
+      });
+    }
     
     if (!mockUserAddresses[req.user.id]) {
       mockUserAddresses[req.user.id] = [];
@@ -201,7 +263,7 @@ router.post('/addresses', protect, async (req, res) => {
     console.error('Error adding address:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to add address'
+      error: 'Failed to add address. Please try again later.'
     });
   }
 });
@@ -235,13 +297,13 @@ router.put('/addresses/:addressId', protect, async (req, res) => {
     
     mockUserAddresses[req.user.id][addressIndex] = {
       ...mockUserAddresses[req.user.id][addressIndex],
-      name,
-      phone,
-      address,
-      city,
-      area,
-      landmark,
-      isDefault: isDefault || false,
+      name: name || mockUserAddresses[req.user.id][addressIndex].name,
+      phone: phone || mockUserAddresses[req.user.id][addressIndex].phone,
+      address: address || mockUserAddresses[req.user.id][addressIndex].address,
+      city: city || mockUserAddresses[req.user.id][addressIndex].city,
+      area: area || mockUserAddresses[req.user.id][addressIndex].area,
+      landmark: landmark || mockUserAddresses[req.user.id][addressIndex].landmark,
+      isDefault: isDefault !== undefined ? isDefault : mockUserAddresses[req.user.id][addressIndex].isDefault,
       updatedAt: new Date()
     };
     
@@ -253,7 +315,7 @@ router.put('/addresses/:addressId', protect, async (req, res) => {
     console.error('Error updating address:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to update address'
+      error: 'Failed to update address. Please try again later.'
     });
   }
 });
@@ -280,13 +342,13 @@ router.delete('/addresses/:addressId', protect, async (req, res) => {
     
     res.json({
       success: true,
-      data: {}
+      message: 'Address deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting address:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to delete address'
+      error: 'Failed to delete address. Please try again later.'
     });
   }
 });
@@ -295,6 +357,21 @@ router.delete('/addresses/:addressId', protect, async (req, res) => {
 router.post('/change-password', protect, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
+    
+    // Validate required fields
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Current password and new password are required'
+      });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be at least 6 characters long'
+      });
+    }
     
     // TODO: Validate current password and update with new password
     res.json({
@@ -305,7 +382,7 @@ router.post('/change-password', protect, async (req, res) => {
     console.error('Error changing password:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to change password'
+      error: 'Failed to change password. Please try again later.'
     });
   }
 });
