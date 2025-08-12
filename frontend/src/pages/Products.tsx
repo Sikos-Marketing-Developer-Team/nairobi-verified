@@ -168,7 +168,7 @@ const Products = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto mt-20 px-4 pt-12 sm:px-6 sm:mt-15 lg:px-8 py-8">
         {/* Search and Filters Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">

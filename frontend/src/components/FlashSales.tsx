@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Flame, Star, MapPin, Check, ShoppingCart, Eye } from 'lucide-react';
+import { Clock, Flame, Star, MapPin, Check, ShoppingCart, Eye, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 
@@ -51,17 +51,25 @@ const FlashSales = () => {
 
   const fetchFlashSales = async () => {
     try {
+      setLoading(true);
+      setError(null);
+
       const response = await fetch('/api/flash-sales');
+
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+
       const data = await response.json();
-      
+
       if (data.success) {
         setFlashSales(data.data);
       } else {
-        setError('Failed to fetch flash sales');
+        throw new Error(data.message || 'Failed to fetch flash sales');
       }
     } catch (err) {
-      setError('Error loading flash sales');
       console.error('Flash sales fetch error:', err);
+      setError('We couldn’t load the flash sales right now. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -73,20 +81,6 @@ const FlashSales = () => {
       currency: 'KES',
       minimumFractionDigits: 0
     }).format(price);
-  };
-
-  const formatTimeRemaining = (timeRemaining: FlashSale['timeRemaining']) => {
-    if (timeRemaining.expired) return 'Expired';
-    
-    const { days, hours, minutes, seconds } = timeRemaining;
-    
-    if (days > 0) {
-      return `${days}d ${hours}h ${minutes}m`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m ${seconds}s`;
-    } else {
-      return `${minutes}m ${seconds}s`;
-    }
   };
 
   const CountdownTimer = ({ timeRemaining }: { timeRemaining: FlashSale['timeRemaining'] }) => {
@@ -153,7 +147,7 @@ const FlashSales = () => {
     );
   };
 
-  const ProductCard = ({ product, flashSaleId }: { product: FlashSaleProduct; flashSaleId: string }) => {
+  const ProductCard = ({ product }: { product: FlashSaleProduct; flashSaleId: string }) => {
     const stockPercentage = (product.soldQuantity / product.stockQuantity) * 100;
     const isLowStock = stockPercentage > 80;
     const isOutOfStock = product.soldQuantity >= product.stockQuantity;
@@ -226,10 +220,8 @@ const FlashSales = () => {
                 e.stopPropagation();
                 if (!isOutOfStock) {
                   try {
-                    // In a real implementation, you would add the flash sale product to cart
-                    // For now, we'll simulate adding to cart
                     alert(`Added ${product.name} to cart!`);
-                  } catch (error) {
+                  } catch {
                     alert('Failed to add item to cart');
                   }
                 }
@@ -278,14 +270,21 @@ const FlashSales = () => {
     return (
       <section className="py-16 bg-gradient-to-r from-red-50 to-orange-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-red-500">{error}</p>
+          <AlertTriangle className="mx-auto mb-4 text-red-500 w-12 h-12" />
+          <p className="text-red-500 font-medium mb-4">{error}</p>
+          <Button
+            onClick={fetchFlashSales}
+            className="bg-red-500 hover:bg-red-600 text-white"
+          >
+            Retry
+          </Button>
         </div>
       </section>
     );
   }
 
   if (flashSales.length === 0) {
-    return null; // Don't show section if no flash sales
+    return null;
   }
 
   return (
@@ -304,14 +303,12 @@ const FlashSales = () => {
               <p className="text-xl text-gray-600 mb-4">
                 {flashSale.description}
               </p>
-              
-              {/* Countdown Timer */}
+
               <div className="flex items-center justify-center gap-4 mb-6">
                 <span className="text-lg font-semibold text-gray-700">Ends in:</span>
                 <CountdownTimer timeRemaining={flashSale.timeRemaining} />
               </div>
 
-              {/* Stats */}
               <div className="flex items-center justify-center gap-6 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
                   <Eye className="h-4 w-4" />
