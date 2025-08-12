@@ -1,59 +1,67 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-type ReactNode = React.ReactNode;
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '@/lib/api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import { User, AuthContextType } from '@/types/authContext.ts';
 
-// Define types
-type User = {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  name?: string;
-  businessName?: string;
-  email: string;
-  role?: 'user' | 'merchant' | 'admin';
-  avatar?: string;
-  isVerified?: boolean;
-  isMerchant?: boolean;
-  [key: string]: any;
-};
-
-type AuthContextType = {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: any) => Promise<void>;
-  registerMerchant: (merchantData: any) => Promise<void>;
-  logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  resetPassword: (token: string, password: string) => Promise<void>;
-  updateProfile: (userData: any) => Promise<void>;
-  refreshUser: () => Promise<boolean>;
-  googleAuth: () => void;
-};
+type ReactNode = React.ReactNode;
 
 // Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// LocalStorage keys
+const LS_USER_KEY = 'currentUser';
+const LS_AUTH_CHECKED_KEY = 'authChecked';
+
 // Provider component
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    // Initialize user from localStorage if available
+    const storedUser = localStorage.getItem(LS_USER_KEY);
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
 
+  // Persist user to localStorage whenever it changes
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem(LS_USER_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(LS_USER_KEY);
+    }
+  }, [user]);
+
+  // Show toast notification helper
+  const showToast = useCallback((title: string, description: string, variant: 'default' | 'destructive' = 'default') => {
+    toast({
+      title,
+      description,
+      variant,
+      position: 'top-center',
+      style: {
+        background: variant === 'destructive' ? 'crimson' : '#16a34a',
+        color: 'white',
+      },
+    });
+  }, [toast]);
+
   // Check authentication and handle OAuth callback
   useEffect(() => {
     const checkAuth = async () => {
-      try {
-        // Add timeout to prevent hanging on slow networks
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      // Skip if we've already checked auth in this session
+      if (sessionStorage.getItem(LS_AUTH_CHECKED_KEY)) {
+        setIsLoading(false);
+        return;
+      }
 
-        // Check session status first
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        // Check session status
         const response = await fetch(
           `${import.meta.env.VITE_API_URL || 'https://nairobi-cbd-backend.onrender.com/api'}/auth/check`,
           { 
@@ -71,266 +79,162 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const data = await response.json();
 
         if (data.success && data.isAuthenticated && data.user) {
-          setUser(data.user);
-          // Admins should use the separate admin dashboard
-          if (data.user.role === 'admin') {
-            toast({
-              title: 'Admin Access',
-              description: 'Please use the dedicated admin dashboard to access admin features.',
-              variant: 'destructive',
-            });
-            setUser(null);
-            return;
-          } else if (data.user.isMerchant || data.user.businessName) {
-            navigate('/merchant/dashboard', { replace: true });
-          } else {
-            navigate('/dashboard', { replace: true });
-          }
-          toast({
-            title: 'Session Restored',
-            description: 'You are already logged in',
-          });
+          handleSuccessfulAuth(data.user);
           return;
         }
 
-        // Fallback to getMe for OAuth callback - only if session check didn't work
+        // Fallback to getMe for OAuth callback
         try {
           const meResponse = await authAPI.getMe();
-          const user = meResponse.data.data;
-          setUser(user);
-
-          // Admins should use the separate admin dashboard
-          if (user.role === 'admin') {
-            toast({
-              title: 'Admin Access',
-              description: 'Please use the dedicated admin dashboard to access admin features.',
-              variant: 'destructive',
-            });
-            setUser(null);
-            return;
-          } else if (user.isMerchant || user.businessName) {
-            navigate('/merchant/dashboard', { replace: true });
-          } else {
-            navigate('/dashboard', { replace: true });
-          }
-          toast({
-            title: 'Login Successful',
-            description: 'You have been logged in with Google',
-          });
+          handleSuccessfulAuth(meResponse.data.data);
         } catch (getMeError) {
-          // Silent fail for getMe - user is just not logged in
           console.log('User not authenticated, continuing with guest mode');
         }
       } catch (error: any) {
-        console.warn('Auth check failed, continuing in guest mode:', error.message);
-        
-        // Only show error toast for specific error conditions
-        const urlParams = new URLSearchParams(location.search);
-        if (urlParams.get('error') === 'authentication_failed') {
-          toast({
-            title: 'Authentication Failed',
-            description: urlParams.get('message') || 'Failed to authenticate. Please try again or complete merchant registration.',
-            variant: 'destructive',
-          });
-        }
+        console.warn('Auth check failed:', error.message);
+        handleAuthError(error);
       } finally {
         setIsLoading(false);
+        sessionStorage.setItem(LS_AUTH_CHECKED_KEY, 'true');
+      }
+    };
+
+    const handleSuccessfulAuth = (userData: User) => {
+      // Block admin users
+      if (userData.role === 'admin') {
+        showToast('Admin Access', 'Please use the dedicated admin dashboard to access admin features.', 'destructive');
+        setUser(null);
+        return;
+      }
+
+      setUser(userData);
+      const redirectPath = userData.isMerchant || userData.businessName 
+        ? '/merchant/dashboard' 
+        : '/dashboard';
+      
+      navigate(redirectPath, { replace: true });
+      showToast('Login Successful', 'Your session has been restored');
+    };
+
+    const handleAuthError = (error: any) => {
+      const urlParams = new URLSearchParams(location.search);
+      if (urlParams.get('error') === 'authentication_failed') {
+        showToast(
+          'Authentication Failed',
+          urlParams.get('message') || 'Failed to authenticate. Please try again.',
+          'destructive'
+        );
       }
     };
 
     checkAuth();
-  }, [navigate, toast, location]);
+  }, [navigate, location, showToast]);
 
-  // Login function
-  const login = async (email: string, password: string) => {
+  // Auth functions
+  const handleAuthAction = async (
+    action: () => Promise<any>,
+    successMessage: string,
+    errorPrefix: string
+  ) => {
     setIsLoading(true);
     try {
-      const response = await authAPI.login(email, password);
-      const { user } = response.data;
-      
-      // Block admin users from logging into the main app
-      if (user.role === 'admin') {
-        toast({
-          title: 'Admin Access Restricted',
-          description: 'Admin users must use the dedicated admin dashboard. Please contact support if you need access.',
-          variant: 'destructive',
-        });
-        throw new Error('Admin access restricted in main application');
-      }
-      
-      setUser(user);
-      
-      if (user.isMerchant || user.businessName) {
-        navigate('/merchant/dashboard', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
-      toast({
-        title: 'Login Successful',
-        description: 'You have been logged in',
-      });
+      const response = await action();
+      return response;
     } catch (error: any) {
-      console.error('Login failed:', error);
-      toast({
-        title: 'Login Failed',
-        description: error.response?.data?.error || 'An error occurred during login',
-        variant: 'destructive',
-      });
+      console.error(`${errorPrefix}:`, error);
+      showToast(
+        `${errorPrefix} Failed`,
+        error.response?.data?.error || 'An unexpected error occurred',
+        'destructive'
+      );
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Google auth function
+  const login = async (email: string, password: string) => {
+    return handleAuthAction(async () => {
+      const response = await authAPI.login(email, password);
+      const { user } = response.data;
+      
+      if (user.role === 'admin') {
+        showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
+        throw new Error('Admin access restricted');
+      }
+      
+      setUser(user);
+      navigate(user.isMerchant || user.businessName 
+        ? '/merchant/dashboard' 
+        : '/dashboard', 
+        { replace: true }
+      );
+      showToast('Login Successful', 'You have been logged in');
+      return response;
+    }, 'Login', 'Login');
+  };
+
   const googleAuth = () => {
     const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-cbd-backend.onrender.com/api';
     window.location.href = `${apiUrl}/auth/google`;
   };
 
-  // Register function
   const register = async (userData: any) => {
-    setIsLoading(true);
-    try {
+    return handleAuthAction(async () => {
       const response = await authAPI.register(userData);
-      const { user } = response.data;
-      
-      setUser(user);
+      setUser(response.data.user);
       navigate('/dashboard', { replace: true });
-      toast({
-        title: 'Registration Successful',
-        description: 'Your account has been created',
-      });
-      return response.data;
-    } catch (error: any) {
-      console.error('Registration failed:', error);
-      toast({
-        title: 'Registration Failed',
-        description: error.response?.data?.error || 'An error occurred during registration',
-        variant: 'destructive',
-      });
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+      showToast('Registration Successful', 'Your account has been created');
+      return response;
+    }, 'Registration', 'Registration');
   };
 
-  // Register merchant function
   const registerMerchant = async (merchantData: any) => {
-    setIsLoading(true);
-    try {
+    return handleAuthAction(async () => {
       const response = await authAPI.registerMerchant(merchantData);
-      const { user } = response.data;
-      
-      setUser(user);
+      setUser(response.data.user);
       navigate('/merchant/dashboard', { replace: true });
-      toast({
-        title: 'Merchant Registration Successful',
-        description: 'Your merchant account has been created',
-      });
-      return response.data;
-    } catch (error: any) {
-      console.error('Merchant registration failed:', error);
-      toast({
-        title: 'Merchant Registration Failed',
-        description: error.response?.data?.error || 'An error occurred during merchant registration',
-        variant: 'destructive',
-      });
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+      showToast('Merchant Registration Successful', 'Your merchant account has been created');
+      return response;
+    }, 'Merchant Registration', 'Merchant Registration');
   };
 
-  // Logout function
   const logout = async () => {
-    setIsLoading(true);
-    try {
+    return handleAuthAction(async () => {
       await authAPI.logout();
       setUser(null);
+      localStorage.removeItem(LS_USER_KEY);
       navigate('/', { replace: true });
-      toast({
-        title: 'Logout Successful',
-        description: 'You have been logged out',
-      });
-    } catch (error: any) {
-      console.error('Logout failed:', error);
-      toast({
-        title: 'Logout Failed',
-        description: error.response?.data?.error || 'An error occurred during logout',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+      showToast('Logout Successful', 'You have been logged out');
+    }, 'Logout', 'Logout');
   };
 
-  // Forgot password function
   const forgotPassword = async (email: string) => {
-    try {
+    return handleAuthAction(async () => {
       const response = await authAPI.forgotPassword(email);
-      toast({
-        title: 'Password Reset Email Sent',
-        description: 'Check your email for password reset instructions',
-      });
-      return response.data;
-    } catch (error: any) {
-      console.error('Forgot password failed:', error);
-      toast({
-        title: 'Forgot Password Failed',
-        description: error.response?.data?.error || 'An error occurred while sending reset email',
-        variant: 'destructive',
-      });
-      throw error;
-    }
+      showToast('Password Reset Email Sent', 'Check your email for instructions');
+      return response;
+    }, 'Password Reset', 'Password Reset');
   };
 
-  // Reset password function
   const resetPassword = async (token: string, password: string) => {
-    try {
+    return handleAuthAction(async () => {
       const response = await authAPI.resetPassword(token, password);
-      toast({
-        title: 'Password Reset Successful',
-        description: 'Your password has been updated',
-      });
+      showToast('Password Reset Successful', 'Your password has been updated');
       navigate('/auth', { replace: true });
-      return response.data;
-    } catch (error: any) {
-      console.error('Reset password failed:', error);
-      toast({
-        title: 'Reset Password Failed',
-        description: error.response?.data?.error || 'An error occurred while resetting password',
-        variant: 'destructive',
-      });
-      throw error;
-    }
+      return response;
+    }, 'Password Reset', 'Password Reset');
   };
 
-  // Update profile function
   const updateProfile = async (userData: any) => {
-    setIsLoading(true);
-    try {
+    return handleAuthAction(async () => {
       const response = await authAPI.updateProfile(userData);
-      setUser(prevUser => prevUser ? { ...prevUser, ...userData } : null);
-      toast({
-        title: 'Profile Updated',
-        description: 'Your profile has been updated successfully',
-      });
-      return response.data;
-    } catch (error: any) {
-      console.error('Update profile failed:', error);
-      toast({
-        title: 'Update Profile Failed',
-        description: error.response?.data?.error || 'An error occurred while updating profile',
-        variant: 'destructive',
-      });
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+      setUser(prev => prev ? { ...prev, ...userData } : null);
+      showToast('Profile Updated', 'Your profile has been updated');
+      return response;
+    }, 'Profile Update', 'Profile Update');
   };
 
-  // Refresh user data function
   const refreshUser = async (): Promise<boolean> => {
     try {
       const response = await authAPI.getMe();
@@ -342,7 +246,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Context value
   const value = {
     user,
     isLoading,
@@ -361,7 +264,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

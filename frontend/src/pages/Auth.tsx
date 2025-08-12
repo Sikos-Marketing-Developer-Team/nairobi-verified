@@ -100,7 +100,7 @@ const Auth = () => {
           </p>
         </div>
 
-        <Card className="shadow-xl border-t-4 border-primary">
+        <Card className="shadow-xl border-t-4 border-primary mt-0">
           <CardHeader className="space-y-1">
             <CardTitle className="text-center text-2xl font-semibold">
               {isLogin ? 'Sign In' : 'Create Account'}
