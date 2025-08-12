@@ -82,7 +82,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center px-4 py-4">
       <div className="max-w-md w-full space-y-8">
         {/* Logo */}
         <div className="text-center">

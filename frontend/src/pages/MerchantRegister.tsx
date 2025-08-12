@@ -3,12 +3,14 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Upload, Building, User, Clock, FileText } from 'lucide-react';
+import { MapPin, Upload, Building, User, Clock, FileText, CheckCircle, X } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
 import { PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+
 
 const MerchantRegister = () => {
   const isLoading = usePageLoading(700);
@@ -17,6 +19,7 @@ const MerchantRegister = () => {
   const idDocRef = useRef<HTMLInputElement>(null);
   const utilityBillRef = useRef<HTMLInputElement>(null);
   const additionalDocsRef = useRef<HTMLInputElement>(null);
+  const [showToast, setShowToast] = useState(false);  
   const [formData, setFormData] = useState({
     // Step 1: Basic Information
     businessName: '',
@@ -85,23 +88,42 @@ const MerchantRegister = () => {
       case 1:
         // Validate basic information
         if (!formData.businessName.trim()) {
-          alert('Business name is required');
+         toast('Business name is required!', {
+          style: { background: 'crimson', color: 'white' }
+            });
           return false;
         }
         if (!formData.email.trim()) {
-          alert('Email is required');
+          toast('Email is required',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         if (!formData.phone.trim()) {
-          alert('Phone number is required');
+          toast('Phone number is required',
+             {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         if (!formData.password.trim()) {
-          alert('Password is required');
+          toast('Password is required',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+            
+          );
           return false;
         }
         if (formData.password !== formData.confirmPassword) {
-          alert('Passwords do not match');
+          toast('Passwords do not match',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         return true;
@@ -109,15 +131,27 @@ const MerchantRegister = () => {
       case 2:
         // Validate business details
         if (!formData.businessType.trim()) {
-          alert('Business type is required');
+          toast('Business type is required',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         if (!formData.description.trim()) {
-          alert('Business description is required');
+          toast('Business description is required',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         if (!formData.yearEstablished.trim()) {
-          alert('Year established is required');
+          toast('Year established is required',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         return true;
@@ -125,11 +159,19 @@ const MerchantRegister = () => {
       case 3:
         // Validate location and hours
         if (!formData.address.trim()) {
-          alert('Business address is required');
+          toast('Business address is required',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         if (!formData.landmark.trim()) {
-          alert('Landmark is required');
+          toast('Landmark is required',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         return true;
@@ -137,15 +179,27 @@ const MerchantRegister = () => {
       case 4:
         // Validate documents
         if (!formData.businessRegistration) {
-          alert('Business registration document is required');
+          toast('Business registration document is required',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         if (!formData.idDocument) {
-          alert('ID document is required');
+          toast('ID document is required',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         if (!formData.utilityBill) {
-          alert('Utility bill is required');
+          toast('Utility bill is required',
+            {
+              style: { background: 'crimson', color: 'white' }
+            }
+          );
           return false;
         }
         return true;
@@ -179,14 +233,24 @@ const MerchantRegister = () => {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateStep(4)) {
-      console.log('Merchant registration submitted:', formData);
-      // Handle form submission here - call API
-      alert('Registration submitted successfully! We will review your application and get back to you within 2-3 business days.');
-    }
-  };
-
+  e.preventDefault();
+  if (validateStep(4)) {
+    console.log('Merchant registration submitted:', formData);
+    
+    // Handle form submission here - call API
+    
+    // Show success toast with Sonner
+    toast.success('Registration submitted successfully!', {
+      description: 'We will review your application and get back to you within 2-3 business days.',
+      duration: 3000,
+    });
+    
+    // Redirect to homepage after 3 seconds
+    setTimeout(() => {
+  window.location.href = '/'; // or wherever your homepage is
+}, 3000);
+  }
+};
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -247,7 +311,7 @@ const MerchantRegister = () => {
       
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 mt-5">
           <h1 className="text-3xl font-bold inter text-gray-900 mb-2">
             Register Your Business
           </h1>
