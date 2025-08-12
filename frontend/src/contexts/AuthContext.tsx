@@ -169,7 +169,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         : '/dashboard', 
         { replace: true }
       );
-      showToast('Login Successful', 'You have been logged in');
+      showToast('Login Successful', 'You have been logged in',);
       return response;
     }, 'Login', 'Login');
   };
@@ -205,7 +205,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(null);
       localStorage.removeItem(LS_USER_KEY);
       navigate('/', { replace: true });
-      showToast('Logout Successful', 'You have been logged out');
+      showToast('Logout Successful', 'You have been logged out', 'destructive'
+      );
     }, 'Logout', 'Logout');
   };
 
