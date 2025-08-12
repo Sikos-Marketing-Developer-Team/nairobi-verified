@@ -250,7 +250,9 @@ const MerchantRegister = () => {
         fontSize: '1.1rem', // Larger text
         fontWeight: 'bold'
       },
-       descriptionClassName: 'text-white!important',
+       descriptionClassName: 'text-white',
+        
+  
     });
     
     // Redirect to homepage after 3 seconds

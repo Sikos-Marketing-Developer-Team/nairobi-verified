@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Menu, 
@@ -16,15 +16,18 @@ import {
   Instagram,
   Keyboard
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Mock auth state
   const navbarRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  // Get auth state from context
+  const { user, isAuthenticated, logout } = useAuth();
 
   // Handle scroll effect
   useEffect(() => {
@@ -61,12 +64,12 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    logout();
     setIsMenuOpen(false);
   };
 
   const getUserDisplayName = () => {
-    return "John Doe"; // Mock user name
+    return user?.name || user?.email?.split('@')[0] || 'User';
   };
 
   return (
@@ -125,13 +128,16 @@ const Navbar = () => {
         <div className="flex items-center space-x-2 sm:space-x-4">
           {isAuthenticated ? (
             <>
-              <div className="hidden sm:flex items-center space-x-2 text-black">
-                <User className="h-4 w-4" />
-                <span className="text-sm">{getUserDisplayName()}</span>
+              <div className="hidden sm:flex items-center space-x-2 text-grey hover:text-[#EC5C0A] m-0">
+               <div className="p-1 rounded-full bg-[#FEEED5] text-gray m-0">
+               <User className="h-4 w-4" />
+               </div>
+
+                <span className="text-sm text-gray">Hello, {getUserDisplayName()}</span>
               </div>
               <button 
                 onClick={handleLogout}
-                className="hidden sm:flex items-center gap-1 bg-[#EC5C0A] hover:bg-[#fb923c] transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px]"
+                className="hidden sm:flex items-center gap-1  hover:text-[#EC5C0A] underline transition-colors text-grey px-3 py-1.5 rounded-[14px]"
               >
                 Logout
               </button>
@@ -148,7 +154,7 @@ const Navbar = () => {
           
           <Link 
             to="/favorites" 
-            className="hover:scale-110 transition-transform duration-200 text-black text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
+            className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
           >
             <Heart className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
@@ -156,7 +162,7 @@ const Navbar = () => {
           
           <Link 
             to="/cart" 
-            className="hover:scale-110 transition-transform duration-200 text-black text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
+            className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
           >
             <ShoppingCart className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
@@ -165,7 +171,7 @@ const Navbar = () => {
       </div>
 
       {/* Desktop Navigation Links */}
-      <div className="hidden md:flex items-center justify-between px-6 py-2 border-t border-gray-200 text-black text-base">
+      <div className="hidden md:flex items-center justify-between px-6 py-2 border-t border-gray-200 text-gray text-base">
         <ul className="flex space-x-6 p-2">
           <li>
             <Link 
@@ -231,13 +237,13 @@ const Navbar = () => {
           </li>
           
           <li className="flex space-x-2">
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-black bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90">
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90">
               <Facebook className="w-4 h-4 text-[#EC5C0A]" />
             </a>
-            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-black bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90">
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90">
               <Twitter className="w-4 h-4 text-[#EC5C0A]" />
             </a>
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-black bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90">
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90">
               <Instagram className="w-4 h-4 text-[#EC5C0A]" />
             </a>
           </li>
@@ -245,10 +251,10 @@ const Navbar = () => {
       </div>
 
       {/* Mobile Menu Toggle & Search */}
-      <div className="flex md:hidden justify-between items-center px-4 py-2 border-t border-gray-200 text-black">
+      <div className="flex md:hidden justify-between items-center px-4 py-2 border-t border-gray-200 text-gray">
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="text-black focus:outline-none text-xl bg-[#FEEED5] p-2 rounded-[16px]"
+          className="text-gray focus:outline-none text-xl bg-[#FEEED5] p-2 rounded-[16px]"
           aria-expanded={isMenuOpen}
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
         >
@@ -359,7 +365,7 @@ const Navbar = () => {
               <>
                 <li className="flex items-center gap-2 text-gray-700 py-1.5">
                   <User className="w-4 h-4" />
-                  <span className="text-sm">{getUserDisplayName()}</span>
+                  <span className="text-sm">Hello, {getUserDisplayName()}</span>
                 </li>
                 <li>
                   <button 

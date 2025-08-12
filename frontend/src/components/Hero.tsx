@@ -163,7 +163,7 @@ const Hero = () => {
 
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-3 mt-6">
-                <button className="py-3 px-4 bg-[#FDEDD5] hover:bg-[#FEF9EA] text-black rounded-[5px] transition-colors duration-200 text-sm font-medium border border-[#F97316]/20">
+                <button className="py-3 px-4 bg-[#FDEDD5] hover:bg-[#FEF9EA] text-gray rounded-[5px] transition-colors duration-200 text-sm font-medium border border-[#F97316]/20">
                   Browse All Merchants
                 </button>
                 <Link to="/auth/register/merchant">
