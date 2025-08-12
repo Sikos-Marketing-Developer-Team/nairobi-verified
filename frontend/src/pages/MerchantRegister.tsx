@@ -240,9 +240,17 @@ const MerchantRegister = () => {
     // Handle form submission here - call API
     
     // Show success toast with Sonner
-    toast.success('Registration submitted successfully!', {
+    toast('Registration submitted successfully!', {
       description: 'We will review your application and get back to you within 2-3 business days.',
       duration: 3000,
+      position: 'top-center', // Place in top middle
+      style: {
+        background: '#16a34a', // Tailwind's green-600
+        color: 'white',
+        fontSize: '1.1rem', // Larger text
+        fontWeight: 'bold'
+      },
+       descriptionClassName: 'text-white!important',
     });
     
     // Redirect to homepage after 3 seconds
