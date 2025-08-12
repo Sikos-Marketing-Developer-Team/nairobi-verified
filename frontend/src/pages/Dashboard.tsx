@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Package, Heart, MapPin, Settings, LogOut, ShoppingBag, Star, Loader2, Edit, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -246,15 +245,15 @@ const Dashboard = () => {
           <p className="text-gray-600">Manage your account settings and orders</p>
         </div>
 
-        <div className="grid lg:grid-cols-4 gap-8">
+        <div className="grid lg:grid-cols-4 gap-8 mt-10">
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <Card className="shadow-sm">
               <CardContent className="p-0">
-                <div className="p-6 border-b">
+                <div className="p-6 border-b pl-5">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                      <User className="h-6 w-6 text-white" />
+                      <User className="h-6 w-6  text-white" />
                     </div>
                     <div>
                       <h3 className="font-semibold">{user?.firstName} {user?.lastName}</h3>
