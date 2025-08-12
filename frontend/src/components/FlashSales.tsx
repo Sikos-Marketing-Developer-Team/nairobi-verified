@@ -56,7 +56,7 @@ const FlashSales = () => {
 
      // Use your VITE_API_URL environment variable
     const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-cbd-backend.onrender.com';
-    const response = await fetch(`${apiUrl}/api/flash-sales`, {
+    const response = await fetch(`${apiUrl}/flash-sales`, {
       credentials: 'include' // If using cookies/auth
     });
 
