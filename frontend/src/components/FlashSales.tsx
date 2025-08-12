@@ -54,7 +54,12 @@ const FlashSales = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/flash-sales');
+     // Use your VITE_API_URL environment variable
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-cbd-backend.onrender.com';
+    const response = await fetch(`${apiUrl}/api/flash-sales`, {
+      credentials: 'include' // If using cookies/auth
+    });
+
 
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}`);
