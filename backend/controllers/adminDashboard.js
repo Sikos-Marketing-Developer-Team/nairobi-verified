@@ -18,12 +18,12 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// @desc    Get dashboard statistics
+// @desc    Get dashboard statistics with enhanced merchant verification tracking
 // @route   GET /api/admin/dashboard/stats
 // @access  Private (Admin)
 const getDashboardStats = asyncHandler(async (req, res) => {
   try {
-    // Get comprehensive statistics from database
+    // Enhanced statistics with document verification tracking
     const [
       totalMerchants,
       totalUsers,
@@ -32,7 +32,11 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       verifiedMerchants,
       pendingMerchants,
       activeProducts,
-      totalOrders
+      totalOrders,
+      // NEW: Document verification statistics
+      merchantsWithDocuments,
+      merchantsPendingDocuments,
+      documentsAwaitingReview
     ] = await Promise.all([
       Merchant.countDocuments(),
       User.countDocuments({ role: { $ne: 'admin' } }),
@@ -41,8 +45,38 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       Merchant.countDocuments({ verified: true }),
       Merchant.countDocuments({ verified: false }),
       Product.countDocuments({ isActive: true }),
-      // Add Order model count when available
-      Promise.resolve(0) // Placeholder for orders
+      Promise.resolve(0), // Placeholder for orders
+      // NEW: Document verification counts
+      Merchant.countDocuments({
+        $or: [
+          { 'documents.businessRegistration': { $exists: true, $ne: '' } },
+          { 'documents.idDocument': { $exists: true, $ne: '' } },
+          { 'documents.utilityBill': { $exists: true, $ne: '' } }
+        ]
+      }),
+      Merchant.countDocuments({
+        verified: false,
+        $and: [
+          {
+            $or: [
+              { 'documents.businessRegistration': { $exists: false } },
+              { 'documents.businessRegistration': '' },
+              { 'documents.idDocument': { $exists: false } },
+              { 'documents.idDocument': '' },
+              { 'documents.utilityBill': { $exists: false } },
+              { 'documents.utilityBill': '' }
+            ]
+          }
+        ]
+      }),
+      Merchant.countDocuments({
+        verified: false,
+        $and: [
+          { 'documents.businessRegistration': { $exists: true, $ne: '' } },
+          { 'documents.idDocument': { $exists: true, $ne: '' } },
+          { 'documents.utilityBill': { $exists: true, $ne: '' } }
+        ]
+      })
     ]);
 
     // Get active flash sales
@@ -66,12 +100,14 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       recentReviews,
       merchantsThisMonth,
       usersThisMonth,
-      reviewsThisMonth
+      reviewsThisMonth,
+      // NEW: Recent merchants with document info
+      merchantsNeedingVerification
     ] = await Promise.all([
       Merchant.find()
         .sort({ createdAt: -1 })
         .limit(5)
-        .select('businessName email verified createdAt businessType'),
+        .select('businessName email verified createdAt businessType documents'),
       User.find({ role: { $ne: 'admin' } })
         .sort({ createdAt: -1 })
         .limit(5)
@@ -87,7 +123,19 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         role: { $ne: 'admin' },
         createdAt: { $gte: thirtyDaysAgo } 
       }),
-      Review.countDocuments({ createdAt: { $gte: thirtyDaysAgo } })
+      Review.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      // NEW: Merchants needing verification
+      Merchant.find({
+        verified: false,
+        $and: [
+          { 'documents.businessRegistration': { $exists: true, $ne: '' } },
+          { 'documents.idDocument': { $exists: true, $ne: '' } },
+          { 'documents.utilityBill': { $exists: true, $ne: '' } }
+        ]
+      })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select('businessName email createdAt documents businessType')
     ]);
 
     // Calculate growth percentages
@@ -139,6 +187,11 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       ? ((verifiedMerchants / totalMerchants) * 100).toFixed(1)
       : 0;
 
+    // NEW: Document completion rate
+    const documentCompletionRate = totalMerchants > 0
+      ? ((merchantsWithDocuments / totalMerchants) * 100).toFixed(1)
+      : 0;
+
     // System health metrics
     const systemHealth = {
       database: 'healthy',
@@ -150,7 +203,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        // Main stats
+        // Main stats (UPDATED)
         totalMerchants,
         totalUsers,
         totalProducts,
@@ -160,6 +213,15 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         activeProducts,
         activeFlashSales,
         totalOrders,
+        
+        // NEW: Document verification stats
+        verification: {
+          merchantsWithDocuments,
+          merchantsPendingDocuments,
+          documentsAwaitingReview,
+          documentCompletionRate: parseFloat(documentCompletionRate),
+          merchantsNeedingVerification
+        },
         
         // Growth metrics
         growth: {
@@ -171,16 +233,24 @@ const getDashboardStats = asyncHandler(async (req, res) => {
           reviewGrowth: parseFloat(reviewGrowth)
         },
         
-        // Performance metrics
+        // Performance metrics (UPDATED)
         metrics: {
           verificationRate: parseFloat(verificationRate),
-          averageRating: totalReviews > 0 ? 4.5 : 0, // Will calculate from actual reviews
+          documentCompletionRate: parseFloat(documentCompletionRate),
+          averageRating: totalReviews > 0 ? 4.5 : 0,
           productUploadRate: totalProducts > 0 ? (totalProducts / totalMerchants).toFixed(1) : 0
         },
         
-        // Recent activity
+        // Recent activity (UPDATED with document info)
         recentActivity: {
-          recentMerchants,
+          recentMerchants: recentMerchants.map(merchant => ({
+            ...merchant.toObject(),
+            hasDocuments: !!(
+              merchant.documents?.businessRegistration ||
+              merchant.documents?.idDocument ||
+              merchant.documents?.utilityBill
+            )
+          })),
           recentUsers,
           recentReviews
         },
@@ -199,11 +269,19 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get all merchants with pagination and filtering
+
+// @desc    Get all merchants with enhanced document information
 // @route   GET /api/admin/dashboard/merchants
 // @access  Private (Admin)
 const getMerchants = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, verified, businessType, search } = req.query;
+  const { 
+    page = 1, 
+    limit = 10, 
+    verified, 
+    businessType, 
+    search,
+    documentStatus // NEW: Filter by document status
+  } = req.query;
 
   const query = {};
   
@@ -222,29 +300,270 @@ const getMerchants = asyncHandler(async (req, res) => {
     ];
   }
 
+  // NEW: Document status filtering
+  if (documentStatus) {
+    switch (documentStatus) {
+      case 'complete':
+        query.$and = [
+          { 'documents.businessRegistration': { $exists: true, $ne: '' } },
+          { 'documents.idDocument': { $exists: true, $ne: '' } },
+          { 'documents.utilityBill': { $exists: true, $ne: '' } }
+        ];
+        break;
+      case 'incomplete':
+        query.$or = [
+          { 'documents.businessRegistration': { $exists: false } },
+          { 'documents.businessRegistration': '' },
+          { 'documents.idDocument': { $exists: false } },
+          { 'documents.idDocument': '' },
+          { 'documents.utilityBill': { $exists: false } },
+          { 'documents.utilityBill': '' }
+        ];
+        break;
+      case 'pending_review':
+        query.$and = [
+          { 'documents.businessRegistration': { $exists: true, $ne: '' } },
+          { 'documents.idDocument': { $exists: true, $ne: '' } },
+          { 'documents.utilityBill': { $exists: true, $ne: '' } },
+          { verified: false }
+        ];
+        break;
+    }
+  }
+
   const merchants = await Merchant.find(query)
     .sort({ createdAt: -1 })
     .limit(limit * 1)
     .skip((page - 1) * limit)
-    .select('-password');
+    .select('-password') // UPDATED: Include all fields including documents
+    .lean();
+
+  // NEW: Enhance merchant data with document analysis
+  const enhancedMerchants = merchants.map(merchant => {
+    const documentStatus = {
+      businessRegistration: !!(merchant.documents?.businessRegistration),
+      idDocument: !!(merchant.documents?.idDocument),
+      utilityBill: !!(merchant.documents?.utilityBill),
+      additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
+    };
+
+    const documentCompleteness = Object.values(documentStatus).slice(0, 3).filter(Boolean).length;
+    const isDocumentComplete = documentCompleteness === 3;
+    
+    return {
+      ...merchant,
+      documentStatus,
+      documentCompleteness,
+      isDocumentComplete,
+      needsVerification: isDocumentComplete && !merchant.verified
+    };
+  });
 
   const total = await Merchant.countDocuments(query);
 
+  // NEW: Additional statistics for this query
+  const queryStats = await Merchant.aggregate([
+    { $match: query },
+    {
+      $group: {
+        _id: null,
+        totalMerchants: { $sum: 1 },
+        verifiedMerchants: { $sum: { $cond: [{ $eq: ['$verified', true] }, 1, 0] } },
+        withBusinessReg: {
+          $sum: {
+            $cond: [
+              { $and: [
+                { $ne: ['$documents.businessRegistration', null] },
+                { $ne: ['$documents.businessRegistration', ''] }
+              ]}, 1, 0
+            ]
+          }
+        },
+        withIdDoc: {
+          $sum: {
+            $cond: [
+              { $and: [
+                { $ne: ['$documents.idDocument', null] },
+                { $ne: ['$documents.idDocument', ''] }
+              ]}, 1, 0
+            ]
+          }
+        },
+        withUtilityBill: {
+          $sum: {
+            $cond: [
+              { $and: [
+                { $ne: ['$documents.utilityBill', null] },
+                { $ne: ['$documents.utilityBill', ''] }
+              ]}, 1, 0
+            ]
+          }
+        }
+      }
+    }
+  ]);
+
   res.status(200).json({
     success: true,
-    merchants,
+    merchants: enhancedMerchants,
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
       total,
       pages: Math.ceil(total / limit)
+    },
+    // NEW: Query-specific statistics
+    queryStats: queryStats[0] || {
+      totalMerchants: 0,
+      verifiedMerchants: 0,
+      withBusinessReg: 0,
+      withIdDoc: 0,
+      withUtilityBill: 0
     }
   });
 });
 
-// @desc    Create new merchant manually
-// @route   POST /api/admin/dashboard/merchants
+
+// NEW: Get merchant documents for review
+// @desc    Get merchant documents for admin review
+// @route   GET /api/admin/dashboard/merchants/:id/documents
 // @access  Private (Admin)
+const getMerchantDocuments = asyncHandler(async (req, res) => {
+  try {
+    const merchant = await Merchant.findById(req.params.id)
+      .select('businessName email documents verified verifiedDate createdAt');
+
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Merchant not found'
+      });
+    }
+
+    // Analyze document completeness
+    const documentAnalysis = {
+      businessRegistration: {
+        submitted: !!(merchant.documents?.businessRegistration),
+        path: merchant.documents?.businessRegistration || null,
+        required: true
+      },
+      idDocument: {
+        submitted: !!(merchant.documents?.idDocument),
+        path: merchant.documents?.idDocument || null,
+        required: true
+      },
+      utilityBill: {
+        submitted: !!(merchant.documents?.utilityBill),
+        path: merchant.documents?.utilityBill || null,
+        required: true
+      },
+      additionalDocs: {
+        submitted: !!(merchant.documents?.additionalDocs?.length > 0),
+        paths: merchant.documents?.additionalDocs || [],
+        required: false
+      }
+    };
+
+    const requiredDocsSubmitted = [
+      documentAnalysis.businessRegistration.submitted,
+      documentAnalysis.idDocument.submitted,
+      documentAnalysis.utilityBill.submitted
+    ].filter(Boolean).length;
+
+    const canBeVerified = requiredDocsSubmitted === 3;
+
+    res.status(200).json({
+      success: true,
+      merchant: {
+        id: merchant._id,
+        businessName: merchant.businessName,
+        email: merchant.email,
+        verified: merchant.verified,
+        verifiedDate: merchant.verifiedDate,
+        createdAt: merchant.createdAt
+      },
+      documents: merchant.documents,
+      analysis: {
+        documentAnalysis,
+        requiredDocsSubmitted,
+        totalRequiredDocs: 3,
+        canBeVerified,
+        completionPercentage: (requiredDocsSubmitted / 3 * 100).toFixed(0)
+      }
+    });
+  } catch (error) {
+    console.error('Get merchant documents error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch merchant documents'
+    });
+  }
+});
+
+// NEW: Bulk document verification actions
+// @desc    Process multiple merchant verifications
+// @route   POST /api/admin/dashboard/merchants/bulk-verify
+// @access  Private (Admin)
+const bulkVerifyMerchants = asyncHandler(async (req, res) => {
+  try {
+    const { merchantIds, action } = req.body; // action: 'verify' or 'reject'
+
+    if (!merchantIds || !Array.isArray(merchantIds) || merchantIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an array of merchant IDs'
+      });
+    }
+
+    if (!['verify', 'reject'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid action. Use "verify" or "reject"'
+      });
+    }
+
+    const updateData = action === 'verify' 
+      ? { verified: true, verifiedDate: new Date() }
+      : { verified: false, verifiedDate: null };
+
+    const result = await Merchant.updateMany(
+      { _id: { $in: merchantIds } },
+      updateData
+    );
+
+    // Get updated merchants for response
+    const updatedMerchants = await Merchant.find({ _id: { $in: merchantIds } })
+      .select('businessName email verified verifiedDate');
+
+    // Log admin activity (skip for hardcoded admin)
+    if (req.admin && req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: `bulk_merchant_${action}`,
+            details: `${action === 'verify' ? 'Verified' : 'Rejected'} ${result.modifiedCount} merchants`,
+            timestamp: new Date()
+          }
+        }
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully ${action === 'verify' ? 'verified' : 'rejected'} ${result.modifiedCount} merchants`,
+      modifiedCount: result.modifiedCount,
+      merchants: updatedMerchants
+    });
+  } catch (error) {
+    console.error('Bulk verify merchants error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process bulk verification'
+    });
+  }
+});
+
+// UPDATED: Enhanced createMerchant function
 const createMerchant = asyncHandler(async (req, res) => {
   const {
     businessName,
@@ -255,11 +574,23 @@ const createMerchant = asyncHandler(async (req, res) => {
     address,
     location,
     website,
-    yearEstablished
+    yearEstablished,
+    autoVerify = false // NEW: Option to auto-verify
   } = req.body;
 
   // Generate temporary password
   const tempPassword = crypto.randomBytes(8).toString('hex');
+
+  // Set default business hours
+  const defaultBusinessHours = {
+    monday: { open: '09:00', close: '18:00', closed: false },
+    tuesday: { open: '09:00', close: '18:00', closed: false },
+    wednesday: { open: '09:00', close: '18:00', closed: false },
+    thursday: { open: '09:00', close: '18:00', closed: false },
+    friday: { open: '09:00', close: '18:00', closed: false },
+    saturday: { open: '09:00', close: '16:00', closed: false },
+    sunday: { open: '10:00', close: '16:00', closed: true }
+  };
 
   const merchant = await Merchant.create({
     businessName,
@@ -272,6 +603,9 @@ const createMerchant = asyncHandler(async (req, res) => {
     location,
     website,
     yearEstablished,
+    businessHours: defaultBusinessHours,
+    verified: autoVerify, // NEW: Auto-verify option
+    verifiedDate: autoVerify ? new Date() : null, // NEW
     createdByAdmin: true,
     createdByAdminId: req.admin.id,
     createdByAdminName: req.admin.firstName + ' ' + req.admin.lastName,
@@ -286,7 +620,10 @@ const createMerchant = asyncHandler(async (req, res) => {
     <p><strong>Login Credentials:</strong></p>
     <p>Email: ${email}</p>
     <p>Temporary Password: ${tempPassword}</p>
-    <p>Please log in and change your password immediately.</p>
+    ${autoVerify ? 
+      '<p><strong>Your account has been pre-verified!</strong></p>' : 
+      '<p>Please log in and upload your verification documents.</p>'
+    }
     <p>Login here: ${process.env.FRONTEND_URL}/merchant/login</p>
   `;
 
@@ -304,7 +641,7 @@ const createMerchant = asyncHandler(async (req, res) => {
         $push: {
           activityLog: {
             action: 'merchant_created',
-            details: `Created merchant account for ${businessName}`,
+            details: `Created merchant account for ${businessName}${autoVerify ? ' (auto-verified)' : ''}`,
             timestamp: new Date()
           }
         }
@@ -320,7 +657,10 @@ const createMerchant = asyncHandler(async (req, res) => {
         phone: merchant.phone,
         businessType: merchant.businessType,
         verified: merchant.verified,
-        createdAt: merchant.createdAt
+        createdAt: merchant.createdAt,
+        // NEW: Document status info
+        documentsRequired: !autoVerify,
+        verificationStatus: autoVerify ? 'verified' : 'pending_documents'
       },
       message: 'Merchant created successfully and credentials sent via email'
     });
@@ -335,12 +675,15 @@ const createMerchant = asyncHandler(async (req, res) => {
         phone: merchant.phone,
         businessType: merchant.businessType,
         verified: merchant.verified,
-        createdAt: merchant.createdAt
+        createdAt: merchant.createdAt,
+        documentsRequired: !autoVerify,
+        verificationStatus: autoVerify ? 'verified' : 'pending_documents'
       },
       message: 'Merchant created successfully but email sending failed'
     });
   }
 });
+
 
 // @desc    Update merchant status
 // @route   PUT /api/admin/dashboard/merchants/:id/status
@@ -1207,6 +1550,8 @@ const getAnalytics = asyncHandler(async (req, res) => {
 module.exports = {
   getDashboardStats,
   getMerchants,
+  getMerchantDocuments,
+  bulkVerifyMerchants,
   createMerchant,
   updateMerchantStatus,
   getUsers,
