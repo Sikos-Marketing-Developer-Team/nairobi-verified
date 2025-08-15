@@ -167,7 +167,6 @@ app.get('/api/status', (req, res) => {
 // Routes - FIXED: Reordered to prevent conflicts
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/auth/admin', require('./routes/adminAuth'));
-app.use('/api/admin', require('./routes/admin'));
 app.use('/api/admin/dashboard', require('./routes/adminDashboard'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/merchants', require('./routes/merchants'));
