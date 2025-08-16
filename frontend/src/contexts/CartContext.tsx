@@ -117,20 +117,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           updatedItems[existingItemIndex].quantity += quantity;
           setItems(updatedItems);
         } else {
-          // In a real app, you would fetch product details from an API
-          // For now, we'll simulate it with mock data
-          const mockProduct = {
-            id: `local-${Date.now()}`,
-            productId,
-            name: `Product ${productId}`,
-            price: 10000, // Example price
-            quantity,
-            image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop',
-            merchantId: 'local-merchant',
-            merchantName: 'Local Merchant',
-          };
-          
-          setItems([...items, mockProduct]);
+          // For local cart, we need to fetch product details from API
+          // This should be implemented when products API is available
+          console.warn('Adding to local cart requires product details from API');
+          throw new Error('Product details not available for local cart');
         }
       }
     } catch (error) {
@@ -217,14 +207,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await cartAPI.applyPromoCode(code);
         await fetchCart();
       } else {
-        // In a real app, you would validate the promo code with an API
-        // For now, we'll simulate it with mock data
-        const mockPromoCode = {
-          code,
-          discount: 10,
-          discountType: 'percentage' as const,
-        };
-        setPromoCode(mockPromoCode);
+        // For local cart, promo codes should be validated with API
+        // This should be implemented when promo code API is available
+        console.warn('Promo code validation requires API call');
+        throw new Error('Promo code validation not available for local cart');
       }
     } catch (error) {
       console.error('Failed to apply promo code:', error);

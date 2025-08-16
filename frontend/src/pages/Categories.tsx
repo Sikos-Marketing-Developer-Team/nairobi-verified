@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, MapPin, Star, Heart, Filter, Search, ChevronDown } from 'lucide-react';
+import { Check, MapPin, Star, Heart, Filter, Search, ChevronDown, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { usePageLoading } from '@/hooks/use-loading';
 import { CategorySkeleton, ProductGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { productsAPI } from '@/lib/api';
+import { useToast } from '@/components/ui/use-toast';
 
 // Categories data (same as in CategorySection component)
 const categories = [
@@ -57,131 +59,9 @@ const categories = [
   }
 ];
 
-// Sample products data
-const allProducts = [
-  {
-    id: 1,
-    name: 'MacBook Pro 16-inch',
-    price: 185000,
-    originalPrice: 200000,
-    rating: 4.8,
-    reviews: 24,
-    image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop',
-    merchant: 'TechHub Kenya',
-    location: 'Kimathi Street, CBD',
-    verified: true,
-    featured: true,
-    merchantId: '60d0fe4f5311236168a10101',
-    category: 'Electronics'
-  },
-  {
-    id: 2,
-    name: 'Samsung Galaxy S24 Ultra',
-    price: 120000,
-    originalPrice: 135000,
-    rating: 4.7,
-    reviews: 18,
-    image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop',
-    merchant: 'Mobile World',
-    location: 'Tom Mboya Street, CBD',
-    verified: true,
-    featured: true,
-    merchantId: '60d0fe4f5311236168a10102',
-    category: 'Electronics'
-  },
-  {
-    id: 3,
-    name: 'Nike Air Max 270',
-    price: 12000,
-    originalPrice: 15000,
-    rating: 4.6,
-    reviews: 32,
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=300&fit=crop',
-    merchant: 'Sports Corner',
-    location: 'Moi Avenue, CBD',
-    verified: true,
-    featured: false,
-    merchantId: '60d0fe4f5311236168a10103',
-    category: 'Fashion & Clothing'
-  },
-  {
-    id: 4,
-    name: 'Canon EOS R5 Camera',
-    price: 75000,
-    originalPrice: 85000,
-    rating: 4.9,
-    reviews: 15,
-    image: 'https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=400&h=300&fit=crop',
-    merchant: 'PhotoPro Kenya',
-    location: 'Koinange Street, CBD',
-    verified: true,
-    featured: true,
-    merchantId: '60d0fe4f5311236168a10104',
-    category: 'Electronics'
-  },
-  {
-    id: 5,
-    name: 'Adidas Ultraboost 22',
-    price: 14000,
-    originalPrice: 16000,
-    rating: 4.5,
-    reviews: 28,
-    image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=400&h=300&fit=crop',
-    merchant: 'Sports Corner',
-    location: 'Moi Avenue, CBD',
-    verified: true,
-    featured: false,
-    merchantId: '60d0fe4f5311236168a10103',
-    category: 'Sports & Fitness'
-  },
-  {
-    id: 6,
-    name: 'Sony WH-1000XM5 Headphones',
-    price: 35000,
-    originalPrice: 40000,
-    rating: 4.8,
-    reviews: 42,
-    image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400&h=300&fit=crop',
-    merchant: 'TechHub Kenya',
-    location: 'Kimathi Street, CBD',
-    verified: true,
-    featured: false,
-    merchantId: '60d0fe4f5311236168a10101',
-    category: 'Electronics'
-  },
-  {
-    id: 7,
-    name: 'Monstera Deliciosa Plant',
-    price: 2500,
-    originalPrice: 3000,
-    rating: 4.7,
-    reviews: 19,
-    image: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=400&h=300&fit=crop',
-    merchant: 'Green Thumb',
-    location: 'Kenyatta Avenue, CBD',
-    verified: true,
-    featured: false,
-    merchantId: '60d0fe4f5311236168a10105',
-    category: 'Home & Garden'
-  },
-  {
-    id: 8,
-    name: 'The Alchemist (Paperback)',
-    price: 1200,
-    originalPrice: 1500,
-    rating: 4.9,
-    reviews: 56,
-    image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=300&fit=crop',
-    merchant: 'City Books',
-    location: 'Biashara Street, CBD',
-    verified: true,
-    featured: false,
-    merchantId: '60d0fe4f5311236168a10106',
-    category: 'Books & Media'
-  }
-];
+// This will be replaced with real API data
 
-const ProductCard = ({ product }: { product: typeof allProducts[0] }) => {
+const ProductCard = ({ product }: { product: any }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
@@ -195,7 +75,7 @@ const ProductCard = ({ product }: { product: typeof allProducts[0] }) => {
       <CardContent className="p-0">
         <div className="relative">
           <img
-            src={product.image}
+            src={product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop'}
             alt={product.name}
             className="w-full h-48 object-cover"
           />
@@ -220,8 +100,8 @@ const ProductCard = ({ product }: { product: typeof allProducts[0] }) => {
         
         <div className="p-4">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm text-gray-600">{product.merchant}</span>
-            {product.verified && (
+            <span className="text-sm text-gray-600">{product.merchant?.businessName || product.merchantName}</span>
+            {product.merchant?.verified && (
               <div className="flex items-center gap-1 bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded">
                 <Check className="h-3 w-3" />
                 Verified
@@ -233,24 +113,24 @@ const ProductCard = ({ product }: { product: typeof allProducts[0] }) => {
             {product.name}
           </h3>
           
-          <Link to={`/merchant/${product.merchantId}`} className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-2 mb-2">
+          <Link to={`/merchant/${product.merchant?._id || product.merchantId}`} className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-2 mb-2">
             <MapPin className="h-4 w-4 text-gray-400" />
-            <span>{product.location}</span>
+            <span>{product.merchant?.address || product.location}</span>
           </Link>
           
           <div className="flex items-center gap-2 mb-3">
             <div className="flex items-center">
               <Star className="h-4 w-4 text-yellow-400 fill-current" />
-              <span className="text-sm font-medium ml-1">{product.rating}</span>
+              <span className="text-sm font-medium ml-1">{product.rating || 0}</span>
             </div>
-            <span className="text-sm text-gray-500">({product.reviews} reviews)</span>
+            <span className="text-sm text-gray-500">({product.reviewCount || product.reviews || 0} reviews)</span>
           </div>
           
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xl font-bold text-primary">
               {formatPrice(product.price)}
             </span>
-            {product.originalPrice > product.price && (
+            {product.originalPrice && product.originalPrice > product.price && (
               <span className="text-sm text-gray-500 line-through">
                 {formatPrice(product.originalPrice)}
               </span>
@@ -305,26 +185,67 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState([0, 200000]);
   const [showFilters, setShowFilters] = useState(false);
-  const isLoading = usePageLoading(650);
+  const [products, setProducts] = useState([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const isPageLoading = usePageLoading(650);
+  const { toast } = useToast();
 
   // Find the selected category
   const selectedCategory = categoryId 
     ? categories.find(cat => cat.id === categoryId) 
     : null;
 
-  // Filter products based on category and search term
-  const filteredProducts = allProducts.filter(product => {
-    const matchesCategory = selectedCategory 
-      ? product.category === selectedCategory.name 
-      : true;
-    
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.merchant.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
-    
-    return matchesCategory && matchesSearch && matchesPrice;
-  });
+  // Fetch products from API
+  useEffect(() => {
+    fetchProducts();
+  }, [categoryId, searchTerm, priceRange, currentPage]);
+
+  const fetchProducts = async () => {
+    setIsLoadingProducts(true);
+    try {
+      const params: any = {
+        page: currentPage,
+        limit: 12,
+      };
+
+      // Add category filter if selected
+      if (selectedCategory) {
+        params.category = selectedCategory.name;
+      }
+
+      // Add search term if provided
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim();
+      }
+
+      // Add price range filters
+      if (priceRange[0] > 0) {
+        params.minPrice = priceRange[0];
+      }
+      if (priceRange[1] < 200000) {
+        params.maxPrice = priceRange[1];
+      }
+
+      const response = await productsAPI.getProducts(params);
+      setProducts(response.data.data);
+      setTotalProducts(response.data.pagination.total);
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load products. Please try again.",
+        variant: "destructive",
+      });
+      setProducts([]);
+      setTotalProducts(0);
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  const filteredProducts = products;
 
 // (Removed duplicate/incorrect loading block that referenced 'product')
 
@@ -464,13 +385,18 @@ const Categories = () => {
               <h2 className="text-2xl font-semibold text-gray-900">
                 {selectedCategory ? `${selectedCategory.name} Products` : 'All Products'}
               </h2>
-              <span className="text-gray-600">{filteredProducts.length} products</span>
+              <span className="text-gray-600">{totalProducts} products</span>
             </div>
 
-            {filteredProducts.length > 0 ? (
+            {isLoadingProducts ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="ml-2">Loading products...</span>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {filteredProducts.map((product) => (
-                  <Link key={product.id} to={`/product/${product.id}`}>
+                  <Link key={product._id || product.id} to={`/product/${product._id || product.id}`}>
                     <ProductCard product={product} />
                   </Link>
                 ))}

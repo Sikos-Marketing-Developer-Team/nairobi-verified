@@ -10,29 +10,24 @@ import { Link } from 'react-router-dom';
 import { usePageLoading } from '@/hooks/use-loading';
 import { PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/components/ui/use-toast';
 
 const Cart = () => {
   const isLoading = usePageLoading(500);
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: 'MacBook Pro 16-inch',
-      price: 185000,
-      quantity: 1,
-      image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=300&h=300&fit=crop',
-      merchant: 'TechHub Kenya'
-    },
-    {
-      id: 2,
-      name: 'Nike Air Max 270',
-      price: 12000,
-      quantity: 2,
-      image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop',
-      merchant: 'Sports Corner'
-    }
-  ]);
-
-  const [promoCode, setPromoCode] = useState('');
+  const { 
+    items: cartItems, 
+    subtotal, 
+    total, 
+    promoCode, 
+    isLoading: isCartLoading,
+    updateItemQuantity,
+    removeItem,
+    applyPromoCode,
+    removePromoCode
+  } = useCart();
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const { toast } = useToast();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -42,25 +37,65 @@ const Cart = () => {
     }).format(price);
   };
 
-  const updateQuantity = (id: number, newQuantity: number) => {
+  const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      removeItem(id);
+      handleRemoveItem(itemId);
       return;
     }
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
+    try {
+      await updateItemQuantity(itemId, newQuantity);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update item quantity. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const removeItem = (id: number) => {
-    setCartItems(items => items.filter(item => item.id !== id));
+  const handleRemoveItem = async (itemId: string) => {
+    try {
+      await removeItem(itemId);
+      toast({
+        title: "Success",
+        description: "Item removed from cart.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove item. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const handleApplyPromoCode = async () => {
+    if (!promoCodeInput.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a promo code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await applyPromoCode(promoCodeInput.trim());
+      toast({
+        title: "Success",
+        description: "Promo code applied successfully!",
+      });
+      setPromoCodeInput('');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Invalid promo code. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const deliveryFee = 500;
-  const total = subtotal + deliveryFee;
 
   if (isLoading) {
     return (
@@ -180,7 +215,7 @@ const Cart = () => {
                     
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                      <p className="text-sm text-gray-600">{item.merchant}</p>
+                      <p className="text-sm text-gray-600">{item.merchantName}</p>
                       <p className="text-lg font-bold text-primary mt-1">
                         {formatPrice(item.price)}
                       </p>
@@ -191,7 +226,8 @@ const Cart = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                          disabled={isCartLoading}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -199,7 +235,8 @@ const Cart = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                          disabled={isCartLoading}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -208,8 +245,9 @@ const Cart = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => handleRemoveItem(item.id)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                        disabled={isCartLoading}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -248,15 +286,44 @@ const Cart = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Promo Code
                   </label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Enter code"
-                      value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value)}
-                    />
-                    <Button variant="outline">Apply</Button>
-                  </div>
+                  {promoCode ? (
+                    <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
+                      <div>
+                        <span className="text-sm font-medium text-green-800">
+                          {promoCode.code} applied
+                        </span>
+                        <p className="text-xs text-green-600">
+                          {promoCode.discountType === 'percentage' 
+                            ? `${promoCode.discount}% discount` 
+                            : `KES ${promoCode.discount} discount`}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={removePromoCode}
+                        className="text-green-700 hover:text-green-800"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Enter code"
+                        value={promoCodeInput}
+                        onChange={(e) => setPromoCodeInput(e.target.value)}
+                      />
+                      <Button 
+                        variant="outline"
+                        onClick={handleApplyPromoCode}
+                        disabled={isCartLoading}
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <Button className="w-full bg-primary hover:bg-primary-dark text-white mb-4">

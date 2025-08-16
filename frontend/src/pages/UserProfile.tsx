@@ -8,7 +8,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { userAPI } from '@/lib/api';
+import { userAPI, favoritesAPI, reviewsAPI } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
 import { usePageLoading } from '@/hooks/use-loading';
 import { ProfileSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
@@ -33,6 +33,10 @@ const UserProfile = () => {
     address: user?.address || '' // Assuming 'address' is a field in your User type
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [favoriteMerchants, setFavoriteMerchants] = useState([]);
+  const [recentlyReviewed, setRecentlyReviewed] = useState([]);
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const isPageLoading = usePageLoading(500);
 
   useEffect(() => {
@@ -47,52 +51,39 @@ const UserProfile = () => {
     }
   }, [user]);
 
-  // Mock favorite merchants and recently viewed
-  const favoriteMerchants = [
-    {
-      _id: '60d0fe4f5311236168a10101',
-      businessName: 'TechHub Kenya',
-      businessType: 'Electronics',
-      location: 'Kimathi Street',
-      verified: true,
-      logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop'
-    },
-    {
-      _id: '60d0fe4f5311236168a10102',
-      businessName: 'CBD Fashion House',
-      businessType: 'Fashion',
-      location: 'Tom Mboya Street',
-      verified: true,
-      logo: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=200&fit=crop'
-    },
-    {
-      _id: '60d0fe4f5311236168a10103',
-      businessName: 'Nairobi Pharmacy',
-      businessType: 'Healthcare',
-      location: 'Kenyatta Avenue',
-      verified: true,
-      logo: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=300&h=200&fit=crop'
+  // Fetch user's favorite merchants
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchFavorites();
+      fetchRecentReviews();
     }
-  ];
+  }, [isAuthenticated]);
 
-  const recentlyViewed = [
-    {
-      _id: '60d0fe4f5311236168a10104',
-      businessName: 'Savannah Electronics',
-      businessType: 'Electronics',
-      location: 'Moi Avenue',
-      verified: false,
-      logo: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=300&h=200&fit=crop'
-    },
-    {
-      _id: '60d0fe4f5311236168a10105',
-      businessName: 'City Books',
-      businessType: 'Books & Stationery',
-      location: 'Biashara Street',
-      verified: true,
-      logo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop'
+  const fetchFavorites = async () => {
+    setIsLoadingFavorites(true);
+    try {
+      const response = await favoritesAPI.getFavorites();
+      setFavoriteMerchants(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch favorites:', error);
+      setFavoriteMerchants([]);
+    } finally {
+      setIsLoadingFavorites(false);
     }
-  ];
+  };
+
+  const fetchRecentReviews = async () => {
+    setIsLoadingReviews(true);
+    try {
+      const response = await reviewsAPI.getUserReviews({ limit: 4, sort: '-createdAt' });
+      setRecentlyReviewed(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch recent reviews:', error);
+      setRecentlyReviewed([]);
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUserData({
@@ -309,20 +300,25 @@ const UserProfile = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {favoriteMerchants.length > 0 ? (
+                {isLoadingFavorites ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="ml-2">Loading favorites...</span>
+                  </div>
+                ) : favoriteMerchants.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {favoriteMerchants.map((merchant) => (
                       <Link to={`/merchant/${merchant._id}`} key={merchant._id}>
                         <Card className="hover-scale cursor-pointer">
                           <CardContent className="p-4 flex items-center gap-4">
                             <img
-                              src={merchant.logo}
+                              src={merchant.logo || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop'}
                               alt={merchant.businessName}
                               className="w-16 h-16 object-cover rounded-md"
                             />
                             <div>
                               <h4 className="font-medium text-gray-900 line-clamp-1">{merchant.businessName}</h4>
-                              <p className="text-sm text-gray-600 line-clamp-1">{merchant.location}</p>
+                              <p className="text-sm text-gray-600 line-clamp-1">{merchant.address || merchant.location}</p>
                             </div>
                           </CardContent>
                         </Card>
@@ -330,18 +326,22 @@ const UserProfile = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-600">No favorite merchants added yet.</p>
+                  <div className="text-center py-8">
+                    <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-600">No favorite merchants added yet.</p>
+                    <p className="text-sm text-gray-500 mt-2">Start exploring merchants and add them to your favorites!</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Recently Viewed */}
+            {/* Recently Reviewed */}
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-blue-500" />
-                    Recently Viewed
+                    Recently Reviewed ({recentlyReviewed.length})
                   </CardTitle>
                   <Button variant="outline" size="sm">
                     View All
@@ -349,20 +349,26 @@ const UserProfile = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {recentlyViewed.length > 0 ? (
+                {isLoadingReviews ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="ml-2">Loading reviews...</span>
+                  </div>
+                ) : recentlyReviewed.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {recentlyViewed.map((merchant) => (
-                      <Link to={`/merchant/${merchant._id}`} key={merchant._id}>
+                    {recentlyReviewed.map((review) => (
+                      <Link to={`/merchant/${review.merchantId}`} key={review._id}>
                         <Card className="hover-scale cursor-pointer">
                           <CardContent className="p-4 flex items-center gap-4">
                             <img
-                              src={merchant.logo}
-                              alt={merchant.businessName}
+                              src={review.merchant?.logo || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop'}
+                              alt={review.merchant?.businessName}
                               className="w-16 h-16 object-cover rounded-md"
                             />
                             <div>
-                              <h4 className="font-medium text-gray-900 line-clamp-1">{merchant.businessName}</h4>
-                              <p className="text-sm text-gray-600 line-clamp-1">{merchant.location}</p>
+                              <h4 className="font-medium text-gray-900 line-clamp-1">{review.merchant?.businessName}</h4>
+                              <p className="text-sm text-gray-600 line-clamp-1">Rating: {review.rating}/5</p>
+                              <p className="text-xs text-gray-500 line-clamp-2">{review.comment}</p>
                             </div>
                           </CardContent>
                         </Card>
@@ -370,7 +376,11 @@ const UserProfile = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-600">No recently viewed merchants.</p>
+                  <div className="text-center py-8">
+                    <Clock className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-600">No reviews written yet.</p>
+                    <p className="text-sm text-gray-500 mt-2">Visit merchants and share your experience!</p>
+                  </div>
                 )}
               </CardContent>
             </Card>

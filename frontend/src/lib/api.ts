@@ -147,6 +147,36 @@ export const userAPI = {
   removeFromWishlist: (productId: string) => api.delete(`/users/wishlist/${productId}`),
 };
 
+// Favorites API
+export const favoritesAPI = {
+  getFavorites: () => api.get('/users/favorites'),
+  addToFavorites: (merchantId: string) => api.post('/users/favorites', { merchantId }),
+  removeFromFavorites: (merchantId: string) => api.delete(`/users/favorites/${merchantId}`),
+};
+
+// Reviews API
+export const reviewsAPI = {
+  getReviews: (merchantId: string, params = {}) => api.get(`/reviews/merchant/${merchantId}`, { params }),
+  getUserReviews: (params = {}) => api.get('/reviews/user', { params }),
+  createReview: (reviewData: any) => api.post('/reviews', reviewData),
+  updateReview: (reviewId: string, reviewData: any) => api.put(`/reviews/${reviewId}`, reviewData),
+  deleteReview: (reviewId: string) => api.delete(`/reviews/${reviewId}`),
+};
+
+// Products API
+export const productsAPI = {
+  getProducts: (params = {}) => api.get('/products', { params }),
+  getProduct: (id: string) => api.get(`/products/${id}`),
+  searchProducts: (query: string, params = {}) => api.get('/products/search', { params: { q: query, ...params } }),
+  getFeaturedProducts: (limit = 8) => api.get('/products/featured', { params: { limit } }),
+  getProductsByMerchant: (merchantId: string, params = {}) => api.get(`/products/merchant/${merchantId}`, { params }),
+  getCategories: () => api.get('/products/categories'),
+  getSearchSuggestions: (query: string) => api.get('/products/suggestions', { params: { q: query } }),
+  createProduct: (productData: any) => api.post('/products', productData),
+  updateProduct: (id: string, productData: any) => api.put(`/products/${id}`, productData),
+  deleteProduct: (id: string) => api.delete(`/products/${id}`),
+};
+
 // Admin API
 export const adminAPI = {
   getDashboardStats: () => api.get('/admin/dashboard/stats'),
@@ -162,6 +192,10 @@ export const adminAPI = {
   rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason }),
   removeMockData: () => api.delete('/admin/mock-data'),
   removeMockDataByType: (dataType: string) => api.delete(`/admin/mock-data/${dataType}`),
+  // Verification endpoints
+  getPendingVerifications: (params?: any) => api.get('/admin/merchants', { params: { ...params, documentStatus: 'pending_review' } }),
+  approveMerchant: (merchantId: string, notes?: string) => api.post(`/admin/merchants/${merchantId}/verify`, { notes }),
+  rejectMerchantVerification: (merchantId: string, reason: string, notes?: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason, notes }),
 };
 
 export default api;
