@@ -174,9 +174,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, 'Login', 'Login');
   };
 
-  const googleAuth = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-cbd-backend.onrender.com/api';
-    window.location.href = `${apiUrl}/auth/google`;
+  const googleAuth = async (credential: string) => {
+    return handleAuthAction(async () => {
+      const response = await authAPI.googleAuth(credential);
+      const { user } = response.data;
+      
+      if (user.role === 'admin') {
+        showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
+        throw new Error('Admin access restricted');
+      }
+      
+      setUser(user);
+      navigate(user.isMerchant || user.businessName 
+        ? '/merchant/dashboard' 
+        : '/dashboard', 
+        { replace: true }
+      );
+      showToast('Google Login Successful', 'You have been logged in with Google');
+      return response;
+    }, 'Google Login', 'Google Authentication');
   };
 
   const register = async (userData: any) => {

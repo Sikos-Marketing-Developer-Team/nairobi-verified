@@ -24,5 +24,5 @@ export type AuthContextType = {
   resetPassword: (token: string, password: string) => Promise<void>;
   updateProfile: (userData: any) => Promise<void>;
   refreshUser: () => Promise<boolean>;
-  googleAuth: () => void;
+  googleAuth: (credential: string) => Promise<any>;
 };
