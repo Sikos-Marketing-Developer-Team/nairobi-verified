@@ -1,27 +1,106 @@
 const Review = require('../models/Review');
 const Merchant = require('../models/Merchant');
+const { HTTP_STATUS } = require('../config/constants');
+
+// Error handling utility
+const handleError = (res, error, message, statusCode = 500) => {
+  console.error(`${message}:`, error);
+  res.status(statusCode).json({
+    success: false,
+    error: message
+  });
+};
 
 // @desc    Get reviews for a merchant
 // @route   GET /api/merchants/:merchantId/reviews
+// @route   GET /api/reviews/merchant/:merchantId
 // @access  Public
 exports.getReviews = async (req, res) => {
   try {
-    const reviews = await Review.find({ merchant: req.params.merchantId })
+    const merchantId = req.params.merchantId;
+    
+    // Validate merchantId
+    if (!merchantId) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Merchant ID is required'
+      });
+    }
+
+    // Check if merchant exists
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const reviews = await Review.find({ merchant: merchantId })
       .populate({
         path: 'user',
         select: 'firstName lastName avatar'
-      });
+      })
+      .populate({
+        path: 'merchant',
+        select: 'businessName'
+      })
+      .sort({ createdAt: -1 });
 
-    res.status(200).json({
+    // Always return success, even if no reviews
+    res.status(HTTP_STATUS.OK).json({
       success: true,
       count: reviews.length,
-      data: reviews
+      data: reviews,
+      message: reviews.length === 0 ? 'No reviews found for this merchant' : undefined
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
+    handleError(res, error, 'Failed to fetch reviews', HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// @desc    Get all reviews (for admin/general use)
+// @route   GET /api/reviews
+// @access  Public
+exports.getAllReviews = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, merchant, rating, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    
+    const filter = {};
+    if (merchant) filter.merchant = merchant;
+    if (rating) filter.rating = Number(rating);
+    
+    const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
+    const skip = (page - 1) * limit;
+
+    const reviews = await Review.find(filter)
+      .populate({
+        path: 'user',
+        select: 'firstName lastName avatar'
+      })
+      .populate({
+        path: 'merchant',
+        select: 'businessName'
+      })
+      .sort(sort)
+      .skip(skip)
+      .limit(Number(limit));
+
+    const total = await Review.countDocuments(filter);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      count: reviews.length,
+      data: reviews,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
     });
+  } catch (error) {
+    handleError(res, error, 'Failed to fetch reviews', HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -41,36 +120,43 @@ exports.getReview = async (req, res) => {
       });
 
     if (!review) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         error: 'Review not found'
       });
     }
 
-    res.status(200).json({
+    res.status(HTTP_STATUS.OK).json({
       success: true,
       data: review
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    handleError(res, error, 'Failed to fetch review', HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 };
 
 // @desc    Add review
 // @route   POST /api/merchants/:merchantId/reviews
+// @route   POST /api/reviews
 // @access  Private
 exports.addReview = async (req, res) => {
   try {
-    req.body.merchant = req.params.merchantId;
+    const merchantId = req.params.merchantId || req.body.merchant;
+    
+    if (!merchantId) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Merchant ID is required'
+      });
+    }
+
+    req.body.merchant = merchantId;
     req.body.user = req.user.id;
 
-    const merchant = await Merchant.findById(req.params.merchantId);
+    const merchant = await Merchant.findById(merchantId);
 
     if (!merchant) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         error: 'Merchant not found'
       });
@@ -79,11 +165,11 @@ exports.addReview = async (req, res) => {
     // Check if user already reviewed this merchant
     const existingReview = await Review.findOne({
       user: req.user.id,
-      merchant: req.params.merchantId
+      merchant: merchantId
     });
 
     if (existingReview) {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'You have already reviewed this merchant'
       });
@@ -91,15 +177,27 @@ exports.addReview = async (req, res) => {
 
     const review = await Review.create(req.body);
 
-    res.status(201).json({
+    // Populate the created review
+    const populatedReview = await Review.findById(review._id)
+      .populate({
+        path: 'user',
+        select: 'firstName lastName avatar'
+      })
+      .populate({
+        path: 'merchant',
+        select: 'businessName'
+      });
+
+    res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      data: review
+      data: populatedReview
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    if (error.code === 11000) {
+      handleError(res, error, 'You have already reviewed this merchant', HTTP_STATUS.BAD_REQUEST);
+    } else {
+      handleError(res, error, 'Failed to create review', HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
   }
 };
 
@@ -111,7 +209,7 @@ exports.updateReview = async (req, res) => {
     let review = await Review.findById(req.params.id);
 
     if (!review) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         error: 'Review not found'
       });
@@ -119,7 +217,7 @@ exports.updateReview = async (req, res) => {
 
     // Make sure review belongs to user
     if (review.user.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(401).json({
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         error: 'Not authorized to update this review'
       });
@@ -128,17 +226,20 @@ exports.updateReview = async (req, res) => {
     review = await Review.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
+    }).populate({
+      path: 'user',
+      select: 'firstName lastName avatar'
+    }).populate({
+      path: 'merchant',
+      select: 'businessName'
     });
 
-    res.status(200).json({
+    res.status(HTTP_STATUS.OK).json({
       success: true,
       data: review
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    handleError(res, error, 'Failed to update review', HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -150,7 +251,7 @@ exports.deleteReview = async (req, res) => {
     const review = await Review.findById(req.params.id);
 
     if (!review) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         error: 'Review not found'
       });
@@ -158,23 +259,22 @@ exports.deleteReview = async (req, res) => {
 
     // Make sure review belongs to user or user is admin
     if (review.user.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(401).json({
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         error: 'Not authorized to delete this review'
       });
     }
 
-    await review.remove();
+    // Use deleteOne instead of deprecated remove()
+    await Review.findByIdAndDelete(req.params.id);
 
-    res.status(200).json({
+    res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: {}
+      data: {},
+      message: 'Review deleted successfully'
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    handleError(res, error, 'Failed to delete review', HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -186,38 +286,48 @@ exports.addReply = async (req, res) => {
     const review = await Review.findById(req.params.id);
 
     if (!review) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         error: 'Review not found'
       });
     }
 
-    // Make sure merchant is replying to their own review
-    if (review.merchant.toString() !== req.merchant.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authorized to reply to this review'
-      });
+    // Check if user is admin or merchant owner
+    if (req.user.role !== 'admin') {
+      const merchant = await Merchant.findOne({ _id: review.merchant, owner: req.user.id });
+      if (!merchant) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          error: 'Not authorized to reply to this review'
+        });
+      }
     }
 
     // Add reply
     review.reply = {
       author: 'Business Owner',
       content: req.body.content,
-      date: Date.now()
+      date: new Date()
     };
 
     await review.save();
 
-    res.status(200).json({
+    const updatedReview = await Review.findById(review._id)
+      .populate({
+        path: 'user',
+        select: 'firstName lastName avatar'
+      })
+      .populate({
+        path: 'merchant',
+        select: 'businessName'
+      });
+
+    res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: review
+      data: updatedReview
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    handleError(res, error, 'Failed to add reply', HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -229,7 +339,7 @@ exports.markHelpful = async (req, res) => {
     const review = await Review.findById(req.params.id);
 
     if (!review) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         error: 'Review not found'
       });
@@ -243,7 +353,7 @@ exports.markHelpful = async (req, res) => {
       review.helpfulBy = review.helpfulBy.filter(
         id => id.toString() !== req.user.id
       );
-      review.helpful -= 1;
+      review.helpful = Math.max(0, review.helpful - 1);
     } else {
       // Add user to helpfulBy array
       review.helpfulBy.push(req.user.id);
@@ -252,14 +362,22 @@ exports.markHelpful = async (req, res) => {
 
     await review.save();
 
-    res.status(200).json({
+    const updatedReview = await Review.findById(review._id)
+      .populate({
+        path: 'user',
+        select: 'firstName lastName avatar'
+      })
+      .populate({
+        path: 'merchant',
+        select: 'businessName'
+      });
+
+    res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: review
+      data: updatedReview,
+      message: alreadyMarked ? 'Removed helpful mark' : 'Marked as helpful'
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    handleError(res, error, 'Failed to update helpful status', HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 };

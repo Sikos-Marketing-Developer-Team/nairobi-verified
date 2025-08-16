@@ -6,6 +6,7 @@ const HTTP_STATUS = {
   LOCKED: 423,
   INTERNAL_SERVER_ERROR: 500,
   CREATED: 201,
+  OK: 200,
 };
 
 const TIME = {

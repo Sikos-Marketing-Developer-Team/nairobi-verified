@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   getReviews,
+  getAllReviews,
   getReview,
   addReview,
   updateReview,
@@ -8,20 +9,27 @@ const {
   addReply,
   markHelpful
 } = require('../controllers/reviews');
-const { protect, isMerchant } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 const router = express.Router({ mergeParams: true });
 
+// General reviews routes
 router.route('/')
-  .get(getReviews)
+  .get(getAllReviews)
   .post(protect, addReview);
 
+// Merchant-specific reviews route
+router.get('/merchant/:merchantId', getReviews);
+router.post('/merchant/:merchantId', protect, addReview);
+
+// Individual review routes
 router.route('/:id')
   .get(getReview)
   .put(protect, updateReview)
   .delete(protect, deleteReview);
 
-router.post('/:id/reply', protect, isMerchant, addReply);
+// Review interaction routes
+router.post('/:id/reply', protect, addReply);
 router.put('/:id/helpful', protect, markHelpful);
 
 module.exports = router;
