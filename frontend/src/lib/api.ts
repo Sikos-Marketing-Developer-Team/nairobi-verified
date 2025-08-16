@@ -84,10 +84,12 @@ export const merchantsAPI = {
   verifyMerchant: (id: string) => api.put(`/merchants/${id}/verify`)
 };
 
-// Reviews API
+// Reviews API (consolidated)
 export const reviewsAPI = {
-  getReviews: (merchantId: string) => api.get(`/merchants/${merchantId}/reviews`),
+  getReviews: (merchantId: string, params = {}) => api.get(`/reviews/merchant/${merchantId}`, { params }),
+  getUserReviews: (params = {}) => api.get('/reviews/user', { params }),
   getReview: (id: string) => api.get(`/reviews/${id}`),
+  createReview: (reviewData: any) => api.post('/reviews', reviewData),
   addReview: (merchantId: string, reviewData: any) => api.post(`/merchants/${merchantId}/reviews`, reviewData),
   updateReview: (id: string, reviewData: any) => api.put(`/reviews/${id}`, reviewData),
   deleteReview: (id: string) => api.delete(`/reviews/${id}`),
@@ -95,9 +97,12 @@ export const reviewsAPI = {
   markHelpful: (id: string) => api.put(`/reviews/${id}/helpful`)
 };
 
-// Favorites API
+// Favorites API (consolidated)
 export const favoritesAPI = {
-  getFavorites: () => api.get('/favorites'),
+  getFavorites: () => api.get('/users/favorites'),
+  addToFavorites: (merchantId: string) => api.post('/users/favorites', { merchantId }),
+  removeFromFavorites: (merchantId: string) => api.delete(`/users/favorites/${merchantId}`),
+  // Legacy endpoints for backward compatibility
   addFavorite: (merchantId: string) => api.post(`/favorites/${merchantId}`),
   removeFavorite: (merchantId: string) => api.delete(`/favorites/${merchantId}`)
 };
@@ -147,21 +152,7 @@ export const userAPI = {
   removeFromWishlist: (productId: string) => api.delete(`/users/wishlist/${productId}`),
 };
 
-// Favorites API
-export const favoritesAPI = {
-  getFavorites: () => api.get('/users/favorites'),
-  addToFavorites: (merchantId: string) => api.post('/users/favorites', { merchantId }),
-  removeFromFavorites: (merchantId: string) => api.delete(`/users/favorites/${merchantId}`),
-};
 
-// Reviews API
-export const reviewsAPI = {
-  getReviews: (merchantId: string, params = {}) => api.get(`/reviews/merchant/${merchantId}`, { params }),
-  getUserReviews: (params = {}) => api.get('/reviews/user', { params }),
-  createReview: (reviewData: any) => api.post('/reviews', reviewData),
-  updateReview: (reviewId: string, reviewData: any) => api.put(`/reviews/${reviewId}`, reviewData),
-  deleteReview: (reviewId: string) => api.delete(`/reviews/${reviewId}`),
-};
 
 // Products API
 export const productsAPI = {
