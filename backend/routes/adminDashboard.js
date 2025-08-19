@@ -29,34 +29,34 @@ router.use(protect);
 router.use(authorize('admin'));
 
 // Dashboard routes
-router.get('/dashboard/stats', getDashboardStats);
-router.get('/dashboard/analytics', checkPermission('analytics.read'), getAnalytics);
-router.get('/dashboard/system-status', getSystemStatus);
-router.get('/dashboard/settings', checkPermission('settings.read'), getSettings);
-router.put('/dashboard/settings', checkPermission('settings.write'), updateSettings);
-router.get('/dashboard/export/:type', exportData);
+router.get('/stats', getDashboardStats);
+router.get('/analytics', checkPermission('analytics.read'), getAnalytics);
+router.get('/system-status', getSystemStatus);
+router.get('/settings', checkPermission('settings.read'), getSettings);
+router.put('/settings', checkPermission('settings.write'), updateSettings);
+router.get('/export/:type', exportData);
 
 // Merchant management routes
-router.get('/dashboard/merchants', checkPermission('merchants.read'), getMerchants);
-router.post('/dashboard/merchants', checkPermission('merchants.write'), createMerchant);
-router.put('/dashboard/merchants/:id/status', checkPermission('merchants.approve'), updateMerchantStatus);
+router.get('/merchants', checkPermission('merchants.read'), getMerchants);
+router.post('/merchants', checkPermission('merchants.write'), createMerchant);
+router.put('/merchants/:id/status', checkPermission('merchants.approve'), updateMerchantStatus);
 
 // Document management routes
-router.get('/dashboard/merchants/:id/documents', checkPermission('merchants.read'), getMerchantDocuments);
-router.post('/dashboard/merchants/bulk-verify', checkPermission('merchants.approve'), bulkVerifyMerchants);
+router.get('/merchants/:id/documents', checkPermission('merchants.read'), getMerchantDocuments);
+router.post('/merchants/bulk-verify', checkPermission('merchants.approve'), bulkVerifyMerchants);
 
 // User management routes
-router.get('/dashboard/users', checkPermission('users.read'), getUsers);
-router.post('/dashboard/users', checkPermission('users.write'), createUser);
-router.put('/dashboard/users/:id', checkPermission('users.write'), updateUser);
-router.delete('/dashboard/users/:id', checkPermission('users.delete'), deleteUser);
+router.get('/users', checkPermission('users.read'), getUsers);
+router.post('/users', checkPermission('users.write'), createUser);
+router.put('/users/:id', checkPermission('users.write'), updateUser);
+router.delete('/users/:id', checkPermission('users.delete'), deleteUser);
 
 // Product management routes
-router.get('/dashboard/products', checkPermission('products.read'), getProducts);
+router.get('/products', checkPermission('products.read'), getProducts);
 
 // Review management routes
-router.get('/dashboard/reviews', checkPermission('reviews.read'), getReviews);
-router.delete('/dashboard/reviews/:id', checkPermission('reviews.delete'), deleteReview);
+router.get('/reviews', checkPermission('reviews.read'), getReviews);
+router.delete('/reviews/:id', checkPermission('reviews.delete'), deleteReview);
 
 // Simple test route
 router.get('/test', (req, res) => {
