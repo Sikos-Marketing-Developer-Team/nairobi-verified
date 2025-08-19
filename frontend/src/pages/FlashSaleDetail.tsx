@@ -1,72 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, Flame, Star, MapPin, Check, ShoppingCart, Eye, Share2 } from 'lucide-react';
+import { ArrowLeft, Clock, Flame, Check, ShoppingCart, Eye, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { usePageLoading } from '@/hooks/use-loading';
-import { PageSkeleton } from '@/components/ui/loading-skeletons';
-import { Skeleton } from '@/components/ui/skeleton';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import SEO from '@/components/SEO';
-
-interface FlashSaleProduct {
-  productId: string;
-  name: string;
-  originalPrice: number;
-  salePrice: number;
-  discountPercentage: number;
-  image: string;
-  merchant: string;
-  merchantId: string;
-  stockQuantity: number;
-  soldQuantity: number;
-  maxQuantityPerUser: number;
-}
-
-interface FlashSale {
-  _id: string;
-  title: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-  products: FlashSaleProduct[];
-  totalViews: number;
-  totalSales: number;
-  timeRemaining: {
-    days: number;
-    hours: number;
-    minutes: number;
-    seconds: number;
-    expired: boolean;
-  };
-  isCurrentlyActive: boolean;
-}
+import { FlashSaleProduct, FlashSale } from '@/types/flashSale';
 
 const FlashSaleDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const isLoading = usePageLoading(600);
   const [flashSale, setFlashSale] = useState<FlashSale | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isLoading && id) {
+    if (id) {
       fetchFlashSale();
     }
-  }, [isLoading, id]);
+  }, [id]);
 
   const fetchFlashSale = async () => {
     try {
       const response = await fetch(`/api/flash-sales/${id}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
       if (data.success) {
         setFlashSale(data.data);
       } else {
-        setError('Flash sale not found');
+        setError(data.message || 'Flash sale not found');
       }
     } catch (err) {
       setError('Error loading flash sale');
@@ -247,78 +212,36 @@ const FlashSaleDetail = () => {
     );
   };
 
-  if (isLoading || loading) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        
-        <PageSkeleton>
-          <div className="space-y-8">
-            {/* Header Skeleton */}
-            <div className="text-center space-y-4">
-              <Skeleton className="h-12 w-2/3 mx-auto" />
-              <Skeleton className="h-6 w-1/2 mx-auto" />
-            </div>
-
-            {/* Countdown Skeleton */}
-            <div className="text-center space-y-4">
-              <Skeleton className="h-8 w-48 mx-auto" />
-              <div className="flex justify-center gap-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-20 w-16" />
-                ))}
-              </div>
-            </div>
-
-            {/* Products Grid Skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                  <Skeleton className="h-64 w-full" />
-                  <div className="p-6 space-y-4">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-6 w-full" />
-                    <Skeleton className="h-8 w-1/2" />
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </PageSkeleton>
-        
-        <Footer />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
       </div>
     );
   }
 
   if (error || !flashSale) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
           <Flame className="h-24 w-24 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Flash Sale Not Found</h2>
           <p className="text-gray-600 mb-8">{error || 'The flash sale you\'re looking for doesn\'t exist or has been removed.'}</p>
           <Link to="/">
-            <Button className="bg-primary hover:bg-primary-dark text-white">
+            <Button className="bg-red-500 hover:bg-red-600 text-white">
               Back to Home
             </Button>
           </Link>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
-      <Header />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
-        <Link to="/" className="inline-flex items-center text-primary hover:text-primary-dark mb-6">
+        <Link to="/" className="inline-flex items-center text-red-600 hover:text-red-700 mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Home
         </Link>
@@ -327,7 +250,7 @@ const FlashSaleDetail = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Flame className="h-10 w-10 text-red-500" />
-            <h1 className="text-4xl lg:text-5xl font-bold inter text-gray-900">
+            <h1 className="text-4xl lg:text-5xl font-bold text-gray-900">
               {flashSale.title}
             </h1>
             <Flame className="h-10 w-10 text-red-500" />
@@ -340,15 +263,15 @@ const FlashSaleDetail = () => {
           <div className="flex items-center justify-center gap-8 text-sm text-gray-600 mb-6">
             <div className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
-              <span className="font-medium">{flashSale.totalViews.toLocaleString()} views</span>
+              <span className="font-medium">{flashSale.totalViews?.toLocaleString() || 0} views</span>
             </div>
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
-              <span className="font-medium">{flashSale.totalSales.toLocaleString()} sold</span>
+              <span className="font-medium">{flashSale.totalSales?.toLocaleString() || 0} sold</span>
             </div>
             <div className="flex items-center gap-2">
               <Flame className="h-5 w-5" />
-              <span className="font-medium">{flashSale.products.length} products</span>
+              <span className="font-medium">{flashSale.products?.length || 0} products</span>
             </div>
           </div>
 
@@ -382,13 +305,13 @@ const FlashSaleDetail = () => {
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {flashSale.products.map((product) => (
+          {flashSale.products?.map((product) => (
             <ProductCard key={product.productId} product={product} />
           ))}
         </div>
 
         {/* Call to Action */}
-        {!flashSale.timeRemaining.expired && (
+        {!flashSale.timeRemaining?.expired && (
           <div className="text-center mt-12 py-8 bg-red-50 rounded-lg">
             <h3 className="text-2xl font-bold text-gray-900 mb-4">
               Don't Miss Out!
@@ -403,8 +326,6 @@ const FlashSaleDetail = () => {
           </div>
         )}
       </div>
-      
-      <Footer />
     </div>
   );
 };
