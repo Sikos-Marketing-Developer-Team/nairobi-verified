@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Grid, List, Star, MapPin, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,93 +8,7 @@ import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
 import { ProductGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const products = [
-  {
-    id: '60d0fe4f5311236168a10101',
-    name: 'MacBook Pro 16-inch',
-    price: 185000,
-    originalPrice: 200000,
-    rating: 4.8,
-    reviews: 24,
-    image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop',
-    merchant: 'TechHub Kenya',
-    location: 'Kimathi Street, CBD',
-    verified: true,
-    category: 'Electronics',
-    inStock: true
-  },
-  {
-    id: '60d0fe4f5311236168a10102',
-    name: 'Samsung Galaxy S24 Ultra',
-    price: 120000,
-    originalPrice: 135000,
-    rating: 4.7,
-    reviews: 18,
-    image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop',
-    merchant: 'Mobile World',
-    location: 'Tom Mboya Street, CBD',
-    verified: true,
-    category: 'Electronics',
-    inStock: true
-  },
-  {
-    id: '60d0fe4f5311236168a10103',
-    name: 'Nike Air Max 270',
-    price: 12000,
-    originalPrice: 15000,
-    rating: 4.6,
-    reviews: 32,
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=300&fit=crop',
-    merchant: 'Sports Corner',
-    location: 'Moi Avenue, CBD',
-    verified: true,
-    category: 'Fashion',
-    inStock: true
-  },
-  {
-    id: '60d0fe4f5311236168a10104',
-    name: 'Canon EOS R5 Camera',
-    price: 75000,
-    originalPrice: 85000,
-    rating: 4.9,
-    reviews: 15,
-    image: 'https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=400&h=300&fit=crop',
-    merchant: 'PhotoPro Kenya',
-    location: 'Koinange Street, CBD',
-    verified: true,
-    category: 'Electronics',
-    inStock: false
-  },
-  {
-    id: '60d0fe4f5311236168a10105',
-    name: 'Designer Handbag',
-    price: 8500,
-    originalPrice: 12000,
-    rating: 4.4,
-    reviews: 28,
-    image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=300&fit=crop',
-    merchant: 'Fashion House',
-    location: 'River Road, CBD',
-    verified: true,
-    category: 'Fashion',
-    inStock: true
-  },
-  {
-    id: '60d0fe4f5311236168a10106',
-    name: 'Office Chair',
-    price: 15000,
-    originalPrice: 18000,
-    rating: 4.3,
-    reviews: 12,
-    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop',
-    merchant: 'Office Solutions',
-    location: 'Haile Selassie Avenue, CBD',
-    verified: true,
-    category: 'Home & Garden',
-    inStock: true
-  }
-];
+import { productsAPI } from '@/lib/api';
 
 const categories = ['All', 'Electronics', 'Fashion', 'Home & Garden', 'Books', 'Sports'];
 
@@ -103,7 +17,27 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const isLoading = usePageLoading(600);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const response = await productsAPI.getProducts();
+        setProducts(response.data || []);
+      } catch (err) {
+        setError('Failed to load products');
+        console.error('Error fetching products:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -114,12 +48,12 @@ const Products = () => {
   };
 
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  if (isLoading) {
+  if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -158,6 +92,26 @@ const Products = () => {
             <ProductGridSkeleton />
           </div>
         </PageSkeleton>
+        
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Products</h1>
+            <p className="text-gray-600 mb-8">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </div>
+        </div>
         
         <Footer />
       </div>
@@ -246,11 +200,11 @@ const Products = () => {
             : 'grid-cols-1'
         }`}>
           {filteredProducts.map((product) => (
-            <Card key={product.id} className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden">
+            <Card key={product._id || product.id} className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden">
               <CardContent className="p-0">
                 <div className="relative">
                   <img
-                    src={product.image}
+                    src={product.primaryImage || product.image || 'https://via.placeholder.com/400x300?text=No+Image'}
                     alt={product.name}
                     className={`w-full object-cover ${viewMode === 'grid' ? 'h-48' : 'h-32'}`}
                   />
@@ -263,8 +217,8 @@ const Products = () => {
                 
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm text-gray-600">{product.merchant}</span>
-                    {product.verified && (
+                    <span className="text-sm text-gray-600">{product.merchant?.name || product.merchant || 'Unknown Merchant'}</span>
+                    {(product.merchant?.verified || product.verified) && (
                       <div className="verified-badge">
                         <Check className="h-3 w-3" />
                         Verified
@@ -278,22 +232,22 @@ const Products = () => {
                   
                   <div className="flex items-center gap-2 mb-2">
                     <MapPin className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{product.location}</span>
+                    <span className="text-sm text-gray-600">{product.merchant?.location || product.location || 'Location not specified'}</span>
                   </div>
                   
                   <div className="flex items-center gap-2 mb-3">
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-sm font-medium ml-1">{product.rating}</span>
+                      <span className="text-sm font-medium ml-1">{product.rating || 0}</span>
                     </div>
-                    <span className="text-sm text-gray-500">({product.reviews} reviews)</span>
+                    <span className="text-sm text-gray-500">({product.reviewCount || product.reviews || 0} reviews)</span>
                   </div>
                   
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-xl font-bold text-primary">
                       {formatPrice(product.price)}
                     </span>
-                    {product.originalPrice > product.price && (
+                    {product.originalPrice && product.originalPrice > product.price && (
                       <span className="text-sm text-gray-500 line-through">
                         {formatPrice(product.originalPrice)}
                       </span>

@@ -199,6 +199,10 @@ export const adminAPI = {
   rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason }),
   updateMerchantStatus: (merchantId: string, verified: boolean) => api.put(`/admin/dashboard/merchants/${merchantId}/status`, { verified }),
   
+  // Document management
+  getMerchantDocuments: (merchantId: string) => api.get(`/admin/dashboard/merchants/${merchantId}/documents`),
+  bulkVerifyMerchants: (merchantIds: string[], action: 'verify' | 'reject') => api.post('/admin/dashboard/merchants/bulk-verify', { merchantIds, action }),
+  
   // Product management
   getProducts: (params?: any) => api.get('/admin/dashboard/products', { params }),
   

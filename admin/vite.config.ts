@@ -31,4 +31,6 @@ export default defineConfig({
       },
     },
   },
+  // Fix for SPA routing on Render/deployment
+  base: '/',
 })

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Edit, Eye, Plus, CheckCircle, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,68 +7,44 @@ import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
 import { usePageLoading } from '@/hooks/use-loading';
 import { TableSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
+import { merchantsAPI } from '@/lib/api';
 
 const AdminMerchants = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [merchants, setMerchants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const isLoading = usePageLoading(600);
 
-  // Mock merchants data
-  const merchants = [
-    {
-      id: '60d0fe4f5311236168a10101',
-      name: 'TechHub Kenya',
-      owner: 'John Kimani',
-      category: 'Electronics',
-      location: 'Kimathi Street',
-      status: 'verified',
-      joinDate: '2024-01-10',
-      email: 'john@techhub.com',
-      phone: '+254 712 345 678'
-    },
-    {
-      id: '60d0fe4f5311236168a10102',
-      name: 'CBD Fashion House',
-      owner: 'Mary Wanjiku',
-      category: 'Fashion',
-      location: 'Tom Mboya Street',
-      status: 'verified',
-      joinDate: '2024-01-08',
-      email: 'mary@cbdfashion.com',
-      phone: '+254 723 456 789'
-    },
-    {
-      id: '60d0fe4f5311236168a10103',
-      name: 'Savannah Electronics',
-      owner: 'Peter Ochieng',
-      category: 'Electronics',
-      location: 'Moi Avenue',
-      status: 'pending',
-      joinDate: '2024-01-15',
-      email: 'peter@savannah.com',
-      phone: '+254 734 567 890'
-    },
-    {
-      id: '60d0fe4f5311236168a10104',
-      name: 'Nairobi Pharmacy',
-      owner: 'Grace Muthoni',
-      category: 'Healthcare',
-      location: 'Kenyatta Avenue',
-      status: 'verified',
-      joinDate: '2024-01-05',
-      email: 'grace@pharmacy.com',
-      phone: '+254 745 678 901'
-    }
-  ];
+  useEffect(() => {
+    const fetchMerchants = async () => {
+      try {
+        setLoading(true);
+        const response = await merchantsAPI.getMerchants();
+        setMerchants(response.data || []);
+      } catch (err) {
+        setError('Failed to load merchants');
+        console.error('Error fetching merchants:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMerchants();
+  }, []);
 
   const filteredMerchants = merchants.filter(merchant => {
-    const matchesSearch = merchant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         merchant.owner.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || merchant.status === statusFilter;
+    const matchesSearch = merchant.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         merchant.owner?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         merchant.businessName?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || merchant.status === statusFilter || 
+                         (statusFilter === 'verified' && merchant.verified) ||
+                         (statusFilter === 'pending' && !merchant.verified);
     return matchesSearch && matchesStatus;
   });
 
-  if (isLoading) {
+  if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -76,6 +52,24 @@ const AdminMerchants = () => {
         <PageSkeleton>
           <TableSkeleton />
         </PageSkeleton>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Merchants</h1>
+            <p className="text-gray-600 mb-8">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -128,13 +122,13 @@ const AdminMerchants = () => {
                   variant={statusFilter === 'verified' ? 'default' : 'outline'}
                   onClick={() => setStatusFilter('verified')}
                 >
-                  Verified ({merchants.filter(m => m.status === 'verified').length})
+                  Verified ({merchants.filter(m => m.status === 'verified' || m.verified).length})
                 </Button>
                 <Button
                   variant={statusFilter === 'pending' ? 'default' : 'outline'}
                   onClick={() => setStatusFilter('pending')}
                 >
-                  Pending ({merchants.filter(m => m.status === 'pending').length})
+                  Pending ({merchants.filter(m => m.status === 'pending' || !m.verified).length})
                 </Button>
               </div>
             </div>
@@ -165,38 +159,38 @@ const AdminMerchants = () => {
                     <tr key={merchant.id} className="border-b hover:bg-gray-50">
                       <td className="p-4">
                         <div>
-                          <p className="font-medium text-gray-900">{merchant.name}</p>
-                          <p className="text-sm text-gray-500">{merchant.email}</p>
+                          <p className="font-medium text-gray-900">{merchant.businessName || merchant.name || 'Unknown Business'}</p>
+                          <p className="text-sm text-gray-500">{merchant.email || 'No email provided'}</p>
                         </div>
                       </td>
                       <td className="p-4">
                         <div>
-                          <p className="font-medium text-gray-900">{merchant.owner}</p>
-                          <p className="text-sm text-gray-500">{merchant.phone}</p>
+                          <p className="font-medium text-gray-900">{merchant.owner || merchant.firstName + ' ' + merchant.lastName || 'Unknown Owner'}</p>
+                          <p className="text-sm text-gray-500">{merchant.phone || 'No phone provided'}</p>
                         </div>
                       </td>
                       <td className="p-4">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                          {merchant.category}
+                          {merchant.category || merchant.businessCategory || 'Uncategorized'}
                         </span>
                       </td>
-                      <td className="p-4 text-gray-600">{merchant.location}</td>
+                      <td className="p-4 text-gray-600">{merchant.location || merchant.address || 'Location not specified'}</td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          merchant.status === 'verified'
+                          merchant.status === 'verified' || merchant.verified
                             ? 'bg-green-100 text-green-800'
-                            : merchant.status === 'pending'
+                            : merchant.status === 'pending' || !merchant.verified
                             ? 'bg-amber-100 text-amber-800'
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {merchant.status === 'verified' && <CheckCircle className="inline h-3 w-3 mr-1" />}
-                          {merchant.status}
+                          {(merchant.status === 'verified' || merchant.verified) && <CheckCircle className="inline h-3 w-3 mr-1" />}
+                          {merchant.status === 'verified' || merchant.verified ? 'verified' : 'pending'}
                         </span>
                       </td>
-                      <td className="p-4 text-gray-600">{merchant.joinDate}</td>
+                      <td className="p-4 text-gray-600">{merchant.joinDate || new Date(merchant.createdAt).toLocaleDateString() || 'Unknown'}</td>
                       <td className="p-4">
                         <div className="flex gap-2">
-                          <Link to={`/merchant/${merchant.id}`}>
+                          <Link to={`/merchant/${merchant._id || merchant.id}`}>
                             <Button variant="outline" size="sm">
                               <Eye className="h-4 w-4" />
                             </Button>

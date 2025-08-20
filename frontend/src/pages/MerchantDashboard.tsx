@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { usePageLoading } from '@/hooks/use-loading';
 import { DashboardSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { merchantsAPI } from '@/lib/api';
 
 const MerchantDashboard = () => {
   const [timeRange, setTimeRange] = useState<'7days' | '30days' | '90days'>('30days');
@@ -29,93 +30,107 @@ const MerchantDashboard = () => {
 
   const fetchMerchantData = async () => {
     try {
-      // In a real app, this would fetch from the API
-      // For now, we'll simulate with enhanced mock data
-      setTimeout(() => {
-        setMerchantData({
-          businessName: 'TechHub Kenya',
-          email: 'info@techhublenya.com',
-          phone: '+254712345678',
-          verificationStatus: 'verified',
-          subscriptionPlan: 'premium',
-          subscriptionExpiry: '2024-12-31',
-          profileCompletion: 92,
-          rating: 4.8,
-          totalReviews: 157,
-          featured: true,
-          profileViews: {
-            total: 1247,
-            today: 42,
-            week: 287,
-            month: 1247,
-            trend: '+15%'
-          },
-          searchAppearances: {
-            total: 3568,
-            today: 115,
-            week: 876,
-            month: 3568,
-            trend: '+8%'
-          },
-          contactClicks: {
-            total: 45,
-            today: 3,
-            week: 18,
-            month: 45,
-            trend: '+22%'
-          },
-          directionsRequests: {
-            total: 78,
-            today: 5,
-            week: 32,
-            month: 78,
-            trend: '+12%'
-          },
-          favorites: {
-            total: 23,
-            today: 2,
-            week: 8,
-            month: 23,
-            trend: '+35%'
-          },
-          revenue: {
-            total: 45000,
-            today: 1200,
-            week: 8500,
-            month: 45000,
-            trend: '+18%'
-          },
-          orders: {
-            total: 89,
-            pending: 5,
-            completed: 84,
-            cancelled: 3
-          },
-          products: {
-            total: 24,
-            active: 22,
-            inactive: 2,
-            outOfStock: 1
-          },
-          dailyViews: [12, 18, 22, 15, 35, 42, 38],
-          weeklyViews: [145, 132, 164, 187, 213, 287, 254],
-          monthlyViews: [320, 354, 412, 387, 476, 523, 612, 587, 642, 721, 834, 1247],
-          topReferrers: [
-            { source: 'Direct Search', count: 523 },
-            { source: 'Category Browse', count: 312 },
-            { source: 'Map View', count: 245 },
-            { source: 'Featured Section', count: 167 }
-          ],
-          upcomingTasks: [
-            { task: 'Update inventory', priority: 'high', dueDate: '2024-01-15' },
-            { task: 'Respond to customer reviews', priority: 'medium', dueDate: '2024-01-16' },
-            { task: 'Renew subscription', priority: 'high', dueDate: '2024-01-20' }
-          ]
-        });
-        setLoading(false);
-      }, 1000);
-    } catch (err) {
-      setError('Failed to load merchant data');
+      setLoading(true);
+      setError(null);
+      
+      // Get current merchant data (assuming we have merchant ID from auth)
+      const merchantId = localStorage.getItem('merchantId') || 'current';
+      const response = await merchantsAPI.getMerchant(merchantId);
+      
+      // Set the merchant data with fallback structure
+      const merchant = response.data.data || response.data;
+      setMerchantData({
+        id: merchant._id || merchant.id,
+        businessName: merchant.businessName || 'Your Business',
+        email: merchant.email || '',
+        phone: merchant.phone || '',
+        address: merchant.address || 'Business Address',
+        description: merchant.description || 'Business description',
+        category: merchant.category || 'General',
+        isVerified: merchant.isVerified || false,
+        featured: merchant.featured || false,
+        rating: merchant.rating || 0,
+        reviewCount: merchant.reviewCount || 0,
+        totalProducts: merchant.totalProducts || 0,
+        verificationStatus: merchant.isVerified ? 'verified' : 'pending',
+        subscriptionPlan: merchant.subscriptionPlan || 'basic',
+        subscriptionExpiry: merchant.subscriptionExpiry || null,
+        profileCompletion: merchant.profileCompletion || 75,
+        totalReviews: merchant.reviewCount || 0,
+        // Mock analytics data until real endpoints are available
+        profileViews: {
+          total: 156,
+          today: 12,
+          week: 78,
+          month: 156,
+          trend: '+15%'
+        },
+        searchAppearances: {
+          total: 89,
+          today: 8,
+          week: 45,
+          month: 89,
+          trend: '+8%'
+        },
+        contactClicks: {
+          total: 45,
+          today: 3,
+          week: 18,
+          month: 45,
+          trend: '+22%'
+        },
+        directionsRequests: {
+          total: 78,
+          today: 5,
+          week: 32,
+          month: 78,
+          trend: '+12%'
+        },
+        favorites: {
+          total: 23,
+          today: 2,
+          week: 8,
+          month: 23,
+          trend: '+35%'
+        },
+        revenue: {
+          total: 45000,
+          today: 1200,
+          week: 8500,
+          month: 45000,
+          trend: '+18%'
+        },
+        orders: {
+          total: 89,
+          pending: 5,
+          completed: 84,
+          cancelled: 3
+        },
+        products: {
+          total: 24,
+          active: 22,
+          inactive: 2,
+          outOfStock: 1
+        },
+        dailyViews: [12, 18, 22, 15, 35, 42, 38],
+        weeklyViews: [145, 132, 164, 187, 213, 287, 254],
+        monthlyViews: [320, 354, 412, 387, 476, 523, 612, 587, 642, 721, 834, 1247],
+        topReferrers: [
+          { source: 'Direct Search', count: 523 },
+          { source: 'Category Browse', count: 312 },
+          { source: 'Map View', count: 245 },
+          { source: 'Featured Section', count: 167 }
+        ],
+        upcomingTasks: [
+          { task: 'Update inventory', priority: 'high', dueDate: '2024-01-15' },
+          { task: 'Respond to customer reviews', priority: 'medium', dueDate: '2024-01-16' },
+          { task: 'Renew subscription', priority: 'high', dueDate: '2024-01-20' }
+        ]
+      });
+      setLoading(false);
+    } catch (err: any) {
+      console.error('Error fetching merchant data:', err);
+      setError(err.response?.data?.message || 'Failed to load merchant data');
       setLoading(false);
     }
   };

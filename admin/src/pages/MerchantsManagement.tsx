@@ -11,10 +11,12 @@ import {
   Mail,
   Calendar,
   Filter,
-  Download
+  Download,
+  FileText
 } from 'lucide-react';
 import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
+import MerchantDocuments from '../components/MerchantDocuments';
 
 interface Merchant {
   _id: string;
@@ -30,8 +32,10 @@ interface Merchant {
   createdAt: string;
   status: 'pending' | 'approved' | 'rejected';
   documents?: {
-    businessLicense?: string;
-    taxCertificate?: string;
+    businessRegistration?: string;
+    idDocument?: string;
+    utilityBill?: string;
+    additionalDocs?: string[];
   };
 }
 
@@ -42,6 +46,10 @@ const MerchantsManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [documentStatusFilter, setDocumentStatusFilter] = useState<string>('all');
+  const [selectedMerchantForDocs, setSelectedMerchantForDocs] = useState<string | null>(null);
+  const [selectedMerchants, setSelectedMerchants] = useState<string[]>([]);
+  const [isBulkOperationLoading, setIsBulkOperationLoading] = useState(false);
 
   useEffect(() => {
     loadMerchants();
@@ -49,7 +57,7 @@ const MerchantsManagement: React.FC = () => {
 
   useEffect(() => {
     filterMerchants();
-  }, [merchants, searchTerm, statusFilter, categoryFilter]);
+  }, [merchants, searchTerm, statusFilter, categoryFilter, documentStatusFilter]);
 
   const loadMerchants = async () => {
     try {
@@ -130,21 +138,44 @@ const MerchantsManagement: React.FC = () => {
       filtered = filtered.filter(merchant => merchant.category === categoryFilter);
     }
 
+    // Document status filter
+    if (documentStatusFilter !== 'all') {
+      filtered = filtered.filter(merchant => {
+        const hasBusinessReg = merchant.documents?.businessRegistration;
+        const hasIdDoc = merchant.documents?.idDocument;
+        const hasUtilityBill = merchant.documents?.utilityBill;
+        const documentCount = [hasBusinessReg, hasIdDoc, hasUtilityBill].filter(Boolean).length;
+        
+        switch (documentStatusFilter) {
+          case 'complete':
+            return documentCount === 3;
+          case 'incomplete':
+            return documentCount > 0 && documentCount < 3;
+          case 'pending_review':
+            return documentCount === 3 && !merchant.verified;
+          default:
+            return true;
+        }
+      });
+    }
+
     setFilteredMerchants(filtered);
   };
 
-  const handleMerchantAction = async (action: string, merchantId: string) => {
+    const handleMerchantAction = async (action: string, merchantId: string) => {
     try {
       switch (action) {
         case 'approve':
-          await adminAPI.verifyMerchant(merchantId);
+          await adminAPI.updateMerchantStatus(merchantId, true);
           toast.success('Merchant approved successfully');
           loadMerchants();
           break;
         case 'reject':
-          await adminAPI.rejectMerchant(merchantId, 'Documents insufficient');
-          toast.success('Merchant rejected');
-          loadMerchants();
+          if (window.confirm('Are you sure you want to reject this merchant?')) {
+            await adminAPI.updateMerchantStatus(merchantId, false);
+            toast.success('Merchant rejected successfully');
+            loadMerchants();
+          }
           break;
         case 'delete':
           if (window.confirm('Are you sure you want to delete this merchant?')) {
@@ -156,6 +187,52 @@ const MerchantsManagement: React.FC = () => {
       }
     } catch (error) {
       toast.error('Action failed');
+    }
+  };
+
+  // Bulk operations
+  const handleSelectAll = () => {
+    if (selectedMerchants.length === filteredMerchants.length) {
+      setSelectedMerchants([]);
+    } else {
+      setSelectedMerchants(filteredMerchants.map(m => m._id));
+    }
+  };
+
+  const handleSelectMerchant = (merchantId: string) => {
+    setSelectedMerchants(prev => 
+      prev.includes(merchantId)
+        ? prev.filter(id => id !== merchantId)
+        : [...prev, merchantId]
+    );
+  };
+
+  const handleBulkAction = async (action: 'verify' | 'reject') => {
+    if (selectedMerchants.length === 0) {
+      toast.error('Please select merchants to perform bulk action');
+      return;
+    }
+
+    const confirmMessage = action === 'verify' 
+      ? `Are you sure you want to verify ${selectedMerchants.length} merchant(s)?`
+      : `Are you sure you want to reject ${selectedMerchants.length} merchant(s)?`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      setIsBulkOperationLoading(true);
+      const response = await adminAPI.bulkVerifyMerchants(selectedMerchants, action);
+      
+      if (response.data.success) {
+        toast.success(`${response.data.data.modifiedCount} merchant(s) ${action === 'verify' ? 'verified' : 'rejected'} successfully`);
+        setSelectedMerchants([]);
+        loadMerchants();
+      }
+    } catch (error) {
+      console.error('Bulk action failed:', error);
+      toast.error(`Failed to ${action} merchants`);
+    } finally {
+      setIsBulkOperationLoading(false);
     }
   };
 
@@ -195,15 +272,45 @@ const MerchantsManagement: React.FC = () => {
           <p className="mt-2 text-sm text-gray-700">
             Manage merchant registrations and verifications
           </p>
+          {selectedMerchants.length > 0 && (
+            <p className="mt-1 text-sm text-blue-600">
+              {selectedMerchants.length} merchant(s) selected
+            </p>
+          )}
         </div>
         <div className="mt-4 sm:mt-0 sm:flex-none">
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </button>
+          {selectedMerchants.length > 0 ? (
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleBulkAction('verify')}
+                disabled={isBulkOperationLoading}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+              >
+                {isBulkOperationLoading ? 'Processing...' : `Verify ${selectedMerchants.length}`}
+              </button>
+              <button
+                onClick={() => handleBulkAction('reject')}
+                disabled={isBulkOperationLoading}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+              >
+                {isBulkOperationLoading ? 'Processing...' : `Reject ${selectedMerchants.length}`}
+              </button>
+              <button
+                onClick={() => setSelectedMerchants([])}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                Clear Selection
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Report
+            </button>
+          )}
         </div>
       </div>
 
@@ -265,7 +372,7 @@ const MerchantsManagement: React.FC = () => {
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Search */}
             <div className="md:col-span-2">
               <div className="relative">
@@ -310,6 +417,20 @@ const MerchantsManagement: React.FC = () => {
                 ))}
               </select>
             </div>
+
+            {/* Document Status Filter */}
+            <div>
+              <select
+                value={documentStatusFilter}
+                onChange={(e) => setDocumentStatusFilter(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="all">All Documents</option>
+                <option value="complete">Complete</option>
+                <option value="incomplete">Incomplete</option>
+                <option value="pending_review">Pending Review</option>
+              </select>
+            </div>
           </div>
 
           <div className="mt-4">
@@ -325,6 +446,14 @@ const MerchantsManagement: React.FC = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <input
+                  type="checkbox"
+                  checked={selectedMerchants.length === filteredMerchants.length && filteredMerchants.length > 0}
+                  onChange={handleSelectAll}
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                />
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Business
               </th>
@@ -348,6 +477,14 @@ const MerchantsManagement: React.FC = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredMerchants.map((merchant) => (
               <tr key={merchant._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={selectedMerchants.includes(merchant._id)}
+                    onChange={() => handleSelectMerchant(merchant._id)}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
@@ -404,6 +541,13 @@ const MerchantsManagement: React.FC = () => {
                     >
                       <Eye className="h-4 w-4" />
                     </button>
+                    <button
+                      onClick={() => setSelectedMerchantForDocs(merchant._id)}
+                      className="text-purple-600 hover:text-purple-900"
+                      title="View Documents"
+                    >
+                      <FileText className="h-4 w-4" />
+                    </button>
                     {merchant.status === 'pending' && (
                       <>
                         <button
@@ -446,6 +590,14 @@ const MerchantsManagement: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Documents Modal */}
+      {selectedMerchantForDocs && (
+        <MerchantDocuments
+          merchantId={selectedMerchantForDocs}
+          onClose={() => setSelectedMerchantForDocs(null)}
+        />
+      )}
     </div>
   );
 };
