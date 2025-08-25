@@ -249,7 +249,7 @@ const Categories = () => {
 
 // (Removed duplicate/incorrect loading block that referenced 'product')
 
-  if (isLoading) {
+  if (isPageLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
