@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Calendar, Clock, Plus, X, Check, ChevronLeft, ChevronRight, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,10 +41,8 @@ const MerchantCalendar = () => {
   const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
   const [showHoursDialog, setShowHoursDialog] = useState(false);
   const [editingDay, setEditingDay] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
-  // Initialize with default business hours
+  // Mock data
   const [businessHours, setBusinessHours] = useState<BusinessHours>({
     monday: { isOpen: true, openTime: '08:00', closeTime: '17:00' },
     tuesday: { isOpen: true, openTime: '08:00', closeTime: '17:00' },
@@ -55,29 +53,33 @@ const MerchantCalendar = () => {
     sunday: { isOpen: false, openTime: '09:00', closeTime: '15:00' },
   });
   
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-
-  useEffect(() => {
-    const fetchCalendarData = async () => {
-      try {
-        setLoading(true);
-        // Try to fetch appointments from API
-        // const appointmentsResponse = await merchantsAPI.getAppointments();
-        // setAppointments(appointmentsResponse.data || []);
-        
-        // For now, use empty array until appointments API is implemented
-        setAppointments([]);
-      } catch (err) {
-        console.error('Error fetching calendar data:', err);
-        setError('Failed to load calendar data');
-        setAppointments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCalendarData();
-  }, []);
+  const [appointments, setAppointments] = useState<Appointment[]>([
+    {
+      id: 1,
+      customerName: 'John Doe',
+      date: '2024-05-15',
+      time: '10:00',
+      status: 'confirmed',
+      service: 'Product Demo'
+    },
+    {
+      id: 2,
+      customerName: 'Jane Smith',
+      date: '2024-05-16',
+      time: '14:30',
+      status: 'pending',
+      service: 'Consultation',
+      notes: 'First-time customer'
+    },
+    {
+      id: 3,
+      customerName: 'Michael Johnson',
+      date: '2024-05-18',
+      time: '11:00',
+      status: 'confirmed',
+      service: 'Technical Support'
+    }
+  ]);
   
   // Calendar helpers
   const getDaysInMonth = (date: Date) => {

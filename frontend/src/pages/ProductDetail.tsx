@@ -1,54 +1,63 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ZoomIn } from 'lucide-react';
+import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import ImageModal from '@/components/ImageModal';
 import { usePageLoading } from '@/hooks/use-loading';
 import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
-import { productsAPI } from '@/lib/api';
-import { useToast } from '@/components/ui/use-toast';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
-  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  const [product, setProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const isLoading = usePageLoading(700);
-  const { toast } = useToast();
 
-  // Fetch product data
-  useEffect(() => {
-    const fetchProduct = async () => {
-      if (!id) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await productsAPI.getProduct(id);
-        setProduct(response.data.data);
-      } catch (error: any) {
-        console.error('Failed to fetch product:', error);
-        setError(error.response?.data?.error || 'Failed to load product');
-        toast({
-          title: "Error",
-          description: "Failed to load product details",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProduct();
-  }, [id, toast]);
+  // Mock product data
+  const product = {
+    id: 1,
+    name: 'MacBook Pro 16-inch',
+    price: 185000,
+    originalPrice: 200000,
+    rating: 4.8,
+    reviews: 24,
+    images: [
+      'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&h=600&fit=crop'
+    ],
+    merchant: {
+      name: 'TechHub Kenya',
+      location: 'Kimathi Street, CBD',
+      verified: true,
+      rating: 4.9,
+      totalReviews: 156
+    },
+    category: 'Electronics',
+    inStock: true,
+    stockCount: 5,
+    description: 'The MacBook Pro 16-inch is Apple\'s most powerful laptop, featuring the M2 Pro chip for exceptional performance. Perfect for professionals who need top-tier computing power.',
+    specifications: [
+      'Apple M2 Pro chip',
+      '16GB unified memory',
+      '512GB SSD storage',
+      '16-inch Liquid Retina XDR display',
+      'Three Thunderbolt 4 ports',
+      'HDMI port, SDXC card slot',
+      'MagSafe 3 charging port'
+    ],
+    features: [
+      'All-day battery life',
+      'Studio-quality mics',
+      '1080p FaceTime HD camera',
+      'Six-speaker sound system',
+      'Backlit Magic Keyboard',
+      'Touch ID'
+    ]
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -60,7 +69,7 @@ const ProductDetail = () => {
 
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
-    if (newQuantity >= 1 && newQuantity <= (product?.stockQuantity || 1)) {
+    if (newQuantity >= 1 && newQuantity <= product.stockCount) {
       setQuantity(newQuantity);
     }
   };
@@ -71,7 +80,7 @@ const ProductDetail = () => {
     { id: 'reviews', label: 'Reviews' }
   ];
 
-  if (isLoading || loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
         <Header />
@@ -79,26 +88,6 @@ const ProductDetail = () => {
         <PageSkeleton>
           <ProductDetailSkeleton />
         </PageSkeleton>
-        
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error || !product) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Header />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
-            <p className="text-gray-600 mb-8">{error || 'The product you are looking for does not exist.'}</p>
-            <Button onClick={() => window.history.back()}>
-              Go Back
-            </Button>
-          </div>
-        </div>
         
         <Footer />
       </div>
@@ -113,36 +102,30 @@ const ProductDetail = () => {
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer">
+            <div className="aspect-square rounded-lg overflow-hidden">
               <img
-                src={product.images?.[selectedImage] || product.primaryImage}
+                src={product.images[selectedImage]}
                 alt={product.name}
                 className="w-full h-full object-cover"
-                onClick={() => setIsImageModalOpen(true)}
               />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
             </div>
-            {product.images && product.images.length > 1 && (
-              <div className="grid grid-cols-3 gap-4">
-                {product.images.map((image: string, index: number) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`aspect-square rounded-lg overflow-hidden border-2 ${
-                      selectedImage === index ? 'border-primary' : 'border-gray-200'
-                    }`}
-                  >
-                    <img
-                      src={image}
-                      alt={`${product.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="grid grid-cols-3 gap-4">
+              {product.images.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImage(index)}
+                  className={`aspect-square rounded-lg overflow-hidden border-2 ${
+                    selectedImage === index ? 'border-primary' : 'border-gray-200'
+                  }`}
+                >
+                  <img
+                    src={image}
+                    alt={`${product.name} ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Product Info */}
@@ -152,8 +135,8 @@ const ProductDetail = () => {
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center">
                   <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                  <span className="ml-1 font-medium">{product.rating || 0}</span>
-                  <span className="text-gray-500 ml-1">({product.reviewCount || 0} reviews)</span>
+                  <span className="ml-1 font-medium">{product.rating}</span>
+                  <span className="text-gray-500 ml-1">({product.reviews} reviews)</span>
                 </div>
                 <span className="text-gray-300">|</span>
                 <span className="text-sm text-gray-600">{product.category}</span>
@@ -166,8 +149,8 @@ const ProductDetail = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold">{product.merchant?.name || 'Unknown Merchant'}</h3>
-                      {product.merchant?.verified && (
+                      <h3 className="font-semibold">{product.merchant.name}</h3>
+                      {product.merchant.verified && (
                         <div className="verified-badge">
                           <Check className="h-3 w-3" />
                           Verified
@@ -176,15 +159,15 @@ const ProductDetail = () => {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <MapPin className="h-4 w-4" />
-                      {product.merchant?.location || 'Location not specified'}
+                      {product.merchant.location}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="ml-1 font-medium">{product.merchant?.rating || 0}</span>
+                      <span className="ml-1 font-medium">{product.merchant.rating}</span>
                     </div>
-                    <span className="text-sm text-gray-500">{product.merchant?.totalReviews || 0} reviews</span>
+                    <span className="text-sm text-gray-500">{product.merchant.totalReviews} reviews</span>
                   </div>
                 </div>
               </CardContent>
@@ -286,39 +269,29 @@ const ProductDetail = () => {
             {activeTab === 'description' && (
               <div className="prose max-w-none">
                 <p className="text-gray-700 text-lg leading-relaxed">{product.description}</p>
-                {product.features && product.features.length > 0 && (
-                  <>
-                    <h3 className="text-xl font-semibold mt-6 mb-4">Key Features</h3>
-                    <ul className="space-y-2">
-                      {product.features.map((feature, index) => (
-                        <li key={index} className="flex items-center">
-                          <Check className="h-5 w-5 text-green-500 mr-2" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
+                <h3 className="text-xl font-semibold mt-6 mb-4">Key Features</h3>
+                <ul className="space-y-2">
+                  {product.features.map((feature, index) => (
+                    <li key={index} className="flex items-center">
+                      <Check className="h-5 w-5 text-green-500 mr-2" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
             {activeTab === 'specifications' && (
               <div>
                 <h3 className="text-xl font-semibold mb-4">Technical Specifications</h3>
-                {product.specifications && product.specifications.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {product.specifications.map((spec, index) => (
-                      <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
-                        <Check className="h-4 w-4 text-primary mr-2" />
-                        {spec}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-600">No specifications available for this product.</p>
-                  </div>
-                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {product.specifications.map((spec, index) => (
+                    <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                      <Check className="h-4 w-4 text-primary mr-2" />
+                      {spec}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -335,16 +308,6 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
-      
-      {/* Image Modal */}
-      <ImageModal
-        isOpen={isImageModalOpen}
-        onClose={() => setIsImageModalOpen(false)}
-        images={product.images}
-        currentIndex={selectedImage}
-        onIndexChange={setSelectedImage}
-        productName={product.name}
-      />
       
       <Footer />
     </div>

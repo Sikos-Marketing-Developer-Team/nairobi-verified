@@ -63,11 +63,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (isAuthenticated) {
       fetchCart();
     } else {
-      // Clear any cached cart data for non-authenticated users
-      setItems([]);
-      setPromoCode(null);
-      // Clear localStorage to prevent old cart data from showing
-      localStorage.removeItem('cart');
+      // If not authenticated, try to get cart from localStorage
+      const savedCart = localStorage.getItem('cart');
+      if (savedCart) {
+        try {
+          const parsedCart = JSON.parse(savedCart);
+          setItems(parsedCart.items || []);
+          setPromoCode(parsedCart.promoCode || null);
+        } catch (error) {
+          console.error('Failed to parse cart from localStorage:', error);
+        }
+      }
     }
   }, [isAuthenticated]);
 

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, Users, Shield, User, MoreVertical, Edit, Ban } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,38 +7,58 @@ import { Input } from '@/components/ui/input';
 import Header from '@/components/Header';
 import { usePageLoading } from '@/hooks/use-loading';
 import { TableSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
-import { usersAPI } from '@/lib/api';
 
 const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const isLoading = usePageLoading(500);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const response = await usersAPI.getUsers();
-        setUsers(response.data || []);
-      } catch (err) {
-        setError('Failed to load users');
-        console.error('Error fetching users:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, []);
+  // Mock users data
+  const users = [
+    {
+      id: 1,
+      name: 'John Kimani',
+      email: 'john@example.com',
+      role: 'user',
+      status: 'active',
+      joinDate: '2024-01-10',
+      lastActive: '2024-01-15',
+      favorites: 5
+    },
+    {
+      id: 2,
+      name: 'Mary Wanjiku',
+      email: 'mary@techhub.com',
+      role: 'merchant',
+      status: 'active',
+      joinDate: '2024-01-08',
+      lastActive: '2024-01-14',
+      businessName: 'TechHub Kenya'
+    },
+    {
+      id: 3,
+      name: 'Admin User',
+      email: 'admin@nairobiverified.com',
+      role: 'admin',
+      status: 'active',
+      joinDate: '2024-01-01',
+      lastActive: '2024-01-15'
+    },
+    {
+      id: 4,
+      name: 'Peter Ochieng',
+      email: 'peter@example.com',
+      role: 'user',
+      status: 'inactive',
+      joinDate: '2024-01-12',
+      lastActive: '2024-01-13',
+      favorites: 2
+    }
+  ];
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -63,7 +83,7 @@ const AdminUsers = () => {
     return colors[role as keyof typeof colors] || colors.user;
   };
 
-  if (isLoading || loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -71,24 +91,6 @@ const AdminUsers = () => {
         <PageSkeleton>
           <TableSkeleton />
         </PageSkeleton>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Users</h1>
-            <p className="text-gray-600 mb-8">{error}</p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
-          </div>
-        </div>
       </div>
     );
   }
@@ -170,13 +172,11 @@ const AdminUsers = () => {
                 </thead>
                 <tbody>
                   {filteredUsers.map((user) => (
-                    <tr key={user._id || user.id} className="border-b hover:bg-gray-50">
+                    <tr key={user.id} className="border-b hover:bg-gray-50">
                       <td className="p-4">
                         <div>
-                          <p className="font-medium text-gray-900">
-                            {user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User'}
-                          </p>
-                          <p className="text-sm text-gray-500">{user.email || 'No email provided'}</p>
+                          <p className="font-medium text-gray-900">{user.name}</p>
+                          <p className="text-sm text-gray-500">{user.email}</p>
                           {user.role === 'merchant' && user.businessName && (
                             <p className="text-sm text-blue-600">{user.businessName}</p>
                           )}
@@ -187,27 +187,23 @@ const AdminUsers = () => {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          {getRoleIcon(user.role || 'user')}
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadge(user.role || 'user')}`}>
-                            {user.role || 'user'}
+                          {getRoleIcon(user.role)}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadge(user.role)}`}>
+                            {user.role}
                           </span>
                         </div>
                       </td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          user.status === 'active' || user.isActive
+                          user.status === 'active'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {user.status || (user.isActive ? 'active' : 'inactive')}
+                          {user.status}
                         </span>
                       </td>
-                      <td className="p-4 text-gray-600">
-                        {user.joinDate || (user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown')}
-                      </td>
-                      <td className="p-4 text-gray-600">
-                        {user.lastActive || (user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never')}
-                      </td>
+                      <td className="p-4 text-gray-600">{user.joinDate}</td>
+                      <td className="p-4 text-gray-600">{user.lastActive}</td>
                       <td className="p-4">
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">
