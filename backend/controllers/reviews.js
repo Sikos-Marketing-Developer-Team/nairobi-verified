@@ -27,15 +27,6 @@ exports.getReviews = async (req, res) => {
       });
     }
 
-    // Validate ObjectId format
-    const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(merchantId)) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        error: 'Invalid merchant ID format'
-      });
-    }
-
     // Check if merchant exists
     const merchant = await Merchant.findById(merchantId);
     if (!merchant) {
@@ -64,11 +55,6 @@ exports.getReviews = async (req, res) => {
       message: reviews.length === 0 ? 'No reviews found for this merchant' : undefined
     });
   } catch (error) {
-    console.error('Reviews fetch error details:', {
-      merchantId: req.params.merchantId,
-      error: error.message,
-      stack: error.stack
-    });
     handleError(res, error, 'Failed to fetch reviews', HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 };

@@ -30,57 +30,82 @@ const MerchantVerification = () => {
       try {
         setLoading(true);
         
-        // Get current merchant data (assuming we have merchant ID from auth or localStorage)
-        const merchantId = localStorage.getItem('merchantId') || 'current';
-        const merchantResponse = await merchantsAPI.getMerchant(merchantId);
-        const merchant = merchantResponse.data.data || merchantResponse.data;
-        
-        setVerificationData({
-          status: merchant.isVerified ? 'verified' : 'pending',
-          submittedDate: merchant.createdAt || new Date().toISOString(),
+        // For now, use mock data since the API might not have the verification endpoint yet
+        const mockData = {
+          status: 'pending', // verified, pending, rejected, incomplete
+          submittedDate: '2024-01-10',
+          reviewedDate: '2024-01-12',
           verificationSteps: [
             { 
               id: 1, 
               title: 'Application Submitted', 
               completed: true, 
-              date: merchant.createdAt || new Date().toISOString(),
+              date: '2024-01-10',
               description: 'Your verification application has been received'
             },
             { 
               id: 2, 
               title: 'Documents Reviewed', 
-              completed: merchant.isVerified || false, 
-              date: merchant.verifiedAt || null,
+              completed: false, 
+              date: null,
               description: 'All submitted documents have been reviewed'
             },
             { 
               id: 3, 
               title: 'Physical Verification', 
-              completed: merchant.isVerified || false, 
-              date: merchant.verifiedAt || null,
+              completed: false, 
+              date: null,
               description: 'Your business location has been verified'
             },
             { 
               id: 4, 
               title: 'Verification Complete', 
-              completed: merchant.isVerified || false, 
-              date: merchant.verifiedAt || null,
+              completed: false, 
+              date: null,
               description: 'Your business is now verified and visible to customers'
             }
           ],
-          documents: merchant.documents || [],
+          documents: [
+            { 
+              id: 1,
+              type: 'Business Registration', 
+              status: 'pending', 
+              uploadDate: '2024-05-10',
+              notes: 'Under review',
+              fileName: 'business_registration.pdf',
+              fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
+            },
+            { 
+              id: 2,
+              type: 'ID Document', 
+              status: 'pending', 
+              uploadDate: '2024-05-10',
+              notes: 'Under review',
+              fileName: 'id_document.pdf',
+              fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
+            },
+            { 
+              id: 3,
+              type: 'Utility Bill', 
+              status: 'rejected', 
+              uploadDate: '2024-05-10',
+              notes: 'Document is too old. Please upload a utility bill from the last 3 months.',
+              fileName: 'utility_bill.pdf',
+              fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
+            }
+          ],
           requiredDocuments: [
             'Business Registration',
-            'ID Document', 
+            'ID Document',
             'Utility Bill',
             'Business Photos'
           ]
-        });
+        };
         
+        setVerificationData(mockData);
+        setLoading(false);
       } catch (error) {
         console.error('Error loading verification data:', error);
-        setVerificationData(null);
-      } finally {
         setLoading(false);
       }
     };
