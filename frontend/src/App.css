@@ -41,3 +41,6 @@
   color: #888;
 }
 
+.ready {
+  background-image: url('/frontend/src/images/nairobi.png');
+}

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Shield, MapPin, Star, Users } from 'lucide-react';
 import {Link} from 'react-router-dom';
+import nairobiImg from "@/images/nairobi.png";
 
 const features = [
   {
@@ -32,7 +33,7 @@ const features = [
 
 const TrustSection = () => {
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16 bg-[#F9FAFB]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl lg:text-4xl font-bold inter text-gray-900 mb-4">
@@ -87,27 +88,44 @@ const TrustSection = () => {
 
 
         {/* Call to Action */}
-        <div className="mt-16 bg-gradient-to-r from-primary to-primary-dark rounded-2xl p-8 lg:p-12 text-center text-white">
-          <h3 className="text-2xl lg:text-3xl font-bold inter mb-4">
-            Ready to Start Shopping Safely?
-          </h3>
-          <p className="text-lg opacity-90 mb-6 max-w-2xl mx-auto">
-            Join thousands of satisfied customers who trust Nairobi Verified for their online shopping needs.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-           <Link to ="/auth/register">
-            <button className="bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-              Create Account
-            </button>
-           </Link>
-           <Link to="/merchants">
-           <button className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors">
-              Browse Products
-            </button>
-           </Link>
-            
-          </div>
-        </div>
+  <div className="relative mt-16 rounded-2xl overflow-hidden">
+  {/* Background Image */}
+  <img
+    src={nairobiImg}
+    alt="Nairobi"
+    className="absolute inset-0 w-full h-full object-cover"
+  />
+
+  {/* Black glass overlay */}
+  <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+
+  {/* Content */}
+  <div className="relative p-8 lg:p-12 text-center text-white">
+    <h3 className="text-2xl lg:text-3xl font-bold inter mb-4">
+      Ready to Start Shopping Safely?
+    </h3>
+    <p className="text-lg opacity-90 mb-6 max-w-2xl mx-auto">
+      Join thousands of satisfied customers who trust Nairobi Verified for their online shopping needs.
+    </p>
+    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <Link to="/auth/register">
+        <button className="bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+          Create Account
+        </button>
+      </Link>
+      <Link to="/merchants">
+        <button className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors">
+          Browse Products
+        </button>
+      </Link>
+    </div>
+  </div>
+</div>
+
+
+
+
+
       </div>
     </section>
   );
