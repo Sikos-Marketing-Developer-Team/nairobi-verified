@@ -142,85 +142,92 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
   };
 
   return (
-    <Card className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden group">
-      <CardContent className="p-0">
-        <div className="relative">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-          {product.featured && (
-            <div className="absolute top-2 left-2 bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs font-medium">
-              Featured
-            </div>
-          )}
-          {calculateDiscount() > 0 && (
-            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
-              -{calculateDiscount()}%
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute bottom-2 right-2 bg-white/80 hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 h-8 w-8"
-          >
-            <Heart className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm text-gray-600">{product.merchant}</span>
-            {product.verified && (
-              <div className="verified-badge">
-                <Check className="h-3 w-3" />
-                Verified
+    <Link to={`/product/${product.id}`}>
+      <Card className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden group">
+        <CardContent className="p-0">
+          <div className="relative">
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            {product.featured && (
+              <div className="absolute top-2 left-2 bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs font-medium">
+                Featured
               </div>
             )}
-          </div>
-          
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-            {product.name}
-          </h3>
-          
-          <Link to={`/merchant/${product.merchantId}`} className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-2 mb-2">
-            <MapPin className="h-4 w-4 text-gray-400" />
-            <span>{product.location}</span>
-          </Link>
-          
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center">
-              <Star className="h-4 w-4 text-yellow-400 fill-current" />
-              <span className="text-sm font-medium ml-1">{product.rating}</span>
-            </div>
-            <span className="text-sm text-gray-500">({product.reviews} reviews)</span>
-            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{product.category}</span>
-          </div>
-          
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl font-bold text-primary">
-              {formatPrice(product.price)}
-            </span>
-            {product.originalPrice > product.price && (
-              <span className="text-sm text-gray-500 line-through">
-                {formatPrice(product.originalPrice)}
-              </span>
+            {calculateDiscount() > 0 && (
+              <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
+                -{calculateDiscount()}%
+              </div>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute bottom-2 right-2 bg-white/80 hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 h-8 w-8"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Add to wishlist functionality
+              }}
+            >
+              <Heart className="h-4 w-4" />
+            </Button>
           </div>
           
-          <Button className="w-full bg-primary hover:bg-primary-dark text-white"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              alert(`Added ${product.name} to cart!`);
-            }}
-          >
-            Add to Cart
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm text-gray-600">{product.merchant}</span>
+              {product.verified && (
+                <div className="verified-badge">
+                  <Check className="h-3 w-3" />
+                  Verified
+                </div>
+              )}
+            </div>
+            
+            <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+              {product.name}
+            </h3>
+            
+            <div className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-2 mb-2">
+              <MapPin className="h-4 w-4 text-gray-400" />
+              <span>{product.location}</span>
+            </div>
+            
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center">
+                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                <span className="text-sm font-medium ml-1">{product.rating}</span>
+              </div>
+              <span className="text-sm text-gray-500">({product.reviews} reviews)</span>
+              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{product.category}</span>
+            </div>
+            
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xl font-bold text-primary">
+                {formatPrice(product.price)}
+              </span>
+              {product.originalPrice > product.price && (
+                <span className="text-sm text-gray-500 line-through">
+                  {formatPrice(product.originalPrice)}
+                </span>
+              )}
+            </div>
+            
+            <Button className="w-full bg-primary hover:bg-primary-dark text-white"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                alert(`Added ${product.name} to cart!`);
+              }}
+            >
+              Add to Cart
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
 

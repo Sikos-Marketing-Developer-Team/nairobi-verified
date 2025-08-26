@@ -33,11 +33,12 @@ const Index = () => {
     <div className="min-h-screen bg-white">
       <Header />
       <Hero />
-     <FlashSaleDetail/>
-     <FeaturedProducts />
-     <HowItWorks />
-     <Footer />
-     
+      <FeaturedProducts />
+      <FlashSales />
+      <CategorySection />
+      <HowItWorks />
+      <TrustSection />
+      <Footer />
     </div>
   );
 };

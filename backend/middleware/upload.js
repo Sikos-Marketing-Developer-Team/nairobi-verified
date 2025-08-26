@@ -1,7 +1,12 @@
 const multer = require('multer');
 const path = require('path');
+const { 
+  productImageUpload, 
+  merchantImageUpload, 
+  documentUpload 
+} = require('../services/cloudinaryService');
 
-// Set storage engine for images
+// Legacy local storage (keeping for backward compatibility)
 const imageStorage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, path.join(__dirname, '../uploads/images'));
@@ -11,7 +16,6 @@ const imageStorage = multer.diskStorage({
   }
 });
 
-// Set storage engine for documents
 const documentStorage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, path.join(__dirname, '../uploads/documents'));
@@ -23,16 +27,12 @@ const documentStorage = multer.diskStorage({
 
 // Check file type
 const fileFilter = (req, file, cb) => {
-  // Allowed image extensions
-  const imageFileTypes = /jpeg|jpg|png|gif/;
-  // Allowed document extensions
+  const imageFileTypes = /jpeg|jpg|png|gif|webp/;
   const documentFileTypes = /pdf|doc|docx|txt/;
   
-  // Check extension
   const extname = imageFileTypes.test(path.extname(file.originalname).toLowerCase()) || 
                  documentFileTypes.test(path.extname(file.originalname).toLowerCase());
   
-  // Check mime
   const mimetype = imageFileTypes.test(file.mimetype) || documentFileTypes.test(file.mimetype);
   
   if (mimetype && extname) {
@@ -42,21 +42,31 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Initialize upload for images
+// Legacy local uploads (keeping for backward compatibility)
 const uploadImage = multer({
   storage: imageStorage,
   limits: { fileSize: 5000000 }, // 5MB
   fileFilter: fileFilter
 });
 
-// Initialize upload for documents
 const uploadDocument = multer({
   storage: documentStorage,
   limits: { fileSize: 10000000 }, // 10MB
   fileFilter: fileFilter
 });
 
+// Cloudinary uploads (new preferred method)
+const uploadProductImages = productImageUpload;
+const uploadMerchantImages = merchantImageUpload;
+const uploadDocuments = documentUpload;
+
 module.exports = {
+  // Legacy uploads
   uploadImage,
-  uploadDocument
+  uploadDocument,
+  
+  // New Cloudinary uploads
+  uploadProductImages,
+  uploadMerchantImages,
+  uploadDocuments
 };
