@@ -209,6 +209,14 @@ export const adminAPI = {
   // Analytics
   getAnalytics: (params?: any) => api.get('/admin/dashboard/analytics', { params }),
   
+  // Flash Sales management
+  getFlashSales: (params?: any) => api.get('/admin/dashboard/flash-sales', { params }),
+  getFlashSalesAnalytics: () => api.get('/admin/dashboard/flash-sales/analytics'),
+  createFlashSale: (flashSaleData: any) => api.post('/flash-sales', flashSaleData),
+  updateFlashSale: (flashSaleId: string, flashSaleData: any) => api.put(`/flash-sales/${flashSaleId}`, flashSaleData),
+  deleteFlashSale: (flashSaleId: string) => api.delete(`/flash-sales/${flashSaleId}`),
+  toggleFlashSaleStatus: (flashSaleId: string) => api.patch(`/flash-sales/${flashSaleId}/toggle`),
+  
   // Data management
   removeMockData: () => api.delete('/admin/mock-data'),
   removeMockDataByType: (dataType: string) => api.delete(`/admin/mock-data/${dataType}`),

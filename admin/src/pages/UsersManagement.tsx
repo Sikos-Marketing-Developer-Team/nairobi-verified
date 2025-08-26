@@ -9,21 +9,47 @@ import {
   Download,
   Mail,
   Shield,
-  Calendar
+  Calendar,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
+  MoreVertical,
+  Filter,
+  RefreshCw,
+  UserCheck,
+  UserX,
+  Ban,
+  Unlock
 } from 'lucide-react';
-import { adminAPI } from '../lib/api';
+import { adminAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface User {
   _id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
   role: 'user' | 'merchant' | 'admin';
   isVerified: boolean;
   createdAt: string;
+  updatedAt: string;
   lastLogin?: string;
-  status: 'active' | 'suspended' | 'banned';
+  isActive?: boolean;
+  profile?: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    avatar?: string;
+  };
+  preferences?: {
+    notifications?: boolean;
+    marketing?: boolean;
+  };
+  stats?: {
+    totalOrders?: number;
+    totalSpent?: number;
+    favoriteCount?: number;
+  };
 }
 
 const UsersManagement: React.FC = () => {
@@ -33,10 +59,25 @@ const UsersManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [bulkActions, setBulkActions] = useState<string[]>([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [roleFilter, statusFilter]);
+
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (searchTerm !== '') {
+        loadUsers();
+      }
+    }, 500);
+
+    return () => clearTimeout(delayedSearch);
+  }, [searchTerm]);
 
   useEffect(() => {
     filterUsers();
@@ -45,48 +86,23 @@ const UsersManagement: React.FC = () => {
   const loadUsers = async () => {
     try {
       setIsLoading(true);
-      const response = await adminAPI.getUsers();
+      const response = await adminAPI.getUsers({
+        page: 1,
+        limit: 100,
+        role: roleFilter !== 'all' ? roleFilter : undefined,
+        isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined,
+        search: searchTerm || undefined
+      });
+      
       if (response.data.success) {
-        setUsers(response.data.data || []);
+        const users = response.data.data?.users || response.data.users || [];
+        const total = response.data.data?.total || response.data.total || users.length;
+        setUsers(users);
+        setTotalUsers(total);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load users:', error);
       toast.error('Failed to load users');
-      // Set mock data for demonstration
-      setUsers([
-        {
-          _id: '1',
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          role: 'user',
-          isVerified: true,
-          createdAt: '2024-01-15T10:30:00Z',
-          lastLogin: '2024-01-20T14:22:00Z',
-          status: 'active'
-        },
-        {
-          _id: '2',
-          firstName: 'Jane',
-          lastName: 'Smith',
-          email: 'jane@example.com',
-          role: 'merchant',
-          isVerified: true,
-          createdAt: '2024-01-10T09:15:00Z',
-          lastLogin: '2024-01-19T16:45:00Z',
-          status: 'active'
-        },
-        {
-          _id: '3',
-          firstName: 'Bob',
-          lastName: 'Wilson',
-          email: 'bob@example.com',
-          role: 'user',
-          isVerified: false,
-          createdAt: '2024-01-18T11:20:00Z',
-          status: 'active'
-        }
-      ]);
     } finally {
       setIsLoading(false);
     }
@@ -97,9 +113,10 @@ const UsersManagement: React.FC = () => {
 
     if (searchTerm) {
       filtered = filtered.filter(user =>
-        user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.profile?.firstName && user.profile.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.profile?.lastName && user.profile.lastName.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -108,42 +125,197 @@ const UsersManagement: React.FC = () => {
     }
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(user => user.status === statusFilter);
+      if (statusFilter === 'active') {
+        filtered = filtered.filter(user => user.isActive !== false);
+      } else if (statusFilter === 'inactive') {
+        filtered = filtered.filter(user => user.isActive === false);
+      } else if (statusFilter === 'verified') {
+        filtered = filtered.filter(user => user.isVerified);
+      } else if (statusFilter === 'unverified') {
+        filtered = filtered.filter(user => !user.isVerified);
+      }
     }
 
     setFilteredUsers(filtered);
   };
 
-  const handleUserAction = async (action: string, _userId: string) => {
+  const handleUserAction = async (action: string, userId: string) => {
     try {
       switch (action) {
-        case 'suspend':
-          // await adminAPI.updateUser(userId, { status: 'suspended' });
-          toast.success('User suspended successfully');
-          break;
         case 'activate':
-          // await adminAPI.updateUser(userId, { status: 'active' });
-          toast.success('User activated successfully');
-          break;
-        case 'delete':
-          if (window.confirm('Are you sure you want to delete this user?')) {
-            // await adminAPI.deleteUser(userId);
-            toast.success('User deleted successfully');
+          const activateResponse = await adminAPI.updateUser(userId, { isActive: true });
+          if (activateResponse.data.success) {
+            toast.success('User activated successfully');
             loadUsers();
           }
           break;
+        case 'deactivate':
+          const deactivateResponse = await adminAPI.updateUser(userId, { isActive: false });
+          if (deactivateResponse.data.success) {
+            toast.success('User deactivated successfully');
+            loadUsers();
+          }
+          break;
+        case 'verify':
+          const verifyResponse = await adminAPI.updateUser(userId, { isVerified: true });
+          if (verifyResponse.data.success) {
+            toast.success('User verified successfully');
+            loadUsers();
+          }
+          break;
+        case 'delete':
+          if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+            const deleteResponse = await adminAPI.deleteUser(userId);
+            if (deleteResponse.data.success) {
+              toast.success('User deleted successfully');
+              loadUsers();
+            }
+          }
+          break;
+        case 'view_details':
+          const user = users.find(u => u._id === userId);
+          if (user) {
+            setSelectedUser(user);
+            setShowDetailsModal(true);
+          }
+          break;
       }
-    } catch (error) {
-      toast.error('Action failed');
+    } catch (error: any) {
+      console.error('Action failed:', error);
+      toast.error(error.response?.data?.message || 'Action failed');
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'merchant': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const handleBulkAction = async (action: string) => {
+    if (bulkActions.length === 0) {
+      toast.error('Please select users to perform bulk action');
+      return;
     }
+
+    try {
+      let updateData = {};
+      let successMessage = '';
+
+      switch (action) {
+        case 'activate':
+          updateData = { isActive: true };
+          successMessage = `${bulkActions.length} users activated successfully`;
+          break;
+        case 'deactivate':
+          updateData = { isActive: false };
+          successMessage = `${bulkActions.length} users deactivated successfully`;
+          break;
+        case 'verify':
+          updateData = { isVerified: true };
+          successMessage = `${bulkActions.length} users verified successfully`;
+          break;
+        default:
+          return;
+      }
+
+      // Perform bulk update
+      await Promise.all(
+        bulkActions.map(userId => adminAPI.updateUser(userId, updateData))
+      );
+
+      toast.success(successMessage);
+      setBulkActions([]);
+      setShowBulkActions(false);
+      loadUsers();
+    } catch (error: any) {
+      console.error('Bulk action failed:', error);
+      toast.error('Bulk action failed');
+    }
+  };
+
+  const exportUsers = async () => {
+    try {
+      const response = await adminAPI.get('/dashboard/export/users', {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `users-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Users data exported successfully');
+    } catch (error: any) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export users data');
+    }
+  };
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <Shield className="w-3 h-3 mr-1" />
+            Admin
+          </span>
+        );
+      case 'merchant':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <Users className="w-3 h-3 mr-1" />
+            Merchant
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            <Users className="w-3 h-3 mr-1" />
+            User
+          </span>
+        );
+    }
+  };
+
+  const getStatusBadge = (user: User) => {
+    if (user.isActive === false) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <XCircle className="w-3 h-3 mr-1" />
+          Inactive
+        </span>
+      );
+    } else if (user.isVerified) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Verified
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          <Clock className="w-3 h-3 mr-1" />
+          Unverified
+        </span>
+      );
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getDisplayName = (user: User) => {
+    if (user.profile?.firstName && user.profile?.lastName) {
+      return `${user.profile.firstName} ${user.profile.lastName}`;
+    }
+    return user.name || user.email.split('@')[0];
   };
 
   const getStatusColor = (status: string) => {
@@ -153,14 +325,6 @@ const UsersManagement: React.FC = () => {
       case 'banned': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   if (isLoading) {
