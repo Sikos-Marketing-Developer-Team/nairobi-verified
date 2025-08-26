@@ -57,9 +57,9 @@ const AdminDashboard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   // Navigation functions
-  const navigateTo = (path: string) => {
-    navigate(path);
-  };
+  // const navigateTo = (path: string) => { // Commented out for build optimization
+  //   navigate(path);
+  // };
 
   // Quick action functions
   const handleQuickAction = async (action: string) => {

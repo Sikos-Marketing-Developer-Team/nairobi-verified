@@ -9,18 +9,7 @@ import {
   Download,
   Star,
   DollarSign,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Filter,
-  RefreshCw,
-  MoreVertical,
-  TrendingUp,
-  ShoppingCart,
-  Heart,
-  Image as ImageIcon,
-  Tag,
-  Store
+  XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@/lib/api';
@@ -68,14 +57,9 @@ const ProductsManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [merchantFilter, setMerchantFilter] = useState<string>('all');
-  const [stockFilter, setStockFilter] = useState<string>('all');
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [merchantFilter] = useState<string>('all');
+  const [stockFilter] = useState<string>('all');
   const [showAddProductModal, setShowAddProductModal] = useState(false);
-  const [bulkActions, setBulkActions] = useState<string[]>([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -100,9 +84,7 @@ const ProductsManagement: React.FC = () => {
       
       if (response.data.success) {
         const products = response.data.data?.products || response.data.products || [];
-        const total = response.data.data?.total || response.data.total || products.length;
         setProducts(products);
-        setTotalProducts(total);
       }
     } catch (error: any) {
       console.error('Failed to load products:', error);
@@ -259,7 +241,7 @@ const ProductsManagement: React.FC = () => {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Avg Rating</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {(products.reduce((acc, p) => acc + p.rating, 0) / products.length).toFixed(1)}
+                    {products.length > 0 ? (products.reduce((acc, p) => acc + (p.rating || 0), 0) / products.length).toFixed(1) : '0.0'}
                   </dd>
                 </dl>
               </div>

@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Settings, 
-  Save, 
-  Mail, 
-  Globe, 
-  Shield, 
-  Database, 
+  Settings,
+  Save,
+  Mail,
+  Shield,
   Bell,
-  Palette,
   Clock,
-  Users,
-  Key,
-  AlertCircle,
-  CheckCircle
+  Database,
+  AlertCircle
 } from 'lucide-react';
-import { adminAPI } from '@/lib/api';
 import { toast } from 'sonner';
+import { adminAPI } from '../lib/api';
 
 interface SystemSettings {
   site: {

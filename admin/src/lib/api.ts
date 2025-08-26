@@ -238,6 +238,10 @@ export const adminAPI = {
   // Bulk operations
   bulkVerifyMerchants: (merchantIds: string[]) => api.post('/admin/dashboard/merchants/bulk-verify', { merchantIds }),
   
+  // Settings management
+  getSettings: () => api.get('/admin/dashboard/settings'),
+  updateSettings: (settings: any) => api.put('/admin/dashboard/settings', settings),
+  
   // Data management
   removeMockData: () => api.delete('/admin/mock-data'),
   removeMockDataByType: (dataType: string) => api.delete(`/admin/mock-data/${dataType}`)
