@@ -178,6 +178,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/uploads', require('./routes/uploads'));
 
 // 404 handler for undefined routes
 app.use('*', (req, res) => {

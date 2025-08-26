@@ -19,14 +19,12 @@ const {
   getSettings,
   updateSettings
 } = require('../controllers/adminDashboard');
-const { protect, authorize } = require('../middleware/auth');
-const { checkPermission } = require('../middleware/adminAuth');
+const { protectAdmin, checkPermission } = require('../middleware/adminAuth');
 
 const router = express.Router();
 
 // Protect all admin routes
-router.use(protect);
-router.use(authorize('admin'));
+router.use(protectAdmin);
 
 // Dashboard routes
 router.get('/stats', getDashboardStats);
