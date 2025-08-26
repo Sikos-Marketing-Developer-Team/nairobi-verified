@@ -14,7 +14,8 @@ import {
   Download,
   AlertCircle,
   XCircle,
-  Clock
+  Clock,
+  FileText
 } from 'lucide-react';
 import { adminAPI } from '@/lib/api';
 import { toast } from 'sonner';
@@ -591,11 +592,18 @@ const MerchantsManagement: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
                     <button
-                      onClick={() => console.log('View merchant:', merchant)}
+                      onClick={() => handleMerchantAction('view_details', merchant._id)}
                       className="text-green-600 hover:text-green-900"
                       title="View Details"
                     >
                       <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleMerchantAction('view_documents', merchant._id)}
+                      className="text-blue-600 hover:text-blue-900"
+                      title="View Documents"
+                    >
+                      <FileText className="h-4 w-4" />
                     </button>
                     {(merchant.status === 'pending' || !merchant.verified) && (
                       <>
@@ -636,6 +644,255 @@ const MerchantsManagement: React.FC = () => {
             <p className="mt-1 text-sm text-gray-500">
               Try adjusting your search or filter criteria.
             </p>
+          </div>
+        )}
+      </div>
+
+      {/* Documents Modal */}
+      {showDocumentsModal && selectedMerchant && (
+        <DocumentsModal
+          merchant={selectedMerchant}
+          onClose={() => {
+            setShowDocumentsModal(false);
+            setSelectedMerchant(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Documents Modal Component
+interface DocumentsModalProps {
+  merchant: Merchant;
+  onClose: () => void;
+}
+
+const DocumentsModal: React.FC<DocumentsModalProps> = ({ merchant, onClose }) => {
+  const [documents, setDocuments] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        setIsLoading(true);
+        const response = await adminAPI.getMerchantDocuments(merchant._id);
+        setDocuments(response.data);
+      } catch (error) {
+        console.error('Failed to fetch documents:', error);
+        toast.error('Failed to load merchant documents');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, [merchant._id]);
+
+  const handleViewDocument = async (docType: string) => {
+    try {
+      const response = await adminAPI.viewMerchantDocument(merchant._id, docType);
+      
+      // Create blob URL and open in new tab
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      // Clean up the URL after a delay
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      console.error('Failed to view document:', error);
+      toast.error('Failed to view document');
+    }
+  };
+
+  const getDocumentStatus = (docType: string) => {
+    if (!documents?.documents) return 'Not uploaded';
+    
+    const docInfo = documents.documents[docType];
+    if (docInfo && docInfo.path) {
+      return 'Uploaded';
+    }
+    return 'Not uploaded';
+  };
+
+  const getDocumentIcon = (status: string) => {
+    switch (status) {
+      case 'Uploaded':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      default:
+        return <XCircle className="h-5 w-5 text-red-500" />;
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Documents for {merchant.businessName}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Document Analysis Summary */}
+            {documents?.analysis && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 mb-2">Document Status Summary</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Required Documents:</span>
+                    <span className="ml-2 font-medium">
+                      {documents.analysis.requiredDocsSubmitted}/{documents.analysis.totalRequiredDocs}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Completion:</span>
+                    <span className="ml-2 font-medium">{documents.analysis.completionPercentage}%</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Can be verified:</span>
+                    <span className={`ml-2 font-medium ${documents.analysis.canBeVerified ? 'text-green-600' : 'text-red-600'}`}>
+                      {documents.analysis.canBeVerified ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Merchant Status:</span>
+                    <span className={`ml-2 font-medium ${merchant.verified ? 'text-green-600' : 'text-yellow-600'}`}>
+                      {merchant.verified ? 'Verified' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Document List */}
+            <div className="space-y-3">
+              <h3 className="font-medium text-gray-900">Required Documents</h3>
+              
+              {/* Business Registration */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    {getDocumentIcon(getDocumentStatus('businessRegistration'))}
+                    <div>
+                      <h4 className="font-medium text-gray-900">Business Registration Certificate</h4>
+                      <p className="text-sm text-gray-600">Status: {getDocumentStatus('businessRegistration')}</p>
+                    </div>
+                  </div>
+                  {getDocumentStatus('businessRegistration') === 'Uploaded' && (
+                    <button
+                      onClick={() => handleViewDocument('businessRegistration')}
+                      className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span>View</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ID Document */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    {getDocumentIcon(getDocumentStatus('idDocument'))}
+                    <div>
+                      <h4 className="font-medium text-gray-900">ID Document</h4>
+                      <p className="text-sm text-gray-600">Status: {getDocumentStatus('idDocument')}</p>
+                    </div>
+                  </div>
+                  {getDocumentStatus('idDocument') === 'Uploaded' && (
+                    <button
+                      onClick={() => handleViewDocument('idDocument')}
+                      className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span>View</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Utility Bill */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    {getDocumentIcon(getDocumentStatus('utilityBill'))}
+                    <div>
+                      <h4 className="font-medium text-gray-900">Utility Bill</h4>
+                      <p className="text-sm text-gray-600">Status: {getDocumentStatus('utilityBill')}</p>
+                    </div>
+                  </div>
+                  {getDocumentStatus('utilityBill') === 'Uploaded' && (
+                    <button
+                      onClick={() => handleViewDocument('utilityBill')}
+                      className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span>View</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Documents */}
+              {documents?.documents?.additionalDocs && documents.documents.additionalDocs.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Additional Documents</h4>
+                  <div className="space-y-2">
+                    {documents.documents.additionalDocs.map((doc: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span className="text-sm">{doc.originalName || `Additional Document ${index + 1}`}</span>
+                        </div>
+                        <button
+                          onClick={() => handleViewDocument(`additionalDocs[${index}]`)}
+                          className="flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-xs"
+                        >
+                          <Eye className="h-3 w-3" />
+                          <span>View</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+              >
+                Close
+              </button>
+              {documents?.analysis?.canBeVerified && !merchant.verified && (
+                <button
+                  onClick={() => {
+                    // Handle verification action
+                    toast.success('Merchant verification initiated');
+                    onClose();
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  Verify Merchant
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

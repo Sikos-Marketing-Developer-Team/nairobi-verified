@@ -500,6 +500,117 @@ const getMerchantDocuments = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    View/Download a specific merchant document
+// @route   GET /api/admin/dashboard/merchants/:id/documents/:docType/view
+// @access  Private (Admin)
+const viewMerchantDocument = asyncHandler(async (req, res) => {
+  const path = require('path');
+  const fs = require('fs');
+
+  try {
+    const { id: merchantId, docType } = req.params;
+
+    const merchant = await Merchant.findById(merchantId)
+      .select('businessName documents');
+
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Merchant not found'
+      });
+    }
+
+    // Validate document type and get document path
+    let documentInfo = null;
+    let isAdditionalDoc = false;
+    let additionalDocIndex = null;
+    
+    switch (docType) {
+      case 'businessRegistration':
+        documentInfo = merchant.documents?.businessRegistration;
+        break;
+      case 'idDocument':
+        documentInfo = merchant.documents?.idDocument;
+        break;
+      case 'utilityBill':
+        documentInfo = merchant.documents?.utilityBill;
+        break;
+      default:
+        // Check if it's an additional document with format "additionalDocs[index]"
+        const additionalMatch = docType.match(/additionalDocs\[(\d+)\]/);
+        if (additionalMatch && merchant.documents?.additionalDocs) {
+          additionalDocIndex = parseInt(additionalMatch[1]);
+          if (additionalDocIndex < merchant.documents.additionalDocs.length) {
+            documentInfo = merchant.documents.additionalDocs[additionalDocIndex];
+            isAdditionalDoc = true;
+          }
+        }
+        
+        if (!documentInfo) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid document type'
+          });
+        }
+        break;
+    }
+
+    if (!documentInfo || !documentInfo.path) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found or not uploaded'
+      });
+    }
+
+    // Construct full file path
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    const filePath = path.join(uploadsDir, documentInfo.path);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document file not found on server'
+      });
+    }
+
+    // Get file stats
+    const stats = fs.statSync(filePath);
+    const fileSize = stats.size;
+    
+    // Set appropriate headers
+    res.setHeader('Content-Type', documentInfo.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Length', fileSize);
+    res.setHeader('Content-Disposition', `inline; filename="${documentInfo.originalName || docType}"`);
+    
+    // For security, add headers to prevent XSS
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+
+    // Handle stream errors
+    fileStream.on('error', (error) => {
+      console.error('File stream error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: 'Error reading document file'
+        });
+      }
+    });
+
+  } catch (error) {
+    console.error('View merchant document error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve document'
+    });
+  }
+});
+
 // NEW: Bulk document verification actions
 // @desc    Process multiple merchant verifications
 // @route   POST /api/admin/dashboard/merchants/bulk-verify
@@ -959,6 +1070,82 @@ const getProducts = asyncHandler(async (req, res) => {
       pages: Math.ceil(total / limit)
     }
   });
+});
+
+// @desc    Create new product
+// @route   POST /api/admin/dashboard/products
+// @access  Private (Admin)
+const createProduct = asyncHandler(async (req, res) => {
+  try {
+    const { 
+      name, 
+      description, 
+      price, 
+      originalPrice,
+      category, 
+      subcategory,
+      merchant,
+      stock = 0,
+      tags = [],
+      specifications = {},
+      isActive = true
+    } = req.body;
+
+    // Validation
+    if (!name || !description || !price || !category || !merchant) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, description, price, category, and merchant are required'
+      });
+    }
+
+    // Verify merchant exists
+    const Merchant = require('../models/Merchant');
+    const existingMerchant = await Merchant.findById(merchant);
+    if (!existingMerchant) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid merchant ID'
+      });
+    }
+
+    // Create new product
+    const newProduct = new Product({
+      name: name.trim(),
+      description: description.trim(),
+      price: parseFloat(price),
+      originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
+      category: category.trim(),
+      subcategory: subcategory ? subcategory.trim() : undefined,
+      merchant: merchant,
+      stock: parseInt(stock),
+      tags: Array.isArray(tags) ? tags : [],
+      specifications: specifications || {},
+      isActive: Boolean(isActive),
+      inStock: parseInt(stock) > 0,
+      images: [], // Will be added later through separate image upload
+      rating: 0,
+      totalReviews: 0,
+      totalSales: 0
+    });
+
+    await newProduct.save();
+
+    // Populate merchant details for response
+    await newProduct.populate('merchant', 'businessName verified');
+
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      product: newProduct
+    });
+  } catch (error) {
+    console.error('Create product error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create product'
+    });
+  }
 });
 
 // @desc    Get all reviews with pagination and filtering
@@ -1547,10 +1734,134 @@ const getAnalytics = asyncHandler(async (req, res) => {
   }
 });
 
+const getRecentActivity = asyncHandler(async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    const recentActivities = [];
+
+    // Get recent user registrations
+    const recentUsers = await User.find({ role: { $ne: 'admin' } })
+      .select('name email createdAt role')
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 4))
+      .lean();
+
+    // Get recent merchant registrations
+    const recentMerchants = await Merchant.find()
+      .select('businessName email createdAt verified')
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 4))
+      .lean();
+
+    // Get recent products
+    const recentProducts = await Product.find()
+      .select('name price merchant createdAt')
+      .populate('merchant', 'businessName')
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 4))
+      .lean();
+
+    // Get recent reviews
+    const recentReviews = await Review.find()
+      .select('rating comment user merchant createdAt')
+      .populate('user', 'name')
+      .populate('merchant', 'businessName')
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 4))
+      .lean();
+
+    // Format activities
+    recentUsers.forEach(user => {
+      recentActivities.push({
+        id: `user_${user._id}`,
+        type: 'user_signup',
+        description: `New ${user.role} "${user.name}" registered`,
+        timestamp: user.createdAt,
+        user: user.name,
+        details: { email: user.email, role: user.role }
+      });
+    });
+
+    recentMerchants.forEach(merchant => {
+      recentActivities.push({
+        id: `merchant_${merchant._id}`,
+        type: merchant.verified ? 'merchant_verified' : 'merchant_registration',
+        description: merchant.verified 
+          ? `Merchant "${merchant.businessName}" was verified`
+          : `New merchant "${merchant.businessName}" submitted application`,
+        timestamp: merchant.createdAt,
+        user: merchant.businessName,
+        details: { email: merchant.email, verified: merchant.verified }
+      });
+    });
+
+    recentProducts.forEach(product => {
+      recentActivities.push({
+        id: `product_${product._id}`,
+        type: 'product_added',
+        description: `New product "${product.name}" added by ${product.merchant?.businessName || 'Unknown'}`,
+        timestamp: product.createdAt,
+        user: product.merchant?.businessName,
+        details: { productName: product.name, price: product.price }
+      });
+    });
+
+    recentReviews.forEach(review => {
+      recentActivities.push({
+        id: `review_${review._id}`,
+        type: 'review_posted',
+        description: `${review.user?.name || 'Anonymous'} left a ${review.rating}★ review for ${review.merchant?.businessName || 'Unknown'}`,
+        timestamp: review.createdAt,
+        user: review.user?.name,
+        details: { rating: review.rating, merchant: review.merchant?.businessName }
+      });
+    });
+
+    // Sort by timestamp and limit
+    const sortedActivities = recentActivities
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, parseInt(limit))
+      .map(activity => ({
+        ...activity,
+        timestamp: formatTimeAgo(activity.timestamp)
+      }));
+
+    res.json({
+      success: true,
+      data: sortedActivities,
+      count: sortedActivities.length
+    });
+
+  } catch (error) {
+    console.error('Get recent activity error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent activity'
+    });
+  }
+});
+
+// Helper function to format time ago
+const formatTimeAgo = (date) => {
+  const now = new Date();
+  const diffInMs = now - new Date(date);
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInMinutes < 1) return 'Just now';
+  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+  if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+  if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  return new Date(date).toLocaleDateString();
+};
+
 module.exports = {
   getDashboardStats,
+  getRecentActivity,
   getMerchants,
   getMerchantDocuments,
+  viewMerchantDocument,
   bulkVerifyMerchants,
   createMerchant,
   updateMerchantStatus,
@@ -1559,6 +1870,7 @@ module.exports = {
   updateUser,
   deleteUser,
   getProducts,
+  createProduct,
   getReviews,
   deleteReview,
   getAnalytics,

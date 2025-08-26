@@ -73,6 +73,7 @@ const ProductsManagement: React.FC = () => {
   const [totalProducts, setTotalProducts] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [bulkActions, setBulkActions] = useState<string[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
 
@@ -185,6 +186,7 @@ const ProductsManagement: React.FC = () => {
           </button>
           <button
             type="button"
+            onClick={() => setShowAddProductModal(true)}
             className="inline-flex items-center justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -408,6 +410,364 @@ const ProductsManagement: React.FC = () => {
           </p>
         </div>
       )}
+
+      {/* Add Product Modal */}
+      {showAddProductModal && (
+        <AddProductModal
+          onClose={() => setShowAddProductModal(false)}
+          onProductAdded={() => {
+            setShowAddProductModal(false);
+            loadProducts();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Add Product Modal Component
+interface AddProductModalProps {
+  onClose: () => void;
+  onProductAdded: () => void;
+}
+
+const AddProductModal: React.FC<AddProductModalProps> = ({ onClose, onProductAdded }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    originalPrice: '',
+    category: '',
+    subcategory: '',
+    merchantId: '',
+    stock: '',
+    tags: '',
+    specifications: '',
+    isActive: true
+  });
+  const [merchants, setMerchants] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingMerchants, setIsLoadingMerchants] = useState(true);
+
+  useEffect(() => {
+    loadMerchants();
+  }, []);
+
+  const loadMerchants = async () => {
+    try {
+      setIsLoadingMerchants(true);
+      const response = await adminAPI.getMerchants({ limit: 100, verified: true });
+      setMerchants(response.data.merchants || []);
+    } catch (error) {
+      console.error('Failed to load merchants:', error);
+      toast.error('Failed to load merchants');
+    } finally {
+      setIsLoadingMerchants(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim() || !formData.description.trim() || !formData.price || !formData.category || !formData.merchantId) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const productData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        price: parseFloat(formData.price),
+        originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : undefined,
+        category: formData.category,
+        subcategory: formData.subcategory || undefined,
+        merchant: formData.merchantId,
+        stock: formData.stock ? parseInt(formData.stock) : 0,
+        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+        specifications: formData.specifications ? JSON.parse(formData.specifications) : {},
+        isActive: formData.isActive,
+        inStock: true
+      };
+
+      const response = await adminAPI.createProduct(productData);
+      
+      if (response.data.success) {
+        toast.success('Product created successfully');
+        onProductAdded();
+      }
+    } catch (error: any) {
+      console.error('Failed to create product:', error);
+      toast.error(error.response?.data?.message || 'Failed to create product');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
+
+  const categories = [
+    'Electronics',
+    'Fashion',
+    'Home & Garden',
+    'Sports & Outdoors',
+    'Health & Beauty',
+    'Books & Media',
+    'Food & Beverages',
+    'Automotive',
+    'Baby & Kids',
+    'Other'
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold text-gray-900">Add New Product</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <XCircle className="h-6 w-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900">Basic Information</h3>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder="Enter product name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description *
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder="Enter product description"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Price *
+                  </label>
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    step="0.01"
+                    min="0"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Original Price
+                  </label>
+                  <input
+                    type="number"
+                    name="originalPrice"
+                    value={formData.originalPrice}
+                    onChange={handleInputChange}
+                    step="0.01"
+                    min="0"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Stock Quantity
+                </label>
+                <input
+                  type="number"
+                  name="stock"
+                  value={formData.stock}
+                  onChange={handleInputChange}
+                  min="0"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            {/* Classification & Assignment */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900">Classification & Assignment</h3>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Merchant *
+                </label>
+                <select
+                  name="merchantId"
+                  value={formData.merchantId}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  required
+                >
+                  <option value="">Select a merchant</option>
+                  {isLoadingMerchants ? (
+                    <option disabled>Loading merchants...</option>
+                  ) : (
+                    merchants.map((merchant) => (
+                      <option key={merchant._id} value={merchant._id}>
+                        {merchant.businessName}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category *
+                </label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  required
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Subcategory
+                </label>
+                <input
+                  type="text"
+                  name="subcategory"
+                  value={formData.subcategory}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder="Enter subcategory"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tags (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  name="tags"
+                  value={formData.tags}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder="tag1, tag2, tag3"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Specifications (JSON)
+                </label>
+                <textarea
+                  name="specifications"
+                  value={formData.specifications}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder='{"color": "blue", "size": "large"}'
+                />
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  checked={formData.isActive}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                />
+                <label className="ml-2 block text-sm text-gray-900">
+                  Active (visible to customers)
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> Product images can be added after creation through the product edit interface.
+              Make sure all required fields are filled correctly before submitting.
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`px-6 py-2 text-white rounded ${
+                isSubmitting
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creating...
+                </div>
+              ) : (
+                'Create Product'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

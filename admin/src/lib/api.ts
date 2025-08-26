@@ -182,11 +182,13 @@ export const adminAPI = {
   
   // Dashboard methods
   getDashboardStats: () => api.get('/admin/dashboard/stats'),
+  getRecentActivity: (limit?: number) => api.get('/admin/dashboard/recent-activity', { params: { limit } }),
   getPendingVerifications: () => api.get('/admin/verifications/pending'),
   
   // User management
   getUsers: (params?: any) => api.get('/admin/dashboard/users', { params }),
   getUser: (userId: string) => api.get(`/admin/users/${userId}`),
+  createUser: (userData: any) => api.post('/admin/dashboard/users', userData),
   updateUser: (userId: string, userData: any) => api.put(`/admin/users/${userId}`, userData),
   deleteUser: (userId: string) => api.delete(`/admin/users/${userId}`),
   
@@ -199,8 +201,19 @@ export const adminAPI = {
   rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason }),
   updateMerchantStatus: (merchantId: string, verified: boolean) => api.put(`/admin/dashboard/merchants/${merchantId}/status`, { verified }),
   
+  // Document management
+  getMerchantDocuments: (merchantId: string) => api.get(`/admin/dashboard/merchants/${merchantId}/documents`),
+  viewMerchantDocument: (merchantId: string, docType: string) => {
+    return api.get(`/admin/dashboard/merchants/${merchantId}/documents/${docType}/view`, {
+      responseType: 'blob' // Important for file downloads
+    });
+  },
+  
   // Product management
   getProducts: (params?: any) => api.get('/admin/dashboard/products', { params }),
+  createProduct: (productData: any) => api.post('/admin/dashboard/products', productData),
+  updateProduct: (productId: string, productData: any) => api.put(`/admin/dashboard/products/${productId}`, productData),
+  deleteProduct: (productId: string) => api.delete(`/admin/dashboard/products/${productId}`),
   
   // Review management
   getReviews: (params?: any) => api.get('/admin/dashboard/reviews', { params }),
@@ -212,10 +225,10 @@ export const adminAPI = {
   // Flash Sales management
   getFlashSales: (params?: any) => api.get('/admin/dashboard/flash-sales', { params }),
   getFlashSalesAnalytics: () => api.get('/admin/dashboard/flash-sales/analytics'),
-  createFlashSale: (flashSaleData: any) => api.post('/flash-sales', flashSaleData),
-  updateFlashSale: (flashSaleId: string, flashSaleData: any) => api.put(`/flash-sales/${flashSaleId}`, flashSaleData),
-  deleteFlashSale: (flashSaleId: string) => api.delete(`/flash-sales/${flashSaleId}`),
-  toggleFlashSaleStatus: (flashSaleId: string) => api.patch(`/flash-sales/${flashSaleId}/toggle`),
+  createFlashSale: (flashSaleData: any) => api.post('/admin/dashboard/flash-sales', flashSaleData),
+  updateFlashSale: (flashSaleId: string, flashSaleData: any) => api.put(`/admin/dashboard/flash-sales/${flashSaleId}`, flashSaleData),
+  deleteFlashSale: (flashSaleId: string) => api.delete(`/admin/dashboard/flash-sales/${flashSaleId}`),
+  toggleFlashSaleStatus: (flashSaleId: string) => api.patch(`/admin/dashboard/flash-sales/${flashSaleId}/toggle`),
   
   // Export functions
   exportUsers: () => api.get('/admin/dashboard/export/users', { responseType: 'blob' }),

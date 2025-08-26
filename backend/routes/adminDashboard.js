@@ -1,8 +1,10 @@
 const express = require('express');
 const {
   getDashboardStats,
+  getRecentActivity,
   getMerchants,
   getMerchantDocuments,
+  viewMerchantDocument,
   bulkVerifyMerchants,
   createMerchant,
   updateMerchantStatus,
@@ -11,6 +13,7 @@ const {
   updateUser,
   deleteUser,
   getProducts,
+  createProduct,
   getReviews,
   deleteReview,
   getAnalytics,
@@ -28,6 +31,7 @@ router.use(protectAdmin);
 
 // Dashboard routes
 router.get('/stats', getDashboardStats);
+router.get('/recent-activity', getRecentActivity);
 router.get('/analytics', checkPermission('analytics.read'), getAnalytics);
 router.get('/system-status', getSystemStatus);
 router.get('/settings', checkPermission('settings.read'), getSettings);
@@ -41,6 +45,7 @@ router.put('/merchants/:id/status', checkPermission('merchants.approve'), update
 
 // Document management routes
 router.get('/merchants/:id/documents', checkPermission('merchants.read'), getMerchantDocuments);
+router.get('/merchants/:id/documents/:docType/view', checkPermission('merchants.read'), viewMerchantDocument);
 router.post('/merchants/bulk-verify', checkPermission('merchants.approve'), bulkVerifyMerchants);
 
 // User management routes
@@ -51,6 +56,7 @@ router.delete('/users/:id', checkPermission('users.delete'), deleteUser);
 
 // Product management routes
 router.get('/products', checkPermission('products.read'), getProducts);
+router.post('/products', checkPermission('products.write'), createProduct);
 
 // Review management routes
 router.get('/reviews', checkPermission('reviews.read'), getReviews);
@@ -80,6 +86,42 @@ router.get('/flash-sales/analytics', checkPermission('flashsales.read'), async (
     await flashSalesController.getFlashSalesAnalytics(req, res);
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to load flash sales analytics' });
+  }
+});
+
+router.post('/flash-sales', checkPermission('flashsales.write'), async (req, res) => {
+  try {
+    const flashSalesController = require('../controllers/flashSales');
+    await flashSalesController.createFlashSale(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to create flash sale' });
+  }
+});
+
+router.put('/flash-sales/:id', checkPermission('flashsales.write'), async (req, res) => {
+  try {
+    const flashSalesController = require('../controllers/flashSales');
+    await flashSalesController.updateFlashSale(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to update flash sale' });
+  }
+});
+
+router.delete('/flash-sales/:id', checkPermission('flashsales.delete'), async (req, res) => {
+  try {
+    const flashSalesController = require('../controllers/flashSales');
+    await flashSalesController.deleteFlashSale(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to delete flash sale' });
+  }
+});
+
+router.patch('/flash-sales/:id/toggle', checkPermission('flashsales.write'), async (req, res) => {
+  try {
+    const flashSalesController = require('../controllers/flashSales');
+    await flashSalesController.toggleFlashSaleStatus(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to toggle flash sale status' });
   }
 });
 
