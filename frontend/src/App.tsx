@@ -39,6 +39,7 @@ import Cart from "./pages/Cart";
 import Contact from "./pages/Contact";
 import Status from "./pages/Status";
 import FlashSaleDetail from "./pages/FlashSaleDetail";
+import ProductPage from './pages/ProductPage';
 
 const queryClient = new QueryClient();
 
@@ -94,8 +95,9 @@ const App = () => (
               <Route path="/auth/forgot-password" element={<ForgotPassword />} />
               <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
               <Route path="/merchant/account-setup/:token" element={<MerchantAccountSetup />} />
+              <Route path="/howitworks" element={<HowItWorks />} />
               
-              {/* Protected User Routes */}
+              {/* Protected User Routes */}  <Route path="/product/:id" element={<ProductPage />} />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />

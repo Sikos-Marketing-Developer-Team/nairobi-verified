@@ -37,7 +37,6 @@ const Index = () => {
      <FlashSaleDetail/>
      <CategorySection />
      <FeaturedProducts />
-       <HowItWorks />
      <TrustSection />
      <Footer />
      
