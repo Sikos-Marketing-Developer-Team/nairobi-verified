@@ -103,15 +103,6 @@ const ProductCard = ({ product, onProductClick }: { product: typeof products[0];
             )}
           </div>
           
-          <Button 
-            className="w-full bg-primary hover:bg-primary-dark text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              alert(`Added ${product.name} to cart!`);
-            }}
-          >
-            Add to Cart
-          </Button>
         </div>
       </CardContent>
     </Card>
