@@ -396,15 +396,7 @@ const Navbar = () => {
                 <Phone className="w-4 h-4 text-[#EC5C0A]" /> Contact Us
               </Link>
             </li>
-            <li>
-              <Link 
-                to="/dashboard" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block hover:text-[#EC5C0A] transition-colors py-1.5"
-              >
-                Track Order
-              </Link>
-            </li>
+           
           </ul>
         </div>
       </div>

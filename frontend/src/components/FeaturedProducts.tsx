@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Star, MapPin, Check, Heart } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
 const products = [
   {
@@ -127,8 +127,8 @@ const products = [
   }
 ];
 
-const ProductCard = ({ product }: { product: typeof products[0] }) => {
-  const formatPrice = (price: number) => {
+const ProductCard = ({ product, onProductClick }) => {
+  const formatPrice = (price) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
       currency: 'KES',
@@ -141,8 +141,19 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
     return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
   };
 
+  const handleCardClick = (e) => {
+    // Don't navigate if clicking on interactive elements
+    if (e.target.closest('button')) {
+      return;
+    }
+    onProductClick(product.id);
+  };
+
   return (
-    <Card className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden group">
+    <Card 
+      className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden group transition-transform duration-200 hover:scale-105"
+      onClick={handleCardClick}
+    >
       <CardContent className="p-0">
         <div className="relative">
           <img
@@ -164,6 +175,10 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
             variant="ghost"
             size="icon"
             className="absolute bottom-2 right-2 bg-white/80 hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 h-8 w-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              alert(`Added ${product.name} to wishlist!`);
+            }}
           >
             <Heart className="h-4 w-4" />
           </Button>
@@ -173,21 +188,21 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
           <div className="flex items-center gap-2 mb-2">
             <span className="text-sm text-gray-600">{product.merchant}</span>
             {product.verified && (
-              <div className="verified-badge">
+              <div className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">
                 <Check className="h-3 w-3" />
                 Verified
               </div>
             )}
           </div>
           
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-orange-500 transition-colors">
             {product.name}
           </h3>
           
-          <Link to={`/merchant/${product.merchantId}`} className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-2 mb-2">
+          <div className="text-sm text-gray-600 hover:text-orange-500 transition-colors flex items-center gap-2 mb-2">
             <MapPin className="h-4 w-4 text-gray-400" />
             <span>{product.location}</span>
-          </Link>
+          </div>
           
           <div className="flex items-center gap-2 mb-3">
             <div className="flex items-center">
@@ -199,7 +214,7 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
           </div>
           
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl font-bold text-primary">
+            <span className="text-xl font-bold text-orange-500">
               {formatPrice(product.price)}
             </span>
             {product.originalPrice > product.price && (
@@ -209,7 +224,8 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
             )}
           </div>
           
-          <Button className="w-full bg-primary hover:bg-primary-dark text-white"
+          <Button 
+            className="w-full bg-orange-500 hover:bg-orange-700 text-white"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -227,6 +243,12 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
 const FeaturedProducts = () => {
   // Show only featured products (first 8)
   const featuredProducts = products.filter(product => product.featured).slice(0, 8);
+
+ const navigate = useNavigate();
+
+  const handleProductClick = (productId: string) => {
+    navigate(`/product/${productId}`);
+  };
 
   return (
     <section className="py-16 bg-gray-50">
@@ -247,21 +269,30 @@ const FeaturedProducts = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard 
+              key={product.id} 
+              product={product} 
+              onProductClick={handleProductClick}
+            />
           ))}
         </div>
 
         <div className="text-center">
-          <Link to="/products">
-            <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white mr-4">
-              View All Products
-            </Button>
-          </Link>
-          <Link to="/merchants">
-            <Button size="lg" className="bg-primary hover:bg-primary-dark text-white">
-              Browse Merchants
-            </Button>
-          </Link>
+          <Button 
+            size="lg" 
+            variant="outline" 
+            className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white mr-4"
+            onClick={() => alert('Navigate to /products page')}
+          >
+            View All Products
+          </Button>
+          <Button 
+            size="lg" 
+            className="bg-orange-500 hover:bg-orange-700 text-white"
+            onClick={() => alert('Navigate to /merchants page')}
+          >
+            Browse Merchants
+          </Button>
         </div>
       </div>
     </section>

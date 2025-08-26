@@ -3,14 +3,13 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Upload, Building, User, Clock, FileText, CheckCircle, X } from 'lucide-react';
+import { MapPin, Upload, Building, User, Clock, FileText, CheckCircle, X, Trash2 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
 import { PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-
 
 const MerchantRegister = () => {
   const isLoading = usePageLoading(700);
@@ -19,7 +18,14 @@ const MerchantRegister = () => {
   const idDocRef = useRef<HTMLInputElement>(null);
   const utilityBillRef = useRef<HTMLInputElement>(null);
   const additionalDocsRef = useRef<HTMLInputElement>(null);
-  const [showToast, setShowToast] = useState(false);  
+  
+  const [uploadedFiles, setUploadedFiles] = useState({
+    businessRegistration: [],
+    idDocument: [],
+    utilityBill: [],
+    additionalDocs: []
+  });
+
   const [formData, setFormData] = useState({
     // Step 1: Basic Information
     businessName: '',
@@ -45,13 +51,7 @@ const MerchantRegister = () => {
       friday: { open: '08:00', close: '18:00', closed: false },
       saturday: { open: '09:00', close: '16:00', closed: false },
       sunday: { open: '', close: '', closed: true }
-    },
-    
-    // Step 4: Documents
-    businessRegistration: null,
-    idDocument: null,
-    utilityBill: null,
-    additionalDocs: []
+    }
   });
 
   const steps = [
@@ -65,6 +65,17 @@ const MerchantRegister = () => {
     'Electronics', 'Fashion', 'Photography', 'Sports', 'Business Services',
     'Beauty & Health', 'Automotive', 'Food & Beverage', 'Books & Stationery', 'Other'
   ];
+
+  // Calculate completion percentage
+  const calculateCompletion = () => {
+    const requiredDocs = [
+      uploadedFiles.businessRegistration, 
+      uploadedFiles.idDocument, 
+      uploadedFiles.utilityBill
+    ];
+    const completed = requiredDocs.filter(files => files.length > 0).length;
+    return Math.round((completed / 3) * 100);
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -86,120 +97,65 @@ const MerchantRegister = () => {
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        // Validate basic information
         if (!formData.businessName.trim()) {
-         toast('Business name is required!', {
-          style: { background: 'crimson', color: 'white' }
-            });
+          toast('Business name is required!', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         if (!formData.email.trim()) {
-          toast('Email is required',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+          toast('Email is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         if (!formData.phone.trim()) {
-          toast('Phone number is required',
-             {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+          toast('Phone number is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         if (!formData.password.trim()) {
-          toast('Password is required',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-            
-          );
+          toast('Password is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         if (formData.password !== formData.confirmPassword) {
-          toast('Passwords do not match',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+          toast('Passwords do not match', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         return true;
       
       case 2:
-        // Validate business details
         if (!formData.businessType.trim()) {
-          toast('Business type is required',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+          toast('Business type is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         if (!formData.description.trim()) {
-          toast('Business description is required',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+          toast('Business description is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         if (!formData.yearEstablished.trim()) {
-          toast('Year established is required',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+          toast('Year established is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         return true;
       
       case 3:
-        // Validate location and hours
         if (!formData.address.trim()) {
-          toast('Business address is required',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+          toast('Business address is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         if (!formData.landmark.trim()) {
-          toast('Landmark is required',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+          toast('Landmark is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         return true;
       
       case 4:
-        // Validate documents
-        if (!formData.businessRegistration) {
-          toast('Business registration document is required',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+        if (uploadedFiles.businessRegistration.length === 0) {
+          toast('At least one business registration document is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
-        if (!formData.idDocument) {
-          toast('ID document is required',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+        if (uploadedFiles.idDocument.length === 0) {
+          toast('At least one ID document is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
-        if (!formData.utilityBill) {
-          toast('Utility bill is required',
-            {
-              style: { background: 'crimson', color: 'white' }
-            }
-          );
+        if (uploadedFiles.utilityBill.length === 0) {
+          toast('At least one utility bill is required', { style: { background: 'crimson', color: 'white' } });
           return false;
         }
         return true;
@@ -219,10 +175,31 @@ const MerchantRegister = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  const handleFileChange = (field: string, file: File | null) => {
-    setFormData(prev => ({
+  const handleFileChange = (field: string, files: FileList | null) => {
+    if (!files) return;
+    
+    const newFiles = Array.from(files);
+    setUploadedFiles(prev => ({
       ...prev,
-      [field]: file
+      [field]: [...prev[field], ...newFiles]
+    }));
+    
+    // Reset the file input to allow selecting the same file again
+    if (field === 'businessRegistration' && businessRegRef.current) {
+      businessRegRef.current.value = '';
+    } else if (field === 'idDocument' && idDocRef.current) {
+      idDocRef.current.value = '';
+    } else if (field === 'utilityBill' && utilityBillRef.current) {
+      utilityBillRef.current.value = '';
+    } else if (field === 'additionalDocs' && additionalDocsRef.current) {
+      additionalDocsRef.current.value = '';
+    }
+  };
+
+  const removeFile = (field: string, index: number) => {
+    setUploadedFiles(prev => ({
+      ...prev,
+      [field]: prev[field].filter((_, i) => i !== index)
     }));
   };
 
@@ -233,48 +210,49 @@ const MerchantRegister = () => {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (validateStep(4)) {
-    console.log('Merchant registration submitted:', formData);
-    
-    // Handle form submission here - call API
-    
-    // Show success toast with Sonner
-    toast('Registration submitted successfully!', {
-      description: 'We will review your application and get back to you within 2-3 business days.',
-      duration: 3000,
-      position: 'top-center', // Place in top middle
-      style: {
-        background: '#16a34a', // Tailwind's green-600
-        color: 'white',
-        fontSize: '1.1rem', // Larger text
-        fontWeight: 'bold'
-      },
-       descriptionClassName: 'text-white',
-        
-  
-    });
-    
-    // Redirect to homepage after 3 seconds
-    setTimeout(() => {
-  window.location.href = '/'; // or wherever your homepage is
-}, 3000);
-  }
-};
+    e.preventDefault();
+    if (validateStep(4)) {
+      // Prepare form data for submission
+      const submissionData = {
+        ...formData,
+        documents: uploadedFiles
+      };
+      
+      console.log('Merchant registration submitted:', submissionData);
+      
+      // Handle form submission here - call API
+      
+      // Show success toast with Sonner
+      toast('Registration submitted successfully!', {
+        description: 'We will review your application and get back to you within 2-3 business days.',
+        duration: 3000,
+        position: 'top-center',
+        style: {
+          background: '#16a34a',
+          color: 'white',
+          fontSize: '1.1rem',
+          fontWeight: 'bold'
+        },
+        descriptionClassName: 'text-white',
+      });
+      
+      // Redirect to homepage after 3 seconds
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 3000);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        
         <PageSkeleton>
           <div className="space-y-8">
-            {/* Header Skeleton */}
             <div className="text-center space-y-4">
               <Skeleton className="h-10 w-1/2 mx-auto" />
               <Skeleton className="h-6 w-3/4 mx-auto" />
             </div>
-
-            {/* Progress Steps Skeleton */}
             <div className="flex justify-center">
               <div className="flex items-center space-x-4">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -285,14 +263,11 @@ const MerchantRegister = () => {
                 ))}
               </div>
             </div>
-
-            {/* Form Card Skeleton */}
             <div className="bg-white rounded-lg shadow-sm p-8 space-y-6">
               <div className="space-y-2">
                 <Skeleton className="h-8 w-1/3" />
                 <Skeleton className="h-4 w-2/3" />
               </div>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="space-y-2">
@@ -301,7 +276,6 @@ const MerchantRegister = () => {
                   </div>
                 ))}
               </div>
-              
               <div className="flex justify-between pt-6">
                 <Skeleton className="h-12 w-24" />
                 <Skeleton className="h-12 w-24" />
@@ -309,7 +283,6 @@ const MerchantRegister = () => {
             </div>
           </div>
         </PageSkeleton>
-        
         <Footer />
       </div>
     );
@@ -593,8 +566,28 @@ const MerchantRegister = () => {
                       Upload the required documents for verification. All documents should be clear and readable.
                     </p>
                   </div>
+
+                  {/* Progress Indicator */}
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-blue-900">Verification Progress</span>
+                      <span className="text-sm font-bold text-blue-900">{calculateCompletion()}% Complete</span>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-2.5">
+                      <div 
+                        className="bg-blue-600 h-2.5 rounded-full" 
+                        style={{ width: `${calculateCompletion()}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-blue-700 mt-2">
+                      {calculateCompletion() < 100 
+                        ? `Upload all required documents to complete your verification` 
+                        : `All required documents uploaded! You can now submit your application.`}
+                    </p>
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Business Registration */}
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
                       <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <h4 className="font-medium text-gray-900 mb-1">Business Registration *</h4>
@@ -603,18 +596,43 @@ const MerchantRegister = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleFileButtonClick(businessRegRef)}
+                        className="mb-3"
                       >
-                        {formData.businessRegistration ? formData.businessRegistration.name : 'Choose File'}
+                        <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
                       <input
                         type="file"
                         ref={businessRegRef}
-                        onChange={(e) => handleFileChange('businessRegistration', e.target.files?.[0] || null)}
+                        onChange={(e) => handleFileChange('businessRegistration', e.target.files)}
                         className="hidden"
                         accept=".pdf,.jpg,.jpeg,.png"
+                        multiple
                       />
+                      
+                      {uploadedFiles.businessRegistration.length > 0 && (
+                        <div className="mt-3 text-left">
+                          <p className="text-xs font-medium text-gray-700 mb-1">Uploaded files:</p>
+                          {uploadedFiles.businessRegistration.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-1 bg-gray-50 rounded text-xs">
+                              <div className="flex items-center truncate">
+                                <FileText className="h-3 w-3 text-gray-400 mr-1 flex-shrink-0" />
+                                <span className="truncate">{file.name}</span>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-5 w-5 p-0"
+                                onClick={() => removeFile('businessRegistration', index)}
+                              >
+                                <Trash2 className="h-3 w-3 text-red-500" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     
+                    {/* ID Document */}
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
                       <User className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <h4 className="font-medium text-gray-900 mb-1">ID Document *</h4>
@@ -623,18 +641,43 @@ const MerchantRegister = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleFileButtonClick(idDocRef)}
+                        className="mb-3"
                       >
-                        {formData.idDocument ? formData.idDocument.name : 'Choose File'}
+                        <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
                       <input
                         type="file"
                         ref={idDocRef}
-                        onChange={(e) => handleFileChange('idDocument', e.target.files?.[0] || null)}
+                        onChange={(e) => handleFileChange('idDocument', e.target.files)}
                         className="hidden"
                         accept=".pdf,.jpg,.jpeg,.png"
+                        multiple
                       />
+                      
+                      {uploadedFiles.idDocument.length > 0 && (
+                        <div className="mt-3 text-left">
+                          <p className="text-xs font-medium text-gray-700 mb-1">Uploaded files:</p>
+                          {uploadedFiles.idDocument.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-1 bg-gray-50 rounded text-xs">
+                              <div className="flex items-center truncate">
+                                <FileText className="h-3 w-3 text-gray-400 mr-1 flex-shrink-0" />
+                                <span className="truncate">{file.name}</span>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-5 w-5 p-0"
+                                onClick={() => removeFile('idDocument', index)}
+                              >
+                                <Trash2 className="h-3 w-3 text-red-500" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     
+                    {/* Utility Bill */}
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
                       <MapPin className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <h4 className="font-medium text-gray-900 mb-1">Utility Bill *</h4>
@@ -643,18 +686,43 @@ const MerchantRegister = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleFileButtonClick(utilityBillRef)}
+                        className="mb-3"
                       >
-                        {formData.utilityBill ? formData.utilityBill.name : 'Choose File'}
+                        <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
                       <input
                         type="file"
                         ref={utilityBillRef}
-                        onChange={(e) => handleFileChange('utilityBill', e.target.files?.[0] || null)}
+                        onChange={(e) => handleFileChange('utilityBill', e.target.files)}
                         className="hidden"
                         accept=".pdf,.jpg,.jpeg,.png"
+                        multiple
                       />
+                      
+                      {uploadedFiles.utilityBill.length > 0 && (
+                        <div className="mt-3 text-left">
+                          <p className="text-xs font-medium text-gray-700 mb-1">Uploaded files:</p>
+                          {uploadedFiles.utilityBill.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-1 bg-gray-50 rounded text-xs">
+                              <div className="flex items-center truncate">
+                                <FileText className="h-3 w-3 text-gray-400 mr-1 flex-shrink-0" />
+                                <span className="truncate">{file.name}</span>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-5 w-5 p-0"
+                                onClick={() => removeFile('utilityBill', index)}
+                              >
+                                <Trash2 className="h-3 w-3 text-red-500" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     
+                    {/* Additional Documents */}
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
                       <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <h4 className="font-medium text-gray-900 mb-1">Additional Documents</h4>
@@ -663,17 +731,40 @@ const MerchantRegister = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleFileButtonClick(additionalDocsRef)}
+                        className="mb-3"
                       >
-                        Choose Files
+                        <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
                       <input
                         type="file"
                         ref={additionalDocsRef}
-                        onChange={(e) => handleFileChange('additionalDocs', e.target.files?.[0] || null)}
+                        onChange={(e) => handleFileChange('additionalDocs', e.target.files)}
                         className="hidden"
                         accept=".pdf,.jpg,.jpeg,.png"
                         multiple
                       />
+                      
+                      {uploadedFiles.additionalDocs.length > 0 && (
+                        <div className="mt-3 text-left">
+                          <p className="text-xs font-medium text-gray-700 mb-1">Uploaded files:</p>
+                          {uploadedFiles.additionalDocs.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-1 bg-gray-50 rounded text-xs">
+                              <div className="flex items-center truncate">
+                                <FileText className="h-3 w-3 text-gray-400 mr-1 flex-shrink-0" />
+                                <span className="truncate">{file.name}</span>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-5 w-5 p-0"
+                                onClick={() => removeFile('additionalDocs', index)}
+                              >
+                                <Trash2 className="h-3 w-3 text-red-500" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -724,6 +815,7 @@ const MerchantRegister = () => {
                   <Button
                     type="submit"
                     className="bg-primary hover:bg-primary-dark"
+                    disabled={calculateCompletion() < 100}
                   >
                     Submit for Verification
                   </Button>
