@@ -56,6 +56,33 @@ router.get('/products', checkPermission('products.read'), getProducts);
 router.get('/reviews', checkPermission('reviews.read'), getReviews);
 router.delete('/reviews/:id', checkPermission('reviews.delete'), deleteReview);
 
+// Analytics routes
+router.get('/analytics', checkPermission('analytics.read'), getAnalytics);
+
+// Export routes
+router.get('/export/users', checkPermission('users.read'), (req, res) => exportData(req, res, 'users'));
+router.get('/export/merchants', checkPermission('merchants.read'), (req, res) => exportData(req, res, 'merchants'));
+router.get('/export/:type', checkPermission('analytics.read'), exportData);
+
+// Flash sales management routes (proxy to flash sales controller)
+router.get('/flash-sales', checkPermission('flashsales.read'), async (req, res) => {
+  try {
+    const flashSalesController = require('../controllers/flashSales');
+    await flashSalesController.getAllFlashSales(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to load flash sales' });
+  }
+});
+
+router.get('/flash-sales/analytics', checkPermission('flashsales.read'), async (req, res) => {
+  try {
+    const flashSalesController = require('../controllers/flashSales');
+    await flashSalesController.getFlashSalesAnalytics(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to load flash sales analytics' });
+  }
+});
+
 // Simple test route
 router.get('/test', (req, res) => {
   res.json({ success: true, message: 'Admin dashboard route working', admin: req.admin?.id || 'No admin' });
