@@ -12,15 +12,7 @@ import {
   Calendar,
   CheckCircle,
   XCircle,
-  Clock,
-  AlertCircle,
-  MoreVertical,
-  Filter,
-  RefreshCw,
-  UserCheck,
-  UserX,
-  Ban,
-  Unlock
+  Clock
 } from 'lucide-react';
 import { adminAPI } from '@/lib/api';
 import { toast } from 'sonner';
@@ -29,7 +21,10 @@ interface User {
   _id: string;
   name: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   role: 'user' | 'merchant' | 'admin';
+  status?: string;
   isVerified: boolean;
   createdAt: string;
   updatedAt: string;
@@ -230,9 +225,7 @@ const UsersManagement: React.FC = () => {
 
   const exportUsers = async () => {
     try {
-      const response = await adminAPI.get('/dashboard/export/users', {
-        responseType: 'blob'
-      });
+      const response = await adminAPI.exportUsers();
       
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -327,6 +320,15 @@ const UsersManagement: React.FC = () => {
     }
   };
 
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin': return 'bg-purple-100 text-purple-800';
+      case 'merchant': return 'bg-blue-100 text-blue-800';
+      case 'user': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -412,6 +414,7 @@ const UsersManagement: React.FC = () => {
             </p>
             <button
               type="button"
+              onClick={exportUsers}
               className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
               <Download className="h-4 w-4 mr-2" />
@@ -456,7 +459,12 @@ const UsersManagement: React.FC = () => {
                     </div>
                     <div className="ml-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {user.firstName} {user.lastName}
+                        {user.firstName && user.lastName ? 
+                          `${user.firstName} ${user.lastName}` : 
+                          user.profile?.firstName && user.profile?.lastName ? 
+                            `${user.profile.firstName} ${user.profile.lastName}` : 
+                            user.name || user.email.split('@')[0]
+                        }
                       </div>
                       <div className="text-sm text-gray-500 flex items-center">
                         <Mail className="h-3 w-3 mr-1" />
@@ -472,8 +480,8 @@ const UsersManagement: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
-                      {user.status}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status || (user.isActive ? 'active' : 'inactive'))}`}>
+                      {user.status || (user.isActive ? 'active' : 'inactive')}
                     </span>
                     {user.isVerified && (
                       <div title="Verified">

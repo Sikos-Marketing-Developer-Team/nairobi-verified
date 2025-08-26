@@ -217,9 +217,16 @@ export const adminAPI = {
   deleteFlashSale: (flashSaleId: string) => api.delete(`/flash-sales/${flashSaleId}`),
   toggleFlashSaleStatus: (flashSaleId: string) => api.patch(`/flash-sales/${flashSaleId}/toggle`),
   
+  // Export functions
+  exportUsers: () => api.get('/admin/dashboard/export/users', { responseType: 'blob' }),
+  exportMerchants: () => api.get('/admin/dashboard/export/merchants', { responseType: 'blob' }),
+  
+  // Bulk operations
+  bulkVerifyMerchants: (merchantIds: string[]) => api.post('/admin/dashboard/merchants/bulk-verify', { merchantIds }),
+  
   // Data management
   removeMockData: () => api.delete('/admin/mock-data'),
-  removeMockDataByType: (dataType: string) => api.delete(`/admin/mock-data/${dataType}`),
+  removeMockDataByType: (dataType: string) => api.delete(`/admin/mock-data/${dataType}`)
 };
 
 export default api;

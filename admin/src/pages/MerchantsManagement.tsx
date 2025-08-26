@@ -12,18 +12,9 @@ import {
   Calendar,
   Filter,
   Download,
-  FileText,
   AlertCircle,
   XCircle,
-  Clock,
-  Plus,
-  Trash2,
-  MoreVertical,
-  ExternalLink,
-  Shield,
-  Star,
-  TrendingUp,
-  Users
+  Clock
 } from 'lucide-react';
 import { adminAPI } from '@/lib/api';
 import { toast } from 'sonner';
@@ -42,6 +33,8 @@ interface Merchant {
   phone: string;
   businessType: string;
   location: string;
+  category?: string;
+  status?: string;
   verified: boolean;
   createdAt: string;
   updatedAt: string;
@@ -196,18 +189,14 @@ const MerchantsManagement: React.FC = () => {
     try {
       switch (action) {
         case 'verify':
-          const verifyResponse = await adminAPI.put(`/dashboard/merchants/${merchantId}/status`, {
-            verified: true
-          });
+          const verifyResponse = await adminAPI.updateMerchantStatus(merchantId, true);
           if (verifyResponse.data.success) {
             toast.success('Merchant verified successfully');
             loadMerchants();
           }
           break;
         case 'unverify':
-          const unverifyResponse = await adminAPI.put(`/dashboard/merchants/${merchantId}/status`, {
-            verified: false
-          });
+          const unverifyResponse = await adminAPI.updateMerchantStatus(merchantId, false);
           if (unverifyResponse.data.success) {
             toast.success('Merchant verification removed');
             loadMerchants();
@@ -215,7 +204,7 @@ const MerchantsManagement: React.FC = () => {
           break;
         case 'delete':
           if (window.confirm('Are you sure you want to delete this merchant? This action cannot be undone.')) {
-            const deleteResponse = await adminAPI.delete(`/dashboard/merchants/${merchantId}`);
+            const deleteResponse = await adminAPI.deleteMerchant(merchantId);
             if (deleteResponse.data.success) {
               toast.success('Merchant deleted successfully');
               loadMerchants();
@@ -250,9 +239,7 @@ const MerchantsManagement: React.FC = () => {
     }
 
     try {
-      const response = await adminAPI.post('/dashboard/merchants/bulk-verify', {
-        merchantIds: bulkActions
-      });
+      const response = await adminAPI.bulkVerifyMerchants(bulkActions);
       
       if (response.data.success) {
         toast.success(`${bulkActions.length} merchants verified successfully`);
@@ -268,20 +255,20 @@ const MerchantsManagement: React.FC = () => {
 
   const exportMerchants = async () => {
     try {
-      const response = await adminAPI.get('/dashboard/export/merchants', {
-        responseType: 'blob'
-      });
+      const response = await adminAPI.exportMerchants();
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `merchants-${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      // Create blob and download
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `merchants-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
       window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
-      toast.success('Merchants data exported successfully');
+      toast.success('Merchants exported successfully');
     } catch (error: any) {
       console.error('Export failed:', error);
       toast.error('Failed to export merchants data');
@@ -364,6 +351,17 @@ const MerchantsManagement: React.FC = () => {
     'Other'
   ];
 
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'verified': return 'bg-green-100 text-green-800';
+      case 'suspended': return 'bg-red-100 text-red-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -385,6 +383,7 @@ const MerchantsManagement: React.FC = () => {
         <div className="mt-4 sm:mt-0 sm:flex-none">
           <button
             type="button"
+            onClick={exportMerchants}
             className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
           >
             <Download className="h-4 w-4 mr-2" />
@@ -439,7 +438,7 @@ const MerchantsManagement: React.FC = () => {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Pending Review</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {merchants.filter(m => m.status === 'pending').length}
+                    {merchants.filter(m => m.status === 'pending' || !m.verified).length}
                   </dd>
                 </dl>
               </div>
@@ -489,7 +488,7 @@ const MerchantsManagement: React.FC = () => {
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
               >
-                {categories.map((category) => (
+                {businessTypes.map((category) => (
                   <option key={category} value={category === 'All Categories' ? 'all' : category}>
                     {category}
                   </option>
@@ -545,7 +544,7 @@ const MerchantsManagement: React.FC = () => {
                       </div>
                       <div className="text-sm text-gray-500 flex items-center">
                         <MapPin className="h-3 w-3 mr-1" />
-                        {merchant.location.address}, {merchant.location.city}
+                        {merchant.location}
                       </div>
                     </div>
                   </div>
@@ -562,13 +561,13 @@ const MerchantsManagement: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                    {merchant.category}
+                    {merchant.category || merchant.businessType}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(merchant.status)}`}>
-                      {merchant.status}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(merchant.status || (merchant.verified ? 'verified' : 'pending'))}`}>
+                      {merchant.status || (merchant.verified ? 'verified' : 'pending')}
                     </span>
                     {merchant.verified && (
                       <CheckCircle className="h-4 w-4 text-green-500 ml-2" />
@@ -590,7 +589,7 @@ const MerchantsManagement: React.FC = () => {
                     >
                       <Eye className="h-4 w-4" />
                     </button>
-                    {merchant.status === 'pending' && (
+                    {(merchant.status === 'pending' || !merchant.verified) && (
                       <>
                         <button
                           onClick={() => handleMerchantAction('approve', merchant._id)}
