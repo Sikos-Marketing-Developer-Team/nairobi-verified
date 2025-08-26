@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Shield, MapPin, Star, Users } from 'lucide-react';
 import {Link} from 'react-router-dom';
@@ -45,87 +44,83 @@ const TrustSection = () => {
           </p>
         </div>
 
-     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-  {features.map((feature, index) => (
-    <div
-      key={index}
-      style={{
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
-        border: '1px solid #FEEFD4'
-      }}
-      className="flex flex-col justify-between text-center bg-white transition-all duration-300 ease-in-out transform hover:scale-105 p-6 rounded-xl h-full"
-    >
-      <div>
-        <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
-          <feature.icon className="h-8 w-8 text-primary" />
+        {/* CHANGED: grid-cols-2 for mobile instead of grid-cols-1 */}
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              style={{
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
+                border: '1px solid #FEEFD4'
+              }}
+              className="flex flex-col justify-between text-center bg-white transition-all duration-300 ease-in-out transform hover:scale-105 p-3 md:p-6 rounded-xl h-full"
+            >
+              <div>
+                {/* CHANGED: Smaller icon container on mobile */}
+                <div className="bg-primary/10 w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:bg-primary/20 transition-colors">
+                  <feature.icon className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                </div>
+                {/* CHANGED: Smaller text on mobile */}
+                <h3 className="text-base md:text-xl font-semibold text-gray-900 mb-2 leading-tight">
+                  {feature.title}
+                </h3>
+                <p className="text-sm md:text-base text-gray-600 mb-4 md:mb-6 leading-relaxed">
+                  {feature.description}
+                </p>
+              </div>
+              {/* CHANGED: Smaller stats text on mobile */}
+              <div className="text-lg md:text-2xl font-bold text-primary mt-auto">
+                {feature.stats}
+              </div>
+            </div>
+          ))}
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">
-          {feature.title}
-        </h3>
-        <p className="text-gray-600 mb-6 leading-relaxed">
-          {feature.description}
-        </p>
-      </div>
-      <div className="text-2xl font-bold text-primary mt-auto">
-        {feature.stats}
-      </div>
-    </div>
-  ))}
-</div>
 
-<div className="flex justify-center">
-  <button>
-    <Link
-      to="/howitworks"
-      className="mt-12 inline-block bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
-    >
-      Sell with Us
-    </Link>
-  </button>
-</div>
-
-
-
+        <div className="flex justify-center">
+          <button>
+            <Link
+              to="/howitworks"
+              className="mt-12 inline-block bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
+            >
+              Sell with Us
+            </Link>
+          </button>
+        </div>
 
         {/* Call to Action */}
-  <div className="relative mt-16 rounded-2xl overflow-hidden">
-  {/* Background Image */}
-  <img
-    src={nairobiImg}
-    alt="Nairobi"
-    className="absolute inset-0 w-full h-full object-cover"
-  />
+        <div className="relative mt-16 rounded-2xl overflow-hidden">
+          {/* Background Image */}
+          <img
+            src={nairobiImg}
+            alt="Nairobi"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
 
-  {/* Black glass overlay */}
-  <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+          {/* Black glass overlay */}
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
 
-  {/* Content */}
-  <div className="relative p-8 lg:p-12 text-center text-white">
-    <h3 className="text-2xl lg:text-3xl font-bold inter mb-4">
-      Ready to Start Shopping Safely?
-    </h3>
-    <p className="text-lg opacity-90 mb-6 max-w-2xl mx-auto">
-      Join thousands of satisfied customers who trust Nairobi Verified for their online shopping needs.
-    </p>
-    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-      <Link to="/auth/register">
-        <button className="bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-          Create Account
-        </button>
-      </Link>
-      <Link to="/merchants">
-        <button className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors">
-          Browse Products
-        </button>
-      </Link>
-    </div>
-  </div>
-</div>
-
-
-
-
-
+          {/* Content */}
+          <div className="relative p-8 lg:p-12 text-center text-white">
+            <h3 className="text-2xl lg:text-3xl font-bold inter mb-4">
+              Ready to Start Shopping Safely?
+            </h3>
+            <p className="text-lg opacity-90 mb-6 max-w-2xl mx-auto">
+              Join thousands of satisfied customers who trust Nairobi Verified for their online shopping needs.
+            </p>
+            <div className="flex flex-row gap-3 justify-center">
+              <Link to="/auth/register">
+                <button className="bg-white text-primary px-4 py-2 text-sm rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                  Create Account
+                </button>
+              </Link>
+              <Link to="/merchants">
+                <button className="border border-white text-white px-4 py-2 text-sm rounded-lg font-semibold hover:bg-white/10 transition-colors">
+                  Browse Products
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

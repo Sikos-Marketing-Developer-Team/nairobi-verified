@@ -62,27 +62,32 @@ const CategorySection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Updated grid for mobile responsiveness */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {categories.map((category) => (
-            <Link key={category.id} to={`/products?category=${category.name.toLowerCase().replace(/\s+/g, '-').replace('&', 'and')}`}>
-              <Card className="hover-scale cursor-pointer border-0 shadow-lg">
-                <CardContent className="p-0">
-                  <div className="relative h-48 overflow-hidden rounded-t-lg">
+            <Link 
+              key={category.id} 
+              to={`/products?category=${category.name.toLowerCase().replace(/\s+/g, '-').replace('&', 'and')}`}
+              className="block"
+            >
+              <Card className="hover-scale cursor-pointer border-0 shadow-lg h-full">
+                <CardContent className="p-0 flex flex-col h-full">
+                  <div className="relative h-40 sm:h-48 overflow-hidden rounded-t-lg flex-grow">
                     <img
                       src={category.image}
                       alt={category.name}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                    <div className="absolute bottom-4 left-4 text-white">
-                      <h3 className="text-xl font-semibold">{category.name}</h3>
-                      <p className="text-sm opacity-90">{category.count}</p>
+                    <div className="absolute bottom-3 left-3 text-white">
+                      <h3 className="text-base sm:text-xl font-semibold">{category.name}</h3>
+                      <p className="text-xs sm:text-sm opacity-90">{category.count}</p>
                     </div>
                   </div>
-                  <div className="p-4">
+                  <div className="p-3 sm:p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">Verified merchants only</span>
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-xs sm:text-sm text-gray-500">Verified merchants</span>
+                      <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full"></div>
                     </div>
                   </div>
                 </CardContent>
