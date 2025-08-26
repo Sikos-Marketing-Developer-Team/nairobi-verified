@@ -253,7 +253,8 @@ const FlashSales = () => {
               <div className="h-4 bg-gray-300 rounded w-1/2 mx-auto"></div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Updated grid for loading state */}
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="animate-pulse">
                 <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -328,7 +329,8 @@ const FlashSales = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Updated grid for flash sale products */}
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
               {flashSale.products.slice(0, 4).map((product) => (
                 <ProductCard 
                   key={product.productId} 
