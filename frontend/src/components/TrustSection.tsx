@@ -72,7 +72,16 @@ const TrustSection = () => {
   ))}
 </div>
 
-
+<div className="flex justify-center">
+  <button>
+    <Link
+      to="/howitworks"
+      className="mt-12 inline-block bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
+    >
+      Sell with Us
+    </Link>
+  </button>
+</div>
 
 
 

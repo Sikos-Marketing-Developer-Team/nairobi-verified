@@ -95,6 +95,7 @@ const App = () => (
               <Route path="/auth/forgot-password" element={<ForgotPassword />} />
               <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
               <Route path="/merchant/account-setup/:token" element={<MerchantAccountSetup />} />
+              <Route path="/howitworks" element={<HowItWorks />} />
               
               {/* Protected User Routes */}  <Route path="/product/:id" element={<ProductPage />} />
               <Route path="/dashboard" element={
