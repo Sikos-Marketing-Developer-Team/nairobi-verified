@@ -132,8 +132,16 @@ const MerchantsManagement: React.FC = () => {
       });
       
       if (response.data.success) {
-        setMerchants(response.data.data.merchants || []);
-        setTotalMerchants(response.data.data.total || 0);
+        // Handle different response structures
+        const merchants = response.data.data?.merchants || response.data.merchants || [];
+        const total = response.data.data?.total || response.data.total || merchants.length;
+        setMerchants(merchants);
+        setTotalMerchants(total);
+      } else {
+        // Handle case where success is false but we still have data
+        const merchants = response.data.merchants || [];
+        setMerchants(merchants);
+        setTotalMerchants(merchants.length);
       }
     } catch (error: any) {
       console.error('Failed to load merchants:', error);

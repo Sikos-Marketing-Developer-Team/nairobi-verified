@@ -120,9 +120,7 @@ const AnalyticsPage: React.FC = () => {
 
   const exportData = async (type: string) => {
     try {
-      const response = await adminAPI.get(`/dashboard/export/${type}`, {
-        responseType: 'blob'
-      });
+      const response = await adminAPI.exportAnalytics(type);
       
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');

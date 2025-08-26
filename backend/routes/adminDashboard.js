@@ -56,6 +56,14 @@ router.get('/products', checkPermission('products.read'), getProducts);
 router.get('/reviews', checkPermission('reviews.read'), getReviews);
 router.delete('/reviews/:id', checkPermission('reviews.delete'), deleteReview);
 
+// Analytics routes
+router.get('/analytics', checkPermission('analytics.read'), getAnalytics);
+
+// Export routes
+router.get('/export/users', checkPermission('users.read'), (req, res) => exportData(req, res, 'users'));
+router.get('/export/merchants', checkPermission('merchants.read'), (req, res) => exportData(req, res, 'merchants'));
+router.get('/export/:type', checkPermission('analytics.read'), exportData);
+
 // Flash sales management routes (proxy to flash sales controller)
 router.get('/flash-sales', checkPermission('flashsales.read'), async (req, res) => {
   try {

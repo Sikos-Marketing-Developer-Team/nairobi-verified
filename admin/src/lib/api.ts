@@ -220,6 +220,7 @@ export const adminAPI = {
   // Export functions
   exportUsers: () => api.get('/admin/dashboard/export/users', { responseType: 'blob' }),
   exportMerchants: () => api.get('/admin/dashboard/export/merchants', { responseType: 'blob' }),
+  exportAnalytics: (type: string) => api.get(`/admin/dashboard/export/${type}`, { responseType: 'blob' }),
   
   // Bulk operations
   bulkVerifyMerchants: (merchantIds: string[]) => api.post('/admin/dashboard/merchants/bulk-verify', { merchantIds }),
