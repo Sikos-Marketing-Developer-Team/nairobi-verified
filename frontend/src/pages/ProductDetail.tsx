@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn } from 'lucide-react';
@@ -313,10 +312,10 @@ const ProductDetail = () => {
                         {product.merchant.name}
                       </Link>
                       {product.merchant.verified && (
-                        <div className="verified-badge">
+                        <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                           <Check className="h-3 w-3" />
                           Verified
-                        </div>
+                        </Badge>
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">

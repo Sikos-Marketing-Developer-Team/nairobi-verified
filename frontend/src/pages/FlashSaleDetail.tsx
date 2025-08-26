@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Flame, Check, ShoppingCart, Eye, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,39 +6,118 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FlashSaleProduct, FlashSale } from '@/types/flashSale';
 
+// Mock data for testing - remove this in production
+const MOCK_FLASH_SALE = {
+  id: "1",
+  title: "Flash Sale Weekend",
+  description: "Amazing deals for this weekend only!",
+  timeRemaining: {
+    days: 0,
+    hours: 5,
+    minutes: 23,
+    seconds: 45,
+    expired: false
+  },
+  totalViews: 1250,
+  totalSales: 342,
+  products: [
+    {
+      productId: "101",
+      name: "Wireless Headphones",
+      merchant: "TechGadgets",
+      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500",
+      originalPrice: 8999,
+      salePrice: 5999,
+      discountPercentage: 33,
+      stockQuantity: 100,
+      soldQuantity: 78
+    },
+    {
+      productId: "102",
+      name: "Smart Watch Series 5",
+      merchant: "TechGadgets",
+      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500",
+      originalPrice: 24999,
+      salePrice: 19999,
+      discountPercentage: 20,
+      stockQuantity: 50,
+      soldQuantity: 42
+    }
+  ]
+};
+
 const FlashSaleDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [flashSale, setFlashSale] = useState<FlashSale | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [useMockData, setUseMockData] = useState(false);
+
+  const fetchFlashSale = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log(`Fetching flash sale with ID: ${id}`);
+      
+      // For debugging - try mock data first
+      if (useMockData) {
+        console.log("Using mock data");
+        setFlashSale(MOCK_FLASH_SALE as unknown as FlashSale);
+        setLoading(false);
+        return;
+      }
+      
+      const response = await fetch(`/api/flash-sales/${id}`);
+      
+      if (!response.ok) {
+        console.error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Failed to load flash sale. Status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("API response:", data);
+      
+      // Handle different response structures
+      if (data.success) {
+        setFlashSale(data.data);
+      } else if (data.flashSale) {
+        // Alternative response structure
+        setFlashSale(data.flashSale);
+      } else if (data) {
+        // Direct data response
+        setFlashSale(data);
+      } else {
+        throw new Error('Invalid response format from server');
+      }
+    } catch (err) {
+      console.error('Flash sale fetch error:', err);
+      setError(`Error loading flash sale: ${err.message}`);
+      
+      // Fall back to mock data on error for debugging
+      if (!useMockData) {
+        console.log("Falling back to mock data");
+        setUseMockData(true);
+        setFlashSale(MOCK_FLASH_SALE as unknown as FlashSale);
+        setError(null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [id, useMockData]);
 
   useEffect(() => {
     if (id) {
       fetchFlashSale();
-    }
-  }, [id]);
-
-  const fetchFlashSale = async () => {
-    try {
-      const response = await fetch(`/api/flash-sales/${id}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setFlashSale(data.data);
-      } else {
-        setError(data.message || 'Flash sale not found');
-      }
-    } catch (err) {
-      setError('Error loading flash sale');
-      console.error('Flash sale fetch error:', err);
-    } finally {
+    } else {
+      setError("No flash sale ID provided");
       setLoading(false);
     }
+  }, [id, fetchFlashSale]);
+
+  const retryFetch = () => {
+    setUseMockData(false);
+    fetchFlashSale();
   };
 
   const formatPrice = (price: number) => {
@@ -131,13 +210,17 @@ const FlashSaleDetail = () => {
     const isOutOfStock = product.soldQuantity >= product.stockQuantity;
 
     return (
-      <Card className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden">
+      <Card className="hover:scale-105 transition-transform cursor-pointer border-0 shadow-lg overflow-hidden">
         <CardContent className="p-0">
           <div className="relative">
             <img
               src={product.image}
               alt={product.name}
               className="w-full h-64 object-cover"
+              onError={(e) => {
+                // Fallback image if the original fails to load
+                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1556655848-ede4952054f2?w=500";
+              }}
             />
             <div className="absolute top-3 left-3">
               <Badge className="bg-red-500 text-white font-bold text-lg px-3 py-1">
@@ -154,8 +237,8 @@ const FlashSaleDetail = () => {
           <div className="p-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-sm text-gray-600">{product.merchant}</span>
-              <div className="verified-badge">
-                <Check className="h-3 w-3" />
+              <div className="flex items-center text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                <Check className="h-3 w-3 mr-1" />
                 Verified
               </div>
             </div>
@@ -198,7 +281,6 @@ const FlashSaleDetail = () => {
                 e.preventDefault();
                 e.stopPropagation();
                 if (!isOutOfStock) {
-                  // In a real implementation, you would integrate with the cart system
                   alert(`Added ${product.name} to cart!`);
                 }
               }}
@@ -215,7 +297,17 @@ const FlashSaleDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading flash sale...</p>
+          <Button 
+            onClick={retryFetch} 
+            variant="outline" 
+            className="mt-4"
+          >
+            Retry Loading
+          </Button>
+        </div>
       </div>
     );
   }
@@ -226,9 +318,24 @@ const FlashSaleDetail = () => {
         <div className="text-center">
           <Flame className="h-24 w-24 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Flash Sale Not Found</h2>
-          <p className="text-gray-600 mb-8">{error || 'The flash sale you\'re looking for doesn\'t exist or has been removed.'}</p>
-          <Link to="/">
-            <Button className="bg-red-500 hover:bg-red-600 text-white">
+          <p className="text-gray-600 mb-4">{error || 'The flash sale you\'re looking for doesn\'t exist or has been removed.'}</p>
+          <div className="space-y-3">
+            <Button 
+              onClick={retryFetch} 
+              className="mr-3 bg-red-500 hover:bg-red-600 text-white"
+            >
+              Retry
+            </Button>
+            <Button 
+              onClick={() => setUseMockData(true)} 
+              variant="outline"
+            >
+              Use Demo Data
+            </Button>
+          </div>
+          <Link to="/" className="block mt-6">
+            <Button variant="ghost">
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Home
             </Button>
           </Link>
@@ -240,6 +347,14 @@ const FlashSaleDetail = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Debug info - remove in production */}
+        {useMockData && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+            <p className="font-bold">Demo Mode</p>
+            <p>Using mock data. API might be unavailable.</p>
+          </div>
+        )}
+
         {/* Back Button */}
         <Link to="/" className="inline-flex items-center text-red-600 hover:text-red-700 mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />

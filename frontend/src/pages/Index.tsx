@@ -12,6 +12,7 @@ import { usePageLoading } from '@/hooks/use-loading';
 import { HeroSkeleton, CategorySkeleton, ProductGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import FlashSaleDetail from './FlashSaleDetail';
+import Categories from './Categories';
 
 const Index = () => {
   const isLoading = usePageLoading(800);
@@ -39,6 +40,7 @@ const Index = () => {
       <HowItWorks />
       <TrustSection />
       <Footer />
+
     </div>
   );
 };
