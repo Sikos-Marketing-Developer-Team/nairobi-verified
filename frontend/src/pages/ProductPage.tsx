@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Star, MapPin, Check, Heart, ArrowLeft, Phone, Mail, Shield, Truck, Clock, Users, Image } from 'lucide-react';
+import { Star, MapPin, Check, Heart, ArrowLeft, Phone, Mail, Shield, Truck, Clock, Users, Image, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FaWhatsapp, FaInstagram, FaTwitter } from 'react-icons/fa';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import './product.css'
@@ -204,72 +204,99 @@ const ProductPage = () => {
           
           {/* Mobile-First Product Gallery with Swipe */}
           <section className="lg:col-span-1" aria-label="Product Images">
-            <div className="sticky top-4">
-              {/* Main Image with Swipe Functionality */}
-              <div 
-                className="bg-gradient-to-br from-[#FDF8E9] to-orange-100 rounded-xl overflow-hidden mb-3 md:mb-4 shadow-lg relative"
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-              >
-                <img
-                  src={product.gallery?.[selectedImage] || product.image}
-                  alt={`${product.name} - Main view`}
-                  className="w-full h-64 md:h-80 lg:h-96 object-cover"
-                  loading="eager"
-                />
-                
-                {/* Swipe Indicators for Mobile */}
-                <div className="md:hidden absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
-                  {product.gallery?.map((_, index) => (
-                    <div
-                      key={index}
-                      className={`h-2 w-2 rounded-full ${
-                        index === selectedImage ? 'bg-[#EC5C0A]' : 'bg-white'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-              
-              {/* Thumbnail Gallery - Horizontal Scroll on Mobile */}
-              <div 
-                ref={galleryRef}
-                className="flex overflow-x-auto pb-2 space-x-2 md:grid md:grid-cols-4 md:gap-2 md:space-x-0 hide-scrollbar" 
-                role="tablist" 
-                aria-label="Product image gallery"
-              >
-                {product.gallery?.map((img, index) => (
-                  <button
-                    key={index}
-                    role="tab"
-                    aria-selected={selectedImage === index}
-                    aria-label={`View ${product.name} from angle ${index + 1}`}
-                    onClick={() => setSelectedImage(index)}
-                    className={`flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedImage === index ? 'border-[#EC5C0A] ring-2 ring-orange-200' : 'border-transparent hover:border-orange-300'
-                    }`}
-                    style={{ minWidth: '80px' }}
-                  >
-                    <img
-                      src={img}
-                      alt={`${product.name} view ${index + 1}`}
-                      className="w-full h-16 md:h-20 object-cover"
-                      loading="lazy"
-                    />
-                  </button>
-                )) || (
-                  // Fallback when no gallery images
-                  Array.from({length: 4}, (_, index) => (
-                    <div key={index} className="flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200" style={{ minWidth: '80px' }}>
-                      <div className="w-full h-16 md:h-20 flex items-center justify-center">
-                        <Image className="h-6 w-6 text-gray-400" />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+        <div className="sticky top-4">
+  {/* Main Image with Swipe + Arrows */}
+  <div 
+    className="bg-gradient-to-br from-[#FDF8E9] to-orange-100 rounded-xl overflow-hidden mb-3 md:mb-4 shadow-lg relative"
+    onTouchStart={onTouchStart}
+    onTouchMove={onTouchMove}
+    onTouchEnd={onTouchEnd}
+  >
+    <img
+      src={product.gallery?.[selectedImage] || product.image}
+      alt={`${product.name} - Main view`}
+      className="w-full h-64 md:h-80 lg:h-96 object-cover"
+      loading="eager"
+    />
+{/* Inside your image container */}
+{/* Left Arrow */}
+<button
+  onClick={() =>
+    setSelectedImage((prev) =>
+      prev === 0 ? product.gallery.length - 1 : prev - 1
+    )
+  }
+  className="absolute top-1/2 left-2 -translate-y-1/2 bg-[#FEF8EB] text-[#EC5C0A] p-3 rounded-full shadow-lg hover:bg-black transition"
+  aria-label="Previous image"
+>
+  <ChevronLeft className="w-6 h-6" />
+</button>
+
+{/* Right Arrow */}
+<button
+  onClick={() =>
+    setSelectedImage((prev) =>
+      prev === product.gallery.length - 1 ? 0 : prev + 1
+    )
+  }
+  className="absolute top-1/2 right-2 -translate-y-1/2 bg-[#FEF8EB] text-[#EC5C0A] p-3 rounded-full shadow-lg hover:bg-black transition"
+  aria-label="Next image"
+>
+  <ChevronRight className="w-6 h-6" />
+</button>
+
+
+    {/* Swipe Indicators (dots) */}
+    <div className="md:hidden absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
+      {product.gallery?.map((_, index) => (
+        <div
+          key={index}
+          className={`h-2 w-2 rounded-full ${
+            index === selectedImage ? 'bg-[#EC5C0A]' : 'bg-white'
+          }`}
+        />
+      ))}
+    </div>
+  </div>
+
+  {/* Thumbnail Gallery */}
+  <div 
+    ref={galleryRef}
+    className="flex overflow-x-auto pb-2 space-x-2 md:grid md:grid-cols-4 md:gap-2 md:space-x-0 hide-scrollbar" 
+    role="tablist" 
+    aria-label="Product image gallery"
+  >
+    {product.gallery?.map((img, index) => (
+      <button
+        key={index}
+        role="tab"
+        aria-selected={selectedImage === index}
+        aria-label={`View ${product.name} from angle ${index + 1}`}
+        onClick={() => setSelectedImage(index)}
+        className={`flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border-2 transition-all ${
+          selectedImage === index ? 'border-[#EC5C0A] ring-2 ring-orange-200' : 'border-transparent hover:border-orange-300'
+        }`}
+        style={{ minWidth: '80px' }}
+      >
+        <img
+          src={img}
+          alt={`${product.name} view ${index + 1}`}
+          className="w-full h-16 md:h-20 object-cover"
+          loading="lazy"
+        />
+      </button>
+    )) || (
+      Array.from({length: 4}, (_, index) => (
+        <div key={index} className="flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200" style={{ minWidth: '80px' }}>
+          <div className="w-full h-16 md:h-20 flex items-center justify-center">
+            <Image className="h-6 w-6 text-gray-400" />
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</div>
+
           </section>
 
           {/* Product Information - Two Column Grid for Mobile */}
@@ -327,12 +354,16 @@ const ProductPage = () => {
               </div>
 
               {/* Description (Full width below price) */}
-              <div className="col-span-2 mt-2">
-                <h3 className="text-sm font-semibold mb-1 text-gray-900">Description</h3>
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  {product.description}
-                </p>
-              </div>
+           <div className="col-span-2 mt-2 flex flex-col">
+  <h3 className="text-sm font-semibold mb-1 text-gray-900">
+    Description
+  </h3>
+  <p className="text-xs text-gray-700 leading-relaxed">
+    {product.description}
+  </p>
+</div>
+
+
             </div>
 
             {/* Mobile-Optimized Contact and Location Section */}
@@ -562,9 +593,9 @@ const ProductPage = () => {
             </TabsList>
             
             <TabsContent value="recently-viewed">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
                 {recentlyViewedProducts.map(product => (
-                  <div key={product.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow product-card">
+                  <div key={product.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow product-card ">
                     <div className="aspect-square overflow-hidden">
                       <img 
                         src={product.image} 
@@ -585,7 +616,7 @@ const ProductPage = () => {
             </TabsContent>
             
             <TabsContent value="most-viewed">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
                 {mostViewedProducts.map(product => (
                   <div key={product.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow product-card">
                     <div className="aspect-square overflow-hidden">
