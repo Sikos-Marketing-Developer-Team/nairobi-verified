@@ -55,7 +55,7 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center">
                 <MapPin className="h-5 w-5 text-primary mr-3" />
-                <span className="text-sm">Tom Mboya Street, Nairobi CBD</span>
+                <span className="text-sm">Kiambu Road, Nairobi</span>
               </div>
               <div className="flex items-center">
                 <Phone className="h-5 w-5 text-primary mr-3" />

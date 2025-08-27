@@ -102,6 +102,9 @@ const ProductCard = ({ product, onProductClick }: { product: typeof products[0];
               </span>
             )}
           </div>
+          <Button className="w-full" onClick={() => onProductClick(product.id)}>
+            View
+          </Button>
           
         </div>
       </CardContent>
