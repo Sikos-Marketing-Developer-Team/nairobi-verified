@@ -177,6 +177,7 @@ const ProductPage = () => {
       }
     }
   }, [selectedImage]);
+  
 
   return (
     <main className="min-h-screen bg-white">
@@ -431,10 +432,10 @@ const ProductPage = () => {
           <aside className="lg:col-span-1 hidden md:block">
             <div className="sticky top-4">
               {/* Pricing Card */}
-              <section className="bg-white border-2 border-gray-200 rounded-xl p-4 md:p-6 mb-4 md:mb-6 shadow-lg" aria-label="Product Pricing">
+              <section className="bg-white border-2 border-[#FDF8E9] rounded-xl p-4 md:p-6 mb-4 md:mb-6 shadow-sm" aria-label="Product Pricing">
                 <div className="text-center mb-4">
                   <div className="flex items-center justify-center gap-2 md:gap-3 mb-2">
-                    <span className="text-2xl md:text-3xl lg:text-4xl font-bold text-green-600">
+                    <span className="text-2xl md:text-3xl lg:text-3xl font-bold text-green-600">
                       {formatPrice(product.price)}
                     </span>
                     {product.originalPrice > product.price && (
