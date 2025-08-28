@@ -20,7 +20,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { adminAPI } from '@/lib/api';
+import { adminAPI } from '../lib/api';
 
 interface AnalyticsData {
   registrationTrends: {

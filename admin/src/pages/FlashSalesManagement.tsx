@@ -13,13 +13,12 @@ import {
   Clock,
   TrendingUp,
   Package,
-  Users,
   AlertCircle,
   CheckCircle,
   XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { adminAPI } from '@/lib/api';
+import { adminAPI } from '../lib/api';
 
 interface FlashSaleProduct {
   productId: string;
