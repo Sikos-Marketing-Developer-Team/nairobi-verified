@@ -130,59 +130,66 @@ const Merchants = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 pt-16">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-16 pb-5">
         {/* Search and Filter Section */}
-        <div className="mb-6">
-          <div className="flex flex-col gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Search merchants..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="pl-9 h-9 text-[13px] sm:h-10 sm:text-sm"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSearch} className="bg-primary hover:bg-primary-dark h-8 px-2 text-[11px] sm:h-10 sm:px-3 sm:text-sm">
-                <Search className="h-3 w-3 mr-1 sm:h-3.5 sm:w-3.5" />
-                Search
-              </Button>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-28 h-8 text-[11px] sm:w-[140px] sm:h-10 sm:text-sm">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category} className="text-[11px] sm:text-sm">
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex gap-1">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'outline'}
-                  size="icon"
-                  onClick={() => setViewMode('grid')}
-                  className="h-8 w-8 sm:h-10 sm:w-10"
-                >
-                  <Grid className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  size="icon"
-                  onClick={() => setViewMode('list')}
-                  className="h-8 w-8 sm:h-10 sm:w-10"
-                >
-                  <List className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+<div className="mb-6 mt-16 sm:mt-12 pt-8">
+  <div className="flex flex-col gap-3">
+    {/* Search Input and Button */}
+    <div className="flex flex-row items-center gap-2">
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Input
+          type="text"
+          placeholder="Search merchants..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          className="pl-9 h-9 text-[13px] sm:h-10 sm:text-sm w-full"
+        />
+      </div>
+      <Button
+        onClick={handleSearch}
+        className="bg-primary hover:bg-primary-dark h-9 px-2 text-[11px] sm:h-10 sm:px-3 sm:text-sm"
+      >
+        <Search className="h-3 w-3 mr-1 sm:h-3.5 sm:w-3.5" />
+        Search
+      </Button>
+    </div>
+    {/* Filter and View Mode */}
+    <div className="flex gap-2">
+      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+        <SelectTrigger className="w-28 h-8 text-[11px] sm:w-[140px] sm:h-10 sm:text-sm">
+          <SelectValue placeholder="Category" />
+        </SelectTrigger>
+        <SelectContent>
+          {categories.map((category) => (
+            <SelectItem key={category} value={category} className="text-[11px] sm:text-sm">
+              {category}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <div className="flex gap-1">
+        <Button
+          variant={viewMode === 'grid' ? 'default' : 'outline'}
+          size="icon"
+          onClick={() => setViewMode('grid')}
+          className="h-8 w-8 sm:h-10 sm:w-10"
+        >
+          <Grid className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+        </Button>
+        <Button
+          variant={viewMode === 'list' ? 'default' : 'outline'}
+          size="icon"
+          onClick={() => setViewMode('list')}
+          className="h-8 w-8 sm:h-10 sm:w-10"
+        >
+          <List className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+        </Button>
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* Merchants Grid/List - 2 columns on mobile for grid view */}
         <div className={`grid gap-3 sm:gap-4 ${

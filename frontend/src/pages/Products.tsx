@@ -247,7 +247,7 @@ const Products = () => {
         <PageSkeleton>
           <div className="space-y-8">
             {/* Search and Filters Header Skeleton */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-lg shadow-sm p-6 ">
               <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
                 <div className="flex-1 max-w-2xl">
                   <Skeleton className="h-12 w-full" />
@@ -288,7 +288,7 @@ const Products = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="max-w-7xl mx-auto mt-20 px-4 pt-12 sm:px-6 sm:mt-15 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto mt-20 px-4 pt-16 sm:px-6 sm:mt-15 lg:px-8 py-8">
         {/* Search and Filters Header - Improved Mobile Design */}
         <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-6 md:mb-8">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">

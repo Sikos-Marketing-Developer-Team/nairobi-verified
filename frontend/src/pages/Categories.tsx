@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, MapPin, Star, Heart, Filter, Search, ChevronDown, Loader2 } from 'lucide-react';
+import { Check, MapPin, Star, Heart, Filter, Search, ChevronDown, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { usePageLoading } from '@/hooks/use-loading';
@@ -13,7 +13,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { productsAPI } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
 
-// Categories data (same as in CategorySection component)
 const categories = [
   {
     id: '60d0fe4f5311236168a10101',
@@ -59,15 +58,43 @@ const categories = [
   }
 ];
 
-// This will be replaced with real API data
+interface Product {
+  _id?: string;
+  id?: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  image?: string;
+  images?: string[];
+  featured?: boolean;
+  rating?: number;
+  reviewCount?: number;
+  reviews?: number;
+  merchant?: {
+    _id?: string;
+    businessName?: string;
+    verified?: boolean;
+    address?: string;
+  };
+  merchantId?: string;
+  merchantName?: string;
+  location?: string;
+}
 
-const ProductCard = ({ product }: { product: any }) => {
+const ProductCard = ({ product }: { product: Product }) => {
+  const navigate = useNavigate();
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
       currency: 'KES',
       minimumFractionDigits: 0
     }).format(price);
+  };
+
+  const handleViewProduct = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/product/${product._id || product.id}`);
   };
 
   return (
@@ -77,84 +104,99 @@ const ProductCard = ({ product }: { product: any }) => {
           <img
             src={product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop'}
             alt={product.name}
-            className="w-full h-48 object-cover"
+            className="w-full h-32 md:h-48 object-cover"
           />
           {product.featured && (
-            <div className="absolute top-2 left-2 bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs font-medium">
+            <div className="absolute top-1 left-1 md:top-2 md:left-2 bg-secondary text-secondary-foreground px-1 py-0.5 md:px-2 md:py-1 rounded text-[10px] md:text-xs font-medium">
               Featured
             </div>
           )}
           <Button
             variant="ghost"
             size="sm"
-            className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+            className="absolute top-1 right-1 md:top-2 md:right-2 bg-white/80 hover:bg-white p-1 md:p-2"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               alert('Added to favorites!');
             }}
           >
-            <Heart className="h-4 w-4" />
+            <Heart className="h-3 w-3 md:h-4 md:w-4" />
           </Button>
         </div>
         
-        <div className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm text-gray-600">{product.merchant?.businessName || product.merchantName}</span>
+        <div className="p-2 md:p-4">
+          <div className="flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
+            <span className="text-[10px] md:text-sm text-gray-600 line-clamp-1">{product.merchant?.businessName || product.merchantName}</span>
             {product.merchant?.verified && (
-              <div className="flex items-center gap-1 bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded">
-                <Check className="h-3 w-3" />
+              <div className="flex items-center gap-0.5 md:gap-1 bg-green-100 text-green-800 text-[10px] md:text-xs px-1 py-0.5 rounded">
+                <Check className="h-2.5 w-2.5 md:h-3 md:w-3" />
                 Verified
               </div>
             )}
           </div>
           
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+          <h3 className="font-semibold text-gray-900 mb-1 md:mb-2 line-clamp-2 text-[11px] md:text-base leading-tight">
             {product.name}
           </h3>
           
-          <Link to={`/merchant/${product.merchant?._id || product.merchantId}`} className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-2 mb-2">
-            <MapPin className="h-4 w-4 text-gray-400" />
-            <span>{product.merchant?.address || product.location}</span>
+          <Link to={`/merchant/${product.merchant?._id || product.merchantId}`} className="text-[10px] md:text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
+            <MapPin className="h-2.5 md:h-4 w-2.5 md:w-4 text-gray-400" />
+            <span className="line-clamp-1">{product.merchant?.address || product.location}</span>
           </Link>
           
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3">
             <div className="flex items-center">
-              <Star className="h-4 w-4 text-yellow-400 fill-current" />
-              <span className="text-sm font-medium ml-1">{product.rating || 0}</span>
+              <Star className="h-2.5 md:h-4 w-2.5 md:w-4 text-yellow-400 fill-current" />
+              <span className="text-[10px] md:text-sm font-medium ml-0.5 md:ml-1">{product.rating || 0}</span>
             </div>
-            <span className="text-sm text-gray-500">({product.reviewCount || product.reviews || 0} reviews)</span>
+            <span className="text-[10px] md:text-sm text-gray-500">({product.reviewCount || product.reviews || 0} reviews)</span>
           </div>
           
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl font-bold text-primary">
+          <div className="flex items-center gap-1 md:gap-2 mb-3 md:mb-4 flex-wrap">
+            <span className="text-sm md:text-xl font-bold text-primary leading-tight">
               {formatPrice(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-sm text-gray-500 line-through">
+              <span className="text-[10px] md:text-sm text-gray-500 line-through">
                 {formatPrice(product.originalPrice)}
               </span>
             )}
           </div>
           
-          <Button className="w-full bg-primary hover:bg-primary-dark text-white"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              alert(`Added ${product.name} to cart!`);
-            }}
-          >
-            Add to Cart
-          </Button>
+          <div className="hidden md:block">
+            <Button className="w-full bg-primary hover:bg-primary-dark text-white text-sm md:text-base"
+              onClick={handleViewProduct}
+            >
+              View
+            </Button>
+          </div>
+          <div className="md:hidden">
+            <a
+              href={`/product/${product._id || product.id}`}
+              className="block text-center text-[11px] text-orange-600 underline hover:no-underline"
+              onClick={handleViewProduct}
+            >
+              View
+            </a>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 };
 
-const CategoryCard = ({ category }: { category: typeof categories[0] }) => {
+interface Category {
+  id: string;
+  name: string;
+  count: string;
+  image: string;
+  color: string;
+}
+
+const CategoryCard = ({ category }: { category: Category }) => {
   return (
-    <Card className="hover-scale cursor-pointer border-0 shadow-lg">
+    <Card className="hover-scale cursor-pointer border-0 shadow-lg snap-center flex-shrink-0 w-80">
       <CardContent className="p-0">
         <div className="relative h-48 overflow-hidden rounded-t-lg">
           <img
@@ -179,25 +221,155 @@ const CategoryCard = ({ category }: { category: typeof categories[0] }) => {
   );
 };
 
+const CategorySection = () => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const updateView = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    updateView();
+    window.addEventListener('resize', updateView);
+    
+    return () => window.removeEventListener('resize', updateView);
+  }, []);
+
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = isMobile ? 320 : 1008; // Adjust scroll amount based on device
+      scrollContainerRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = isMobile ? 320 : 1008; // Adjust scroll amount based on device
+      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const updateCurrentIndex = () => {
+    if (scrollContainerRef.current) {
+      const scrollPos = scrollContainerRef.current.scrollLeft;
+      const itemWidth = isMobile ? 160 : 336; // Card width + gap (w-40 + space-x-4 = 160px, w-80 + space-x-6 = 336px)
+      const newIndex = Math.round(scrollPos / itemWidth);
+      setCurrentIndex(newIndex);
+    }
+  };
+
+  return (
+    <section className="py-4 md:py-6 lg:py-8">
+      <div className="w-full px-3 sm:px-4 lg:px-6">
+          <h2 className="text-xl sm:text-2xl md:text-2xl lg:text-2xl font-semibold text-gray-900 mb-5 mx-1">
+            Shop by Category
+          </h2>
+        <div className="relative">
+          <Button
+            onClick={scrollLeft}
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-orange-500 hover:bg-orange-600 shadow-md h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 lg:h-10 lg:w-10 rounded-full p-0"
+          >
+            <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-5 lg:w-5 text-white" />
+          </Button>
+          <Button
+            onClick={scrollRight}
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-orange-500 hover:bg-orange-600 shadow-md h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 lg:h-10 lg:w-10 rounded-full p-0"
+          >
+            <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-5 lg:w-5 text-white" />
+          </Button>
+          <div className="absolute top-2 right-2 z-10 bg-black/60 text-white text-[10px] sm:text-xs md:text-xs lg:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
+            {Math.min(currentIndex + (isMobile ? 1 : 3), categories.length)} / {categories.length}
+          </div>
+          {isMobile ? (
+            <div 
+              ref={scrollContainerRef}
+              className="flex overflow-x-auto pb-2 md:pb-4 space-x-4 hide-scrollbar snap-x snap-mandatory"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              onScroll={updateCurrentIndex}
+            >
+              {categories.map((category) => (
+                <div 
+                  key={category.id} 
+                  className="flex-shrink-0 w-40 sm:w-48 md:w-64 snap-center"
+                >
+                  <Link to={`/categories/${category.id}`}>
+                    <Card className="hover-scale cursor-pointer border-0 shadow-md sm:shadow-lg h-full">
+                      <CardContent className="p-0 flex flex-col h-full">
+                        <div className="relative h-24 sm:h-28 md:h-36 overflow-hidden rounded-t-lg flex-grow">
+                          <img
+                            src={category.image}
+                            alt={category.name}
+                            className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                          <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 text-white">
+                            <h3 className="text-xs sm:text-sm md:text-base font-semibold">{category.name}</h3>
+                            <p className="text-[10px] sm:text-xs opacity-90">{category.count}</p>
+                          </div>
+                        </div>
+                        <div className="p-1 sm:p-2 md:p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] sm:text-xs text-gray-500">Verified merchants</span>
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-3 md:h-3 bg-green-500 rounded-full"></div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div 
+              ref={scrollContainerRef}
+              className="flex overflow-x-auto pb-4 space-x-6 hide-scrollbar snap-x snap-mandatory w-full"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              onScroll={updateCurrentIndex}
+            >
+              {categories.map((category) => (
+                <div key={category.id} className="snap-center flex-shrink-0">
+                  <Link to={`/categories/${category.id}`}>
+                    <CategoryCard category={category} />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hover-scale:hover {
+          transform: scale(1.02);
+          transition: transform 0.2s ease-in-out;
+        }
+      `}</style>
+    </section>
+  );
+};
+
 const Categories = () => {
   const { categoryId } = useParams<{ categoryId?: string }>();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState([0, 200000]);
   const [showFilters, setShowFilters] = useState(false);
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const isPageLoading = usePageLoading(650);
   const { toast } = useToast();
 
-  // Find the selected category
   const selectedCategory = categoryId 
     ? categories.find(cat => cat.id === categoryId) 
     : null;
 
-  // Fetch products from API
   useEffect(() => {
     fetchProducts();
   }, [categoryId, searchTerm, priceRange, currentPage]);
@@ -210,17 +382,14 @@ const Categories = () => {
         limit: 12,
       };
 
-      // Add category filter if selected
       if (selectedCategory) {
         params.category = selectedCategory.name;
       }
 
-      // Add search term if provided
       if (searchTerm.trim()) {
         params.search = searchTerm.trim();
       }
 
-      // Add price range filters
       if (priceRange[0] > 0) {
         params.minPrice = priceRange[0];
       }
@@ -247,30 +416,22 @@ const Categories = () => {
 
   const filteredProducts = products;
 
-// (Removed duplicate/incorrect loading block that referenced 'product')
-
   if (isPageLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        
-        {/* Fixed spacing: proper padding-top for header clearance */}
-        <div className="pt-24 md:pt-32 lg:pt-36">
+        <div className="pt-36 md:pt-32 lg:pt-36">
           <PageSkeleton>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="space-y-8">
-                {/* Header Section Skeleton */}
                 <div className="space-y-4">
                   <Skeleton className="h-10 w-1/3" />
                   <Skeleton className="h-6 w-2/3" />
                 </div>
-
-                {/* Categories or Filters Section Skeleton */}
                 {!categoryId ? (
                   <CategorySkeleton />
                 ) : (
                   <div className="space-y-6">
-                    {/* Search and Filters Skeleton */}
                     <div className="bg-white rounded-lg shadow-sm p-6">
                       <div className="flex flex-col lg:flex-row gap-4">
                         <Skeleton className="h-12 flex-1" />
@@ -280,14 +441,10 @@ const Categories = () => {
                         </div>
                       </div>
                     </div>
-
-                    {/* Results Header Skeleton */}
                     <div className="flex justify-between items-center">
                       <Skeleton className="h-6 w-48" />
                       <Skeleton className="h-6 w-32" />
                     </div>
-
-                    {/* Products Grid Skeleton */}
                     <ProductGridSkeleton />
                   </div>
                 )}
@@ -295,7 +452,6 @@ const Categories = () => {
             </div>
           </PageSkeleton>
         </div>
-        
         <Footer />
       </div>
     );
@@ -304,63 +460,47 @@ const Categories = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
-      {/* Fixed: proper spacing after header, removed duplicate padding */}
-      <main className="pt-24 md:pt-32 lg:pt-36 pb-8">
+      <main className="pt-36 md:pt-32 lg:pt-36 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Page Header */}
-          <div className="mb-4">
-            <h1 className="text-3xl font-semibold text-gray-900">
+          <div className="mt-2">
+            <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">
               {selectedCategory ? selectedCategory.name : 'All Categories'}
             </h1>
-            <p className="text-orange-600 ">
+            <p className="text-sm md:text-base text-orange-600">
               {selectedCategory 
                 ? `Browse verified merchants offering ${selectedCategory.name.toLowerCase()}`
                 : 'Browse all categories or select one to filter products'}
             </p>
           </div>
 
-          {/* Categories Section (only show if no category is selected) */}
-          {!selectedCategory && (
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-5 mx-1">Shop by Category</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {categories.map((category) => (
-                  <Link key={category.id} to={`/categories/${category.id}`}>
-                    <CategoryCard category={category} />
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+          {!selectedCategory && <CategorySection />}
 
-          {/* Search and Filters */}
           <div className="mb-8">
             <div className="flex flex-col md:flex-row gap-4 mb-4">
               <div className="relative flex-grow">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 md:h-5 w-4 md:w-5" />
                 <Input
                   type="text"
                   placeholder="Search products or merchants..."
-                  className="pl-10"
+                  className="pl-10 text-xs md:text-base"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               <Button 
                 variant="outline" 
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 text-xs md:text-base"
                 onClick={() => setShowFilters(!showFilters)}
               >
-                <Filter className="h-5 w-5" />
+                <Filter className="h-4 md:h-5 w-4 md:w-5" />
                 Filters
-                <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-3 md:h-4 w-3 md:w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
               </Button>
             </div>
 
             {showFilters && (
-              <div className="bg-white p-4 rounded-lg shadow mb-6">
-                <h3 className="font-medium mb-4">Price Range</h3>
+              <div className="bg-white p-3 md:p-4 rounded-lg shadow mb-6">
+                <h3 className="font-medium mb-4 text-xs md:text-base">Price Range</h3>
                 <div className="px-2">
                   <Slider
                     defaultValue={[0, 200000]}
@@ -370,7 +510,7 @@ const Categories = () => {
                     onValueChange={setPriceRange}
                     className="mb-6"
                   />
-                  <div className="flex justify-between text-sm text-gray-600">
+                  <div className="flex justify-between text-xs md:text-sm text-gray-600">
                     <span>KES {priceRange[0].toLocaleString()}</span>
                     <span>KES {priceRange[1].toLocaleString()}</span>
                   </div>
@@ -379,22 +519,21 @@ const Categories = () => {
             )}
           </div>
 
-          {/* Products Grid */}
           <div className="mb-8">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">
+              <h2 className="text-lg md:text-2xl font-semibold text-gray-900">
                 {selectedCategory ? `${selectedCategory.name} Products` : 'All Products'}
               </h2>
-              <span className="text-gray-600">{totalProducts} products</span>
+              <span className="text-xs md:text-base text-gray-600">{totalProducts} products</span>
             </div>
 
             {isLoadingProducts ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <span className="ml-2">Loading products...</span>
+                <Loader2 className="h-6 md:h-8 w-6 md:w-8 animate-spin" />
+                <span className="ml-2 text-xs md:text-base">Loading products...</span>
               </div>
             ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {filteredProducts.map((product) => (
                   <Link key={product._id || product.id} to={`/product/${product._id || product.id}`}>
                     <ProductCard product={product} />
@@ -403,10 +542,11 @@ const Categories = () => {
               </div>
             ) : (
               <div className="text-center py-12 bg-white rounded-lg shadow">
-                <h3 className="text-xl font-medium text-gray-900 mb-2">No products found</h3>
-                <p className="text-gray-600 mb-6">Try adjusting your search or filter criteria</p>
+                <h3 className="text-lg md:text-xl font-medium text-gray-900 mb-2">No products found</h3>
+                <p className="text-xs md:text-base text-gray-600 mb-6">Try adjusting your search or filter criteria</p>
                 <Button 
                   variant="outline" 
+                  className="text-xs md:text-base"
                   onClick={() => {
                     setSearchTerm('');
                     setPriceRange([0, 200000]);
@@ -422,8 +562,15 @@ const Categories = () => {
           </div>
         </div>
       </main>
-
       <Footer />
+      
+      <style>{`
+        @media (max-width: 768px) {
+          .pt-36 {
+            padding-top: 9rem;
+          }
+        }
+      `}</style>
     </div>
   );
 };

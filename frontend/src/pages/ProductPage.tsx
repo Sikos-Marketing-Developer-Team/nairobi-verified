@@ -370,36 +370,37 @@ const ProductPage = () => {
             {/* Mobile-Optimized Contact and Location Section */}
             <section className="mb-4 md:mb-6" aria-label="Contact and Location">
               <div className="md:hidden grid grid-cols-2 gap-3 mb-4">
-                {/* WhatsApp CTA */}
-                <div className="bg-white border-2 border-gray-200 rounded-xl p-4 shadow-lg flex flex-col">
-                  <Button
-                    className="flex-grow bg-[#25D366] hover:bg-[#1eb855] text-white font-semibold py-3 text-sm shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                    asChild
-                  >
-                    <a 
-                      href={`https://wa.me/${product.whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      aria-label={`Chat about ${product.name} on WhatsApp`}
-                    >
-                      <FaWhatsapp className="h-5 w-5 mr-2" />
-                      Chat on WhatsApp
-                    </a>
-                  </Button>
-                </div>
+  {/* WhatsApp CTA */}
+  <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg flex flex-col">
+    <Button
+      className="flex-grow bg-[#25D366] hover:bg-[#1eb855] text-white font-semibold py-2 px-3 text-xs sm:text-sm shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+      asChild
+    >
+      <a 
+        href={`https://wa.me/${product.whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        aria-label={`Chat about ${product.name} on WhatsApp`}
+      >
+        <FaWhatsapp className="h-4 w-4 mr-1" />
+        Chat on WhatsApp
+      </a>
+    </Button>
+  </div>
 
-                {/* Contact Seller */}
-                <div className="bg-white border-2 border-gray-200 rounded-xl p-4 shadow-lg flex flex-col">
-                  <Button 
-                    variant="outline" 
-                    className="flex-grow border-2 border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 font-medium py-2 text-sm"
-                    aria-label={`Add ${product.name} to wishlist`}
-                  >
-                    <Heart className="h-4 w-4 mr-2" />
-                    Add to Wishlist
-                  </Button>
-                </div>
-              </div>
+  {/* Contact Seller */}
+  <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg flex flex-col">
+    <Button 
+      variant="outline" 
+      className="flex-grow border-2 border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 font-medium py-2 px-3 text-xs sm:text-sm flex items-center justify-center"
+      aria-label={`Add ${product.name} to wishlist`}
+    >
+      <Heart className="h-4 w-4 mr-1" />
+      Add to Wishlist
+    </Button>
+  </div>
+</div>
+
 
               {/* Location */}
               <div className="bg-[#FDF8E9] border border-[#EC5C0A]/30 rounded-lg p-3 md:p-4">

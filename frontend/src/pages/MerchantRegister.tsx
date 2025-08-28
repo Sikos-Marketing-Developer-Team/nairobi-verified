@@ -292,10 +292,10 @@ const MerchantRegister = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24 mt-5">
         {/* Header */}
-        <div className="text-center mb-8 mt-5">
-          <h1 className="text-3xl font-bold inter text-gray-900 mb-2">
+        <div className="text-center mb-8 mt-7 pt-5 md:pt-0">
+          <h1 className="text-3xl font-bold inter text-gray-900 mb-2 ">
             Register Your Business
           </h1>
           <p className="text-gray-600">
