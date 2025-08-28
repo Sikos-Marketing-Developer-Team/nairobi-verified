@@ -1,26 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  BarChart3, 
   TrendingUp, 
-  TrendingDown, 
   Users, 
   Store, 
   Package, 
-  DollarSign,
-  Eye,
-  Calendar,
   Download,
   RefreshCw,
-  Filter,
   ArrowUpRight,
   ArrowDownRight,
   Activity,
-  ShoppingCart,
   Star,
   MapPin
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { adminAPI } from '@/lib/api';
+import { adminAPI } from '../lib/api';
 
 interface AnalyticsData {
   registrationTrends: {
@@ -142,13 +135,7 @@ const AnalyticsPage: React.FC = () => {
     return new Intl.NumberFormat().format(num);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+
 
   const formatPercentage = (value: number) => {
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;

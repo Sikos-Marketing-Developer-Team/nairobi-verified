@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
+import { useScrollToTop, scrollElementToTop } from '../../hooks/useScrollToTop';
 import {
   LayoutDashboard,
   Users,
@@ -29,6 +30,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const mainContentRef = useRef<HTMLElement>(null);
+  
+  // Auto scroll to top on route changes
+  useScrollToTop();
+  
+  // Scroll main content to top when route changes
+  useEffect(() => {
+    scrollElementToTop(mainContentRef.current, 'smooth');
+  }, [location.pathname]);
 
   const navigationItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, current: location.pathname === '/dashboard' },
@@ -78,8 +88,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       item.current
                         ? 'bg-green-100 text-green-900'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    } group flex items-center px-2 py-2 text-base font-medium rounded-md`}
-                    onClick={() => setSidebarOpen(false)}
+                    } group flex items-center px-2 py-2 text-base font-medium rounded-md transition-all duration-200`}
+                    onClick={() => {
+                      setSidebarOpen(false);
+                      scrollElementToTop(mainContentRef.current, 'smooth');
+                    }}
                   >
                     <item.icon
                       className={`${
@@ -122,7 +135,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       item.current
                         ? 'bg-green-100 text-green-900'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    } group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors`}
+                    } group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 hover:scale-105`}
+                    onClick={() => scrollElementToTop(mainContentRef.current, 'smooth')}
                   >
                     <item.icon
                       className={`${
@@ -222,8 +236,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </div>
 
         {/* Main content area */}
-        <main className="flex-1 relative overflow-y-auto focus:outline-none">
-          <div className="py-6">
+        <main 
+          ref={mainContentRef}
+          className="flex-1 relative overflow-y-auto focus:outline-none scroll-smooth"
+        >
+          <div className="py-6 transition-all duration-300 ease-in-out">
             {children}
           </div>
         </main>

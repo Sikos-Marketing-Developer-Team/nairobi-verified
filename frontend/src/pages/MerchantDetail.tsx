@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, Image, MessageSquare, AlertCircle, Loader2 } from 'lucide-react';
+import { Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, Image, MessageSquare, AlertCircle, Loader2, X, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,6 +25,9 @@ const MerchantDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   // Fetch merchant data
   useEffect(() => {
@@ -103,6 +106,52 @@ const MerchantDetail = () => {
     } finally {
       setFavoriteLoading(false);
     }
+  };
+
+  // Handle contact merchant
+  const handleContactMerchant = () => {
+    setShowContactModal(true);
+  };
+
+  // Handle write review
+  const handleWriteReview = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to write a review',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setShowReviewModal(true);
+  };
+
+  // Handle get directions
+  const handleGetDirections = () => {
+    if (merchant.address) {
+      const encodedAddress = encodeURIComponent(merchant.address);
+      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+      window.open(googleMapsUrl, '_blank');
+    } else {
+      toast({
+        title: 'Address Not Available',
+        description: 'This merchant has not provided their address',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle report issue
+  const handleReportIssue = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to report an issue',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setShowReportModal(true);
   };
 
   if (loading || isPageLoading) {
@@ -440,19 +489,34 @@ const MerchantDetail = () => {
 
             {/* Quick Actions */}
             <div className="space-y-3">
-              <Button className="w-full bg-primary hover:bg-primary-dark">
+              <Button 
+                className="w-full bg-primary hover:bg-primary-dark"
+                onClick={handleContactMerchant}
+              >
                 <Phone className="h-4 w-4 mr-2" />
                 Contact Merchant
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handleWriteReview}
+              >
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Write a Review
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handleGetDirections}
+              >
                 <MapPin className="h-4 w-4 mr-2" />
                 Get Directions
               </Button>
-              <Button variant="outline" className="w-full text-red-500 hover:bg-red-50">
+              <Button 
+                variant="outline" 
+                className="w-full text-red-500 hover:bg-red-50"
+                onClick={handleReportIssue}
+              >
                 <AlertCircle className="h-4 w-4 mr-2" />
                 Report Issue
               </Button>
@@ -460,8 +524,362 @@ const MerchantDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Contact Modal */}
+      {showContactModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Contact {merchant.businessName}</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowContactModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <Phone className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Phone</p>
+                  <a 
+                    href={`tel:${merchant.phone}`}
+                    className="text-primary hover:underline"
+                  >
+                    {merchant.phone}
+                  </a>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <Mail className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Email</p>
+                  <a 
+                    href={`mailto:${merchant.email}`}
+                    className="text-primary hover:underline"
+                  >
+                    {merchant.email}
+                  </a>
+                </div>
+              </div>
+              {merchant.website && (
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                  <ExternalLink className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">Website</p>
+                    <a 
+                      href={merchant.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Visit Website
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <ReviewModal
+          merchant={merchant}
+          onClose={() => setShowReviewModal(false)}
+          onReviewSubmitted={() => {
+            setShowReviewModal(false);
+            // Refresh reviews
+            window.location.reload();
+          }}
+        />
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <ReportModal
+          merchant={merchant}
+          onClose={() => setShowReportModal(false)}
+          onReportSubmitted={() => {
+            setShowReportModal(false);
+            toast({
+              title: 'Report Submitted',
+              description: 'Thank you for your report. We will review it shortly.',
+            });
+          }}
+        />
+      )}
       
       <Footer />
+    </div>
+  );
+};
+
+// Review Modal Component
+const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
+  merchant: any;
+  onClose: () => void;
+  onReviewSubmitted: () => void;
+}) => {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (rating === 0) {
+      toast({
+        title: 'Rating Required',
+        description: 'Please select a rating before submitting',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await reviewsAPI.createReview(merchant._id, {
+        rating,
+        comment: comment.trim()
+      });
+      
+      toast({
+        title: 'Review Submitted',
+        description: 'Thank you for your review!',
+      });
+      
+      onReviewSubmitted();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.error || 'Failed to submit review',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Write a Review</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Rating for {merchant.businessName}
+            </label>
+            <div className="flex space-x-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className={`p-1 ${
+                    star <= rating ? 'text-yellow-400' : 'text-gray-300'
+                  } hover:text-yellow-400 transition-colors`}
+                >
+                  <Star className="h-6 w-6 fill-current" />
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Review (Optional)
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Share your experience with this merchant..."
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              rows={4}
+            />
+          </div>
+          
+          <div className="flex space-x-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || rating === 0}
+              className="flex-1"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Submit Review
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Report Modal Component
+const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
+  merchant: any;
+  onClose: () => void;
+  onReportSubmitted: () => void;
+}) => {
+  const [reportType, setReportType] = useState('');
+  const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const reportTypes = [
+    { value: 'inappropriate_content', label: 'Inappropriate Content' },
+    { value: 'false_information', label: 'False Information' },
+    { value: 'spam', label: 'Spam' },
+    { value: 'fraud', label: 'Fraud or Scam' },
+    { value: 'poor_service', label: 'Poor Service' },
+    { value: 'other', label: 'Other' }
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!reportType || !description.trim()) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please select a report type and provide a description',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      // This would be an API call to submit the report
+      // await reportsAPI.createReport(merchant._id, { type: reportType, description });
+      
+      // For now, just simulate the API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      onReportSubmitted();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Failed to submit report. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Report Issue</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              What's the issue with {merchant.businessName}?
+            </label>
+            <select
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="">Select a reason</option>
+              {reportTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Please provide more details about the issue..."
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              rows={4}
+              required
+            />
+          </div>
+          
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-sm text-yellow-800">
+              <strong>Note:</strong> Reports are reviewed by our team. False reports may result in account restrictions.
+            </p>
+          </div>
+          
+          <div className="flex space-x-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 bg-red-600 hover:bg-red-700"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Submit Report
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

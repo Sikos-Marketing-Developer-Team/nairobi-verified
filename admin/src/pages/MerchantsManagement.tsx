@@ -1,64 +1,106 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Store, 
-  Search, 
-  Eye, 
-  Edit, 
-  CheckCircle, 
-  X,
-  MapPin,
+  Store,
+  FileText,
+  XCircle,
+  CheckCircle,
+  Clock,
   Phone,
   Mail,
-  Calendar,
+  MapPin,
+  Eye,
+  UserCheck,
+  AlertTriangle,
   Filter,
+  Search,
   Download,
-  AlertCircle,
-  XCircle,
-  Clock
+  MoreVertical,
+  Trash2,
+  Star,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  FileCheck,
+  Clock3,
+  RefreshCw
 } from 'lucide-react';
-import { adminAPI } from '@/lib/api';
+import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
-
-interface MerchantDocument {
-  businessRegistration?: string;
-  idDocument?: string;
-  utilityBill?: string;
-  additionalDocs?: string[];
-}
+import { scrollToTop } from '../hooks/useScrollToTop';
+import { MerchantsManagementSkeleton } from '../components/ui/loading-skeletons';
 
 interface Merchant {
   _id: string;
   businessName: string;
+  ownerName?: string;
   email: string;
   phone: string;
-  businessType: string;
-  location: string;
-  category?: string;
-  status?: string;
   verified: boolean;
+  isActive: boolean;
   createdAt: string;
-  updatedAt: string;
-  documents?: MerchantDocument;
-  rating?: number;
-  totalReviews?: number;
-  totalProducts?: number;
-  isActive?: boolean;
+  updatedAt?: string;
+  address?: string;
+  location?: string;
+  businessType?: string;
+  category?: string;
   description?: string;
   website?: string;
-  socialMedia?: {
-    facebook?: string;
-    instagram?: string;
-    twitter?: string;
+  yearEstablished?: number;
+  logo?: string;
+  bannerImage?: string;
+  gallery?: string[];
+  rating?: number;
+  reviews?: number;
+  featured?: boolean;
+  productsCount?: number;
+  totalSales?: number;
+  profileCompleteness?: number;
+  documentsCompleteness?: number;
+  lastLoginAt?: string;
+  onboardingStatus?: 'credentials_sent' | 'account_setup' | 'documents_submitted' | 'under_review' | 'completed';
+  documents?: {
+    businessRegistration?: {
+      path?: string;
+      uploadedAt?: string;
+      originalName?: string;
+      fileSize?: number;
+      mimeType?: string;
+    };
+    idDocument?: {
+      path?: string;
+      uploadedAt?: string;
+      originalName?: string;
+      fileSize?: number;
+      mimeType?: string;
+    };
+    utilityBill?: {
+      path?: string;
+      uploadedAt?: string;
+      originalName?: string;
+      fileSize?: number;
+      mimeType?: string;
+    };
+    additionalDocs?: Array<{
+      path?: string;
+      uploadedAt?: string;
+      originalName?: string;
+      fileSize?: number;
+      mimeType?: string;
+      description?: string;
+    }>;
+    documentReviewStatus?: 'pending' | 'under_review' | 'approved' | 'rejected' | 'incomplete';
+    verificationNotes?: string;
+    documentsSubmittedAt?: string;
+    documentsReviewedAt?: string;
   };
-  businessHours?: {
-    monday?: string;
-    tuesday?: string;
-    wednesday?: string;
-    thursday?: string;
-    friday?: string;
-    saturday?: string;
-    sunday?: string;
-  };
+  verificationHistory?: Array<{
+    action: 'submitted' | 'under_review' | 'approved' | 'rejected' | 'resubmitted';
+    performedBy?: string;
+    performedAt: string;
+    notes?: string;
+    documentsInvolved?: string[];
+  }>;
+  // Enhanced fields for better UI
   documentStatus?: {
     businessRegistration: boolean;
     idDocument: boolean;
@@ -74,570 +116,887 @@ const MerchantsManagement: React.FC = () => {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [filteredMerchants, setFilteredMerchants] = useState<Merchant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [documentFilter, setDocumentFilter] = useState<string>('all');
-  const [totalMerchants, setTotalMerchants] = useState(0);
-  const [selectedMerchant, setSelectedMerchant] = useState<Merchant | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
-  const [bulkActions, setBulkActions] = useState<string[]>([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [selectedMerchant, setSelectedMerchant] = useState<Merchant | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'pending' | 'active' | 'inactive' | 'needs_review' | 'featured'>('all');
+  const [showMerchantDetails, setShowMerchantDetails] = useState(false);
 
-  // Business type categories for filtering
-  const categories = [
-    'All Categories',
-    'Restaurant',
-    'Retail',
-    'Electronics',
-    'Fashion',
-    'Grocery',
-    'Services',
-    'Health & Beauty',
-    'Automotive',
-    'Home & Garden',
-    'Sports & Recreation',
-    'Other'
-  ];
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [selectedMerchants, setSelectedMerchants] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'status' | 'completeness'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadMerchants();
-  }, [statusFilter, categoryFilter, documentFilter]);
-
-  useEffect(() => {
-    const delayedSearch = setTimeout(() => {
-      if (searchTerm !== '') {
-        loadMerchants();
-      }
-    }, 500);
-
-    return () => clearTimeout(delayedSearch);
-  }, [searchTerm]);
+  }, []);
 
   useEffect(() => {
     filterMerchants();
-  }, [merchants, searchTerm, statusFilter, categoryFilter, documentFilter]);
+  }, [merchants, searchTerm, filterStatus]);
 
-  const loadMerchants = async () => {
+  const loadMerchants = useCallback(async (showRefreshing = false) => {
     try {
-      setIsLoading(true);
-      const response = await adminAPI.getMerchants({
-        page: 1,
-        limit: 100,
-        verified: statusFilter === 'verified' ? true : statusFilter === 'pending' ? false : undefined,
-        businessType: categoryFilter !== 'all' ? categoryFilter : undefined,
-        search: searchTerm || undefined,
-        documentStatus: documentFilter !== 'all' ? documentFilter : undefined
-      });
-      
-      if (response.data.success) {
-        // Handle different response structures
-        const merchants = response.data.data?.merchants || response.data.merchants || [];
-        const total = response.data.data?.total || response.data.total || merchants.length;
-        setMerchants(merchants);
-        setTotalMerchants(total);
+      if (showRefreshing) {
+        setRefreshing(true);
       } else {
-        // Handle case where success is false but we still have data
-        const merchants = response.data.merchants || [];
-        setMerchants(merchants);
-        setTotalMerchants(merchants.length);
+        setIsLoading(true);
+      }
+      
+      const response = await adminAPI.getMerchants();
+      if (response.data.success) {
+        setMerchants(response.data.merchants || []);
       }
     } catch (error: any) {
       console.error('Failed to load merchants:', error);
       toast.error('Failed to load merchants');
     } finally {
-      setIsLoading(false);
+      requestAnimationFrame(() => {
+        setIsLoading(false);
+        setRefreshing(false);
+      });
     }
-  };
+  }, []);
 
-  const filterMerchants = () => {
+  const filterMerchants = useCallback(() => {
     let filtered = merchants;
 
+    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(merchant =>
         merchant.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (merchant.ownerName && merchant.ownerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         merchant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        merchant.businessType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        merchant.location.toLowerCase().includes(searchTerm.toLowerCase())
+        (merchant.businessType && merchant.businessType.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (merchant.location && merchant.location.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'verified') {
-        filtered = filtered.filter(merchant => merchant.verified);
-      } else if (statusFilter === 'pending') {
-        filtered = filtered.filter(merchant => !merchant.verified);
-      }
-    }
-
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(merchant => merchant.businessType === categoryFilter);
-    }
-
-    if (documentFilter !== 'all') {
+    // Status filter
+    if (filterStatus !== 'all') {
       filtered = filtered.filter(merchant => {
-        switch (documentFilter) {
-          case 'complete':
-            return merchant.isDocumentComplete;
-          case 'incomplete':
-            return !merchant.isDocumentComplete;
-          case 'pending_review':
-            return merchant.needsVerification;
+        switch (filterStatus) {
+          case 'verified':
+            return merchant.verified;
+          case 'pending':
+            return !merchant.verified;
+          case 'active':
+            return merchant.isActive;
+          case 'inactive':
+            return !merchant.isActive;
+          case 'needs_review':
+            return merchant.needsVerification || (merchant.isDocumentComplete && !merchant.verified);
+          case 'featured':
+            return merchant.featured;
           default:
             return true;
         }
       });
     }
 
-    setFilteredMerchants(filtered);
-  };
-
-  const handleMerchantAction = async (action: string, merchantId: string) => {
-    try {
-      switch (action) {
-        case 'verify':
-          const verifyResponse = await adminAPI.updateMerchantStatus(merchantId, true);
-          if (verifyResponse.data.success) {
-            toast.success('Merchant verified successfully');
-            loadMerchants();
-          }
+    // Sort merchants
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'name':
+          aValue = a.businessName.toLowerCase();
+          bValue = b.businessName.toLowerCase();
           break;
-        case 'unverify':
-          const unverifyResponse = await adminAPI.updateMerchantStatus(merchantId, false);
-          if (unverifyResponse.data.success) {
-            toast.success('Merchant verification removed');
-            loadMerchants();
-          }
+        case 'date':
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
           break;
-        case 'delete':
-          if (window.confirm('Are you sure you want to delete this merchant? This action cannot be undone.')) {
-            const deleteResponse = await adminAPI.deleteMerchant(merchantId);
-            if (deleteResponse.data.success) {
-              toast.success('Merchant deleted successfully');
-              loadMerchants();
-            }
-          }
+        case 'status':
+          aValue = a.verified ? 2 : (a.isActive ? 1 : 0);
+          bValue = b.verified ? 2 : (b.isActive ? 1 : 0);
           break;
-        case 'view_documents':
-          const merchant = merchants.find(m => m._id === merchantId);
-          if (merchant) {
-            setSelectedMerchant(merchant);
-            setShowDocumentsModal(true);
-          }
+        case 'completeness':
+          aValue = (a.profileCompleteness || 0) + (a.documentsCompleteness || 0);
+          bValue = (b.profileCompleteness || 0) + (b.documentsCompleteness || 0);
           break;
-        case 'view_details':
-          const merchantDetails = merchants.find(m => m._id === merchantId);
-          if (merchantDetails) {
-            setSelectedMerchant(merchantDetails);
-            setShowDetailsModal(true);
-          }
-          break;
+        default:
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
       }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    setFilteredMerchants(filtered);
+  }, [merchants, searchTerm, filterStatus, sortBy, sortOrder]);
+
+  const handleVerifyMerchant = async (merchantId: string) => {
+    try {
+      await adminAPI.verifyMerchant(merchantId);
+      toast.success('Merchant verified successfully');
+      loadMerchants();
     } catch (error: any) {
-      console.error('Action failed:', error);
-      toast.error(error.response?.data?.message || 'Action failed');
+      toast.error('Failed to verify merchant');
     }
   };
 
-  const handleBulkVerify = async () => {
-    if (bulkActions.length === 0) {
-      toast.error('Please select merchants to verify');
+  const handleToggleStatus = async (merchantId: string, isActive: boolean) => {
+    try {
+      await adminAPI.updateMerchantStatus(merchantId, !isActive);
+      toast.success(`Merchant ${!isActive ? 'activated' : 'deactivated'} successfully`);
+      loadMerchants(true);
+    } catch (error: any) {
+      toast.error('Failed to update merchant status');
+    }
+  };
+
+
+
+  const handleBulkAction = async (action: 'verify' | 'activate' | 'deactivate' | 'delete') => {
+    if (selectedMerchants.length === 0) {
+      toast.error('Please select merchants first');
       return;
     }
 
     try {
-      const response = await adminAPI.bulkVerifyMerchants(bulkActions);
-      
-      if (response.data.success) {
-        toast.success(`${bulkActions.length} merchants verified successfully`);
-        setBulkActions([]);
-        setShowBulkActions(false);
-        loadMerchants();
+      switch (action) {
+        case 'verify':
+          await adminAPI.bulkVerifyMerchants(selectedMerchants);
+          toast.success(`${selectedMerchants.length} merchants verified successfully`);
+          break;
+        case 'activate':
+          // Implement bulk activate
+          toast.info('Bulk activate feature coming soon');
+          break;
+        case 'deactivate':
+          // Implement bulk deactivate
+          toast.info('Bulk deactivate feature coming soon');
+          break;
+        case 'delete':
+          // Implement bulk delete
+          toast.info('Bulk delete feature coming soon');
+          break;
       }
-    } catch (error: any) {
-      console.error('Bulk verify failed:', error);
-      toast.error('Bulk verification failed');
-    }
-  };
-
-  const exportMerchants = async () => {
-    try {
-      const response = await adminAPI.exportMerchants();
       
-      // Create blob and download
-      const blob = new Blob([response.data], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `merchants-export-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast.success('Merchants exported successfully');
+      setSelectedMerchants([]);
+      setShowBulkActions(false);
+      loadMerchants(true);
     } catch (error: any) {
-      console.error('Export failed:', error);
-      toast.error('Failed to export merchants data');
+      toast.error(`Failed to ${action} merchants`);
     }
   };
 
-  const getStatusBadge = (merchant: Merchant) => {
-    if (merchant.verified) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Verified
-        </span>
-      );
+
+
+  const handleSelectAll = () => {
+    if (selectedMerchants.length === filteredMerchants.length) {
+      setSelectedMerchants([]);
     } else {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-          <Clock className="w-3 h-3 mr-1" />
-          Pending
-        </span>
-      );
+      setSelectedMerchants(filteredMerchants.map(m => m._id));
     }
   };
 
-  const getDocumentStatusBadge = (merchant: Merchant) => {
-    if (merchant.isDocumentComplete) {
-      if (merchant.needsVerification) {
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            Review Needed
-          </span>
-        );
-      } else {
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Complete
-          </span>
-        );
-      }
-    } else {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          <XCircle className="w-3 h-3 mr-1" />
-          Incomplete
-        </span>
-      );
-    }
+  const getStatusColor = (merchant: Merchant) => {
+    if (!merchant.isActive) return 'bg-red-100 text-red-800';
+    if (merchant.verified) return 'bg-green-100 text-green-800';
+    return 'bg-yellow-100 text-yellow-800';
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const getStatusIcon = (merchant: Merchant) => {
+    if (!merchant.isActive) return <AlertTriangle className="w-3 h-3" />;
+    if (merchant.verified) return <CheckCircle className="w-3 h-3" />;
+    return <Clock className="w-3 h-3" />;
   };
 
-  const formatRating = (rating?: number) => {
-    if (!rating) return 'No rating';
-    return `${rating.toFixed(1)}★`;
-  };
-
-  const businessTypes = [
-    'All Categories',
-    'Retail',
-    'Restaurant',
-    'Electronics',
-    'Fashion',
-    'Health & Beauty',
-    'Services',
-    'Automotive',
-    'Home & Garden',
-    'Sports & Recreation',
-    'Books & Media',
-    'Grocery',
-    'Other'
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'verified': return 'bg-green-100 text-green-800';
-      case 'suspended': return 'bg-red-100 text-red-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusText = (merchant: Merchant) => {
+    if (!merchant.isActive) return 'Inactive';
+    if (merchant.verified) return 'Verified';
+    return 'Pending';
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-      </div>
-    );
+    return <MerchantsManagementSkeleton />;
   }
 
+  const stats = [
+    {
+      name: 'Total Merchants',
+      value: merchants.length,
+      icon: Store,
+      color: 'text-blue-600 bg-blue-100',
+      change: '+12%',
+      changeType: 'positive' as const
+    },
+    {
+      name: 'Verified',
+      value: merchants.filter(m => m.verified).length,
+      icon: CheckCircle,
+      color: 'text-green-600 bg-green-100',
+      change: '+8%',
+      changeType: 'positive' as const
+    },
+    {
+      name: 'Needs Review',
+      value: merchants.filter(m => m.needsVerification || (m.isDocumentComplete && !m.verified)).length,
+      icon: Clock3,
+      color: 'text-orange-600 bg-orange-100',
+      change: '-5%',
+      changeType: 'negative' as const
+    },
+    {
+      name: 'Featured',
+      value: merchants.filter(m => m.featured).length,
+      icon: Star,
+      color: 'text-purple-600 bg-purple-100',
+      change: '+3%',
+      changeType: 'positive' as const
+    },
+    {
+      name: 'Active',
+      value: merchants.filter(m => m.isActive).length,
+      icon: Activity,
+      color: 'text-emerald-600 bg-emerald-100',
+      change: '+15%',
+      changeType: 'positive' as const
+    },
+    {
+      name: 'Documents Complete',
+      value: merchants.filter(m => m.isDocumentComplete).length,
+      icon: FileCheck,
+      color: 'text-indigo-600 bg-indigo-100',
+      change: '+22%',
+      changeType: 'positive' as const
+    }
+  ];
+
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="sm:flex sm:items-center sm:justify-between mb-8">
+      <div className="sm:flex sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Merchants Management</h1>
           <p className="mt-2 text-sm text-gray-700">
-            Manage merchant registrations and verifications
+            Manage merchant accounts, verification status, and documents
           </p>
+          <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+            <span>Total: {merchants.length}</span>
+            <span>•</span>
+            <span>Selected: {selectedMerchants.length}</span>
+            <span>•</span>
+            <span>Filtered: {filteredMerchants.length}</span>
+          </div>
         </div>
-        <div className="mt-4 sm:mt-0 sm:flex-none">
+        <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          {/* Bulk Actions */}
+          {selectedMerchants.length > 0 && (
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setShowBulkActions(!showBulkActions)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
+              >
+                <MoreVertical className="w-4 h-4 mr-2" />
+                Bulk Actions ({selectedMerchants.length})
+              </button>
+              {showBulkActions && (
+                <div className="absolute right-0 mt-10 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                  <div className="py-1">
+                    <button
+                      onClick={() => handleBulkAction('verify')}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <CheckCircle className="w-4 h-4 inline mr-2" />
+                      Verify Selected
+                    </button>
+                    <button
+                      onClick={() => handleBulkAction('activate')}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <UserCheck className="w-4 h-4 inline mr-2" />
+                      Activate Selected
+                    </button>
+                    <button
+                      onClick={() => handleBulkAction('deactivate')}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <XCircle className="w-4 h-4 inline mr-2" />
+                      Deactivate Selected
+                    </button>
+                    <hr className="my-1" />
+                    <button
+                      onClick={() => handleBulkAction('delete')}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4 inline mr-2" />
+                      Delete Selected
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* View Mode Toggle */}
+          <div className="flex border border-gray-300 rounded-md">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 text-sm font-medium ${
+                viewMode === 'list'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              List
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-2 text-sm font-medium ${
+                viewMode === 'grid'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Grid
+            </button>
+          </div>
+
+          {/* Export Button */}
           <button
-            type="button"
-            onClick={exportMerchants}
-            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            onClick={() => {
+              scrollToTop('smooth');
+              toast.info('Export feature coming soon');
+            }}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
           >
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </button>
+
+          {/* Refresh Button */}
+          <button
+            onClick={() => {
+              scrollToTop('smooth');
+              loadMerchants(true);
+            }}
+            disabled={refreshing}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-6">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Store className="h-6 w-6 text-gray-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Merchants</dt>
-                  <dd className="text-lg font-medium text-gray-900">{merchants.length}</dd>
-                </dl>
-              </div>
-            </div>
+      {/* Search and Filter */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search by business name, owner, email, type, or location..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 transition-colors"
+            />
           </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <CheckCircle className="h-6 w-6 text-green-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Verified</dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {merchants.filter(m => m.verified).length}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Filter className="h-6 w-6 text-yellow-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Pending Review</dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {merchants.filter(m => m.status === 'pending' || !m.verified).length}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
-            <div className="md:col-span-2">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search merchants..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-            </div>
-
+          
+          {/* Filters Row */}
+          <div className="flex flex-col sm:flex-row gap-3">
             {/* Status Filter */}
-            <div>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as any)}
+                className="pl-10 pr-8 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 bg-white min-w-[140px]"
               >
                 <option value="all">All Status</option>
+                <option value="verified">Verified</option>
                 <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="needs_review">Needs Review</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="featured">Featured</option>
               </select>
             </div>
 
-            {/* Category Filter */}
-            <div>
+            {/* Sort By */}
+            <div className="relative">
               <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="pl-3 pr-8 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 bg-white min-w-[120px]"
               >
-                {businessTypes.map((category) => (
-                  <option key={category} value={category === 'All Categories' ? 'all' : category}>
-                    {category}
-                  </option>
-                ))}
+                <option value="date">Sort by Date</option>
+                <option value="name">Sort by Name</option>
+                <option value="status">Sort by Status</option>
+                <option value="completeness">Sort by Completeness</option>
               </select>
             </div>
-          </div>
 
-          <div className="mt-4">
-            <p className="text-sm text-gray-700">
-              Showing {filteredMerchants.length} of {merchants.length} merchants
-            </p>
+            {/* Sort Order */}
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+
+            {/* Select All Checkbox */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="selectAll"
+                checked={selectedMerchants.length === filteredMerchants.length && filteredMerchants.length > 0}
+                onChange={handleSelectAll}
+                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+              />
+              <label htmlFor="selectAll" className="ml-2 text-sm text-gray-700">
+                Select All
+              </label>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Merchants Table */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Business
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Category
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Applied
-              </th>
-              <th className="relative px-6 py-3">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredMerchants.map((merchant) => (
-              <tr key={merchant._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <Store className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {merchant.businessName}
-                      </div>
-                      <div className="text-sm text-gray-500 flex items-center">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {merchant.location}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900 flex items-center">
-                    <Mail className="h-3 w-3 mr-1" />
-                    {merchant.email}
-                  </div>
-                  <div className="text-sm text-gray-500 flex items-center">
-                    <Phone className="h-3 w-3 mr-1" />
-                    {merchant.phone}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                    {merchant.category || merchant.businessType}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(merchant.status || (merchant.verified ? 'verified' : 'pending'))}`}>
-                      {merchant.status || (merchant.verified ? 'verified' : 'pending')}
-                    </span>
-                    {merchant.verified && (
-                      <CheckCircle className="h-4 w-4 text-green-500 ml-2" />
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div className="flex items-center">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {formatDate(merchant.createdAt)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex items-center justify-end space-x-2">
-                    <button
-                      onClick={() => console.log('View merchant:', merchant)}
-                      className="text-green-600 hover:text-green-900"
-                      title="View Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    {(merchant.status === 'pending' || !merchant.verified) && (
-                      <>
-                        <button
-                          onClick={() => handleMerchantAction('approve', merchant._id)}
-                          className="text-green-600 hover:text-green-900"
-                          title="Approve Merchant"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleMerchantAction('reject', merchant._id)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Reject Merchant"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() => console.log('Edit merchant:', merchant)}
-                      className="text-blue-600 hover:text-blue-900"
-                      title="Edit Merchant"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {stats.map((stat, index) => (
+          <div 
+            key={stat.name} 
+            className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-all duration-200 hover:scale-105"
+            style={{
+              animationDelay: `${index * 100}ms`,
+              animation: 'fadeInUp 0.4s ease-out forwards'
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className={`p-2 rounded-lg ${stat.color}`}>
+                  <stat.icon className="w-5 h-5" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">{stat.name}</p>
+                  <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className={`flex items-center text-xs font-medium ${
+                  stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {stat.changeType === 'positive' ? (
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 mr-1" />
+                  )}
+                  {stat.change}
+                </div>
+                <p className="text-xs text-gray-500">vs last month</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
-        {filteredMerchants.length === 0 && (
+      {/* Merchants List */}
+      <div className="bg-white shadow overflow-hidden sm:rounded-md transition-all duration-300 ease-in-out">
+        {filteredMerchants.length === 0 ? (
           <div className="text-center py-12">
             <Store className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No merchants found</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              {searchTerm || filterStatus !== 'all' ? 'No merchants match your filters' : 'No merchants found'}
+            </h3>
             <p className="mt-1 text-sm text-gray-500">
-              Try adjusting your search or filter criteria.
+              {searchTerm || filterStatus !== 'all' ? 'Try adjusting your search or filter criteria.' : 'Merchants will appear here once they register.'}
             </p>
           </div>
+        ) : (
+          <ul className="divide-y divide-gray-200">
+            {filteredMerchants.map((merchant, index) => (
+              <li 
+                key={merchant._id} 
+                className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
+                style={{
+                  animationDelay: `${index * 50}ms`,
+                  animation: 'fadeInUp 0.3s ease-out forwards'
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center flex-1">
+                    <div className="flex-shrink-0">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center transition-all duration-200 hover:from-green-200 hover:to-green-300">
+                        <Store className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
+                    <div className="ml-4 flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{merchant.businessName}</div>
+                          <div className="text-sm text-gray-500">{merchant.ownerName}</div>
+                          <div className="flex items-center space-x-4 mt-1">
+                            <div className="flex items-center text-xs text-gray-500">
+                              <Mail className="w-3 h-3 mr-1" />
+                              {merchant.email}
+                            </div>
+                            <div className="flex items-center text-xs text-gray-500">
+                              <Phone className="w-3 h-3 mr-1" />
+                              {merchant.phone}
+                            </div>
+                            {merchant.address && (
+                              <div className="flex items-center text-xs text-gray-500">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {merchant.address}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getStatusColor(merchant)}`}>
+                            {getStatusIcon(merchant)}
+                            <span className="ml-1">{getStatusText(merchant)}</span>
+                          </span>
+                          
+                          {/* Action Buttons */}
+                          <div className="flex items-center space-x-1">
+                            <button
+                              onClick={() => {
+                                setSelectedMerchant(merchant);
+                                setShowMerchantDetails(true);
+                                scrollToTop('smooth');
+                              }}
+                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setSelectedMerchant(merchant);
+                                setShowDocumentsModal(true);
+                                scrollToTop('smooth');
+                              }}
+                              className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
+                              title="View Documents"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </button>
+                            
+                            {!merchant.verified && (
+                              <button
+                                onClick={() => handleVerifyMerchant(merchant._id)}
+                                className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
+                                title="Verify Merchant"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                            
+                            <button
+                              onClick={() => handleToggleStatus(merchant._id, merchant.isActive)}
+                              className={`p-2 rounded-full transition-all duration-200 ${
+                                merchant.isActive 
+                                  ? 'text-gray-400 hover:text-red-600 hover:bg-red-50' 
+                                  : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                              }`}
+                              title={merchant.isActive ? 'Deactivate' : 'Activate'}
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
+      </div>
+
+      {/* Merchant Details Modal */}
+      {showMerchantDetails && selectedMerchant && (
+        <MerchantDetailsModal
+          merchant={selectedMerchant}
+          onClose={() => {
+            setShowMerchantDetails(false);
+            setSelectedMerchant(null);
+            scrollToTop('smooth');
+          }}
+          onVerify={() => handleVerifyMerchant(selectedMerchant._id)}
+          onToggleStatus={() => handleToggleStatus(selectedMerchant._id, selectedMerchant.isActive)}
+        />
+      )}
+
+      {/* Documents Modal */}
+      {showDocumentsModal && selectedMerchant && (
+        <DocumentsModal
+          merchant={selectedMerchant}
+          onClose={() => {
+            setShowDocumentsModal(false);
+            setSelectedMerchant(null);
+            scrollToTop('smooth');
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Merchant Details Modal Component
+interface MerchantDetailsModalProps {
+  merchant: Merchant;
+  onClose: () => void;
+  onVerify: () => void;
+  onToggleStatus: () => void;
+}
+
+const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({ 
+  merchant, 
+  onClose, 
+  onVerify, 
+  onToggleStatus 
+}) => {
+  useEffect(() => {
+    scrollToTop('smooth');
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">Merchant Details</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+          >
+            <XCircle className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          {/* Basic Info */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Business Name</label>
+                <p className="mt-1 text-sm text-gray-900">{merchant.businessName}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Owner Name</label>
+                <p className="mt-1 text-sm text-gray-900">{merchant.ownerName}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <p className="mt-1 text-sm text-gray-900">{merchant.email}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                <p className="mt-1 text-sm text-gray-900">{merchant.phone}</p>
+              </div>
+              {merchant.address && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700">Address</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.address}</p>
+                </div>
+              )}
+              {merchant.category && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Category</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.category}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Status Info */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Status Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Verification Status</label>
+                <div className="mt-1 flex items-center">
+                  {merchant.verified ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Verified
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <Clock className="w-3 h-3 mr-1" />
+                      Pending
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Account Status</label>
+                <div className="mt-1 flex items-center">
+                  {merchant.isActive ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Active
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      <AlertTriangle className="w-3 h-3 mr-1" />
+                      Inactive
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Member Since</label>
+                <p className="mt-1 text-sm text-gray-900">
+                  {new Date(merchant.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Statistics */}
+          {(merchant.productsCount !== undefined || merchant.totalSales !== undefined) && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Statistics</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {merchant.productsCount !== undefined && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Total Products</label>
+                    <p className="mt-1 text-2xl font-bold text-gray-900">{merchant.productsCount}</p>
+                  </div>
+                )}
+                {merchant.totalSales !== undefined && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Total Sales</label>
+                    <p className="mt-1 text-2xl font-bold text-gray-900">KSh {merchant.totalSales.toLocaleString()}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-3 pt-6 border-t">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+          >
+            Close
+          </button>
+          {!merchant.verified && (
+            <button
+              onClick={() => {
+                onVerify();
+                onClose();
+              }}
+              className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200"
+            >
+              Verify Merchant
+            </button>
+          )}
+          <button
+            onClick={() => {
+              onToggleStatus();
+              onClose();
+            }}
+            className={`px-4 py-2 text-white rounded-md transition-colors duration-200 ${
+              merchant.isActive 
+                ? 'bg-red-600 hover:bg-red-700' 
+                : 'bg-green-600 hover:bg-green-700'
+            }`}
+          >
+            {merchant.isActive ? 'Deactivate' : 'Activate'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Documents Modal Component
+interface DocumentsModalProps {
+  merchant: Merchant;
+  onClose: () => void;
+}
+
+const DocumentsModal: React.FC<DocumentsModalProps> = ({ merchant, onClose }) => {
+  useEffect(() => {
+    scrollToTop('smooth');
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">Merchant Documents</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+          >
+            <XCircle className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="text-center">
+            <FileText className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">{merchant.businessName}</h3>
+            <p className="mt-1 text-sm text-gray-500">Document verification for {merchant.ownerName}</p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <FileText className="h-5 w-5 text-blue-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">Document Management</h3>
+                <div className="mt-2 text-sm text-blue-700">
+                  <p>Document verification and management features are being developed.</p>
+                  <ul className="mt-2 list-disc list-inside space-y-1">
+                    <li>Business License Verification</li>
+                    <li>ID Document Verification</li>
+                    <li>Tax Certificate Review</li>
+                    <li>Address Proof Validation</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3 pt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => {
+              toast.info('Document management feature coming soon');
+              onClose();
+            }}
+            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors duration-200"
+          >
+            Manage Documents
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Store, 
@@ -11,8 +12,10 @@ import {
   TrendingUp,
   TrendingDown,
   RefreshCw,
-  AlertTriangle,
-  MoreVertical
+  Eye,
+  FileText,
+  MessageSquare,
+  Zap
 } from 'lucide-react';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 import { adminAPI } from '../lib/api';
@@ -35,61 +38,97 @@ interface DashboardStats {
 
 interface RecentActivity {
   id: string;
-  type: 'user_signup' | 'merchant_registration' | 'product_added' | 'verification_request';
+  type: 'user_signup' | 'merchant_registration' | 'merchant_verified' | 'product_added' | 'review_posted' | 'verification_request';
   description: string;
   timestamp: string;
   user?: string;
+  details?: any;
 }
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAdminAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Navigation functions
+  // const navigateTo = (path: string) => { // Commented out for build optimization
+  //   navigate(path);
+  // };
+
+  // Quick action functions
+  const handleQuickAction = async (action: string) => {
+    try {
+      switch (action) {
+        case 'refresh_all':
+          await loadDashboardData();
+          toast.success('Dashboard refreshed successfully');
+          break;
+        case 'view_pending_merchants':
+          navigate('/merchants');
+          break;
+        case 'view_all_users':
+          navigate('/users');
+          break;
+        case 'view_products':
+          navigate('/products');
+          break;
+        case 'view_analytics':
+          navigate('/analytics');
+          break;
+        case 'view_flash_sales':
+          navigate('/flash-sales');
+          break;
+        case 'system_settings':
+          navigate('/settings');
+          break;
+        default:
+          toast.info(`${action} functionality will be implemented soon`);
+      }
+    } catch (error) {
+      console.error('Quick action error:', error);
+      toast.error('Action failed');
+    }
+  };
+
+  // Activity action handler
+  const handleActivityAction = (activity: RecentActivity) => {
+    switch (activity.type) {
+      case 'user_signup':
+        navigate('/users');
+        break;
+      case 'merchant_registration':
+      case 'merchant_verified':
+        navigate('/merchants');
+        break;
+      case 'product_added':
+        navigate('/products');
+        break;
+      case 'review_posted':
+        navigate('/reviews');
+        break;
+      default:
+        toast.info('View detailed information');
+    }
+  };
+
   const loadDashboardData = async () => {
     try {
       setRefreshing(true);
-      const [statsResponse] = await Promise.all([
+      const [statsResponse, activityResponse] = await Promise.all([
         adminAPI.getDashboardStats(),
+        adminAPI.getRecentActivity(10)
       ]);
 
       if (statsResponse.data.success) {
         setStats(statsResponse.data.data);
       }
 
-      // Mock recent activity data
-      setRecentActivity([
-        {
-          id: '1',
-          type: 'user_signup',
-          description: 'New user John Doe registered',
-          timestamp: '2 minutes ago',
-          user: 'John Doe'
-        },
-        {
-          id: '2',
-          type: 'merchant_registration',
-          description: 'New merchant Green Valley Grocers submitted application',
-          timestamp: '15 minutes ago',
-          user: 'Green Valley Grocers'
-        },
-        {
-          id: '3',
-          type: 'verification_request',
-          description: 'Merchant verification request submitted by Urban Eats',
-          timestamp: '1 hour ago',
-          user: 'Urban Eats'
-        },
-        {
-          id: '4',
-          type: 'product_added',
-          description: 'New product added: Fresh Vegetables Bundle',
-          timestamp: '2 hours ago',
-          user: 'Farm Fresh Ltd'
-        }
-      ]);
+      if (activityResponse.data.success) {
+        setRecentActivity(activityResponse.data.data);
+      }
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
       toast.error('Failed to load dashboard data');
@@ -121,8 +160,10 @@ const AdminDashboard: React.FC = () => {
     switch (type) {
       case 'user_signup': return <Users className="h-4 w-4 text-blue-500" />;
       case 'merchant_registration': return <Store className="h-4 w-4 text-green-500" />;
+      case 'merchant_verified': return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'product_added': return <Package className="h-4 w-4 text-purple-500" />;
-      case 'verification_request': return <CheckCircle className="h-4 w-4 text-orange-500" />;
+      case 'review_posted': return <MessageSquare className="h-4 w-4 text-yellow-500" />;
+      case 'verification_request': return <FileText className="h-4 w-4 text-orange-500" />;
       default: return <Activity className="h-4 w-4 text-gray-500" />;
     }
   };
@@ -260,7 +301,10 @@ const AdminDashboard: React.FC = () => {
               <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
             </div>
             <div className="p-6 space-y-4">
-              <button className="w-full flex items-center justify-between p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+              <button 
+                onClick={() => handleQuickAction('view_pending_merchants')}
+                className="w-full flex items-center justify-between p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+              >
                 <div className="flex items-center">
                   <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
                   <span className="font-medium text-green-900">Review Verifications</span>
@@ -270,7 +314,10 @@ const AdminDashboard: React.FC = () => {
                 </span>
               </button>
               
-              <button className="w-full flex items-center justify-between p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+              <button 
+                onClick={() => handleQuickAction('view_all_users')}
+                className="w-full flex items-center justify-between p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+              >
                 <div className="flex items-center">
                   <Users className="h-5 w-5 text-blue-600 mr-3" />
                   <span className="font-medium text-blue-900">Manage Users</span>
@@ -280,23 +327,29 @@ const AdminDashboard: React.FC = () => {
                 </span>
               </button>
               
-              <button className="w-full flex items-center justify-between p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+              <button 
+                onClick={() => handleQuickAction('view_products')}
+                className="w-full flex items-center justify-between p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+              >
                 <div className="flex items-center">
                   <Store className="h-5 w-5 text-purple-600 mr-3" />
-                  <span className="font-medium text-purple-900">Manage Merchants</span>
+                  <span className="font-medium text-purple-900">Manage Products</span>
                 </div>
                 <span className="bg-purple-200 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {stats?.recentMerchants || 0} new
+                  {stats?.totalProducts || 0}
                 </span>
               </button>
               
-              <button className="w-full flex items-center justify-between p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+              <button 
+                onClick={() => handleQuickAction('view_analytics')}
+                className="w-full flex items-center justify-between p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+              >
                 <div className="flex items-center">
-                  <AlertTriangle className="h-5 w-5 text-orange-600 mr-3" />
-                  <span className="font-medium text-orange-900">Review Reports</span>
+                  <Zap className="h-5 w-5 text-orange-600 mr-3" />
+                  <span className="font-medium text-orange-900">View Analytics</span>
                 </div>
                 <span className="bg-orange-200 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  3
+                  Live
                 </span>
               </button>
             </div>
@@ -308,14 +361,21 @@ const AdminDashboard: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
-              <button className="text-sm text-green-600 hover:text-green-700 font-medium">
+              <button 
+                onClick={() => handleQuickAction('view_analytics')}
+                className="text-sm text-green-600 hover:text-green-700 font-medium"
+              >
                 View all
               </button>
             </div>
             <div className="p-6">
               <div className="space-y-4">
                 {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3">
+                  <div 
+                    key={activity.id} 
+                    onClick={() => handleActivityAction(activity)}
+                    className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
                     <div className="flex-shrink-0 mt-0.5">
                       {getActivityIcon(activity.type)}
                     </div>
@@ -329,7 +389,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div className="flex-shrink-0">
                       <button className="text-gray-400 hover:text-gray-600">
-                        <MoreVertical className="h-4 w-4" />
+                        <Eye className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
