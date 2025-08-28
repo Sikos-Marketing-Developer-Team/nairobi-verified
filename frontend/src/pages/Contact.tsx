@@ -64,7 +64,7 @@ const Contact = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <PageSkeleton />
+        <PageSkeleton children={''} />
         <Footer />
       </div>
     );
@@ -74,40 +74,40 @@ const Contact = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Hero Section */}
-      <div className="bg-gradient-to-br from-primary/10 to-secondary/10 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Get in Touch</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+      {/* Hero Section - Added pt-24 for mobile to push content below navbar */}
+      <div className="bg-gradient-to-br from-primary/10 to-secondary/10 pt-40 md:py-16 md:pt-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-3 md:mb-4">Get in Touch</h1>
+          <p className="text-base md:text-xl text-gray-600 max-w-3xl mx-auto pb-2">
             Have questions about Nairobi Verified? We're here to help. Reach out to our team 
             and we'll get back to you as soon as possible.
           </p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid lg:grid-cols-2 gap-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 md:py-16">
+        <div className="grid lg:grid-cols-2 gap-8 md:gap-12">
           {/* Contact Information */}
-          <div className="space-y-8">
+          <div className="space-y-6 md:space-y-8">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Contact Information</h2>
-              <p className="text-gray-600 text-lg leading-relaxed">
+              <h2 className="text-xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">Contact Information</h2>
+              <p className="text-gray-600 text-sm md:text-lg leading-relaxed">
                 Whether you're a merchant looking to join our platform or a customer needing assistance, 
                 we're here to support you every step of the way.
               </p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Address */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <MapPin className="h-6 w-6 text-primary" />
+              <Card className="md:hover-scale">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex items-start space-x-3 md:space-x-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <MapPin className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg text-gray-900 mb-2">Office Address</h3>
-                      <p className="text-gray-600">
+                      <h3 className="font-semibold text-base md:text-lg text-gray-900 mb-1 md:mb-2">Office Address</h3>
+                      <p className="text-gray-600 text-sm md:text-base">
                         Nairobi CBD, Kenya<br />
                         Tom Mboya Street<br />
                         Nairobi, Kenya
@@ -118,15 +118,15 @@ const Contact = () => {
               </Card>
 
               {/* Phone */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Phone className="h-6 w-6 text-primary" />
+              <Card className="md:hover-scale">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex items-start space-x-3 md:space-x-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Phone className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg text-gray-900 mb-2">Phone</h3>
-                      <p className="text-gray-600">
+                      <h3 className="font-semibold text-base md:text-lg text-gray-900 mb-1 md:mb-2">Phone</h3>
+                      <p className="text-gray-600 text-sm md:text-base">
                         Main: +254 790 120 841<br />
                         Support: +254 713 740 807
                       </p>
@@ -136,15 +136,15 @@ const Contact = () => {
               </Card>
 
               {/* Email */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Mail className="h-6 w-6 text-primary" />
+              <Card className="md:hover-scale">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex items-start space-x-3 md:space-x-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Mail className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg text-gray-900 mb-2">Email</h3>
-                      <p className="text-gray-600">
+                      <h3 className="font-semibold text-base md:text-lg text-gray-900 mb-1 md:mb-2">Email</h3>
+                      <p className="text-gray-600 text-sm md:text-base">
                         General: info@nairobiverified.com<br />
                         Support: support@nairobiverified.com
                       </p>
@@ -154,19 +154,19 @@ const Contact = () => {
               </Card>
 
               {/* Business Hours */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Clock className="h-6 w-6 text-primary" />
+              <Card className="md:hover-scale">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex items-start space-x-3 md:space-x-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Clock className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg text-gray-900 mb-2">Business Hours</h3>
-                      <div className="text-gray-600 space-y-1">
+                      <h3 className="font-semibold text-base md:text-lg text-gray-900 mb-1 md:mb-2">Business Hours</h3>
+                      <div className="text-gray-600 text-sm md:text-base space-y-1">
                         <p>Monday - Friday: 8:00 AM - 6:00 PM</p>
                         <p>Saturday: 9:00 AM - 4:00 PM</p>
                         <p>Sunday: Closed</p>
-                        <p className="text-sm text-primary font-medium mt-2">
+                        <p className="text-xs md:text-sm text-primary font-medium mt-2">
                           Emergency support available 24/7
                         </p>
                       </div>
@@ -179,18 +179,18 @@ const Contact = () => {
 
           {/* Contact Form */}
           <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <MessageSquare className="h-6 w-6 text-primary" />
+            <Card className="md:hover-scale">
+              <CardHeader className="p-4 md:p-6">
+                <CardTitle className="flex items-center gap-2 md:gap-3 text-lg md:text-xl">
+                  <MessageSquare className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   Send us a Message
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="p-4 md:p-6">
+                <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                     <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1 md:mb-2">
                         Full Name *
                       </label>
                       <Input
@@ -201,10 +201,11 @@ const Contact = () => {
                         value={formData.name}
                         onChange={handleInputChange}
                         placeholder="Your full name"
+                        className="text-sm md:text-base"
                       />
                     </div>
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1 md:mb-2">
                         Email Address *
                       </label>
                       <Input
@@ -215,12 +216,13 @@ const Contact = () => {
                         value={formData.email}
                         onChange={handleInputChange}
                         placeholder="your.email@example.com"
+                        className="text-sm md:text-base"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1 md:mb-2">
                       Subject *
                     </label>
                     <Input
@@ -231,28 +233,29 @@ const Contact = () => {
                       value={formData.subject}
                       onChange={handleInputChange}
                       placeholder="What is this about?"
+                      className="text-sm md:text-base"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1 md:mb-2">
                       Message *
                     </label>
                     <Textarea
                       id="message"
                       name="message"
                       required
-                      rows={6}
+                      rows={4}
                       value={formData.message}
                       onChange={handleInputChange}
                       placeholder="Tell us more about your inquiry..."
-                      className="resize-none"
+                      className="resize-none text-sm md:text-base"
                     />
                   </div>
 
                   <Button 
                     type="submit" 
-                    className="w-full bg-primary hover:bg-primary-dark" 
+                    className="w-full bg-primary hover:bg-primary-dark py-2 md:py-2 text-sm md:text-base" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -272,25 +275,25 @@ const Contact = () => {
             </Card>
 
             {/* Quick Links */}
-            <Card className="mt-6">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-lg text-gray-900 mb-4">Need Quick Help?</h3>
-                <div className="space-y-3">
+            <Card className="mt-4 md:mt-6 md:hover-scale">
+              <CardContent className="p-4 md:p-6">
+                <h3 className="font-semibold text-base md:text-lg text-gray-900 mb-3 md:mb-4">Need Quick Help?</h3>
+                <div className="space-y-2 md:space-y-3">
                   <a 
                     href="/support" 
-                    className="block text-primary hover:text-primary-dark hover:underline"
+                    className="block text-primary hover:text-primary-dark hover:underline text-sm md:text-base"
                   >
                     → Visit our Support Center
                   </a>
                   <a 
                     href="/how-it-works" 
-                    className="block text-primary hover:text-primary-dark hover:underline"
+                    className="block text-primary hover:text-primary-dark hover:underline text-sm md:text-base"
                   >
                     → Learn How It Works
                   </a>
                   <a 
                     href="/safety-guidelines" 
-                    className="block text-primary hover:text-primary-dark hover:underline"
+                    className="block text-primary hover:text-primary-dark hover:underline text-sm md:text-base"
                   >
                     → Read Safety Guidelines
                   </a>
