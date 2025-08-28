@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 
-export const usePageLoading = (initialDelay: number = 500) => {
+export const usePageLoading = (initialDelay: number = 300) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Use requestAnimationFrame for smoother transitions
     const timer = setTimeout(() => {
-      setIsLoading(false);
+      requestAnimationFrame(() => {
+        setIsLoading(false);
+      });
     }, initialDelay);
 
     return () => clearTimeout(timer);

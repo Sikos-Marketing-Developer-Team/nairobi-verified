@@ -214,6 +214,131 @@ export const ProductDetailSkeleton = () => (
   </div>
 );
 
+// Users Management skeleton
+export const UsersManagementSkeleton = () => (
+  <div className="space-y-6 animate-fadeIn">
+    {/* Header section - matches exact structure */}
+    <div className="sm:flex sm:items-center sm:justify-between">
+      <div>
+        <Skeleton className="h-8 w-48 bg-gray-200" />
+        <Skeleton className="h-4 w-64 mt-2 bg-gray-100" />
+      </div>
+      <div className="mt-4 sm:mt-0">
+        <div className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm">
+          <Skeleton className="h-4 w-4 mr-2 bg-gray-200" />
+          <Skeleton className="h-4 w-16 bg-gray-200" />
+        </div>
+      </div>
+    </div>
+
+    {/* Users List - matches exact structure */}
+    <div className="bg-white shadow overflow-hidden sm:rounded-md">
+      <ul className="divide-y divide-gray-200">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <li key={i} className="px-6 py-4" style={{ animationDelay: `${i * 100}ms` }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                    <Skeleton className="h-6 w-6 bg-gray-400" />
+                  </div>
+                </div>
+                <div className="ml-4 space-y-2">
+                  <Skeleton className="h-4 w-32 bg-gray-200" />
+                  <Skeleton className="h-3 w-48 bg-gray-100" />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="inline-flex items-center px-2.5 py-0.5 rounded-full">
+                  <Skeleton className="h-4 w-16 bg-gray-200 rounded-full" />
+                </div>
+                <div className="inline-flex items-center px-2.5 py-0.5 rounded-full">
+                  <Skeleton className="h-4 w-14 bg-gray-200 rounded-full" />
+                </div>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+);
+
+// Merchants Management skeleton
+export const MerchantsManagementSkeleton = () => (
+  <div className="space-y-6 animate-fadeIn">
+    {/* Header section */}
+    <div className="sm:flex sm:items-center sm:justify-between">
+      <div>
+        <Skeleton className="h-8 w-52 bg-gray-200" />
+        <Skeleton className="h-4 w-72 mt-2 bg-gray-100" />
+      </div>
+      <div className="mt-4 sm:mt-0 flex space-x-3">
+        <Skeleton className="h-10 w-32 bg-gray-200" />
+        <Skeleton className="h-10 w-24 bg-gray-200" />
+      </div>
+    </div>
+
+    {/* Search and Filter section */}
+    <div className="bg-white p-4 rounded-lg shadow-sm border">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Skeleton className="h-10 flex-1 bg-gray-100" />
+        <Skeleton className="h-10 w-32 bg-gray-100" />
+      </div>
+    </div>
+
+    {/* Stats cards */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="flex items-center">
+            <Skeleton className="h-8 w-8 bg-gray-200" />
+            <div className="ml-4 flex-1">
+              <Skeleton className="h-4 w-16 bg-gray-100" />
+              <Skeleton className="h-6 w-12 mt-1 bg-gray-200" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* Merchants List */}
+    <div className="bg-white shadow overflow-hidden sm:rounded-md">
+      <ul className="divide-y divide-gray-200">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <li key={i} className="px-6 py-4" style={{ animationDelay: `${i * 100}ms` }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center flex-1">
+                <div className="flex-shrink-0">
+                  <Skeleton className="h-12 w-12 rounded-full bg-gray-200" />
+                </div>
+                <div className="ml-4 flex-1">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-40 bg-gray-200" />
+                      <Skeleton className="h-3 w-32 bg-gray-100" />
+                      <div className="flex items-center space-x-4">
+                        <Skeleton className="h-3 w-24 bg-gray-100" />
+                        <Skeleton className="h-3 w-28 bg-gray-100" />
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Skeleton className="h-6 w-16 rounded-full bg-gray-200" />
+                      <Skeleton className="h-8 w-8 bg-gray-200" />
+                      <Skeleton className="h-8 w-8 bg-gray-200" />
+                      <Skeleton className="h-8 w-8 bg-gray-200" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+);
+
 // Page skeleton wrapper
 export const PageSkeleton = ({ children }: { children: React.ReactNode }) => (
   <div className="container mx-auto px-4 py-8">

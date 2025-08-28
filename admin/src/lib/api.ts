@@ -190,6 +190,7 @@ export const adminAPI = {
   getUser: (userId: string) => api.get(`/admin/users/${userId}`),
   createUser: (userData: any) => api.post('/admin/dashboard/users', userData),
   updateUser: (userId: string, userData: any) => api.put(`/admin/users/${userId}`, userData),
+  updateUserStatus: (userId: string, isActive: boolean) => api.put(`/admin/users/${userId}/status`, { isActive }),
   deleteUser: (userId: string) => api.delete(`/admin/users/${userId}`),
   
   // Merchant management
@@ -199,7 +200,7 @@ export const adminAPI = {
   deleteMerchant: (merchantId: string) => api.delete(`/admin/merchants/${merchantId}`),
   verifyMerchant: (merchantId: string) => api.post(`/admin/merchants/${merchantId}/verify`),
   rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason }),
-  updateMerchantStatus: (merchantId: string, verified: boolean) => api.put(`/admin/dashboard/merchants/${merchantId}/status`, { verified }),
+  updateMerchantStatus: (merchantId: string, isActive: boolean) => api.put(`/admin/merchants/${merchantId}/status`, { isActive }),
   
   // Document management
   getMerchantDocuments: (merchantId: string) => api.get(`/admin/dashboard/merchants/${merchantId}/documents`),

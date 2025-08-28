@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AdminAuthProvider, useAdminAuth } from './contexts/AdminAuthContext';
@@ -12,6 +12,7 @@ import FlashSalesManagement from './pages/FlashSalesManagement';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminLayout from './components/layout/AdminLayout';
+import PageTransition from './components/common/PageTransition';
 
 // Protected route component
 interface ProtectedRouteProps {
@@ -23,10 +24,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-          <p className="text-gray-600">Loading admin panel...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 animate-fadeIn">
+        <div className="flex flex-col items-center gap-4 animate-slideInUp">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-600 border-t-transparent absolute top-0 left-0"></div>
+          </div>
+          <div className="text-center">
+            <p className="text-gray-600 font-medium">Loading admin panel...</p>
+            <p className="text-gray-400 text-sm mt-1">Please wait a moment</p>
+          </div>
         </div>
       </div>
     );
@@ -49,14 +56,46 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute>
           <AdminLayout>
             <Routes>
-              <Route path="/dashboard" element={<AdminDashboard />} />
-              <Route path="/users" element={<UsersManagement />} />
-              <Route path="/merchants" element={<MerchantsManagement />} />
-              <Route path="/products" element={<ProductsManagement />} />
-              <Route path="/reviews" element={<ReviewsManagement />} />
-              <Route path="/flash-sales" element={<FlashSalesManagement />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/dashboard" element={
+                <PageTransition>
+                  <AdminDashboard />
+                </PageTransition>
+              } />
+              <Route path="/users" element={
+                <PageTransition>
+                  <UsersManagement />
+                </PageTransition>
+              } />
+              <Route path="/merchants" element={
+                <PageTransition>
+                  <MerchantsManagement />
+                </PageTransition>
+              } />
+              <Route path="/products" element={
+                <PageTransition>
+                  <ProductsManagement />
+                </PageTransition>
+              } />
+              <Route path="/reviews" element={
+                <PageTransition>
+                  <ReviewsManagement />
+                </PageTransition>
+              } />
+              <Route path="/flash-sales" element={
+                <PageTransition>
+                  <FlashSalesManagement />
+                </PageTransition>
+              } />
+              <Route path="/analytics" element={
+                <PageTransition>
+                  <AnalyticsPage />
+                </PageTransition>
+              } />
+              <Route path="/settings" element={
+                <PageTransition>
+                  <SettingsPage />
+                </PageTransition>
+              } />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </AdminLayout>
