@@ -6,58 +6,37 @@
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
         }
-      
-        html, body {
-  scroll-behavior: smooth;
-  overscroll-behavior: contain;
-}
-
-.no-transitions * {
-  transition: none !important;
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.product-card img,
-.product-card div {
-  will-change: transform;
-}
-
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
+  
+.aspect-square {
+  aspect-ratio: 1 / 1;
 }
 
 .sticky {
-  position: -webkit-sticky;
-  position: sticky;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
-.transition-all,
-.transition-shadow,
-.transition-transform,
-.transition-colors {
-  transition-duration: 300ms;
-  transition-timing-function: ease-out;
+.product-card img {
+  transition: opacity 0.3s ease;
+  transition-delay: 0.1s;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .transition-all,
-  .transition-shadow,
-  .transition-transform,
-  .transition-colors {
-    transition: none;
-  }
+.product-card img:hover {
+  opacity: 0.95;
 }
 
-.aspect-square {
-  aspect-ratio: 1 / 1;
+img {
+  will-change: opacity;
+  backface-visibility: hidden;
+}
+
+html, body {
+  scroll-behavior: smooth;
+}
+
+main {
+  will-change: scroll-position;
 }
