@@ -229,13 +229,7 @@ const Navbar = () => {
               <Phone className="w-4 h-4 text-[#EC5C0A]"  /> Contact Us
             </Link>
           </li>
-          
-          <li>
-            <Link to="/dashboard" className="hover:text-gray-700 transition-colors font-semibold opacity-90">
-              Track Order
-            </Link>
-          </li>
-          
+                    
           <li className="flex space-x-2">
             <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90">
               <Facebook className="w-4 h-4 text-[#EC5C0A]" />

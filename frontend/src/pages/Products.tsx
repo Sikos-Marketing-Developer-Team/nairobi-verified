@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Filter, Grid, List, Star, MapPin, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, Filter, Grid, List, Star, MapPin, Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -103,7 +103,34 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [visibleCards, setVisibleCards] = useState(4);
+  const carouselRef = useRef<HTMLDivElement>(null);
   const isLoading = usePageLoading(600);
+
+  useEffect(() => {
+    // Check screen size and update visible cards count
+    const checkScreenSize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      
+      if (window.innerWidth >= 1280) {
+        setVisibleCards(4); // xl screens
+      } else if (window.innerWidth >= 1024) {
+        setVisibleCards(3); // lg screens
+      } else if (window.innerWidth >= 768) {
+        setVisibleCards(2); // md screens
+      } else {
+        setVisibleCards(1); // mobile screens
+      }
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -113,11 +140,104 @@ const Products = () => {
     }).format(price);
   };
 
+  // Navigation functions for the carousel
+  const nextSlide = () => {
+    if (currentIndex < filteredProducts.length - visibleCards) {
+      setCurrentIndex(prev => prev + 1);
+    }
+  };
+
+  const prevSlide = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    }
+  };
+
+  // Calculate the transform value for the carousel
+  const getTransformValue = () => {
+    if (carouselRef.current) {
+      const card = carouselRef.current.querySelector('.flex-shrink-0') as HTMLElement;
+      if (card) {
+        const cardWidth = card.offsetWidth + 16; // card width + gap
+        return `translateX(-${currentIndex * cardWidth}px)`;
+      }
+    }
+    return `translateX(-${currentIndex * (100 / visibleCards)}%)`;
+  };
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const ProductCard = ({ product, isMobile = false }: { product: typeof products[0]; isMobile?: boolean }) => {
+    return (
+      <Card className={`hover-scale cursor-pointer border-0 shadow-lg overflow-hidden flex-shrink-0 ${isMobile ? 'w-[160px]' : 'w-full'}`}>
+        <CardContent className="p-0">
+          <div className="relative">
+            <img
+              src={product.image}
+              alt={product.name}
+              className={`w-full ${isMobile ? 'h-32' : 'h-48'} object-cover`}
+            />
+            {!product.inStock && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <span className="text-white font-semibold">Out of Stock</span>
+              </div>
+            )}
+          </div>
+          
+          <div className={`${isMobile ? 'p-2' : 'p-4'}`}>
+            <div className="flex items-center gap-1 mb-1">
+              <span className={`text-gray-600 truncate ${isMobile ? 'text-[10px]' : 'text-sm'}`}>{product.merchant}</span>
+              {product.verified && (
+                <div className={`verified-badge flex items-center gap-1 bg-green-100 text-green-700 px-1 py-0.5 rounded-full flex-shrink-0 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                  <Check className={`${isMobile ? 'h-2 w-2' : 'h-3 w-3'}`} />
+                  Verified
+                </div>
+              )}
+            </div>
+            
+            <h3 className={`font-semibold text-gray-900 mb-1 line-clamp-2 ${isMobile ? 'text-xs' : 'text-base'}`}>
+              {product.name}
+            </h3>
+            
+            <div className={`flex items-center gap-1 mb-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+              <MapPin className={`text-gray-400 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+              <span className="truncate">{product.location}</span>
+            </div>
+            
+            <div className="flex items-center gap-1 mb-2">
+              <div className="flex items-center">
+                <Star className={`text-yellow-400 fill-current ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                <span className={`font-medium ml-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>{product.rating}</span>
+              </div>
+              <span className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>({product.reviews})</span>
+            </div>
+            
+            <div className="flex items-center gap-1 mb-2">
+              <span className={`font-bold text-primary ${isMobile ? 'text-sm' : 'text-xl'}`}>
+                {formatPrice(product.price)}
+              </span>
+              {product.originalPrice > product.price && (
+                <span className={`text-gray-500 line-through ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+                  {formatPrice(product.originalPrice)}
+                </span>
+              )}
+            </div>
+            
+            <Button 
+              className={`w-full bg-primary hover:bg-primary-dark text-white ${isMobile ? 'text-xs py-1 h-7' : ''}`}
+              disabled={!product.inStock}
+            >
+              {product.inStock ? 'View' : 'Out of Stock'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -169,10 +289,10 @@ const Products = () => {
       <Header />
       
       <div className="max-w-7xl mx-auto mt-20 px-4 pt-12 sm:px-6 sm:mt-15 lg:px-8 py-8">
-        {/* Search and Filters Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+        {/* Search and Filters Header - Improved Mobile Design */}
+        <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-6 md:mb-8">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="flex-1 max-w-2xl">
+            <div className="flex-1 max-w-2xl w-full">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
@@ -180,26 +300,28 @@ const Products = () => {
                   placeholder="Search products..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-4 py-2 md:py-3"
                 />
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 w-full md:w-auto">
               <Button
                 variant="outline"
                 onClick={() => setShowFilters(!showFilters)}
-                className="lg:hidden"
+                className="lg:hidden flex-1 md:flex-none"
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
+                {showFilters && <X className="h-4 w-4 ml-2" />}
               </Button>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ml-auto">
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
+                  className="h-10 w-10 p-0"
                 >
                   <Grid className="h-4 w-4" />
                 </Button>
@@ -207,6 +329,7 @@ const Products = () => {
                   variant={viewMode === 'list' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode('list')}
+                  className="h-10 w-10 p-0"
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -214,8 +337,8 @@ const Products = () => {
             </div>
           </div>
           
-          {/* Category Filters */}
-          <div className={`mt-6 ${showFilters ? 'block' : 'hidden lg:block'}`}>
+          {/* Category Filters - Improved Mobile Design */}
+          <div className={`mt-4 md:mt-6 ${showFilters ? 'block' : 'hidden lg:block'}`}>
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
                 <Button
@@ -223,6 +346,7 @@ const Products = () => {
                   variant={selectedCategory === category ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setSelectedCategory(category)}
+                  className="text-xs md:text-sm py-1 px-2 md:px-3"
                 >
                   {category}
                 </Button>
@@ -239,77 +363,54 @@ const Products = () => {
           </p>
         </div>
 
-        {/* Products Grid */}
-        <div className={`grid gap-6 ${
-          viewMode === 'grid' 
-            ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
-            : 'grid-cols-1'
-        }`}>
-          {filteredProducts.map((product) => (
-            <Card key={product.id} className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden">
-              <CardContent className="p-0">
-                <div className="relative">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className={`w-full object-cover ${viewMode === 'grid' ? 'h-48' : 'h-32'}`}
-                  />
-                  {!product.inStock && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <span className="text-white font-semibold">Out of Stock</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm text-gray-600">{product.merchant}</span>
-                    {product.verified && (
-                      <div className="verified-badge">
-                        <Check className="h-3 w-3" />
-                        Verified
-                      </div>
-                    )}
-                  </div>
-                  
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {product.name}
-                  </h3>
-                  
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{product.location}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-sm font-medium ml-1">{product.rating}</span>
-                    </div>
-                    <span className="text-sm text-gray-500">({product.reviews} reviews)</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xl font-bold text-primary">
-                      {formatPrice(product.price)}
-                    </span>
-                    {product.originalPrice > product.price && (
-                      <span className="text-sm text-gray-500 line-through">
-                        {formatPrice(product.originalPrice)}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <Button 
-                    className="w-full bg-primary hover:bg-primary-dark text-white"
-                    disabled={!product.inStock}
-                  >
-                    {product.inStock ? 'Add to Cart' : 'Out of Stock'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        {/* Carousel for all screen sizes */}
+        <div className="relative mb-8 overflow-hidden">
+          <div 
+            ref={carouselRef}
+            className="flex transition-transform duration-300 ease-in-out gap-4"
+            style={{ transform: getTransformValue() }}
+          >
+            {filteredProducts.map((product) => (
+              <div key={product.id} className="flex-shrink-0" style={{ width: isMobile ? '160px' : 'calc(25% - 12px)' }}>
+                <ProductCard 
+                  product={product} 
+                  isMobile={isMobile}
+                />
+              </div>
+            ))}
+          </div>
+          
+          {/* Navigation arrows - Show only when there are more products */}
+          {filteredProducts.length > visibleCards && (
+            <>
+              {currentIndex > 0 && (
+                <Button
+                  onClick={prevSlide}
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
+                >
+                  <ChevronLeft className="h-6 w-6 text-white" />
+                </Button>
+              )}
+              
+              {currentIndex < filteredProducts.length - visibleCards && (
+                <Button
+                  onClick={nextSlide}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
+                >
+                  <ChevronRight className="h-6 w-6 text-white" />
+                </Button>
+              )}
+            </>
+          )}
+
+          {/* Counter indicator */}
+          {filteredProducts.length > visibleCards && (
+            <div className="flex justify-center mt-6">
+              <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                {currentIndex + 1} / {filteredProducts.length - visibleCards + 1}
+              </div>
+            </div>
+          )}
         </div>
 
         {filteredProducts.length === 0 && (
