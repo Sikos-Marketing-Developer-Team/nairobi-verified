@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { EMAIL_CONFIG } = require('../config/constants');
 
 /**
  * Email Service for sending various types of emails
@@ -13,9 +14,9 @@ class EmailService {
    */
   createTransporter() {
     if (process.env.NODE_ENV === 'production') {
-      // Production email configuration (use services like SendGrid, AWS SES, etc.)
+      // Production email configuration
       return nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
+        service: EMAIL_CONFIG.SERVICE,
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS
@@ -24,11 +25,11 @@ class EmailService {
     } else {
       // Development configuration (using Ethereal for testing)
       return nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
+        host: EMAIL_CONFIG.DEV_HOST,
+        port: EMAIL_CONFIG.DEV_PORT,
         auth: {
-          user: process.env.EMAIL_USER || 'ethereal.user@ethereal.email',
-          pass: process.env.EMAIL_PASS || 'ethereal.pass'
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
         }
       });
     }
@@ -41,7 +42,7 @@ class EmailService {
   async sendEmail(options) {
     try {
       const mailOptions = {
-        from: `${process.env.EMAIL_FROM_NAME || 'Nairobi CBD Directory'} <${process.env.EMAIL_FROM || 'noreply@nairobicbd.com'}>`,
+        from: `${EMAIL_CONFIG.FROM_NAME} <${EMAIL_CONFIG.FROM_EMAIL}>`,
         to: options.to,
         subject: options.subject,
         html: options.html,
@@ -68,12 +69,25 @@ class EmailService {
   }
 
   /**
+   * Send bulk emails in parallel
+   * @param {Array} emailOptionsArray - Array of email options
+   */
+  async sendBulkEmails(emailOptionsArray) {
+    try {
+      const emailPromises = emailOptionsArray.map(options => this.sendEmail(options));
+      return await Promise.all(emailPromises);
+    } catch (error) {
+      throw error; // Re-throw the error from sendEmail
+    }
+  }
+
+  /**
    * Send merchant welcome email
    */
   async sendMerchantWelcome(merchantData, credentials, setupUrl) {
     const emailOptions = {
       to: merchantData.email,
-      subject: '🎉 Welcome to Nairobi CBD Business Directory!',
+      subject: EMAIL_CONFIG.SUBJECTS.WELCOME,
       html: this.getMerchantWelcomeTemplate(merchantData, credentials, setupUrl)
     };
 
@@ -86,7 +100,7 @@ class EmailService {
   async sendPasswordReset(email, resetUrl, userType = 'user') {
     const emailOptions = {
       to: email,
-      subject: '🔐 Password Reset Request - Nairobi CBD',
+      subject: EMAIL_CONFIG.SUBJECTS.PASSWORD_RESET,
       html: this.getPasswordResetTemplate(email, resetUrl, userType)
     };
 
@@ -99,7 +113,7 @@ class EmailService {
   async sendVerificationEmail(merchantData, verificationUrl) {
     const emailOptions = {
       to: merchantData.email,
-      subject: '✅ Business Verification Required - Nairobi CBD',
+      subject: EMAIL_CONFIG.SUBJECTS.VERIFICATION,
       html: this.getVerificationTemplate(merchantData, verificationUrl)
     };
 

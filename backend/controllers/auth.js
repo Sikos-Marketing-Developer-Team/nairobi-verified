@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Merchant = require('../models/Merchant');
 const passport = require('passport');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -334,10 +335,100 @@ exports.logout = async (req, res) => {
   }
 };
 
-// @desc    Initiate Google OAuth
+// @desc    Google OAuth with credential token
+// @route   POST /api/auth/google
+// @access  Public
+exports.googleAuth = async (req, res) => {
+  try {
+    const { credential } = req.body;
+    
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        error: 'Google credential is required'
+      });
+    }
+
+    // Initialize Google OAuth client
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    
+    // Verify the credential token
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, given_name: firstName, family_name: lastName, picture } = payload;
+
+    // Check if user already exists
+    let user = await User.findOne({ 
+      $or: [
+        { email: email },
+        { googleId: googleId }
+      ]
+    });
+
+    if (user) {
+      // Update existing user with Google info if not already set
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.profilePicture = picture;
+        await user.save();
+      }
+    } else {
+      // Create new user
+      user = await User.create({
+        firstName: firstName || name?.split(' ')[0] || 'User',
+        lastName: lastName || name?.split(' ').slice(1).join(' ') || '',
+        email: email,
+        googleId: googleId,
+        profilePicture: picture,
+        isVerified: true, // Google accounts are pre-verified
+        password: crypto.randomBytes(32).toString('hex') // Generate random password
+      });
+    }
+
+    // Log the user in via session
+    req.login(user, (err) => {
+      if (err) {
+        console.error('Login error after Google auth:', err);
+        return res.status(500).json({
+          success: false,
+          error: 'Error logging in after Google authentication'
+        });
+      }
+
+      console.log('Google login successful for user:', user.email);
+      res.status(200).json({
+        success: true,
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          profilePicture: user.profilePicture,
+          isVerified: user.isVerified,
+          isMerchant: user.isMerchant,
+          businessName: user.businessName
+        }
+      });
+    });
+
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    res.status(400).json({
+      success: false,
+      error: 'Invalid Google credential or authentication failed'
+    });
+  }
+};
+
+// @desc    Initiate Google OAuth (Legacy - for redirect flow)
 // @route   GET /api/auth/google
 // @access  Public
-exports.googleAuth = passport.authenticate('google', { 
+exports.googleAuthRedirect = passport.authenticate('google', { 
   scope: ['profile', 'email'] 
 });
 

@@ -11,7 +11,9 @@ const {
   verifyMerchant,
   createMerchantByAdmin,
   completeAccountSetup,
-  getSetupInfo
+  getSetupInfo,
+  sendCredentials,
+  setFeatured
 } = require('../controllers/merchants');
 const { protect, authorize, isMerchant } = require('../middleware/auth');
 const { uploadImage, uploadDocument } = require('../middleware/upload');
@@ -47,6 +49,10 @@ router.put('/:id/verify', protect, authorize('admin'), verifyMerchant);
 
 // Admin routes
 router.post('/admin/create', protect, authorize('admin'), createMerchantByAdmin);
+router.put('/:id/featured', protect, authorize('admin'), setFeatured);
+
+// Send credentials route
+router.post('/send-credentials', protect, isMerchant, sendCredentials);
 
 // Setup routes (public)
 router.route('/setup/:token')

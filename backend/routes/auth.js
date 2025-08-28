@@ -1,6 +1,6 @@
 const express = require('express');
 const passport = require('passport');
-const { register, registerMerchant, login, loginMerchant, getMe, logout, googleAuth, googleCallback, forgotPassword, resetPassword } = require('../controllers/auth');
+const { register, registerMerchant, login, loginMerchant, getMe, logout, googleAuth, googleAuthRedirect, googleCallback, forgotPassword, resetPassword } = require('../controllers/auth');
 const { protect } = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');
 
@@ -54,7 +54,8 @@ router.get('/me', protect, getMe);
 router.get('/logout', logout);
 
 // Google OAuth routes
-router.get('/google', googleAuth);
+router.post('/google', googleAuth); // New: Handle credential token from frontend
+router.get('/google', googleAuthRedirect); // Legacy: Redirect-based OAuth
 router.get(
   '/google/callback',
   passport.authenticate('google', {

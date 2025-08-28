@@ -2,7 +2,7 @@ const Merchant = require('../models/Merchant');
 const Review = require('../models/Review');
 const MerchantOnboardingService = require('../services/merchantOnboarding');
 
-// @desc    Get all merchants
+// @desc    Get all merchants with enhanced document visibility
 // @route   GET /api/merchants
 // @access  Public
 exports.getMerchants = async (req, res) => {
@@ -12,7 +12,7 @@ exports.getMerchants = async (req, res) => {
   const reqQuery = { ...req.query };
 
   // Fields to exclude
-  const removeFields = ['select', 'sort', 'page', 'limit', 'search', 'category'];
+  const removeFields = ['select', 'sort', 'page', 'limit', 'search', 'category', 'documentStatus'];
 
   // Loop over removeFields and delete them from reqQuery
   removeFields.forEach(param => delete reqQuery[param]);
@@ -66,6 +66,43 @@ exports.getMerchants = async (req, res) => {
     query = query.where('businessType', req.query.category);
   }
 
+  // NEW: Document Status Filter
+  if (req.query.documentStatus) {
+    switch (req.query.documentStatus) {
+      case 'complete':
+        query = query.where({
+          $and: [
+            { 'documents.businessRegistration': { $exists: true, $ne: '' } },
+            { 'documents.idDocument': { $exists: true, $ne: '' } },
+            { 'documents.utilityBill': { $exists: true, $ne: '' } }
+          ]
+        });
+        break;
+      case 'incomplete':
+        query = query.where({
+          $or: [
+            { 'documents.businessRegistration': { $exists: false } },
+            { 'documents.businessRegistration': '' },
+            { 'documents.idDocument': { $exists: false } },
+            { 'documents.idDocument': '' },
+            { 'documents.utilityBill': { $exists: false } },
+            { 'documents.utilityBill': '' }
+          ]
+        });
+        break;
+      case 'pending_review':
+        query = query.where({
+          $and: [
+            { 'documents.businessRegistration': { $exists: true, $ne: '' } },
+            { 'documents.idDocument': { $exists: true, $ne: '' } },
+            { 'documents.utilityBill': { $exists: true, $ne: '' } },
+            { verified: false }
+          ]
+        });
+        break;
+    }
+  }
+
   const merchants = await query;
 
   // Pagination result
@@ -93,7 +130,8 @@ exports.getMerchants = async (req, res) => {
   });
 };
 
-// @desc    Get single merchant
+
+// @desc    Get single merchant with full document information
 // @route   GET /api/merchants/:id
 // @access  Public
 exports.getMerchant = async (req, res) => {
@@ -107,9 +145,38 @@ exports.getMerchant = async (req, res) => {
       });
     }
 
+    // NEW: Add document analysis for admin/merchant view
+    let responseData = merchant.toObject();
+    
+    // Add document completeness info if user is admin or the merchant themselves
+    if (req.user && (req.user.role === 'admin' || req.merchant)) {
+      const documentAnalysis = {
+        businessRegistration: !!(merchant.documents?.businessRegistration),
+        idDocument: !!(merchant.documents?.idDocument),
+        utilityBill: !!(merchant.documents?.utilityBill),
+        additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
+      };
+
+      const requiredDocsCount = [
+        documentAnalysis.businessRegistration,
+        documentAnalysis.idDocument,
+        documentAnalysis.utilityBill
+      ].filter(Boolean).length;
+
+      responseData.documentAnalysis = {
+        ...documentAnalysis,
+        completionPercentage: Math.round((requiredDocsCount / 3) * 100),
+        canBeVerified: requiredDocsCount === 3 && !merchant.verified,
+        requiresDocuments: requiredDocsCount < 3
+      };
+    } else {
+      // Remove sensitive document info for public access
+      delete responseData.documents;
+    }
+
     res.status(200).json({
       success: true,
-      data: merchant
+      data: responseData
     });
   } catch (error) {
     res.status(400).json({
@@ -119,7 +186,7 @@ exports.getMerchant = async (req, res) => {
   }
 };
 
-// @desc    Update merchant
+// @desc    Update merchant with document validation
 // @route   PUT /api/merchants/:id
 // @access  Private/Merchant
 exports.updateMerchant = async (req, res) => {
@@ -171,9 +238,33 @@ exports.updateMerchant = async (req, res) => {
       });
     }
 
+    // NEW: Add document status info to response
+    const documentAnalysis = {
+      businessRegistration: !!(merchant.documents?.businessRegistration),
+      idDocument: !!(merchant.documents?.idDocument),
+      utilityBill: !!(merchant.documents?.utilityBill),
+      additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
+    };
+
+    const requiredDocsCount = [
+      documentAnalysis.businessRegistration,
+      documentAnalysis.idDocument,
+      documentAnalysis.utilityBill
+    ].filter(Boolean).length;
+
+    const responseData = {
+      ...merchant.toObject(),
+      documentStatus: {
+        ...documentAnalysis,
+        completionPercentage: Math.round((requiredDocsCount / 3) * 100),
+        canBeVerified: requiredDocsCount === 3 && !merchant.verified,
+        requiresDocuments: requiredDocsCount < 3
+      }
+    };
+
     res.status(200).json({
       success: true,
-      data: merchant
+      data: responseData
     });
   } catch (error) {
     res.status(400).json({
@@ -183,7 +274,7 @@ exports.updateMerchant = async (req, res) => {
   }
 };
 
-// @desc    Delete merchant
+// @desc    Delete merchant with document cleanup
 // @route   DELETE /api/merchants/:id
 // @access  Private/Admin
 exports.deleteMerchant = async (req, res) => {
@@ -200,12 +291,21 @@ exports.deleteMerchant = async (req, res) => {
     // Delete all reviews associated with the merchant
     await Review.deleteMany({ merchant: req.params.id });
 
+    // NEW: Log document cleanup if documents existed
+    const hadDocuments = !!(
+      merchant.documents?.businessRegistration ||
+      merchant.documents?.idDocument ||
+      merchant.documents?.utilityBill ||
+      merchant.documents?.additionalDocs?.length > 0
+    );
+
     // Delete the merchant
-    await merchant.remove();
+    await merchant.deleteOne();
 
     res.status(200).json({
       success: true,
-      data: {}
+      data: {},
+      message: `Merchant ${merchant.businessName} deleted successfully${hadDocuments ? ' (including documents)' : ''}`
     });
   } catch (error) {
     res.status(400).json({
@@ -351,7 +451,7 @@ exports.uploadGallery = async (req, res) => {
   }
 };
 
-// @desc    Upload merchant verification documents
+// @desc    Upload merchant verification documents (ENHANCED)
 // @route   PUT /api/merchants/:id/documents
 // @access  Private/Merchant
 exports.uploadDocuments = async (req, res) => {
@@ -381,33 +481,75 @@ exports.uploadDocuments = async (req, res) => {
     }
 
     // Update document paths
-    const documents = {};
+    const documents = { ...merchant.documents };
+    let updatedDocuments = [];
     
     if (req.files.businessRegistration) {
       documents.businessRegistration = `/uploads/documents/${req.files.businessRegistration[0].filename}`;
+      updatedDocuments.push('Business Registration');
     }
     
     if (req.files.idDocument) {
       documents.idDocument = `/uploads/documents/${req.files.idDocument[0].filename}`;
+      updatedDocuments.push('ID Document');
     }
     
     if (req.files.utilityBill) {
       documents.utilityBill = `/uploads/documents/${req.files.utilityBill[0].filename}`;
+      updatedDocuments.push('Utility Bill');
     }
     
     if (req.files.additionalDocs) {
       documents.additionalDocs = req.files.additionalDocs.map(
         file => `/uploads/documents/${file.filename}`
       );
+      updatedDocuments.push('Additional Documents');
     }
 
     // Update merchant documents
-    merchant.documents = { ...merchant.documents, ...documents };
+    merchant.documents = documents;
+    
+    // NEW: Update onboarding status based on document completeness
+    const hasRequiredDocs = documents.businessRegistration && 
+                           documents.idDocument && 
+                           documents.utilityBill;
+    
+    if (hasRequiredDocs && merchant.onboardingStatus === 'credentials_sent') {
+      merchant.onboardingStatus = 'documents_submitted';
+    }
+
     await merchant.save();
+
+    // NEW: Document analysis for response
+    const documentAnalysis = {
+      businessRegistration: !!documents.businessRegistration,
+      idDocument: !!documents.idDocument,
+      utilityBill: !!documents.utilityBill,
+      additionalDocs: !!(documents.additionalDocs?.length > 0)
+    };
+
+    const requiredDocsCount = [
+      documentAnalysis.businessRegistration,
+      documentAnalysis.idDocument,
+      documentAnalysis.utilityBill
+    ].filter(Boolean).length;
+
+    const responseData = {
+      ...merchant.toObject(),
+      documentStatus: {
+        ...documentAnalysis,
+        completionPercentage: Math.round((requiredDocsCount / 3) * 100),
+        canBeVerified: requiredDocsCount === 3 && !merchant.verified,
+        requiresDocuments: requiredDocsCount < 3,
+        recentlyUpdated: updatedDocuments
+      }
+    };
 
     res.status(200).json({
       success: true,
-      data: merchant
+      data: responseData,
+      message: `Successfully uploaded: ${updatedDocuments.join(', ')}`,
+      documentStatus: hasRequiredDocs ? 'complete' : 'incomplete'
     });
   } catch (error) {
     res.status(400).json({
@@ -417,9 +559,7 @@ exports.uploadDocuments = async (req, res) => {
   }
 };
 
-// @desc    Create merchant by admin
-// @route   POST /api/merchants/admin/create
-// @access  Private/Admin
+// @desc    Create merchant by admin (ENHANCED)
 exports.createMerchantByAdmin = async (req, res) => {
   try {
     // Ensure user is admin
@@ -439,7 +579,14 @@ exports.createMerchantByAdmin = async (req, res) => {
       success: true,
       data: result.merchant,
       credentials: result.credentials,
-      message: result.message
+      message: result.message,
+      // NEW: Document status info
+      documentStatus: {
+        required: true,
+        submitted: false,
+        completionPercentage: 0,
+        nextStep: 'Upload verification documents'
+      }
     });
 
   } catch (error) {
@@ -451,9 +598,7 @@ exports.createMerchantByAdmin = async (req, res) => {
   }
 };
 
-// @desc    Complete merchant account setup
-// @route   POST /api/merchants/setup/:token
-// @access  Public
+// @desc    Complete merchant account setup (ENHANCED)
 exports.completeAccountSetup = async (req, res) => {
   try {
     const { token } = req.params;
@@ -472,7 +617,32 @@ exports.completeAccountSetup = async (req, res) => {
       { businessHours, description, website }
     );
 
-    res.status(200).json(result);
+    // NEW: Add document status to setup completion response
+    const merchant = await Merchant.findById(result.merchant.id);
+    
+    const documentAnalysis = {
+      businessRegistration: !!(merchant.documents?.businessRegistration),
+      idDocument: !!(merchant.documents?.idDocument),
+      utilityBill: !!(merchant.documents?.utilityBill),
+      additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
+    };
+
+    const requiredDocsCount = [
+      documentAnalysis.businessRegistration,
+      documentAnalysis.idDocument,
+      documentAnalysis.utilityBill
+    ].filter(Boolean).length;
+
+    const enhancedResult = {
+      ...result,
+      documentStatus: {
+        ...documentAnalysis,
+        completionPercentage: Math.round((requiredDocsCount / 3) * 100),
+        nextStep: requiredDocsCount < 3 ? 'Upload verification documents' : 'Wait for admin verification'
+      }
+    };
+
+    res.status(200).json(enhancedResult);
 
   } catch (error) {
     console.error('Account setup error:', error);
@@ -483,9 +653,7 @@ exports.completeAccountSetup = async (req, res) => {
   }
 };
 
-// @desc    Get merchant setup info by token
-// @route   GET /api/merchants/setup/:token
-// @access  Public
+// @desc    Get merchant setup info by token (ENHANCED)
 exports.getSetupInfo = async (req, res) => {
   try {
     const { token } = req.params;
@@ -507,6 +675,19 @@ exports.getSetupInfo = async (req, res) => {
       });
     }
 
+    // NEW: Add document requirement info
+    const documentRequirements = {
+      required: [
+        'Business Registration Certificate',
+        'Valid ID Document (National ID/Passport)',
+        'Utility Bill or Proof of Address'
+      ],
+      optional: [
+        'Additional business documents',
+        'Business permits/licenses'
+      ]
+    };
+
     res.status(200).json({
       success: true,
       data: {
@@ -516,7 +697,8 @@ exports.getSetupInfo = async (req, res) => {
         businessType: merchant.businessType,
         address: merchant.address,
         setupExpire: merchant.accountSetupExpire
-      }
+      },
+      documentRequirements
     });
 
   } catch (error) {
@@ -528,9 +710,7 @@ exports.getSetupInfo = async (req, res) => {
   }
 };
 
-// @desc    Verify merchant
-// @route   PUT /api/merchants/:id/verify
-// @access  Private/Admin
+// @desc    Verify merchant (ENHANCED WITH NOTIFICATION)
 exports.verifyMerchant = async (req, res) => {
   try {
     const merchant = await Merchant.findById(req.params.id);
@@ -542,8 +722,224 @@ exports.verifyMerchant = async (req, res) => {
       });
     }
 
+    // NEW: Check if merchant has required documents
+    const hasRequiredDocs = merchant.documents?.businessRegistration && 
+                           merchant.documents?.idDocument && 
+                           merchant.documents?.utilityBill;
+
+    if (!hasRequiredDocs) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot verify merchant: Required documents are missing'
+      });
+    }
+
     merchant.verified = true;
     merchant.verifiedDate = Date.now();
+    merchant.onboardingStatus = 'completed';
+    await merchant.save();
+
+    // NEW: Send verification confirmation email
+    try {
+      const { sendEmail } = require('../utils/emailService');
+      
+      await sendEmail({
+        to: merchant.email,
+        subject: '🎉 Business Verification Approved - Nairobi CBD',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #4caf50; color: white; padding: 20px; text-align: center;">
+              <h1>✅ Verification Approved!</h1>
+            </div>
+            <div style="padding: 20px;">
+              <h2>Congratulations ${merchant.businessName}!</h2>
+              <p>Your business has been successfully verified and is now live on Nairobi CBD Business Directory.</p>
+              <p>You can now enjoy all the benefits of being a verified business.</p>
+              <div style="text-align: center; margin: 20px 0;">
+                <a href="${process.env.FRONTEND_URL}/merchant/dashboard" 
+                   style="background: #4caf50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
+                  Visit Dashboard
+                </a>
+              </div>
+            </div>
+          </div>
+        `
+      });
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: merchant,
+      message: 'Merchant verified successfully and notification sent'
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+// @desc    Send login credentials to merchant email
+// @route   POST /api/merchants/send-credentials
+// @access  Private (Merchant only)
+exports.sendCredentials = async (req, res) => {
+  try {
+    const merchant = await Merchant.findById(req.user.id);
+
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Import nodemailer
+    const nodemailer = require('nodemailer');
+
+    // Create transporter
+    const transporter = nodemailer.createTransporter({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    // Email HTML template
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background-color: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+          }
+          .content {
+            background-color: #f8fafc;
+            padding: 30px;
+            border: 1px solid #e2e8f0;
+            border-radius: 0 0 8px 8px;
+          }
+          .credentials {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin: 20px 0;
+          }
+          .button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #64748b;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Nairobi Verified - Merchant Login Credentials</h1>
+        </div>
+        <div class="content">
+          <h2>Hello ${merchant.businessName}!</h2>
+          <p>Here are your login credentials for the Nairobi Verified merchant portal:</p>
+          
+          <div class="credentials">
+            <p><strong>Email:</strong> ${merchant.email}</p>
+            <p><strong>Dashboard URL:</strong> <a href="${process.env.FRONTEND_URL}/merchant/dashboard">Merchant Dashboard</a></p>
+          </div>
+          
+          <p>You can use these credentials to:</p>
+          <ul>
+            <li>Access your merchant dashboard</li>
+            <li>Update your business information</li>
+            <li>View performance analytics</li>
+            <li>Manage your business profile</li>
+          </ul>
+          
+          <a href="${process.env.FRONTEND_URL}/merchant/dashboard" class="button">
+            Access Dashboard
+          </a>
+          
+          <p>If you have any questions or need support, please contact our team.</p>
+          
+          <div class="footer">
+            <p>© 2024 Nairobi Verified. All rights reserved.</p>
+            <p>This is an automated message. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Send email
+    await transporter.sendMail({
+      from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
+      to: merchant.email,
+      subject: 'Your Nairobi Verified Merchant Login Credentials',
+      html: emailHtml
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Login credentials sent successfully to your email'
+    });
+
+  } catch (error) {
+    console.error('Error sending credentials:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send credentials'
+    });
+  }
+};
+
+// @desc    Set merchant as featured/unfeatured
+// @route   PUT /api/merchants/:id/featured
+// @access  Private (Admin only)
+exports.setFeatured = async (req, res) => {
+  try {
+    const { featured } = req.body;
+    
+    const merchant = await Merchant.findById(req.params.id);
+
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    merchant.featured = featured;
+    if (featured) {
+      merchant.featuredDate = Date.now();
+    } else {
+      merchant.featuredDate = null;
+    }
+    
     await merchant.save();
 
     res.status(200).json({

@@ -8,24 +8,57 @@ import {
   Plus,
   Download,
   Star,
-  DollarSign
+  DollarSign,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Filter,
+  RefreshCw,
+  MoreVertical,
+  TrendingUp,
+  ShoppingCart,
+  Heart,
+  Image as ImageIcon,
+  Tag,
+  Store
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { adminAPI } from '@/lib/api';
 
 interface Product {
   _id: string;
   name: string;
   description: string;
   price: number;
+  originalPrice?: number;
   category: string;
+  subcategory?: string;
   merchant: {
+    _id: string;
     businessName: string;
+    verified: boolean;
   };
   images: string[];
   isActive: boolean;
   inStock: boolean;
-  rating: number;
+  stock?: number;
+  rating?: number;
+  totalReviews?: number;
+  totalSales?: number;
   createdAt: string;
+  updatedAt: string;
+  tags?: string[];
+  specifications?: Record<string, any>;
+  variants?: Array<{
+    name: string;
+    price: number;
+    stock: number;
+  }>;
+  seo?: {
+    title?: string;
+    description?: string;
+    keywords?: string[];
+  };
 }
 
 const ProductsManagement: React.FC = () => {
@@ -35,6 +68,13 @@ const ProductsManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [merchantFilter, setMerchantFilter] = useState<string>('all');
+  const [stockFilter, setStockFilter] = useState<string>('all');
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [bulkActions, setBulkActions] = useState<string[]>([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -47,49 +87,23 @@ const ProductsManagement: React.FC = () => {
   const loadProducts = async () => {
     try {
       setIsLoading(true);
-      // Mock data for demonstration
-      setProducts([
-        {
-          _id: '1',
-          name: 'Fresh Organic Vegetables Bundle',
-          description: 'A mix of fresh organic vegetables sourced locally',
-          price: 1500,
-          category: 'Grocery',
-          merchant: { businessName: 'Green Valley Grocers' },
-          images: ['https://via.placeholder.com/150'],
-          isActive: true,
-          inStock: true,
-          rating: 4.5,
-          createdAt: '2024-01-15T10:30:00Z'
-        },
-        {
-          _id: '2',
-          name: 'Chicken Biriyani',
-          description: 'Aromatic chicken biriyani with basmati rice',
-          price: 800,
-          category: 'Food',
-          merchant: { businessName: 'Urban Eats' },
-          images: ['https://via.placeholder.com/150'],
-          isActive: true,
-          inStock: true,
-          rating: 4.8,
-          createdAt: '2024-01-18T09:15:00Z'
-        },
-        {
-          _id: '3',
-          name: 'Samsung Galaxy Earbuds',
-          description: 'Wireless earbuds with noise cancellation',
-          price: 12000,
-          category: 'Electronics',
-          merchant: { businessName: 'Tech Solutions Kenya' },
-          images: ['https://via.placeholder.com/150'],
-          isActive: false,
-          inStock: false,
-          rating: 4.2,
-          createdAt: '2024-01-20T14:20:00Z'
-        }
-      ]);
-    } catch (error) {
+      const response = await adminAPI.getProducts({
+        page: 1,
+        limit: 100,
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+        isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined,
+        inStock: stockFilter === 'in_stock' ? true : stockFilter === 'out_of_stock' ? false : undefined,
+        merchant: merchantFilter !== 'all' ? merchantFilter : undefined,
+        search: searchTerm || undefined
+      });
+      
+      if (response.data.success) {
+        const products = response.data.data?.products || response.data.products || [];
+        const total = response.data.data?.total || response.data.total || products.length;
+        setProducts(products);
+        setTotalProducts(total);
+      }
+    } catch (error: any) {
       console.error('Failed to load products:', error);
       toast.error('Failed to load products');
     } finally {

@@ -52,6 +52,14 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  profilePicture: {
+    type: String,
+    default: ''
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
   favorites: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Merchant'
@@ -62,6 +70,16 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+});
+
+// Virtual for full name
+UserSchema.virtual('name').get(function() {
+  return `${this.firstName} ${this.lastName}`;
+});
+
+// Ensure virtual fields are serialized
+UserSchema.set('toJSON', {
+  virtuals: true
 });
 
 // Encrypt password using bcrypt

@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import * as React from 'react';
+const { createContext, useContext, useEffect, useState } = React;
+type ReactNode = React.ReactNode;
 import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
 
@@ -42,18 +44,34 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
 
   const checkAuth = async () => {
     try {
-      const response = await adminAPI.checkAuth();
-      if (response.data.success && response.data.user) {
-        setUser(response.data.user);
-        setIsAuthenticated(true);
-      } else {
+      // Check if there's a token in localStorage first
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        console.log('No token found in localStorage');
         setUser(null);
         setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Checking auth with token:', token.substring(0, 20) + '...');
+      const response = await adminAPI.checkAuth();
+      if (response.data.success && (response.data.admin || response.data.user)) {
+        const adminUser = response.data.admin || response.data.user;
+        setUser(adminUser);
+        setIsAuthenticated(true);
+        console.log('Auth check successful, user:', adminUser.email);
+      } else {
+        console.log('Auth check failed, invalid response');
+        setUser(null);
+        setIsAuthenticated(false);
+        localStorage.removeItem('adminToken');
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       setUser(null);
       setIsAuthenticated(false);
+      localStorage.removeItem('adminToken');
     } finally {
       setIsLoading(false);
     }
@@ -63,8 +81,16 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
     setIsLoading(true);
     try {
       const response = await adminAPI.login(email, password);
-      if (response.data.success && response.data.user) {
-        setUser(response.data.user);
+      if (response.data.success && (response.data.admin || response.data.user)) {
+        const adminUser = response.data.admin || response.data.user;
+        const token = response.data.token;
+        
+        // Store token in localStorage
+        if (token) {
+          localStorage.setItem('adminToken', token);
+        }
+        
+        setUser(adminUser);
         setIsAuthenticated(true);
         toast.success('Login successful!');
       } else {
@@ -85,6 +111,8 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Remove token from localStorage
+      localStorage.removeItem('adminToken');
       setUser(null);
       setIsAuthenticated(false);
       toast.success('Logged out successfully');
