@@ -11,6 +11,66 @@ import { PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
+// Service function for document upload
+const uploadDocuments = async (merchantId: string, formData: FormData) => {
+  try {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+    const response = await fetch(`${apiUrl}/merchants/${merchantId}/documents`, {
+      method: 'PUT', // ✅ changed from POST to PUT
+      body: formData,
+    });
+
+    if (!response.ok) {
+      // Try to get error details from response
+      let errorMsg = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.message) errorMsg = errorData.message;
+      } catch (e) {
+        // If response is not JSON, use default error message
+      }
+      throw new Error(errorMsg);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error uploading documents:', error);
+    throw error;
+  }
+};
+
+// Service function for merchant registration
+const submitMerchantRegistration = async (data: any) => {
+  try {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+    const response = await fetch(`${apiUrl}/merchants/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      // Try to get error details from response
+      let errorMsg = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.message) errorMsg = errorData.message;
+      } catch (e) {
+        // If response is not JSON, use default error message
+      }
+      throw new Error(errorMsg);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error registering merchant:', error);
+    throw error;
+  }
+};
+
 const MerchantRegister = () => {
   const isLoading = usePageLoading(700);
   const [currentStep, setCurrentStep] = useState(1);
@@ -18,12 +78,14 @@ const MerchantRegister = () => {
   const idDocRef = useRef<HTMLInputElement>(null);
   const utilityBillRef = useRef<HTMLInputElement>(null);
   const additionalDocsRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   
   const [uploadedFiles, setUploadedFiles] = useState({
-    businessRegistration: [],
-    idDocument: [],
-    utilityBill: [],
-    additionalDocs: []
+    businessRegistration: [] as File[],
+    idDocument: [] as File[],
+    utilityBill: [] as File[],
+    additionalDocs: [] as File[]
   });
 
   const [formData, setFormData] = useState({
@@ -179,27 +241,51 @@ const MerchantRegister = () => {
     if (!files) return;
     
     const newFiles = Array.from(files);
+    
+    // Validate file types and sizes
+    const validFiles = newFiles.filter(file => {
+      const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      if (!validTypes.includes(file.type)) {
+        toast.error('Invalid file type', {
+          description: 'Please upload only JPG, PNG, or PDF files.',
+        });
+        return false;
+      }
+      
+      if (file.size > maxSize) {
+        toast.error('File too large', {
+          description: 'Please upload files smaller than 5MB.',
+        });
+        return false;
+      }
+      
+      return true;
+    });
+    
     setUploadedFiles(prev => ({
       ...prev,
-      [field]: [...prev[field], ...newFiles]
+      [field]: [...prev[field as keyof typeof prev], ...validFiles]
     }));
     
     // Reset the file input to allow selecting the same file again
-    if (field === 'businessRegistration' && businessRegRef.current) {
-      businessRegRef.current.value = '';
-    } else if (field === 'idDocument' && idDocRef.current) {
-      idDocRef.current.value = '';
-    } else if (field === 'utilityBill' && utilityBillRef.current) {
-      utilityBillRef.current.value = '';
-    } else if (field === 'additionalDocs' && additionalDocsRef.current) {
-      additionalDocsRef.current.value = '';
+    const refs = {
+      businessRegistration: businessRegRef,
+      idDocument: idDocRef,
+      utilityBill: utilityBillRef,
+      additionalDocs: additionalDocsRef
+    };
+    
+    if (refs[field as keyof typeof refs]?.current) {
+      refs[field as keyof typeof refs].current!.value = '';
     }
   };
 
   const removeFile = (field: string, index: number) => {
     setUploadedFiles(prev => ({
       ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
+      [field]: prev[field as keyof typeof prev].filter((_: any, i: number) => i !== index)
     }));
   };
 
@@ -209,37 +295,77 @@ const MerchantRegister = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateStep(4)) {
-      // Prepare form data for submission
-      const submissionData = {
-        ...formData,
-        documents: uploadedFiles
-      };
+  const uploadMerchantDocuments = async (merchantId: string) => {
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    // Create FormData object
+    const docsFormData = new FormData();
+    
+    // Append all uploaded files to FormData
+    Object.entries(uploadedFiles).forEach(([docType, files]) => {
+      files.forEach((file: File, index: number) => {
+        docsFormData.append(`${docType}[${index}]`, file);
+      });
+    });
+    
+    // Append merchant data
+    docsFormData.append('merchantData', JSON.stringify(formData));
+    
+    try {
+      const result = await uploadDocuments(merchantId, docsFormData);
       
-      console.log('Merchant registration submitted:', submissionData);
+      // Simulate progress for demo purposes
+      for (let i = 0; i <= 100; i += 10) {
+        setTimeout(() => setUploadProgress(i), i * 20);
+      }
       
-      // Handle form submission here - call API
-      
-      // Show success toast with Sonner
-      toast('Registration submitted successfully!', {
-        description: 'We will review your application and get back to you within 2-3 business days.',
-        duration: 3000,
-        position: 'top-center',
-        style: {
-          background: '#16a34a',
-          color: 'white',
-          fontSize: '1.1rem',
-          fontWeight: 'bold'
-        },
-        descriptionClassName: 'text-white',
+      // Show success message
+      toast.success('Documents uploaded successfully!', {
+        description: 'Your documents are being processed for verification.',
       });
       
-      // Redirect to homepage after 3 seconds
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 3000);
+      return result;
+    } catch (error) {
+      toast.error('Document upload failed', {
+        description: 'Please try again or contact support if the problem persists.',
+      });
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (validateStep(4)) {
+      try {
+        // First, submit the merchant registration data
+        const registrationResponse = await submitMerchantRegistration(formData);
+        
+        // ✅ Use _id instead of id (depending on backend response)
+        const merchantId = registrationResponse._id || registrationResponse.id;
+        
+        // Then upload documents using the returned merchant ID
+        await uploadMerchantDocuments(merchantId);
+        
+        // Show success toast
+        toast.success('Registration submitted successfully!', {
+          description: 'We will review your application and get back to you within 2-3 business days.',
+          duration: 3000,
+        });
+        
+        // Redirect to homepage after 3 seconds
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+      } catch (error) {
+        console.error('Registration failed:', error);
+        toast.error('Registration failed', {
+          description: 'Please try again or contact support if the problem persists.',
+        });
+      }
     }
   };
 
@@ -526,25 +652,25 @@ const MerchantRegister = () => {
                           <label className="flex items-center">
                             <input
                               type="checkbox"
-                              checked={hours.closed}
+                              checked={(hours as any).closed}
                               onChange={(e) => handleHoursChange(day, 'closed', e.target.checked)}
                               className="rounded border-gray-300 text-primary focus:ring-primary"
                             />
                             <span className="ml-2 text-sm">Closed</span>
                           </label>
                           
-                          {!hours.closed && (
+                          {!(hours as any).closed && (
                             <div className="flex items-center gap-2">
                               <Input
                                 type="time"
-                                value={hours.open}
+                                value={(hours as any).open}
                                 onChange={(e) => handleHoursChange(day, 'open', e.target.value)}
                                 className="w-auto"
                               />
                               <span className="text-sm text-gray-500">to</span>
                               <Input
                                 type="time"
-                                value={hours.close}
+                                value={(hours as any).close}
                                 onChange={(e) => handleHoursChange(day, 'close', e.target.value)}
                                 className="w-auto"
                               />
@@ -768,6 +894,22 @@ const MerchantRegister = () => {
                     </div>
                   </div>
                   
+                  {/* Upload Progress Indicator */}
+                  {isUploading && (
+                    <div className="mt-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium">Uploading documents...</span>
+                        <span className="text-sm">{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 className="font-medium text-blue-900 mb-2">What happens next?</h4>
                     <ul className="text-sm text-blue-800 space-y-1">
@@ -815,9 +957,9 @@ const MerchantRegister = () => {
                   <Button
                     type="submit"
                     className="bg-primary hover:bg-primary-dark"
-                    disabled={calculateCompletion() < 100}
+                    disabled={calculateCompletion() < 100 || isUploading}
                   >
-                    Submit for Verification
+                    {isUploading ? 'Uploading...' : 'Submit for Verification'}
                   </Button>
                 )}
               </div>
