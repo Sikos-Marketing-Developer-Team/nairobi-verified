@@ -12,10 +12,7 @@ import {
   TrendingUp,
   TrendingDown,
   RefreshCw,
-  AlertTriangle,
-  MoreVertical,
   Eye,
-  Settings,
   FileText,
   MessageSquare,
   Zap

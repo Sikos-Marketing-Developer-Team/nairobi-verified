@@ -57,6 +57,20 @@ interface FlashSaleFormData {
   products: FlashSaleProduct[];
 }
 
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  image: string;
+  merchant: {
+    _id: string;
+    businessName: string;
+  };
+  stock: number;
+  category: string;
+  isActive: boolean;
+}
+
 const FlashSalesManagement: React.FC = () => {
   const [flashSales, setFlashSales] = useState<FlashSale[]>([]);
   const [filteredFlashSales, setFilteredFlashSales] = useState<FlashSale[]>([]);
@@ -79,10 +93,17 @@ const FlashSalesManagement: React.FC = () => {
     totalRevenue: 0,
     totalViews: 0
   });
+  
+  // Product management state
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   useEffect(() => {
     loadFlashSales();
     loadAnalytics();
+    loadProducts();
   }, []);
 
   useEffect(() => {
@@ -114,6 +135,74 @@ const FlashSalesManagement: React.FC = () => {
       console.error('Error loading analytics:', error);
     }
   };
+
+  const loadProducts = async () => {
+    try {
+      setIsLoadingProducts(true);
+      const response = await adminAPI.getProducts({ isActive: true });
+      if (response.data.success) {
+        setAvailableProducts(response.data.products || []);
+      }
+    } catch (error: any) {
+      console.error('Error loading products:', error);
+      toast.error('Failed to load products');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  const addProductToFlashSale = (product: Product) => {
+    const existingProduct = formData.products.find(p => p.productId === product._id);
+    if (existingProduct) {
+      toast.error('Product already added to this flash sale');
+      return;
+    }
+
+    const flashSaleProduct: FlashSaleProduct = {
+      productId: product._id,
+      name: product.name,
+      originalPrice: product.price,
+      salePrice: product.price * 0.8, // Default 20% discount
+      discountPercentage: 20,
+      image: product.image,
+      merchant: product.merchant.businessName,
+      merchantId: product.merchant._id,
+      stockQuantity: product.stock,
+      soldQuantity: 0,
+      maxQuantityPerUser: 5
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      products: [...prev.products, flashSaleProduct]
+    }));
+
+    toast.success('Product added to flash sale');
+  };
+
+  const removeProductFromFlashSale = (productId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.filter(p => p.productId !== productId)
+    }));
+    toast.success('Product removed from flash sale');
+  };
+
+  const updateProductInFlashSale = (productId: string, updates: Partial<FlashSaleProduct>) => {
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.map(p => 
+        p.productId === productId 
+          ? { ...p, ...updates, discountPercentage: Math.round(((p.originalPrice - (updates.salePrice || p.salePrice)) / p.originalPrice) * 100) }
+          : p
+      )
+    }));
+  };
+
+  const filteredProducts = availableProducts.filter(product =>
+    product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+    product.merchant.businessName.toLowerCase().includes(productSearchTerm.toLowerCase())
+  );
 
   const filterFlashSales = () => {
     let filtered = flashSales;
@@ -623,12 +712,79 @@ const FlashSalesManagement: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Products ({formData.products.length})
                   </label>
-                  <div className="border border-gray-300 rounded-md p-3 bg-gray-50">
-                    <p className="text-sm text-gray-500">
-                      Product management will be implemented in the next phase. 
-                      For now, products can be added via API.
-                    </p>
-                  </div>
+                  
+                  {/* Selected Products */}
+                  {formData.products.length > 0 && (
+                    <div className="space-y-3 mb-3">
+                      {formData.products.map((product) => (
+                        <div key={product.productId} className="border border-gray-200 rounded-lg p-3 bg-white">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <img 
+                                src={product.image} 
+                                alt={product.name}
+                                className="w-12 h-12 object-cover rounded-lg"
+                              />
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-900">{product.name}</h4>
+                                <p className="text-xs text-gray-500">{product.merchant}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => removeProductFromFlashSale(product.productId)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          <div className="grid grid-cols-3 gap-3 mt-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700">Original Price</label>
+                              <input
+                                type="number"
+                                value={product.originalPrice}
+                                readOnly
+                                className="mt-1 block w-full px-2 py-1 text-sm border border-gray-300 rounded bg-gray-50"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700">Sale Price</label>
+                              <input
+                                type="number"
+                                value={product.salePrice}
+                                onChange={(e) => updateProductInFlashSale(product.productId, { salePrice: parseFloat(e.target.value) })}
+                                className="mt-1 block w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700">Max Qty/User</label>
+                              <input
+                                type="number"
+                                value={product.maxQuantityPerUser}
+                                onChange={(e) => updateProductInFlashSale(product.productId, { maxQuantityPerUser: parseInt(e.target.value) })}
+                                className="mt-1 block w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="mt-2 text-xs text-gray-500">
+                            Discount: {product.discountPercentage}% | Stock: {product.stockQuantity}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Add Products Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowProductModal(true)}
+                    className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                  >
+                    <Plus className="w-6 h-6 mx-auto text-gray-400 mb-2" />
+                    <span className="text-sm text-gray-600">Add Products to Flash Sale</span>
+                  </button>
                 </div>
               </div>
 
@@ -649,6 +805,122 @@ const FlashSalesManagement: React.FC = () => {
                   className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   {showCreateModal ? 'Create' : 'Update'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Selection Modal */}
+      {showProductModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">Select Products for Flash Sale</h3>
+                <button
+                  onClick={() => {
+                    setShowProductModal(false);
+                    setProductSearchTerm('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              
+              {/* Search Bar */}
+              <div className="mt-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search products by name or merchant..."
+                    value={productSearchTerm}
+                    onChange={(e) => setProductSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+              {isLoadingProducts ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                  <span className="ml-2 text-gray-600">Loading products...</span>
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {productSearchTerm ? 'Try adjusting your search terms.' : 'No active products available.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredProducts.map((product) => {
+                    const isAlreadyAdded = formData.products.some(p => p.productId === product._id);
+                    
+                    return (
+                      <div key={product._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start space-x-3">
+                          <img 
+                            src={product.image} 
+                            alt={product.name}
+                            className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium text-gray-900 truncate">{product.name}</h4>
+                            <p className="text-xs text-gray-500 truncate">{product.merchant.businessName}</p>
+                            <p className="text-sm font-semibold text-gray-900 mt-1">${product.price}</p>
+                            <p className="text-xs text-gray-500">Stock: {product.stock}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3">
+                          {isAlreadyAdded ? (
+                            <button
+                              disabled
+                              className="w-full px-3 py-2 text-sm bg-gray-100 text-gray-500 rounded-md cursor-not-allowed"
+                            >
+                              Already Added
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                addProductToFlashSale(product);
+                                setShowProductModal(false);
+                                setProductSearchTerm('');
+                              }}
+                              className="w-full px-3 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                            >
+                              Add to Flash Sale
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-gray-600">
+                  {formData.products.length} product{formData.products.length !== 1 ? 's' : ''} selected
+                </p>
+                <button
+                  onClick={() => {
+                    setShowProductModal(false);
+                    setProductSearchTerm('');
+                  }}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  Done
                 </button>
               </div>
             </div>

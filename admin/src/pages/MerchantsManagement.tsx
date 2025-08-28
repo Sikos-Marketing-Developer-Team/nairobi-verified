@@ -15,28 +15,13 @@ import {
   Search,
   Download,
   MoreVertical,
-  Edit,
   Trash2,
-  Shield,
-  Calendar,
   Star,
   TrendingUp,
   TrendingDown,
-  Users,
-  Package,
-  DollarSign,
   Activity,
-  Globe,
-  Building,
-  MapPin as Location,
-  Image as ImageIcon,
-  Upload,
   FileCheck,
-  FileX,
   Clock3,
-  AlertCircle,
-  CheckCircle2,
-  ExternalLink,
   RefreshCw
 } from 'lucide-react';
 import { adminAPI } from '../lib/api';
@@ -136,7 +121,7 @@ const MerchantsManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'pending' | 'active' | 'inactive' | 'needs_review' | 'featured'>('all');
   const [showMerchantDetails, setShowMerchantDetails] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [selectedMerchants, setSelectedMerchants] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -267,17 +252,7 @@ const MerchantsManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteMerchant = async (merchantId: string) => {
-    try {
-      await adminAPI.deleteMerchant(merchantId);
-      toast.success('Merchant deleted successfully');
-      loadMerchants(true);
-      setShowDeleteConfirm(false);
-      setSelectedMerchant(null);
-    } catch (error: any) {
-      toast.error('Failed to delete merchant');
-    }
-  };
+
 
   const handleBulkAction = async (action: 'verify' | 'activate' | 'deactivate' | 'delete') => {
     if (selectedMerchants.length === 0) {
@@ -313,13 +288,7 @@ const MerchantsManagement: React.FC = () => {
     }
   };
 
-  const handleSelectMerchant = (merchantId: string) => {
-    setSelectedMerchants(prev => 
-      prev.includes(merchantId) 
-        ? prev.filter(id => id !== merchantId)
-        : [...prev, merchantId]
-    );
-  };
+
 
   const handleSelectAll = () => {
     if (selectedMerchants.length === filteredMerchants.length) {
