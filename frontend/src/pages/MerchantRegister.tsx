@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,14 +19,12 @@ const MerchantRegister = () => {
   const idDocRef = useRef<HTMLInputElement>(null);
   const utilityBillRef = useRef<HTMLInputElement>(null);
   const additionalDocsRef = useRef<HTMLInputElement>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
   
   const [uploadedFiles, setUploadedFiles] = useState({
-    businessRegistration: [] as File[],
-    idDocument: [] as File[],
-    utilityBill: [] as File[],
-    additionalDocs: [] as File[]
+    businessRegistration: [],
+    idDocument: [],
+    utilityBill: [],
+    additionalDocs: []
   });
 
   const [formData, setFormData] = useState({
@@ -94,82 +93,6 @@ const MerchantRegister = () => {
         }
       }
     }));
-  };
-
-  // API function to submit merchant registration
-  const submitMerchantRegistration = async (merchantData: any) => {
-    try {
-      const response = await fetch('/api/merchants/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(merchantData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
-
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error('Registration submission error:', error);
-      throw error;
-    }
-  };
-
-  // API function to upload documents
-  const uploadMerchantDocuments = async (merchantId: string) => {
-    setIsUploading(true);
-    setUploadProgress(0);
-    
-    try {
-      // Create FormData object for file uploads
-      const docsFormData = new FormData();
-      
-      // Append all uploaded files to FormData
-      Object.entries(uploadedFiles).forEach(([docType, files]) => {
-        files.forEach((file: File, index: number) => {
-          docsFormData.append(`${docType}`, file);
-        });
-      });
-      
-      // Simulate progress for UX (replace with actual progress if your API supports it)
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          return prev + 10;
-        });
-      }, 200);
-      
-      // Upload documents to the merchant documents endpoint
-      const response = await fetch(`/api/merchants/${merchantId}/documents`, {
-        method: 'POST',
-        body: docsFormData,
-      });
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Document upload failed');
-      }
-      
-      const result = await response.json();
-      return result;
-      
-    } catch (error) {
-      console.error('Document upload error:', error);
-      throw error;
-    } finally {
-      setIsUploading(false);
-    }
   };
 
   const validateStep = (step: number): boolean => {
@@ -257,51 +180,27 @@ const MerchantRegister = () => {
     if (!files) return;
     
     const newFiles = Array.from(files);
-    
-    // Validate file types and sizes
-    const validFiles = newFiles.filter(file => {
-      const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-      const maxSize = 5 * 1024 * 1024; // 5MB
-      
-      if (!validTypes.includes(file.type)) {
-        toast.error('Invalid file type', {
-          description: 'Please upload only JPG, PNG, or PDF files.',
-        });
-        return false;
-      }
-      
-      if (file.size > maxSize) {
-        toast.error('File too large', {
-          description: 'Please upload files smaller than 5MB.',
-        });
-        return false;
-      }
-      
-      return true;
-    });
-    
     setUploadedFiles(prev => ({
       ...prev,
-      [field]: [...prev[field as keyof typeof prev], ...validFiles]
+      [field]: [...prev[field], ...newFiles]
     }));
     
     // Reset the file input to allow selecting the same file again
-    const refs = {
-      businessRegistration: businessRegRef,
-      idDocument: idDocRef,
-      utilityBill: utilityBillRef,
-      additionalDocs: additionalDocsRef
-    };
-    
-    if (refs[field as keyof typeof refs]?.current) {
-      refs[field as keyof typeof refs].current!.value = '';
+    if (field === 'businessRegistration' && businessRegRef.current) {
+      businessRegRef.current.value = '';
+    } else if (field === 'idDocument' && idDocRef.current) {
+      idDocRef.current.value = '';
+    } else if (field === 'utilityBill' && utilityBillRef.current) {
+      utilityBillRef.current.value = '';
+    } else if (field === 'additionalDocs' && additionalDocsRef.current) {
+      additionalDocsRef.current.value = '';
     }
   };
 
   const removeFile = (field: string, index: number) => {
     setUploadedFiles(prev => ({
       ...prev,
-      [field]: prev[field as keyof typeof prev].filter((_: any, i: number) => i !== index)
+      [field]: prev[field].filter((_, i) => i !== index)
     }));
   };
 
@@ -313,7 +212,6 @@ const MerchantRegister = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (validateStep(4)) {
       setIsSubmitting(true);
       
@@ -336,7 +234,8 @@ const MerchantRegister = () => {
         console.log('Submitting merchant registration:', submissionData);
         
         // Submit to API
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api'}/merchants`, {
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
+const response = await fetch(`${apiUrl}/merchants`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -676,25 +575,25 @@ const MerchantRegister = () => {
                           <label className="flex items-center">
                             <input
                               type="checkbox"
-                              checked={(hours as any).closed}
+                              checked={hours.closed}
                               onChange={(e) => handleHoursChange(day, 'closed', e.target.checked)}
                               className="rounded border-gray-300 text-primary focus:ring-primary"
                             />
                             <span className="ml-2 text-sm">Closed</span>
                           </label>
                           
-                          {!(hours as any).closed && (
+                          {!hours.closed && (
                             <div className="flex items-center gap-2">
                               <Input
                                 type="time"
-                                value={(hours as any).open}
+                                value={hours.open}
                                 onChange={(e) => handleHoursChange(day, 'open', e.target.value)}
                                 className="w-auto"
                               />
                               <span className="text-sm text-gray-500">to</span>
                               <Input
                                 type="time"
-                                value={(hours as any).close}
+                                value={hours.close}
                                 onChange={(e) => handleHoursChange(day, 'close', e.target.value)}
                                 className="w-auto"
                               />
@@ -747,7 +646,6 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(businessRegRef)}
                         className="mb-3"
-                        type="button"
                       >
                         <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
@@ -774,7 +672,6 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('businessRegistration', index)}
-                                type="button"
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -794,7 +691,6 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(idDocRef)}
                         className="mb-3"
-                        type="button"
                       >
                         <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
@@ -821,7 +717,6 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('idDocument', index)}
-                                type="button"
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -841,7 +736,6 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(utilityBillRef)}
                         className="mb-3"
-                        type="button"
                       >
                         <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
@@ -868,7 +762,6 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('utilityBill', index)}
-                                type="button"
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -888,7 +781,6 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(additionalDocsRef)}
                         className="mb-3"
-                        type="button"
                       >
                         <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
@@ -915,7 +807,6 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('additionalDocs', index)}
-                                type="button"
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -925,22 +816,6 @@ const MerchantRegister = () => {
                       )}
                     </div>
                   </div>
-                  
-                  {/* Upload Progress Indicator */}
-                  {isUploading && (
-                    <div className="mt-4">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium">Uploading documents...</span>
-                        <span className="text-sm">{uploadProgress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                          style={{ width: `${uploadProgress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  )}
                   
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 className="font-medium text-blue-900 mb-2">What happens next?</h4>
@@ -989,9 +864,9 @@ const MerchantRegister = () => {
                   <Button
                     type="submit"
                     className="bg-primary hover:bg-primary-dark"
-                    disabled={calculateCompletion() < 100 || isUploading}
+                    disabled={calculateCompletion() < 100}
                   >
-                    {isUploading ? 'Uploading...' : 'Submit for Verification'}
+                    Submit for Verification
                   </Button>
                 )}
               </div>
