@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 const MerchantRegister = () => {
   const isLoading = usePageLoading(700);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const businessRegRef = useRef<HTMLInputElement>(null);
   const idDocRef = useRef<HTMLInputElement>(null);
   const utilityBillRef = useRef<HTMLInputElement>(null);
@@ -209,37 +210,84 @@ const MerchantRegister = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateStep(4)) {
-      // Prepare form data for submission
-      const submissionData = {
-        ...formData,
-        documents: uploadedFiles
-      };
+      setIsSubmitting(true);
       
-      console.log('Merchant registration submitted:', submissionData);
-      
-      // Handle form submission here - call API
-      
-      // Show success toast with Sonner
-      toast('Registration submitted successfully!', {
-        description: 'We will review your application and get back to you within 2-3 business days.',
-        duration: 3000,
-        position: 'top-center',
-        style: {
-          background: '#16a34a',
-          color: 'white',
-          fontSize: '1.1rem',
-          fontWeight: 'bold'
-        },
-        descriptionClassName: 'text-white',
-      });
-      
-      // Redirect to homepage after 3 seconds
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 3000);
+      try {
+        // Prepare form data for submission
+        const submissionData = {
+          businessName: formData.businessName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          businessType: formData.businessType,
+          description: formData.description,
+          yearEstablished: formData.yearEstablished,
+          website: formData.website,
+          address: formData.address,
+          landmark: formData.landmark,
+          businessHours: formData.businessHours
+        };
+        
+        console.log('Submitting merchant registration:', submissionData);
+        
+        // Submit to API
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api'}/merchants`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(submissionData)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+
+        console.log('Registration successful:', data);
+        
+        // Show success toast with Sonner
+        toast('Registration submitted successfully!', {
+          description: 'We will review your application and get back to you within 2-3 business days.',
+          duration: 5000,
+          position: 'top-center',
+          style: {
+            background: '#16a34a',
+            color: 'white',
+            fontSize: '1.1rem',
+            fontWeight: 'bold'
+          },
+          descriptionClassName: 'text-white',
+        });
+        
+        // Redirect to homepage after 3 seconds
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+        
+      } catch (error: any) {
+        console.error('Error registering merchant:', error);
+        
+        // Show error toast
+        toast('Registration failed!', {
+          description: error.message || 'Please try again or contact support.',
+          duration: 5000,
+          position: 'top-center',
+          style: {
+            background: '#dc2626',
+            color: 'white',
+            fontSize: '1.1rem',
+            fontWeight: 'bold'
+          },
+          descriptionClassName: 'text-white',
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 

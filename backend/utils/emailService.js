@@ -121,6 +121,21 @@ class EmailService {
   }
 
   /**
+   * Send admin notification about new merchant registration
+   */
+  async sendAdminMerchantNotification(merchantData) {
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@nairobiverified.com';
+    
+    const emailOptions = {
+      to: adminEmail,
+      subject: '🏪 New Merchant Registration - Nairobi Verified',
+      html: this.getAdminMerchantNotificationTemplate(merchantData)
+    };
+
+    return this.sendEmail(emailOptions);
+  }
+
+  /**
    * Merchant welcome email template
    */
   getMerchantWelcomeTemplate(merchantData, credentials, setupUrl) {
@@ -237,6 +252,87 @@ class EmailService {
             <li>Valid ID document</li>
             <li>Utility bill or proof of address</li>
           </ul>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Admin notification template for new merchant registrations
+   */
+  getAdminMerchantNotificationTemplate(merchantData) {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🏪 New Merchant Registration</h1>
+          <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">A new business has registered on Nairobi Verified</p>
+        </div>
+
+        <div style="background: #f8fafc; padding: 25px; border-radius: 8px; margin-bottom: 20px;">
+          <h2 style="color: #1e293b; margin-top: 0; font-size: 24px;">Business Details</h2>
+          
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #374151;">Business Name:</strong> 
+            <span style="color: #6b7280;">${merchantData.businessName}</span>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #374151;">Business Type:</strong> 
+            <span style="color: #6b7280;">${merchantData.businessType}</span>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #374151;">Email:</strong> 
+            <span style="color: #6b7280;">${merchantData.email}</span>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #374151;">Phone:</strong> 
+            <span style="color: #6b7280;">${merchantData.phone}</span>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #374151;">Address:</strong> 
+            <span style="color: #6b7280;">${merchantData.address || 'Not provided'}</span>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #374151;">Year Established:</strong> 
+            <span style="color: #6b7280;">${merchantData.yearEstablished || 'Not provided'}</span>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #374151;">Website:</strong> 
+            <span style="color: #6b7280;">${merchantData.website || 'Not provided'}</span>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #374151;">Registration Date:</strong> 
+            <span style="color: #6b7280;">${new Date().toLocaleDateString()}</span>
+          </div>
+        </div>
+
+        <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+          <h3 style="color: #92400e; margin-top: 0;">⚠️ Action Required</h3>
+          <p style="color: #78350f; margin-bottom: 15px;">This merchant requires verification. Please review their application and documents when submitted.</p>
+          <ul style="color: #78350f; line-height: 1.8;">
+            <li>Review business information</li>
+            <li>Verify documents when uploaded</li>
+            <li>Approve or reject the application</li>
+            <li>Send verification status to merchant</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.ADMIN_URL || 'http://localhost:3001'}/merchants" 
+             style="background: #1e40af; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            📋 Review in Admin Panel
+          </a>
+        </div>
+
+        <div style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;">
+          <p>Nairobi Verified Admin System</p>
+          <p>This is an automated notification email.</p>
         </div>
       </div>
     `;
