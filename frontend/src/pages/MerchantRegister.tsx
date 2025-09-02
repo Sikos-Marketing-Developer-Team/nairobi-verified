@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,66 +9,6 @@ import { usePageLoading } from '@/hooks/use-loading';
 import { PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-
-// Service function for document upload
-const uploadDocuments = async (merchantId: string, formData: FormData) => {
-  try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-    const response = await fetch(`${apiUrl}/merchants/${merchantId}/documents`, {
-      method: 'PUT', // ✅ changed from POST to PUT
-      body: formData,
-    });
-
-    if (!response.ok) {
-      // Try to get error details from response
-      let errorMsg = `HTTP error! status: ${response.status}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.message) errorMsg = errorData.message;
-      } catch (e) {
-        // If response is not JSON, use default error message
-      }
-      throw new Error(errorMsg);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error uploading documents:', error);
-    throw error;
-  }
-};
-
-// Service function for merchant registration
-const submitMerchantRegistration = async (data: any) => {
-  try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-    const response = await fetch(`${apiUrl}/merchants/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      // Try to get error details from response
-      let errorMsg = `HTTP error! status: ${response.status}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.message) errorMsg = errorData.message;
-      } catch (e) {
-        // If response is not JSON, use default error message
-      }
-      throw new Error(errorMsg);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error registering merchant:', error);
-    throw error;
-  }
-};
 
 const MerchantRegister = () => {
   const isLoading = usePageLoading(700);
@@ -154,6 +93,82 @@ const MerchantRegister = () => {
         }
       }
     }));
+  };
+
+  // API function to submit merchant registration
+  const submitMerchantRegistration = async (merchantData: any) => {
+    try {
+      const response = await fetch('/api/merchants/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(merchantData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Registration submission error:', error);
+      throw error;
+    }
+  };
+
+  // API function to upload documents
+  const uploadMerchantDocuments = async (merchantId: string) => {
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      // Create FormData object for file uploads
+      const docsFormData = new FormData();
+      
+      // Append all uploaded files to FormData
+      Object.entries(uploadedFiles).forEach(([docType, files]) => {
+        files.forEach((file: File, index: number) => {
+          docsFormData.append(`${docType}`, file);
+        });
+      });
+      
+      // Simulate progress for UX (replace with actual progress if your API supports it)
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return prev + 10;
+        });
+      }, 200);
+      
+      // Upload documents to the merchant documents endpoint
+      const response = await fetch(`/api/merchants/${merchantId}/documents`, {
+        method: 'POST',
+        body: docsFormData,
+      });
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Document upload failed');
+      }
+      
+      const result = await response.json();
+      return result;
+      
+    } catch (error) {
+      console.error('Document upload error:', error);
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const validateStep = (step: number): boolean => {
@@ -295,57 +310,26 @@ const MerchantRegister = () => {
     }
   };
 
-  const uploadMerchantDocuments = async (merchantId: string) => {
-    setIsUploading(true);
-    setUploadProgress(0);
-    
-    // Create FormData object
-    const docsFormData = new FormData();
-    
-    // Append all uploaded files to FormData
-    Object.entries(uploadedFiles).forEach(([docType, files]) => {
-      files.forEach((file: File, index: number) => {
-        docsFormData.append(`${docType}[${index}]`, file);
-      });
-    });
-    
-    // Append merchant data
-    docsFormData.append('merchantData', JSON.stringify(formData));
-    
-    try {
-      const result = await uploadDocuments(merchantId, docsFormData);
-      
-      // Simulate progress for demo purposes
-      for (let i = 0; i <= 100; i += 10) {
-        setTimeout(() => setUploadProgress(i), i * 20);
-      }
-      
-      // Show success message
-      toast.success('Documents uploaded successfully!', {
-        description: 'Your documents are being processed for verification.',
-      });
-      
-      return result;
-    } catch (error) {
-      toast.error('Document upload failed', {
-        description: 'Please try again or contact support if the problem persists.',
-      });
-      throw error;
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateStep(4)) {
       try {
-        // First, submit the merchant registration data
+        // Show loading state
+        toast('Submitting registration...', {
+          duration: 1000,
+          style: { background: '#3b82f6', color: 'white' }
+        });
+        
+        // First, submit the merchant registration data (without files)
         const registrationResponse = await submitMerchantRegistration(formData);
         
-        // ✅ Use _id instead of id (depending on backend response)
-        const merchantId = registrationResponse._id || registrationResponse.id;
+        // Get the merchant ID from the response
+        const merchantId = registrationResponse.data?._id || registrationResponse.data?.id || registrationResponse._id || registrationResponse.id;
+        
+        if (!merchantId) {
+          throw new Error('Failed to get merchant ID from registration response');
+        }
         
         // Then upload documents using the returned merchant ID
         await uploadMerchantDocuments(merchantId);
@@ -360,10 +344,11 @@ const MerchantRegister = () => {
         setTimeout(() => {
           window.location.href = '/';
         }, 3000);
-      } catch (error) {
+        
+      } catch (error: any) {
         console.error('Registration failed:', error);
         toast.error('Registration failed', {
-          description: 'Please try again or contact support if the problem persists.',
+          description: error.message || 'Please try again or contact support if the problem persists.',
         });
       }
     }
@@ -723,6 +708,7 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(businessRegRef)}
                         className="mb-3"
+                        type="button"
                       >
                         <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
@@ -749,6 +735,7 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('businessRegistration', index)}
+                                type="button"
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -768,6 +755,7 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(idDocRef)}
                         className="mb-3"
+                        type="button"
                       >
                         <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
@@ -794,6 +782,7 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('idDocument', index)}
+                                type="button"
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -813,6 +802,7 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(utilityBillRef)}
                         className="mb-3"
+                        type="button"
                       >
                         <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
@@ -839,6 +829,7 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('utilityBill', index)}
+                                type="button"
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -858,6 +849,7 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(additionalDocsRef)}
                         className="mb-3"
+                        type="button"
                       >
                         <Upload className="h-4 w-4 mr-1" /> Add Files
                       </Button>
@@ -884,6 +876,7 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('additionalDocs', index)}
+                                type="button"
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -903,7 +896,7 @@ const MerchantRegister = () => {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
-                          className="bg-blue-600 h-2 rounded-full" 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
                           style={{ width: `${uploadProgress}%` }}
                         ></div>
                       </div>
