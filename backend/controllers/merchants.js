@@ -1,6 +1,7 @@
 const Merchant = require('../models/Merchant');
 const Review = require('../models/Review');
 const MerchantOnboardingService = require('../services/merchantOnboarding');
+const { emailService } = require('../utils/emailService');
 
 // @desc    Get all merchants with enhanced document visibility
 // @route   GET /api/merchants
@@ -179,6 +180,207 @@ exports.getMerchant = async (req, res) => {
       data: responseData
     });
   } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+// @desc    Create new merchant (Public Registration)
+// @route   POST /api/merchants
+// @access  Public
+exports.createMerchant = async (req, res) => {
+  try {
+    const {
+      businessName,
+      email,
+      phone,
+      password,
+      businessType,
+      description,
+      yearEstablished,
+      website,
+      address,
+      landmark,
+      businessHours
+    } = req.body;
+
+    // Check if merchant already exists
+    const existingMerchant = await Merchant.findOne({ email });
+    if (existingMerchant) {
+      return res.status(400).json({
+        success: false,
+        error: 'A merchant with this email already exists'
+      });
+    }
+
+    // Create merchant with default values
+    const merchant = await Merchant.create({
+      businessName,
+      email,
+      phone,
+      password,
+      businessType,
+      description: description || `${businessName} - Business description to be updated`,
+      yearEstablished,
+      website,
+      address,
+      location: address, // Use address as location
+      landmark,
+      businessHours: businessHours || {
+        monday: { open: '08:00', close: '18:00', closed: false },
+        tuesday: { open: '08:00', close: '18:00', closed: false },
+        wednesday: { open: '08:00', close: '18:00', closed: false },
+        thursday: { open: '08:00', close: '18:00', closed: false },
+        friday: { open: '08:00', close: '18:00', closed: false },
+        saturday: { open: '09:00', close: '16:00', closed: false },
+        sunday: { open: '', close: '', closed: true }
+      },
+      verified: false,
+      logo: '',
+      bannerImage: '',
+      gallery: [],
+      documents: {
+        businessRegistration: '',
+        idDocument: '',
+        utilityBill: '',
+        additionalDocs: []
+      },
+      featured: false,
+      rating: 0,
+      reviews: []
+    });
+
+    // Send notification email to admin about new merchant registration
+    try {
+      await emailService.sendAdminMerchantNotification(merchant);
+      console.log('Admin notification sent for new merchant:', merchant.businessName);
+    } catch (emailError) {
+      console.error('Failed to send admin notification email:', emailError);
+      // Don't fail the registration if email fails
+    }
+
+    res.status(201).json({
+      success: true,
+      data: {
+        id: merchant._id,
+        businessName: merchant.businessName,
+        email: merchant.email,
+        phone: merchant.phone,
+        businessType: merchant.businessType,
+        verified: merchant.verified,
+        createdAt: merchant.createdAt,
+        message: 'Merchant registration submitted successfully. You will be contacted within 2-3 business days for verification.'
+      }
+    });
+
+  } catch (error) {
+    // Handle duplicate key error
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({
+        success: false,
+        error: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`
+      });
+    }
+
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        error: messages.join(', ')
+      });
+    }
+
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+// @desc    Create new merchant (Public Registration)
+// @route   POST /api/merchants
+// @access  Public
+exports.createMerchant = async (req, res) => {
+  try {
+    const {
+      businessName,
+      email,
+      phone,
+      password,
+      businessType,
+      description,
+      yearEstablished,
+      website,
+      address,
+      landmark,
+      businessHours
+    } = req.body;
+
+    // Check if merchant already exists
+    const existingMerchant = await Merchant.findOne({ email });
+    if (existingMerchant) {
+      return res.status(400).json({
+        success: false,
+        error: 'Merchant with this email already exists'
+      });
+    }
+
+    // Create merchant
+    const merchant = await Merchant.create({
+      businessName,
+      email,
+      phone,
+      password,
+      businessType,
+      description,
+      yearEstablished: yearEstablished ? parseInt(yearEstablished) : undefined,
+      website,
+      address,
+      location: address, // Use address as location for now
+      landmark,
+      businessHours: businessHours || {
+        monday: { open: '08:00', close: '18:00', closed: false },
+        tuesday: { open: '08:00', close: '18:00', closed: false },
+        wednesday: { open: '08:00', close: '18:00', closed: false },
+        thursday: { open: '08:00', close: '18:00', closed: false },
+        friday: { open: '08:00', close: '18:00', closed: false },
+        saturday: { open: '09:00', close: '16:00', closed: false },
+        sunday: { open: '', close: '', closed: true }
+      },
+      verified: false,
+      rating: 0,
+      reviews: 0, // Initialize as number, not array
+      featured: false
+    });
+
+    // Send notification email to admin about new merchant registration
+    try {
+      await emailService.sendAdminMerchantNotification(merchant);
+      console.log('Admin notification sent for new merchant:', merchant.businessName);
+    } catch (emailError) {
+      console.error('Failed to send admin notification email:', emailError);
+      // Don't fail the registration if email fails
+    }
+
+    res.status(201).json({
+      success: true,
+      data: {
+        id: merchant._id,
+        businessName: merchant.businessName,
+        email: merchant.email,
+        phone: merchant.phone,
+        businessType: merchant.businessType,
+        verified: merchant.verified,
+        createdAt: merchant.createdAt,
+        message: 'Merchant registration submitted successfully. You will be contacted within 2-3 business days for verification.'
+      }
+    });
+  } catch (error) {
+    console.error('Create merchant error:', error);
     res.status(400).json({
       success: false,
       error: error.message
