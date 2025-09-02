@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 const MerchantRegister = () => {
   const isLoading = usePageLoading(700);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const businessRegRef = useRef<HTMLInputElement>(null);
   const idDocRef = useRef<HTMLInputElement>(null);
   const utilityBillRef = useRef<HTMLInputElement>(null);
@@ -314,30 +315,55 @@ const MerchantRegister = () => {
     e.preventDefault();
     
     if (validateStep(4)) {
+      setIsSubmitting(true);
+      
       try {
-        // Show loading state
-        toast('Submitting registration...', {
-          duration: 1000,
-          style: { background: '#3b82f6', color: 'white' }
+        // Prepare form data for submission
+        const submissionData = {
+          businessName: formData.businessName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          businessType: formData.businessType,
+          description: formData.description,
+          yearEstablished: formData.yearEstablished,
+          website: formData.website,
+          address: formData.address,
+          landmark: formData.landmark,
+          businessHours: formData.businessHours
+        };
+        
+        console.log('Submitting merchant registration:', submissionData);
+        
+        // Submit to API
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api'}/merchants`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(submissionData)
         });
-        
-        // First, submit the merchant registration data (without files)
-        const registrationResponse = await submitMerchantRegistration(formData);
-        
-        // Get the merchant ID from the response
-        const merchantId = registrationResponse.data?._id || registrationResponse.data?.id || registrationResponse._id || registrationResponse.id;
-        
-        if (!merchantId) {
-          throw new Error('Failed to get merchant ID from registration response');
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || `HTTP error! status: ${response.status}`);
         }
+
+        console.log('Registration successful:', data);
         
-        // Then upload documents using the returned merchant ID
-        await uploadMerchantDocuments(merchantId);
-        
-        // Show success toast
-        toast.success('Registration submitted successfully!', {
+        // Show success toast with Sonner
+        toast('Registration submitted successfully!', {
           description: 'We will review your application and get back to you within 2-3 business days.',
-          duration: 3000,
+          duration: 5000,
+          position: 'top-center',
+          style: {
+            background: '#16a34a',
+            color: 'white',
+            fontSize: '1.1rem',
+            fontWeight: 'bold'
+          },
+          descriptionClassName: 'text-white',
         });
         
         // Redirect to homepage after 3 seconds
@@ -346,10 +372,23 @@ const MerchantRegister = () => {
         }, 3000);
         
       } catch (error: any) {
-        console.error('Registration failed:', error);
-        toast.error('Registration failed', {
-          description: error.message || 'Please try again or contact support if the problem persists.',
+        console.error('Error registering merchant:', error);
+        
+        // Show error toast
+        toast('Registration failed!', {
+          description: error.message || 'Please try again or contact support.',
+          duration: 5000,
+          position: 'top-center',
+          style: {
+            background: '#dc2626',
+            color: 'white',
+            fontSize: '1.1rem',
+            fontWeight: 'bold'
+          },
+          descriptionClassName: 'text-white',
         });
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
