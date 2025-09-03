@@ -234,7 +234,8 @@ const MerchantRegister = () => {
         console.log('Submitting merchant registration:', submissionData);
         
         // Submit to API
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api'}/merchants`, {
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
+const response = await fetch(`${apiUrl}/merchants`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -261,7 +262,7 @@ const MerchantRegister = () => {
             fontSize: '1.1rem',
             fontWeight: 'bold'
           },
-          descriptionClassName: 'text-white',
+          descriptionClassName: 'text-white!important',
         });
         
         // Redirect to homepage after 3 seconds
