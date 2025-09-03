@@ -262,7 +262,7 @@ const response = await fetch(`${apiUrl}/merchants`, {
             fontSize: '1.1rem',
             fontWeight: 'bold'
           },
-          descriptionClassName: 'text-white',
+          descriptionClassName: 'text-white!important',
         });
         
         // Redirect to homepage after 3 seconds
