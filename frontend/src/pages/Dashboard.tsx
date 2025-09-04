@@ -352,70 +352,74 @@ const Dashboard = () => {
               </div>
             )}
 
-            {activeTab === 'wishlist' && (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>My Wishlist</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoadingWishlist ? (
-                      <div className="flex items-center justify-center p-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="ml-2 text-gray-600">Loading wishlist...</p>
-                      </div>
-                    ) : wishlistError ? (
-                      <p className="text-red-600 text-center p-8">{wishlistError}</p>
-                    ) : wishlistItems.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {wishlistItems.map((item) => (
-                          <div key={item._id} className="border border-gray-200 rounded-lg p-4">
-                            <div className="flex gap-4">
-                              <img
-                                src={item.logo}
-                                alt={item.businessName}
-                                className="w-16 h-16 object-cover rounded-lg"
-                              />
-                              <div className="flex-1">
-                                <h4 className="font-semibold">{item.businessName}</h4>
-                                <p className="text-sm text-gray-600">{item.location}</p>
-                                {/* Price not available on Merchant type, so removing for now */}
-                                {/* <p className="font-bold text-primary">{formatPrice(item.price)}</p> */}
-                                <div className="flex gap-2 mt-2">
-                                  {/* Add to Cart functionality is more complex and might involve product data, skipping for now */}
-                                  {/* <Button size="sm" className="bg-primary hover:bg-primary-dark">
-                                    <ShoppingBag className="h-4 w-4 mr-1" />
-                                    Add to Cart
-                                  </Button> */}
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => removeFavorite(item._id)}
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
+          {activeTab === 'wishlist' && (
+  <div className="space-y-6">
+    <Card>
+      <CardHeader>
+        <CardTitle>My Wishlist</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoadingWishlist ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-2 text-gray-600">Loading wishlist...</p>
+          </div>
+        ) : wishlistError ? (
+           <div className="text-center py-8">
                         <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-600 mb-2">No items in wishlist</h3>
-                        <p className="text-gray-500 mb-6">Start exploring and save merchants you love</p>
+                        <h3 className="text-xl font-semibold text-gray-600 mb-2">No items found</h3>
+                        <p className="text-gray-500 mb-6">You haven't added any items to your wishlist yet.</p>
                         <Link to="/merchants">
                           <Button className="bg-primary hover:bg-primary-dark">
-                            Discover Merchants
+                            Browse Items
                           </Button>
                         </Link>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+        ) : wishlistItems.length > 0 ? (
+          <div className="space-y-4">
+            {wishlistItems.map((item) => (
+              <div key={item._id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex gap-4">
+                    <img
+                      src={item.logo}
+                      alt={item.businessName}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                    <div>
+                      <h4 className="font-semibold">{item.businessName}</h4>
+                      <p className="text-sm text-gray-600">{item.location}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeFavorite(item._id)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
               </div>
-            )}
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">No items in wishlist</h3>
+            <p className="text-gray-500 mb-6">Start exploring and save merchants you love</p>
+            <Link to="/merchants">
+              <Button className="bg-primary hover:bg-primary-dark">
+                Discover Merchants
+              </Button>
+            </Link>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  </div>
+)}
 
             {activeTab === 'addresses' && (
               <div className="space-y-6">
@@ -423,9 +427,7 @@ const Dashboard = () => {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>Saved Addresses</CardTitle>
-                      <Button className="bg-primary hover:bg-primary-dark" onClick={handleAddAddress}>
-                        Add New Address
-                      </Button>
+            
                     </div>
                   </CardHeader>
                   <CardContent>
