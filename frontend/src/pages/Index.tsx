@@ -41,8 +41,8 @@ const Index = () => {
     <div className="min-h-screen bg-white">
       <Header />
       <Hero />
-      <FeaturedProducts />
       <FlashSales />
+      <FeaturedProducts />
       <CategorySection />
       <TrustSection />
       <Footer />

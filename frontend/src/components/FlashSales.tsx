@@ -310,7 +310,7 @@ const FlashSales = () => {
 
   if (loading) {
     return (
-      <section className="py-5 sm:py-16 bg-gradient-to-r from-red-50 to-orange-50">
+      <section className="sm:py-16 bg-gradient-to-r from-red-50 to-orange-50">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12">
             <div className="animate-pulse">

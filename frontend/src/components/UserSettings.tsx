@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { settingsAPI } from '@/lib/api';
 import { UserSettings as UserSettingsType } from '@/types'; // Renamed import to avoid conflict
+import { Link } from 'react-router-dom';
 
 const UserSettings = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -81,7 +82,16 @@ const UserSettings = () => {
 
   if (error) {
     return (
-      <div className="text-red-600 text-center p-8">{error}</div>
+      <div className="text-center py-8">
+            <Settings className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">No settings available</h3>
+            <p className="text-gray-500 mb-6">Please check back soon</p>
+            <Link to="/merchants">
+              <Button className="bg-primary hover:bg-primary-dark">
+                Start Shopping
+              </Button>
+            </Link>
+          </div>
     );
   }
 
