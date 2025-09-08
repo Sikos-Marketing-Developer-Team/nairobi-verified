@@ -51,36 +51,28 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Rate limiting for sensitive auth routes (relaxed for testing)
+// Rate limiting for sensitive auth routes (production-ready)
 const strictAuthLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // Increased for testing
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 requests per IP
   message: {
     success: false,
-    error: 'Too many login or registration attempts, please try again after 1 minute'
+    error: 'Too many login or registration attempts, please try again after 15 minutes'
   },
   standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting in development
-    return process.env.NODE_ENV === 'development';
-  }
+  legacyHeaders: false
 });
 
-// Rate limiting for all auth routes (relaxed for testing)
+// Rate limiting for all auth routes (production-ready)
 const authLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 1000, // Increased for testing
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per IP
   message: {
     success: false,
-    error: 'Too many requests from this IP, please try again after 1 minute'
+    error: 'Too many requests from this IP, please try again after 15 minutes'
   },
   standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting in development
-    return process.env.NODE_ENV === 'development';
-  }
+  legacyHeaders: false
 });
 
 // Session configuration
