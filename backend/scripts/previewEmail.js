@@ -8,6 +8,13 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const fs = require('fs').promises;
+const { client } = require('../utils/metrics'); // MONITORING: Import client for script-local metrics
+
+// MONITORING: Script-specific counter
+const previewGeneratedCounter = new client.Counter({
+  name: 'email_previews_generated_total',
+  help: 'Total email previews generated'
+});
 
 /**
  * Generate email preview HTML
@@ -168,6 +175,9 @@ async function createEmailPreview() {
     console.log('   🎯 Business benefits overview');
     console.log('   📞 Support contact information');
     console.log('   ⏰ Important security notices');
+
+    previewGeneratedCounter.inc(); // MONITORING: Increment preview counter
+    console.log(await client.register.metrics()); // MONITORING: Log metrics for script (or push to Pushgateway in prod)
 
     return previewFile;
     
