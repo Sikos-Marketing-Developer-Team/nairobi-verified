@@ -301,7 +301,16 @@ const Dashboard = () => {
                         <p className="ml-2 text-gray-600">Loading orders...</p>
                       </div>
                     ) : orderError ? (
-                      <p className="text-red-600 text-center p-8">{orderError}</p>
+                       <div className="text-center py-8">
+                        <ShoppingBag className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-600 mb-2">No orders found</h3>
+                        <p className="text-gray-500 mb-6">You haven't placed any orders yet.</p>
+                        <Link to="/merchants">
+                          <Button className="bg-primary hover:bg-primary-dark">
+                            Start Shopping
+                          </Button>
+                        </Link>
+                      </div>
                     ) : orders.length > 0 ? (
                       <div className="space-y-4">
                         {orders.map((order) => (
@@ -437,7 +446,14 @@ const Dashboard = () => {
                         <p className="ml-2 text-gray-600">Loading addresses...</p>
                       </div>
                     ) : addressError ? (
-                      <p className="text-red-600 text-center p-8">{addressError}</p>
+                       <div className="text-center py-8">
+                        <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-600 mb-2">No saved addresses</h3>
+                        <p className="text-gray-500 mb-6">Add your frequently used addresses for faster checkout.</p>
+                        <Button className="bg-primary hover:bg-primary-dark" onClick={handleAddAddress}>
+                          Add New Address
+                        </Button>
+                      </div>
                     ) : addresses.length > 0 ? (
                       <div className="space-y-4">
                         {addresses.map((address) => (
