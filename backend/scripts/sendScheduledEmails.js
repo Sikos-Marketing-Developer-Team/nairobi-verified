@@ -10,6 +10,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const fs = require('fs').promises;
 const { sendEmail } = require('../utils/emailService');
+const { client, emailSentCounter, emailFailedCounter } = require('../utils/metrics'); // MONITORING: Import for script
 
 /**
  * Load email queue from file
@@ -133,7 +134,18 @@ async function sendWelcomeEmail(merchant, credentials, setupToken) {
     `
   };
 
-  return sendEmail(emailContent);
+  // MONITORING: Measure duration
+  const end = emailSendDuration.startTimer();
+  try {
+    const result = await sendEmail(emailContent);
+    emailSentCounter.inc({ type: 'welcome' }); // MONITORING: Increment sent
+    end(); // MONITORING: Record duration
+    return result;
+  } catch (error) {
+    emailFailedCounter.inc({ type: 'welcome', error_code: error.code || 'unknown' }); // MONITORING: Increment failed
+    end(); // MONITORING: Still record duration
+    throw error;
+  }
 }
 
 /**
@@ -244,6 +256,8 @@ async function sendQueuedEmails() {
   console.log('📧 All welcome emails have been sent');
   console.log('🔗 Merchants can now use their setup links');
   console.log('📊 Monitor merchant account completions');
+  
+  console.log(await client.register.metrics()); // MONITORING: Log metrics after run (push to Pushgateway in prod)
   
   return results;
 }

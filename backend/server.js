@@ -10,6 +10,7 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const rateLimit = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
+const { client, webVitalsLCP, webVitalsCLS, webVitalsFID } = require('./utils/metrics'); // MONITORING: Updated import for Web Vitals
 
 // Load environment variables
 dotenv.config();
@@ -131,29 +132,28 @@ app.use('/api/auth/register/merchant', strictAuthLimiter);
 app.use('/api/auth/login/merchant', strictAuthLimiter);
 app.use('/api/auth', authLimiter);
 
-// Health check endpoint for Render
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    message: 'Nairobi Verified Backend is running',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
-  });
+// MONITORING: Endpoint to receive frontend Web Vitals
+app.post('/api/metrics/frontend', (req, res) => {
+  const { name, value, navigationType } = req.body;
+  try {
+    if (name === 'LCP') {
+      webVitalsLCP.observe({ labels: { navigation_type: navigationType || 'unknown' } }, value / 1000); // Convert ms to seconds
+    } else if (name === 'CLS') {
+      webVitalsCLS.observe({ labels: { navigation_type: navigationType || 'unknown' } }, value);
+    } else if (name === 'FID') {
+      webVitalsFID.observe({ labels: { navigation_type: navigationType || 'unknown' } }, value / 1000); // Convert ms to seconds
+    }
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error recording Web Vitals:', error);
+    res.status(500).json({ success: false, error: 'Failed to record metrics' });
+  }
 });
 
-// API status endpoint
-app.get('/api/status', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'API is running',
-    authenticated: req.isAuthenticated ? req.isAuthenticated() : false,
-    user: req.user ? { 
-      id: req.user._id || req.user.id, 
-      email: req.user.email,
-      role: req.user.role 
-    } : null
-  });
+// MONITORING: Metrics endpoint for Prometheus
+app.get('/metrics', async (req, res) => {
+  res.setHeader('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
 });
 
 // Routes - FIXED: Reordered to prevent conflicts
@@ -234,6 +234,7 @@ const server = app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
   console.log(`API status: http://localhost:${PORT}/api/status`);
+  console.log(`Metrics endpoint: http://localhost:${PORT}/metrics`);
 });
 
 // Handle unhandled promise rejections
