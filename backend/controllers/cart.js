@@ -385,7 +385,7 @@ exports.validateCart = async (req, res) => {
 
       if (item.price !== item.product.price) {
         issues.push({
-          itemId: item._id,
+          itemId: item.id,
           productName: item.productName,
           issue: `Price changed from ${item.price} to ${item.product.price}`,
           priceChange: {

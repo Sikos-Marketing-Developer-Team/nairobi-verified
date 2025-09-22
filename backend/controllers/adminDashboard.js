@@ -475,7 +475,7 @@ const getMerchantDocuments = asyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       merchant: {
-        id: merchant._id,
+        id: merchant.id,
         businessName: merchant.businessName,
         email: merchant.email,
         verified: merchant.verified,
@@ -762,7 +762,7 @@ const createMerchant = asyncHandler(async (req, res) => {
     res.status(201).json({
       success: true,
       merchant: {
-        id: merchant._id,
+        id: merchant.id,
         businessName: merchant.businessName,
         email: merchant.email,
         phone: merchant.phone,
@@ -780,7 +780,7 @@ const createMerchant = asyncHandler(async (req, res) => {
     res.status(201).json({
       success: true,
       merchant: {
-        id: merchant._id,
+        id: merchant.id,
         businessName: merchant.businessName,
         email: merchant.email,
         phone: merchant.phone,
@@ -974,7 +974,7 @@ const createUser = asyncHandler(async (req, res) => {
   res.status(201).json({
     success: true,
     user: {
-      id: user._id,
+      id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
