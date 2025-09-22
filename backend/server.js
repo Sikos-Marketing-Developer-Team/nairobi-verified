@@ -1,5 +1,5 @@
+require('dotenv').config();
 const express = require('express');
-const dotenv = require('dotenv');
 const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
@@ -10,9 +10,6 @@ const cookieParser = require('cookie-parser');
 const { connectDB } = require('./config/db');
 const rateLimit = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
-
-// Load environment variables
-dotenv.config();
 
 // Connect to database
 if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
