@@ -1,214 +1,258 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const BusinessHoursSchema = new mongoose.Schema({
-  open: String,
-  close: String,
-  closed: {
-    type: Boolean,
-    default: false
-  }
-}, { _id: false });
-
-const MerchantSchema = new mongoose.Schema({
+const Merchant = sequelize.define('Merchant', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   businessName: {
-    type: String,
-    required: [true, 'Please add a business name'],
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: false
   },
   email: {
-    type: String,
-    required: [true, 'Please add an email'],
+    type: DataTypes.STRING,
+    allowNull: false,
     unique: true,
-    match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-      'Please add a valid email'
-    ]
+    validate: {
+      isEmail: true
+    }
   },
   phone: {
-    type: String,
-    required: [true, 'Please add a phone number']
+    type: DataTypes.STRING,
+    allowNull: false
   },
   password: {
-    type: String,
-    required: [true, 'Please add a password'],
-    minlength: 6,
-    select: false
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      len: [6, 255]
+    }
   },
   businessType: {
-    type: String,
-    required: [true, 'Please add a business type']
+    type: DataTypes.STRING,
+    allowNull: false
   },
   description: {
-    type: String,
-    required: [true, 'Please add a description']
+    type: DataTypes.TEXT,
+    allowNull: false
   },
   yearEstablished: {
-    type: Number
+    type: DataTypes.INTEGER
   },
   website: {
-    type: String
+    type: DataTypes.STRING
   },
   address: {
-    type: String,
-    required: [true, 'Please add an address']
+    type: DataTypes.STRING,
+    allowNull: false
   },
   location: {
-    type: String,
-    required: [true, 'Please add a location']
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  landmark: String,
+  landmark: {
+    type: DataTypes.STRING
+  },
   businessHours: {
-    monday: BusinessHoursSchema,
-    tuesday: BusinessHoursSchema,
-    wednesday: BusinessHoursSchema,
-    thursday: BusinessHoursSchema,
-    friday: BusinessHoursSchema,
-    saturday: BusinessHoursSchema,
-    sunday: BusinessHoursSchema
+    type: DataTypes.JSONB,
+    defaultValue: {
+      monday: { open: '', close: '', closed: false },
+      tuesday: { open: '', close: '', closed: false },
+      wednesday: { open: '', close: '', closed: false },
+      thursday: { open: '', close: '', closed: false },
+      friday: { open: '', close: '', closed: false },
+      saturday: { open: '', close: '', closed: false },
+      sunday: { open: '', close: '', closed: false }
+    }
   },
   logo: {
-    type: String,
-    default: ''
+    type: DataTypes.STRING,
+    defaultValue: ''
   },
   bannerImage: {
-    type: String,
-    default: ''
+    type: DataTypes.STRING,
+    defaultValue: ''
   },
-  gallery: [String],
-  // ENHANCED: Document schema with metadata
+  gallery: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
   documents: {
-    businessRegistration: {
-      path: String,
-      uploadedAt: { type: Date, default: Date.now },
-      originalName: String,
-      fileSize: Number,
-      mimeType: String
-    },
-    idDocument: {
-      path: String,
-      uploadedAt: { type: Date, default: Date.now },
-      originalName: String,
-      fileSize: Number,
-      mimeType: String
-    },
-    utilityBill: {
-      path: String,
-      uploadedAt: { type: Date, default: Date.now },
-      originalName: String,
-      fileSize: Number,
-      mimeType: String
-    },
-    additionalDocs: [{
-      path: String,
-      uploadedAt: { type: Date, default: Date.now },
-      originalName: String,
-      fileSize: Number,
-      mimeType: String,
-      description: String // NEW: Allow description for additional docs
-    }],
-    // NEW: Document verification tracking
-    verificationNotes: String,
-    documentsSubmittedAt: Date,
-    documentsReviewedAt: Date,
-    documentReviewStatus: {
-      type: String,
-      enum: ['pending', 'under_review', 'approved', 'rejected', 'incomplete'],
-      default: 'pending'
+    type: DataTypes.JSONB,
+    defaultValue: {
+      businessRegistration: {},
+      idDocument: {},
+      utilityBill: {},
+      additionalDocs: [],
+      verificationNotes: '',
+      documentsSubmittedAt: null,
+      documentsReviewedAt: null,
+      documentReviewStatus: 'pending'
     }
   },
   verified: {
-    type: Boolean,
-    default: false
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   verifiedDate: {
-    type: Date
+    type: DataTypes.DATE
   },
-  // NEW: Enhanced verification tracking
-  verificationHistory: [{
-    action: {
-      type: String,
-      enum: ['submitted', 'under_review', 'approved', 'rejected', 'resubmitted']
-    },
-    performedBy: {
-      type: mongoose.Schema.ObjectId,
-      ref: 'AdminUser'
-    },
-    performedAt: {
-      type: Date,
-      default: Date.now
-    },
-    notes: String,
-    documentsInvolved: [String]
-  }],
+  verificationHistory: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
   rating: {
-    type: Number,
-    default: 0
+    type: DataTypes.DECIMAL(2, 1),
+    defaultValue: 0
   },
   reviews: {
-    type: Number,
-    default: 0
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   },
   featured: {
-    type: Boolean,
-    default: false
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  // Activation status for admin-controlled visibility
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   },
   featuredDate: {
-    type: Date
+    type: DataTypes.DATE
   },
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-  // Account setup fields
-  accountSetupToken: String,
-  accountSetupExpire: Date,
-  accountSetupDate: Date,
+  resetPasswordToken: {
+    type: DataTypes.STRING
+  },
+  resetPasswordExpire: {
+    type: DataTypes.DATE
+  },
+  accountSetupToken: {
+    type: DataTypes.STRING
+  },
+  accountSetupExpire: {
+    type: DataTypes.DATE
+  },
+  accountSetupDate: {
+    type: DataTypes.DATE
+  },
   onboardingStatus: {
-    type: String,
-    enum: ['credentials_sent', 'account_setup', 'documents_submitted', 'under_review', 'completed'],
-    default: 'credentials_sent'
+    type: DataTypes.ENUM('credentials_sent', 'account_setup', 'documents_submitted', 'under_review', 'completed'),
+    defaultValue: 'credentials_sent'
   },
-  // Admin creation tracking
   createdByAdmin: {
-    type: Boolean,
-    default: false
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
-  createdByAdminId: String,
-  createdByAdminName: String,
-  // Programmatic creation tracking
+  createdByAdminId: {
+    type: DataTypes.STRING
+  },
+  createdByAdminName: {
+    type: DataTypes.STRING
+  },
   createdProgrammatically: {
-    type: Boolean,
-    default: false
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
-  createdBy: String,
-  // NEW: Additional tracking fields
-  lastLoginAt: Date,
+  createdBy: {
+    type: DataTypes.STRING
+  },
+  lastLoginAt: {
+    type: DataTypes.DATE
+  },
   profileCompleteness: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    validate: {
+      min: 0,
+      max: 100
+    }
   },
   documentsCompleteness: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    validate: {
+      min: 0,
+      max: 100
+    }
   },
   createdAt: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   },
   updatedAt: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
+}, {
+  tableName: 'merchants',
+  hooks: {
+    beforeCreate: async (merchant) => {
+      if (merchant.password) {
+        const salt = await bcrypt.genSalt(10);
+        merchant.password = await bcrypt.hash(merchant.password, salt);
+      }
+    },
+    beforeUpdate: async (merchant) => {
+      merchant.updatedAt = new Date();
+      merchant.calculateCompleteness();
+    }
   }
 });
 
-// NEW: Pre-save middleware to update timestamps and completeness
-MerchantSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  
+// Instance methods
+Merchant.prototype.getSignedJwtToken = function() {
+  return jwt.sign({ id: this.id, isMerchant: true }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE
+  });
+};
+
+Merchant.prototype.matchPassword = async function(enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+Merchant.prototype.getDocumentStatus = function() {
+  const docs = this.documents || {};
+  const requiredDocs = [
+    docs.businessRegistration?.path,
+    docs.idDocument?.path,
+    docs.utilityBill?.path
+  ];
+
+  const completedCount = requiredDocs.filter(doc => doc && doc.trim()).length;
+
+  return {
+    businessRegistration: !!(docs.businessRegistration?.path),
+    idDocument: !!(docs.idDocument?.path),
+    utilityBill: !!(docs.utilityBill?.path),
+    additionalDocs: !!(docs.additionalDocs?.length > 0),
+    completedCount,
+    totalRequired: 3,
+    isComplete: completedCount === 3,
+    completionPercentage: Math.round((completedCount / 3) * 100),
+    canBeVerified: completedCount === 3 && !this.verified,
+    status: docs.documentReviewStatus || 'pending'
+  };
+};
+
+Merchant.prototype.addVerificationHistory = async function(action, performedBy, notes, documentsInvolved = []) {
+  const history = this.verificationHistory || [];
+  history.push({
+    action,
+    performedBy,
+    performedAt: new Date(),
+    notes,
+    documentsInvolved
+  });
+  this.verificationHistory = history;
+  return await this.save();
+};
+
+Merchant.prototype.calculateCompleteness = function() {
   // Calculate profile completeness
   const profileFields = [
     this.businessName,
@@ -219,201 +263,86 @@ MerchantSchema.pre('save', function(next) {
     this.address,
     this.location
   ];
-  
+
   const optionalFields = [
     this.website,
     this.yearEstablished,
     this.logo,
     this.businessHours
   ];
-  
+
   const completedRequired = profileFields.filter(field => field && field.trim()).length;
   const completedOptional = optionalFields.filter(field => field).length;
-  
+
   this.profileCompleteness = Math.round(
-    ((completedRequired / profileFields.length) * 70) + 
+    ((completedRequired / profileFields.length) * 70) +
     ((completedOptional / optionalFields.length) * 30)
   );
-  
+
   // Calculate documents completeness
+  const docs = this.documents || {};
   const requiredDocs = [
-    this.documents?.businessRegistration?.path,
-    this.documents?.idDocument?.path,
-    this.documents?.utilityBill?.path
+    docs.businessRegistration?.path,
+    docs.idDocument?.path,
+    docs.utilityBill?.path
   ];
-  
+
   const completedDocs = requiredDocs.filter(doc => doc && doc.trim()).length;
   this.documentsCompleteness = Math.round((completedDocs / requiredDocs.length) * 100);
-  
+
   // Update onboarding status based on completeness
   if (this.documentsCompleteness === 100 && this.onboardingStatus === 'account_setup') {
     this.onboardingStatus = 'documents_submitted';
-    this.documents.documentsSubmittedAt = new Date();
-    this.documents.documentReviewStatus = 'pending';
+    this.documents = {
+      ...docs,
+      documentsSubmittedAt: new Date(),
+      documentReviewStatus: 'pending'
+    };
   }
-  
-  next();
-});
+};
 
-// Encrypt password using bcrypt
-MerchantSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    next();
-  }
-
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-});
-
-// Sign JWT and return
-MerchantSchema.methods.getSignedJwtToken = function() {
-  return jwt.sign({ id: this._id, isMerchant: true }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
+// Static methods
+Merchant.getMerchantsNeedingReview = async function() {
+  return await this.findAll({
+    where: {
+      verified: false,
+      [sequelize.Op.and]: [
+        sequelize.literal("documents->>'businessRegistration'->>'path' IS NOT NULL"),
+        sequelize.literal("documents->>'businessRegistration'->>'path' != ''"),
+        sequelize.literal("documents->>'idDocument'->>'path' IS NOT NULL"),
+        sequelize.literal("documents->>'idDocument'->>'path' != ''"),
+        sequelize.literal("documents->>'utilityBill'->>'path' IS NOT NULL"),
+        sequelize.literal("documents->>'utilityBill'->>'path' != ''"),
+        sequelize.literal("documents->>'documentReviewStatus' IN ('pending', 'under_review')")
+      ]
+    },
+    order: [['createdAt', 'ASC']]
   });
 };
 
-// Match merchant entered password to hashed password in database
-MerchantSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+Merchant.getDocumentStats = async function() {
+  const [stats] = await sequelize.query(`
+    SELECT
+      COUNT(*) as totalMerchants,
+      COUNT(CASE WHEN documents->'businessRegistration'->>'path' IS NOT NULL AND documents->'businessRegistration'->>'path' != '' THEN 1 END) as withBusinessReg,
+      COUNT(CASE WHEN documents->'idDocument'->>'path' IS NOT NULL AND documents->'idDocument'->>'path' != '' THEN 1 END) as withIdDoc,
+      COUNT(CASE WHEN documents->'utilityBill'->>'path' IS NOT NULL AND documents->'utilityBill'->>'path' != '' THEN 1 END) as withUtilityBill,
+      COUNT(CASE WHEN
+        documents->'businessRegistration'->>'path' IS NOT NULL AND documents->'businessRegistration'->>'path' != '' AND
+        documents->'idDocument'->>'path' IS NOT NULL AND documents->'idDocument'->>'path' != '' AND
+        documents->'utilityBill'->>'path' IS NOT NULL AND documents->'utilityBill'->>'path' != ''
+      THEN 1 END) as completeDocuments,
+      COUNT(CASE WHEN verified = true THEN 1 END) as verifiedMerchants,
+      COUNT(CASE WHEN
+        verified = false AND
+        documents->'businessRegistration'->>'path' IS NOT NULL AND documents->'businessRegistration'->>'path' != '' AND
+        documents->'idDocument'->>'path' IS NOT NULL AND documents->'idDocument'->>'path' != '' AND
+        documents->'utilityBill'->>'path' IS NOT NULL AND documents->'utilityBill'->>'path' != ''
+      THEN 1 END) as pendingReview
+    FROM merchants
+  `, { type: sequelize.QueryTypes.SELECT });
+
+  return stats;
 };
 
-// NEW: Instance method to check document completeness
-MerchantSchema.methods.getDocumentStatus = function() {
-  const requiredDocs = {
-    businessRegistration: !!(this.documents?.businessRegistration?.path),
-    idDocument: !!(this.documents?.idDocument?.path),
-    utilityBill: !!(this.documents?.utilityBill?.path)
-  };
-  
-  const completedCount = Object.values(requiredDocs).filter(Boolean).length;
-  
-  return {
-    ...requiredDocs,
-    additionalDocs: !!(this.documents?.additionalDocs?.length > 0),
-    completedCount,
-    totalRequired: 3,
-    isComplete: completedCount === 3,
-    completionPercentage: Math.round((completedCount / 3) * 100),
-    canBeVerified: completedCount === 3 && !this.verified,
-    status: this.documents?.documentReviewStatus || 'pending'
-  };
-};
-
-// NEW: Instance method to add verification history entry
-MerchantSchema.methods.addVerificationHistory = function(action, performedBy, notes, documentsInvolved = []) {
-  if (!this.verificationHistory) {
-    this.verificationHistory = [];
-  }
-  
-  this.verificationHistory.push({
-    action,
-    performedBy,
-    notes,
-    documentsInvolved
-  });
-  
-  return this.save();
-};
-
-// NEW: Static method to get merchants needing review
-MerchantSchema.statics.getMerchantsNeedingReview = function() {
-  return this.find({
-    verified: false,
-    'documents.businessRegistration.path': { $exists: true, $ne: '' },
-    'documents.idDocument.path': { $exists: true, $ne: '' },
-    'documents.utilityBill.path': { $exists: true, $ne: '' },
-    'documents.documentReviewStatus': { $in: ['pending', 'under_review'] }
-  }).sort({ 'documents.documentsSubmittedAt': 1 });
-};
-
-// NEW: Static method to get document statistics
-MerchantSchema.statics.getDocumentStats = async function() {
-  const stats = await this.aggregate([
-    {
-      $group: {
-        _id: null,
-        totalMerchants: { $sum: 1 },
-        withBusinessReg: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.businessRegistration.path', null] },
-                { $ne: ['$documents.businessRegistration.path', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        withIdDoc: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.idDocument.path', null] },
-                { $ne: ['$documents.idDocument.path', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        withUtilityBill: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.utilityBill.path', null] },
-                { $ne: ['$documents.utilityBill.path', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        completeDocuments: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.businessRegistration.path', null] },
-                { $ne: ['$documents.businessRegistration.path', ''] },
-                { $ne: ['$documents.idDocument.path', null] },
-                { $ne: ['$documents.idDocument.path', ''] },
-                { $ne: ['$documents.utilityBill.path', null] },
-                { $ne: ['$documents.utilityBill.path', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        verifiedMerchants: { $sum: { $cond: [{ $eq: ['$verified', true] }, 1, 0] } },
-        pendingReview: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $eq: ['$verified', false] },
-                { $ne: ['$documents.businessRegistration.path', null] },
-                { $ne: ['$documents.businessRegistration.path', ''] },
-                { $ne: ['$documents.idDocument.path', null] },
-                { $ne: ['$documents.idDocument.path', ''] },
-                { $ne: ['$documents.utilityBill.path', null] },
-                { $ne: ['$documents.utilityBill.path', ''] }
-              ]}, 1, 0
-            ]
-          }
-        }
-      }
-    }
-  ]);
-  
-  return stats[0] || {
-    totalMerchants: 0,
-    withBusinessReg: 0,
-    withIdDoc: 0,
-    withUtilityBill: 0,
-    completeDocuments: 0,
-    verifiedMerchants: 0,
-    pendingReview: 0
-  };
-};
-
-// NEW: Create indexes for better query performance
-MerchantSchema.index({ verified: 1 });
-MerchantSchema.index({ 'documents.documentsSubmittedAt': 1 });
-MerchantSchema.index({ 'documents.documentReviewStatus': 1 });
-MerchantSchema.index({ onboardingStatus: 1 });
-MerchantSchema.index({ createdAt: -1 });
-MerchantSchema.index({ businessType: 1 });
-
-module.exports = mongoose.model('Merchant', MerchantSchema);
+module.exports = Merchant;

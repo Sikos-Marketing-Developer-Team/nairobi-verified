@@ -7,7 +7,7 @@ const passport = require('passport');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
-const connectDB = require('./config/db');
+const { connectDB } = require('./config/db');
 const rateLimit = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
 

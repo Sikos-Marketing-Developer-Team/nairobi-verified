@@ -137,7 +137,7 @@ exports.getMerchants = async (req, res) => {
 // @access  Public
 exports.getMerchant = async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.params.id);
+    const merchant = await Merchant.findByPk(req.params.id);
 
     if (!merchant) {
       return res.status(404).json({
@@ -147,7 +147,7 @@ exports.getMerchant = async (req, res) => {
     }
 
     // NEW: Add document analysis for admin/merchant view
-    let responseData = merchant.toObject();
+    let responseData = merchant.toJSON();
     
     // Add document completeness info if user is admin or the merchant themselves
     if (req.user && (req.user.role === 'admin' || req.merchant)) {
@@ -207,7 +207,7 @@ exports.createMerchant = async (req, res) => {
     } = req.body;
 
     // Check if merchant already exists
-    const existingMerchant = await Merchant.findOne({ email });
+    const existingMerchant = await Merchant.findOne({ where: { email } });
     if (existingMerchant) {
       return res.status(400).json({
         success: false,
@@ -321,7 +321,7 @@ exports.createMerchant = async (req, res) => {
     } = req.body;
 
     // Check if merchant already exists
-    const existingMerchant = await Merchant.findOne({ email });
+    const existingMerchant = await Merchant.findOne({ where: { email } });
     if (existingMerchant) {
       return res.status(400).json({
         success: false,
@@ -415,23 +415,21 @@ exports.updateMerchant = async (req, res) => {
       businessHours
     } = req.body;
 
-    const merchant = await Merchant.findByIdAndUpdate(
-      req.params.id,
-      {
-        businessName,
-        email,
-        phone,
-        businessType,
-        description,
-        yearEstablished,
-        website,
-        address,
-        location,
-        landmark,
-        businessHours
-      },
-      { new: true, runValidators: true }
-    );
+    const merchant = await Merchant.findByPk(req.params.id);
+    if (merchant) {
+      merchant.businessName = businessName;
+      merchant.email = email;
+      merchant.phone = phone;
+      merchant.businessType = businessType;
+      merchant.description = description;
+      merchant.yearEstablished = yearEstablished;
+      merchant.website = website;
+      merchant.address = address;
+      merchant.location = location;
+      merchant.landmark = landmark;
+      merchant.businessHours = businessHours;
+      await merchant.save();
+    }
 
     if (!merchant) {
       return res.status(404).json({
@@ -481,7 +479,8 @@ exports.updateMerchant = async (req, res) => {
 // @access  Private/Admin
 exports.deleteMerchant = async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.params.id);
+    // PostgreSQL: find by primary key
+    const merchant = await Merchant.findByPk(req.params.id);
 
     if (!merchant) {
       return res.status(404).json({
@@ -490,19 +489,16 @@ exports.deleteMerchant = async (req, res) => {
       });
     }
 
-    // Delete all reviews associated with the merchant
-    await Review.deleteMany({ merchant: req.params.id });
+    // TODO: When Reviews migrate to Postgres, delete related reviews here
 
-    // NEW: Log document cleanup if documents existed
     const hadDocuments = !!(
       merchant.documents?.businessRegistration ||
       merchant.documents?.idDocument ||
       merchant.documents?.utilityBill ||
-      merchant.documents?.additionalDocs?.length > 0
+      (merchant.documents?.additionalDocs && merchant.documents.additionalDocs.length > 0)
     );
 
-    // Delete the merchant
-    await merchant.deleteOne();
+    await merchant.destroy();
 
     res.status(200).json({
       success: true,
@@ -537,11 +533,11 @@ exports.uploadLogo = async (req, res) => {
       });
     }
 
-    const merchant = await Merchant.findByIdAndUpdate(
-      req.params.id,
-      { logo: req.file.path },
-      { new: true }
-    );
+    const merchant = await Merchant.findByPk(req.params.id);
+    if (merchant) {
+      merchant.logo = req.file.path;
+      await merchant.save();
+    }
 
     if (!merchant) {
       return res.status(404).json({
@@ -582,11 +578,11 @@ exports.uploadBanner = async (req, res) => {
       });
     }
 
-    const merchant = await Merchant.findByIdAndUpdate(
-      req.params.id,
-      { bannerImage: req.file.path },
-      { new: true }
-    );
+    const merchant = await Merchant.findByPk(req.params.id);
+    if (merchant) {
+      merchant.bannerImage = req.file.path;
+      await merchant.save();
+    }
 
     if (!merchant) {
       return res.status(404).json({
@@ -627,7 +623,7 @@ exports.uploadGallery = async (req, res) => {
       });
     }
 
-    const merchant = await Merchant.findById(req.params.id);
+    const merchant = await Merchant.findByPk(req.params.id);
 
     if (!merchant) {
       return res.status(404).json({
@@ -673,7 +669,7 @@ exports.uploadDocuments = async (req, res) => {
       });
     }
 
-    const merchant = await Merchant.findById(req.params.id);
+    const merchant = await Merchant.findByPk(req.params.id);
 
     if (!merchant) {
       return res.status(404).json({
@@ -940,7 +936,7 @@ exports.getSetupInfo = async (req, res) => {
 // @desc    Verify merchant (ENHANCED WITH NOTIFICATION)
 exports.verifyMerchant = async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.params.id);
+    const merchant = await Merchant.findByPk(req.params.id);
 
     if (!merchant) {
       return res.status(404).json({
@@ -964,6 +960,8 @@ exports.verifyMerchant = async (req, res) => {
     merchant.verified = true;
     merchant.verifiedDate = Date.now();
     merchant.onboardingStatus = 'completed';
+    // Auto-activate when verified
+    merchant.isActive = true;
     await merchant.save();
 
     // NEW: Send verification confirmation email
@@ -1014,7 +1012,7 @@ exports.verifyMerchant = async (req, res) => {
 // @access  Private (Merchant only)
 exports.sendCredentials = async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.user.id);
+    const merchant = await Merchant.findByPk(req.user.id);
 
     if (!merchant) {
       return res.status(404).json({

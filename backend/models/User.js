@@ -1,107 +1,115 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const UserSchema = new mongoose.Schema({
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   firstName: {
-    type: String,
-    required: [true, 'Please add a first name'],
-    trim: true
-  },
-  lastName: {
-    type: String,
-    required: [true, 'Please add a last name'],
-    trim: true
-  },
-  email: {
-    type: String,
-    required: [true, 'Please add an email'],
-    unique: true,
-    match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-      'Please add a valid email'
-    ]
-  },
-  phone: {
-    type: String,
-    required: function() {
-      // Only required if not using Google auth
-      return !this.googleId;
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true
     }
   },
+  lastName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    validate: {
+      isEmail: true
+    }
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   password: {
-    type: String,
-    required: function() {
-      // Only required if not using Google auth
-      return !this.googleId;
-    },
-    minlength: 6,
-    select: false
+    type: DataTypes.STRING,
+    allowNull: true,
+    validate: {
+      len: [6, 255]
+    }
   },
   googleId: {
-    type: String,
+    type: DataTypes.STRING,
     unique: true,
-    sparse: true
+    allowNull: true
   },
   role: {
-    type: String,
-    enum: ['user', 'admin'],
-    default: 'user'
+    type: DataTypes.ENUM('user', 'admin'),
+    defaultValue: 'user'
   },
   avatar: {
-    type: String,
-    default: ''
+    type: DataTypes.STRING,
+    defaultValue: ''
   },
   profilePicture: {
-    type: String,
-    default: ''
+    type: DataTypes.STRING,
+    defaultValue: ''
   },
   isVerified: {
-    type: Boolean,
-    default: false
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
-  favorites: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Merchant'
-  }],
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
+  favorites: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
+  resetPasswordToken: {
+    type: DataTypes.STRING
+  },
+  resetPasswordExpire: {
+    type: DataTypes.DATE
+  },
   createdAt: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
+}, {
+  tableName: 'users',
+  hooks: {
+    beforeCreate: async (user) => {
+      if (user.password && user.password.length >= 6) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
+      }
+    },
+    beforeUpdate: async (user) => {
+      user.updatedAt = new Date();
+    }
+  },
+  getterMethods: {
+    name() {
+      return `${this.firstName} ${this.lastName}`;
+    }
   }
 });
 
-// Virtual for full name
-UserSchema.virtual('name').get(function() {
-  return `${this.firstName} ${this.lastName}`;
-});
-
-// Ensure virtual fields are serialized
-UserSchema.set('toJSON', {
-  virtuals: true
-});
-
-// Encrypt password using bcrypt
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    next();
-  }
-
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-});
-
-// Sign JWT and return
-UserSchema.methods.getSignedJwtToken = function() {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
+// Instance methods
+User.prototype.getSignedJwtToken = function() {
+  return jwt.sign({ id: this.id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE
   });
 };
 
-// Match user entered password to hashed password in database
-UserSchema.methods.matchPassword = async function(enteredPassword) {
+User.prototype.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = User;

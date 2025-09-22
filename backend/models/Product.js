@@ -1,171 +1,176 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const productSchema = new mongoose.Schema({
+const Product = sequelize.define('Product', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   name: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
   },
   description: {
-    type: String,
-    required: true,
+    type: DataTypes.TEXT,
+    allowNull: false
   },
   price: {
-    type: Number,
-    required: true,
-    min: 0,
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    validate: {
+      min: 0
+    }
   },
   originalPrice: {
-    type: Number,
-    required: true,
-    min: 0,
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    validate: {
+      min: 0
+    }
   },
   category: {
-    type: String,
-    required: true,
-    enum: ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books', 'Beauty', 'Automotive', 'Food & Beverages'],
+    type: DataTypes.ENUM('Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books', 'Beauty', 'Automotive', 'Food & Beverages'),
+    allowNull: false
   },
   subcategory: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  images: [{
-    type: String,
-    required: true,
-  }],
+  images: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: []
+  },
   primaryImage: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  merchant: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Merchant',
-    required: true,
+  merchantId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'merchants',
+      key: 'id'
+    }
   },
   merchantName: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false
   },
   stockQuantity: {
-    type: Number,
-    required: true,
-    min: 0,
-    default: 0,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    validate: {
+      min: 0
+    }
   },
   soldQuantity: {
-    type: Number,
-    default: 0,
-    min: 0,
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    validate: {
+      min: 0
+    }
   },
   rating: {
-    type: Number,
-    min: 0,
-    max: 5,
-    default: 0,
+    type: DataTypes.DECIMAL(2, 1),
+    defaultValue: 0,
+    validate: {
+      min: 0,
+      max: 5
+    }
   },
   reviewCount: {
-    type: Number,
-    default: 0,
-    min: 0,
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    validate: {
+      min: 0
+    }
   },
   featured: {
-    type: Boolean,
-    default: false,
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   isActive: {
-    type: Boolean,
-    default: true,
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   },
-  tags: [{
-    type: String,
-    trim: true,
-  }],
+  tags: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
   specifications: {
-    type: Map,
-    of: String,
+    type: DataTypes.JSONB,
+    defaultValue: {}
   },
   weight: {
-    type: Number,
-    min: 0,
+    type: DataTypes.DECIMAL(10, 2),
+    validate: {
+      min: 0
+    }
   },
   dimensions: {
-    length: Number,
-    width: Number,
-    height: Number,
+    type: DataTypes.JSONB,
+    defaultValue: {}
   },
   warranty: {
-    type: String,
+    type: DataTypes.STRING
   },
   brand: {
-    type: String,
-    trim: true,
+    type: DataTypes.STRING
   },
   model: {
-    type: String,
-    trim: true,
+    type: DataTypes.STRING
   },
   condition: {
-    type: String,
-    enum: ['new', 'used', 'refurbished'],
-    default: 'new',
+    type: DataTypes.ENUM('new', 'used', 'refurbished'),
+    defaultValue: 'new'
   },
   views: {
-    type: Number,
-    default: 0,
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   },
   createdAt: {
-    type: Date,
-    default: Date.now,
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   },
   updatedAt: {
-    type: Date,
-    default: Date.now,
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
+}, {
+  tableName: 'products',
+  hooks: {
+    beforeUpdate: async (product) => {
+      product.updatedAt = new Date();
+    }
   },
+  indexes: [
+    { fields: ['category', 'isActive'] },
+    { fields: ['merchantId', 'isActive'] },
+    { fields: ['featured', 'isActive'] },
+    { fields: ['price'] },
+    { fields: ['rating'] },
+    { fields: ['createdAt'] }
+  ]
 });
 
-// Indexes for efficient queries
-// Optimizes queries for active products by category
-productSchema.index({ category: 1, isActive: 1 });
-// Optimizes queries for merchant-specific active products
-productSchema.index({ merchant: 1, isActive: 1 });
-// Optimizes queries for featured active products
-productSchema.index({ featured: 1, isActive: 1 });
-// Enables text search on name, description, and tags
-productSchema.index({ name: 'text', description: 'text', tags: 'text' });
-// Optimizes price-based queries
-productSchema.index({ price: 1 });
-// Optimizes sorting by rating
-productSchema.index({ rating: -1 });
-// Optimizes sorting by creation date
-productSchema.index({ createdAt: -1 });
-
-// Virtual: Indicates if stock is available
-productSchema.virtual('isInStock').get(function () {
+// Virtuals
+Product.prototype.getIsInStock = function() {
   return this.stockQuantity > this.soldQuantity;
-});
+};
 
-// Virtual: Calculates available stock quantity
-productSchema.virtual('availableQuantity').get(function () {
+Product.prototype.getAvailableQuantity = function() {
   return Math.max(0, this.stockQuantity - this.soldQuantity);
-});
+};
 
-// Virtual: Calculates discount percentage
-productSchema.virtual('discountPercentage').get(function () {
+Product.prototype.getDiscountPercentage = function() {
   if (this.originalPrice <= this.price) return 0;
   return Math.round(((this.originalPrice - this.price) / this.originalPrice) * 100);
-});
+};
 
-// Pre-save middleware to update the updatedAt field
-productSchema.pre('save', function (next) {
-  this.updatedAt = new Date();
-  next();
-});
-
-// Ensure virtuals are included in JSON output
-productSchema.set('toJSON', { virtuals: true });
-productSchema.set('toObject', { virtuals: true });
-
-// Enable query debugging for profiling (uncomment to use)
-// mongoose.set('debug', true);
-
-module.exports = mongoose.model('Product', productSchema);
+module.exports = Product;
