@@ -133,6 +133,7 @@ const seedDatabase = async () => {
       merchantName,
       stockQuantity: product.stockQuantity || product.stock || 0,
       featured: product.featured || product.isFeatured || false,
+      primaryImage: product.primaryImage || (product.images && product.images[0]) || '',
       // Remove MongoDB-specific fields
       merchant: undefined,
       stock: undefined,
@@ -1097,11 +1098,19 @@ const seedDatabase = async () => {
     ];
 
     // Insert all products
-    const allProducts = [...cosmeticsProducts, ...electronicsProducts];
-    const insertedProducts = await Product.insertMany(allProducts);
+    const cosmeticsProductsUpdated = cosmeticsProducts.map(product =>
+      updateProductForSequelize(product, jnmCosmetics.id, jnmCosmetics.businessName)
+    );
+    const electronicsProductsUpdated = electronicsProducts.map(product =>
+      updateProductForSequelize(product, salvageShop.id, salvageShop.businessName)
+    );
+    const allProducts = [...cosmeticsProductsUpdated, ...electronicsProductsUpdated];
+    const insertedProducts = await Product.bulkCreate(allProducts);
     console.log('Products created:', insertedProducts.length);
 
+    // TODO: Convert FlashSale model to Sequelize
     // Create flash sales with products from both merchants
+    /*
     const flashSaleProducts = [
       // JNM Cosmetics flash sale items
       insertedProducts.find(p => p.name === 'Nivea Daily Moisturizer'),
@@ -1121,31 +1130,30 @@ const seedDatabase = async () => {
       insertedProducts.find(p => p.name === 'Logitech MX Master 3S')
     ].filter(Boolean);
 
-    const flashSales = await FlashSale.insertMany(
+    const flashSales = await FlashSale.bulkCreate(
       flashSaleProducts.map(product => ({
-        product: product._id,
+        productId: product.id,
         originalPrice: product.originalPrice,
         salePrice: product.price,
         discountPercentage: Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100),
         startDate: new Date(),
         endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
         isActive: true,
-        stock: product.stock,
+        stock: product.stockQuantity,
         maxQuantityPerUser: 3,
-        merchant: product.merchant,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        merchantId: product.merchantId
       }))
     );
 
     console.log('Flash sales created:', flashSales.length);
+    */
 
     console.log('Database seeded successfully!');
     console.log('Summary:');
     console.log('- Users:', users.length);
     console.log('- Merchants:', merchants.length);
     console.log('- Products:', insertedProducts.length);
-    console.log('- Flash Sales:', flashSales.length);
+    console.log('- Flash Sales: 0 (TODO: Convert FlashSale model to Sequelize)');
 
     process.exit(0);
   } catch (error) {

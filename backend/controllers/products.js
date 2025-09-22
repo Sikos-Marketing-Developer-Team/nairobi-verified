@@ -24,7 +24,7 @@ const toInt = (val, fallback) => {
 
 // Build Sequelize WHERE from query params
 const buildWhere = ({ category, merchant, featured, minPrice, maxPrice, search }) => {
-  const where = { isActive: true };
+  const where = { /* isActive: true */ };
 
   if (category) where.category = category;
 
@@ -90,7 +90,7 @@ const getProducts = async (req, res) => {
     const limitNum = toInt(limit, 12);
     const offset = (pageNum - 1) * limitNum;
 
-    const where = buildWhere({ category, merchant, featured, minPrice, maxPrice, search });
+    const where = {} // buildWhere({ category, merchant, featured, minPrice, maxPrice, search });
 
     // Normalize sort
     const order = [[sortBy, String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC']];
