@@ -1,79 +1,71 @@
-const mongoose = require('mongoose');
+const { sequelize, connectDB } = require('../config/db');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Merchant = require('../models/Merchant');
 const Product = require('../models/Product');
-const FlashSale = require('../models/FlashSale');
+// const FlashSale = require('../models/FlashSale'); // TODO: Convert to Sequelize
 require('dotenv').config();
 
 const seedDatabase = async () => {
   try {
-    // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/nairobi-verified');
-    console.log('Connected to MongoDB');
+    // Connect to PostgreSQL
+    await connectDB();
+    console.log('Connected to PostgreSQL');
 
     // Clear existing data
     await Promise.all([
-      User.deleteMany({}),
-      Merchant.deleteMany({}),
-      Product.deleteMany({}),
-      FlashSale.deleteMany({})
+      User.destroy({ where: {} }),
+      Merchant.destroy({ where: {} }),
+      Product.destroy({ where: {} }),
+      // FlashSale.destroy({ where: {} })
     ]);
     console.log('Database cleared');
 
     // Create sample users
     const hashedPassword = await bcrypt.hash('password123', 10);
-    const users = await User.insertMany([
+    const users = await User.bulkCreate([
       {
-        firstName: 'Jane',
+        firstName: 'Joseph',
         lastName: 'Mwangi',
         email: 'jane@jnmcosmetics.com',
         password: hashedPassword,
         phone: '+254712345678',
         role: 'user',
-        isVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        isVerified: true
       },
       {
-        firstName: 'Samuel',
-        lastName: 'Kariuki',
+        firstName: 'Jude',
+        lastName: 'Kimathi',
         email: 'samuel@salvageshop.co.ke',
         password: hashedPassword,
         phone: '+254723456789',
         role: 'user',
-        isVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        isVerified: true
       },
       {
-        firstName: 'Mary',
-        lastName: 'Wanjiku',
-        email: 'mary@example.com',
+        firstName: 'Mark',
+        lastName: 'Kamau',
+        email: 'mark@example.com',
         password: hashedPassword,
         phone: '+254734567890',
         role: 'user',
-        isVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        isVerified: true
       },
       {
-        firstName: 'John',
-        lastName: 'Otieno',
-        email: 'john@example.com',
+        firstName: 'Sally',
+        lastName: 'Wanga',
+        email: 'sally@example.com',
         password: hashedPassword,
         phone: '+254745678901',
         role: 'user',
-        isVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        isVerified: true
       }
     ]);
 
     console.log('Users created:', users.length);
 
     // Create detailed merchants
-    const merchants = await Merchant.insertMany([
+    const merchants = await Merchant.bulkCreate([
       {
         businessName: 'JNM Cosmetics',
         email: 'business@jnmcosmetics.com',
@@ -98,9 +90,7 @@ const seedDatabase = async () => {
         verified: true,
         verifiedDate: new Date('2023-06-15'),
         rating: 4.8,
-        reviews: 156,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        reviews: 156
       },
       {
         businessName: 'Salvage Shop',
@@ -126,9 +116,7 @@ const seedDatabase = async () => {
         verified: true,
         verifiedDate: new Date('2023-08-20'),
         rating: 4.6,
-        reviews: 203,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        reviews: 203
       }
     ]);
 
@@ -137,6 +125,26 @@ const seedDatabase = async () => {
     // Create 50+ products for both merchants
     const jnmCosmetics = merchants[0];
     const salvageShop = merchants[1];
+
+    // Update product data to use Sequelize field names
+    const updateProductForSequelize = (product, merchantId, merchantName) => ({
+      ...product,
+      merchantId,
+      merchantName,
+      stockQuantity: product.stockQuantity || product.stock || 0,
+      featured: product.featured || product.isFeatured || false,
+      // Remove MongoDB-specific fields
+      merchant: undefined,
+      stock: undefined,
+      isFeatured: undefined,
+      specifications: product.specifications || {},
+      brand: product.brand || null,
+      model: product.model || null,
+      condition: product.condition || 'new',
+      weight: product.weight || null,
+      dimensions: product.dimensions || {},
+      warranty: product.warranty || null
+    });
 
     const cosmeticsProducts = [
       // Skincare products
