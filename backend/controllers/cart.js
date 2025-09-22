@@ -366,7 +366,7 @@ exports.validateCart = async (req, res) => {
     for (let item of cart.items) {
       if (!item.product || !item.product.isActive) {
         issues.push({
-          itemId: item._id,
+          itemId: item.id,
           productName: item.productName,
           issue: 'Product is no longer available'
         });
@@ -376,7 +376,7 @@ exports.validateCart = async (req, res) => {
       const availableStock = item.product.stockQuantity - item.product.soldQuantity;
       if (item.quantity > availableStock) {
         issues.push({
-          itemId: item._id,
+          itemId: item.id,
           productName: item.productName,
           issue: `Only ${availableStock} items available, but ${item.quantity} requested`
         });

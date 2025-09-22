@@ -44,7 +44,7 @@ exports.register = async (req, res) => {
       return res.status(201).json({
         success: true,
         user: {
-          id: user._id,
+          id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
@@ -121,7 +121,7 @@ exports.registerMerchant = async (req, res) => {
       return res.status(201).json({
         success: true,
         user: {
-          id: merchant._id,
+          id: merchant.id,
           businessName: merchant.businessName,
           email: merchant.email,
           phone: merchant.phone,
@@ -187,7 +187,7 @@ exports.login = async (req, res) => {
       return res.status(200).json({
         success: true,
         user: {
-          id: user._id,
+          id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
@@ -253,7 +253,7 @@ exports.loginMerchant = async (req, res) => {
       return res.status(200).json({
         success: true,
         user: {
-          id: merchant._id,
+          id: merchant.id,
           businessName: merchant.businessName,
           email: merchant.email,
           phone: merchant.phone,
@@ -403,7 +403,7 @@ exports.googleAuth = async (req, res) => {
       res.status(200).json({
         success: true,
         user: {
-          id: user._id,
+          id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,

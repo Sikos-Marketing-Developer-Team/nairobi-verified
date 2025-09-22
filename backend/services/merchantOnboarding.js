@@ -358,10 +358,12 @@ class MerchantOnboardingService {
       // Hash the token to compare with stored hash
       const setupTokenHash = crypto.createHash('sha256').update(setupToken).digest('hex');
 
-      // Find merchant with valid setup token
+      // Find merchant with valid setup token (Sequelize)
       const merchant = await Merchant.findOne({
-        accountSetupToken: setupTokenHash,
-        accountSetupExpire: { $gt: Date.now() }
+        where: {
+          accountSetupToken: setupTokenHash,
+          accountSetupExpire: { [require('sequelize').Op.gt]: new Date() }
+        }
       });
 
       if (!merchant) {
@@ -389,7 +391,7 @@ class MerchantOnboardingService {
         success: true,
         message: 'Account setup completed successfully',
         merchant: {
-          id: merchant._id,
+          id: merchant.id,
           businessName: merchant.businessName,
           email: merchant.email,
           verified: merchant.verified

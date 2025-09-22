@@ -5,7 +5,7 @@ const morgan = require('morgan');
 const path = require('path');
 const passport = require('passport');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+const pgSession = require('connect-pg-simple')(session);
 const cookieParser = require('cookie-parser');
 const { connectDB } = require('./config/db');
 const rateLimit = require('express-rate-limit');
@@ -83,35 +83,18 @@ const authLimiter = rateLimit({
   }
 });
 
-// Session configuration
-const mongoStore = MongoStore.create({
-  mongoUrl: process.env.MONGODB_URI,
-  collectionName: 'sessions',
-  ttl: 7 * 24 * 60 * 60, // 7 days
-  autoRemove: 'native', // Automatically remove expired sessions
-  touchAfter: 24 * 3600, // lazy session update
-  stringify: false,
-  writeOperationOptions: { 
-    upsert: true,
-    retryWrites: false 
-  }
-});
-
-mongoStore.on('error', (error) => {
-  console.error('Session store error:', error);
-});
-
-mongoStore.on('connected', () => {
-  console.log('Session store connected to MongoDB');
-});
-
+// Session configuration (Postgres)
 app.use(session({
   name: 'nairobi_verified_session',
-  genid: (req) => uuidv4(),
+  genid: () => uuidv4(),
   secret: process.env.JWT_SECRET || 'your-session-secret',
   resave: false,
   saveUninitialized: false,
-  store: mongoStore,
+  store: new pgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'session', // default is "session"
+    createTableIfMissing: true
+  }),
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

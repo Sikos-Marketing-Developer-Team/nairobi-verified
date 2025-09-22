@@ -2,133 +2,113 @@ const Merchant = require('../models/Merchant');
 const Review = require('../models/Review');
 const MerchantOnboardingService = require('../services/merchantOnboarding');
 const { emailService } = require('../utils/emailService');
+const { Op, literal } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-// @desc    Get all merchants with enhanced document visibility
+// @desc    Get all merchants with enhanced document visibility (Sequelize)
 // @route   GET /api/merchants
 // @access  Public
 exports.getMerchants = async (req, res) => {
-  let query;
+  try {
+    const { select, sort, page = 1, limit = 25, search, category, documentStatus } = req.query;
 
-  // Copy req.query
-  const reqQuery = { ...req.query };
+    // Base filter
+    const where = {};
 
-  // Fields to exclude
-  const removeFields = ['select', 'sort', 'page', 'limit', 'search', 'category', 'documentStatus'];
-
-  // Loop over removeFields and delete them from reqQuery
-  removeFields.forEach(param => delete reqQuery[param]);
-
-  // Create query string
-  let queryStr = JSON.stringify(reqQuery);
-
-  // Create operators ($gt, $gte, etc)
-  queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
-
-  // Finding resource
-  query = Merchant.find(JSON.parse(queryStr));
-
-  // Select Fields
-  if (req.query.select) {
-    const fields = req.query.select.split(',').join(' ');
-    query = query.select(fields);
-  }
-
-  // Sort
-  if (req.query.sort) {
-    const sortBy = req.query.sort.split(',').join(' ');
-    query = query.sort(sortBy);
-  } else {
-    query = query.sort('-createdAt');
-  }
-
-  // Pagination
-  const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 25;
-  const startIndex = (page - 1) * limit;
-  const endIndex = page * limit;
-  const total = await Merchant.countDocuments();
-
-  query = query.skip(startIndex).limit(limit);
-
-  // Search
-  if (req.query.search) {
-    query = query.where(
-      '$or',
-      [
-        { businessName: { $regex: req.query.search, $options: 'i' } },
-        { description: { $regex: req.query.search, $options: 'i' } },
-        { businessType: { $regex: req.query.search, $options: 'i' } }
-      ]
-    );
-  }
-
-  // Category Filter
-  if (req.query.category && req.query.category !== 'All') {
-    query = query.where('businessType', req.query.category);
-  }
-
-  // NEW: Document Status Filter
-  if (req.query.documentStatus) {
-    switch (req.query.documentStatus) {
-      case 'complete':
-        query = query.where({
-          $and: [
-            { 'documents.businessRegistration': { $exists: true, $ne: '' } },
-            { 'documents.idDocument': { $exists: true, $ne: '' } },
-            { 'documents.utilityBill': { $exists: true, $ne: '' } }
-          ]
-        });
-        break;
-      case 'incomplete':
-        query = query.where({
-          $or: [
-            { 'documents.businessRegistration': { $exists: false } },
-            { 'documents.businessRegistration': '' },
-            { 'documents.idDocument': { $exists: false } },
-            { 'documents.idDocument': '' },
-            { 'documents.utilityBill': { $exists: false } },
-            { 'documents.utilityBill': '' }
-          ]
-        });
-        break;
-      case 'pending_review':
-        query = query.where({
-          $and: [
-            { 'documents.businessRegistration': { $exists: true, $ne: '' } },
-            { 'documents.idDocument': { $exists: true, $ne: '' } },
-            { 'documents.utilityBill': { $exists: true, $ne: '' } },
-            { verified: false }
-          ]
-        });
-        break;
+    // Category filter
+    if (category && category !== 'All') {
+      where.businessType = category;
     }
+
+    // Search filter (case-insensitive)
+    if (search && search.trim()) {
+      const term = `%${search.trim()}%`;
+      where[Op.or] = [
+        { businessName: { [Op.iLike]: term } },
+        { description: { [Op.iLike]: term } },
+        { businessType: { [Op.iLike]: term } }
+      ];
+    }
+
+    // Document status filters using JSONB paths
+    const documentFilters = [];
+    if (documentStatus) {
+      const hasBR = "(documents->'businessRegistration'->>'path' IS NOT NULL AND documents->'businessRegistration'->>'path' != '') OR (documents->>'businessRegistration' IS NOT NULL AND documents->>'businessRegistration' != '')";
+      const hasID = "(documents->'idDocument'->>'path' IS NOT NULL AND documents->'idDocument'->>'path' != '') OR (documents->>'idDocument' IS NOT NULL AND documents->>'idDocument' != '')";
+      const hasUB = "(documents->'utilityBill'->>'path' IS NOT NULL AND documents->'utilityBill'->>'path' != '') OR (documents->>'utilityBill' IS NOT NULL AND documents->>'utilityBill' != '')";
+
+      if (documentStatus === 'complete') {
+        documentFilters.push(literal(`(${hasBR})`));
+        documentFilters.push(literal(`(${hasID})`));
+        documentFilters.push(literal(`(${hasUB})`));
+      } else if (documentStatus === 'incomplete') {
+        documentFilters.push(literal(`NOT((${hasBR}) AND (${hasID}) AND (${hasUB}))`));
+      } else if (documentStatus === 'pending_review') {
+        documentFilters.push(literal(`(${hasBR})`));
+        documentFilters.push(literal(`(${hasID})`));
+        documentFilters.push(literal(`(${hasUB})`));
+        where.verified = false;
+      }
+    }
+
+    // Sort
+    const order = [];
+    if (sort) {
+      const fields = sort.split(',').map(s => s.trim());
+      fields.forEach(f => {
+        if (!f) return;
+        if (f.startsWith('-')) order.push([f.slice(1), 'DESC']);
+        else order.push([f, 'ASC']);
+      });
+    } else {
+      order.push(['createdAt', 'DESC']);
+    }
+
+    // Selected attributes
+    const attributes = select ? select.split(',').map(f => f.trim()) : undefined;
+
+    // Pagination
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 25;
+    const offset = (pageNum - 1) * limitNum;
+
+    // Combine where with document filters
+    const finalWhere = { ...where };
+    if (documentFilters.length) {
+      finalWhere[Op.and] = [...(finalWhere[Op.and] || []), ...documentFilters];
+    }
+
+    const { rows, count } = await Merchant.findAndCountAll({
+      where: finalWhere,
+      attributes,
+      limit: limitNum,
+      offset,
+      order
+    });
+
+    const endIndex = offset + limitNum;
+    const pagination = {};
+
+    if (endIndex < count) {
+      pagination.next = { page: pageNum + 1, limit: limitNum };
+    }
+
+    if (offset > 0) {
+      pagination.prev = { page: pageNum - 1, limit: limitNum };
+    }
+
+    res.status(200).json({
+      success: true,
+      count: rows.length,
+      pagination,
+      data: rows.map(m => m.toJSON())
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
   }
-
-  const merchants = await query;
-
-  // Pagination result
-  const pagination = {};
-
-  if (endIndex < total) {
-    pagination.next = {
-      page: page + 1,
-      limit
-    };
-  }
-
-  if (startIndex > 0) {
-    pagination.prev = {
-      page: page - 1,
-      limit
-    };
-  }
-
-  res.status(200).json({
-    success: true,
-    count: merchants.length,
-    pagination,
-    data: merchants
-  });
 };
 
 
@@ -190,116 +170,8 @@ exports.getMerchant = async (req, res) => {
 // @desc    Create new merchant (Public Registration)
 // @route   POST /api/merchants
 // @access  Public
-exports.createMerchant = async (req, res) => {
-  try {
-    const {
-      businessName,
-      email,
-      phone,
-      password,
-      businessType,
-      description,
-      yearEstablished,
-      website,
-      address,
-      landmark,
-      businessHours
-    } = req.body;
-
-    // Check if merchant already exists
-    const existingMerchant = await Merchant.findOne({ where: { email } });
-    if (existingMerchant) {
-      return res.status(400).json({
-        success: false,
-        error: 'A merchant with this email already exists'
-      });
-    }
-
-    // Create merchant with default values
-    const merchant = await Merchant.create({
-      businessName,
-      email,
-      phone,
-      password,
-      businessType,
-      description: description || `${businessName} - Business description to be updated`,
-      yearEstablished,
-      website,
-      address,
-      location: address, // Use address as location
-      landmark,
-      businessHours: businessHours || {
-        monday: { open: '08:00', close: '18:00', closed: false },
-        tuesday: { open: '08:00', close: '18:00', closed: false },
-        wednesday: { open: '08:00', close: '18:00', closed: false },
-        thursday: { open: '08:00', close: '18:00', closed: false },
-        friday: { open: '08:00', close: '18:00', closed: false },
-        saturday: { open: '09:00', close: '16:00', closed: false },
-        sunday: { open: '', close: '', closed: true }
-      },
-      verified: false,
-      logo: '',
-      bannerImage: '',
-      gallery: [],
-      documents: {
-        businessRegistration: '',
-        idDocument: '',
-        utilityBill: '',
-        additionalDocs: []
-      },
-      featured: false,
-      rating: 0,
-      reviews: 0
-    });
-
-    // Send notification email to admin about new merchant registration
-    try {
-      await emailService.sendAdminMerchantNotification(merchant);
-      console.log('Admin notification sent for new merchant:', merchant.businessName);
-    } catch (emailError) {
-      console.error('Failed to send admin notification email:', emailError);
-      // Don't fail the registration if email fails
-    }
-
-    res.status(201).json({
-      success: true,
-      data: {
-        id: merchant._id,
-        businessName: merchant.businessName,
-        email: merchant.email,
-        phone: merchant.phone,
-        businessType: merchant.businessType,
-        verified: merchant.verified,
-        createdAt: merchant.createdAt,
-        message: 'Merchant registration submitted successfully. You will be contacted within 2-3 business days for verification.'
-      }
-    });
-
-  } catch (error) {
-    // Handle duplicate key error
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({
-        success: false,
-        error: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`
-      });
-    }
-
-    // Handle validation errors
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(val => val.message);
-      return res.status(400).json({
-        success: false,
-        error: messages.join(', ')
-      });
-    }
-
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
+// NOTE: Duplicate createMerchant removed (Mongoose-style). Using the Sequelize version below.
+// Keeping this space intentionally to preserve file structure; functionality is provided by the later definition.
 
 // @desc    Create new merchant (Public Registration)
 // @route   POST /api/merchants
@@ -369,7 +241,7 @@ exports.createMerchant = async (req, res) => {
     res.status(201).json({
       success: true,
       data: {
-        id: merchant._id,
+        id: merchant.id,
         businessName: merchant.businessName,
         email: merchant.email,
         phone: merchant.phone,
@@ -453,7 +325,7 @@ exports.updateMerchant = async (req, res) => {
     ].filter(Boolean).length;
 
     const responseData = {
-      ...merchant.toObject(),
+      ...merchant.toJSON(),
       documentStatus: {
         ...documentAnalysis,
         completionPercentage: Math.round((requiredDocsCount / 3) * 100),
@@ -758,7 +630,7 @@ exports.uploadDocuments = async (req, res) => {
     ].filter(Boolean).length;
 
     const responseData = {
-      ...merchant.toObject(),
+      ...merchant.toJSON(),
       documentStatus: {
         ...documentAnalysis,
         completionPercentage: Math.round((requiredDocsCount / 3) * 100),
@@ -841,7 +713,7 @@ exports.completeAccountSetup = async (req, res) => {
     );
 
     // NEW: Add document status to setup completion response
-    const merchant = await Merchant.findById(result.merchant.id);
+    const merchant = await Merchant.findByPk(result.merchant.id);
     
     const documentAnalysis = {
       businessRegistration: !!(merchant.documents?.businessRegistration),
@@ -887,8 +759,10 @@ exports.getSetupInfo = async (req, res) => {
 
     // Find merchant with valid setup token
     const merchant = await Merchant.findOne({
-      accountSetupToken: setupTokenHash,
-      accountSetupExpire: { $gt: Date.now() }
+      where: {
+        accountSetupToken: setupTokenHash,
+        accountSetupExpire: { [Op.gt]: new Date() }
+      }
     });
 
     if (!merchant) {
@@ -1149,7 +1023,7 @@ exports.setFeatured = async (req, res) => {
   try {
     const { featured } = req.body;
     
-    const merchant = await Merchant.findById(req.params.id);
+    const merchant = await Merchant.findByPk(req.params.id);
 
     if (!merchant) {
       return res.status(404).json({

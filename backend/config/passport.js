@@ -21,7 +21,7 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         // Check for existing merchant
-        const merchant = await Merchant.findOne({ email: profile.emails[0].value });
+        const merchant = await Merchant.findOne({ where: { email: profile.emails[0].value } });
         if (merchant) {
           if (!merchant.isVerified) {
             console.log('Unverified merchant attempted Google Sign-In:', merchant.id);
@@ -38,7 +38,7 @@ passport.use(
         }
 
         // Check for existing user or create new user
-        let user = await User.findOne({ email: profile.emails[0].value });
+        let user = await User.findOne({ where: { email: profile.emails[0].value } });
         if (!user) {
           user = await User.create({
             firstName: profile.name.givenName || profile.displayName.split(' ')[0],
@@ -80,9 +80,9 @@ passport.deserializeUser(async (obj, done) => {
     console.log('Deserializing user:', obj);
     let user;
     if (obj.isMerchant) {
-      user = await Merchant.findById(obj.id);
+      user = await Merchant.findByPk(obj.id);
     } else {
-      user = await User.findById(obj.id);
+      user = await User.findByPk(obj.id);
     }
 
     if (!user) {

@@ -27,18 +27,18 @@ const loginAdmin = asyncHandler(async (req, res) => {
   ) {
     // Return a mock admin user object
     const mockAdmin = {
-      _id: 'hardcoded-admin-id',
+      id: 'hardcoded-admin-id',
       firstName: 'Admin',
       lastName: 'User',
       email: 'admin@nairobiverified.com',
       role: 'super_admin',
     };
-    const token = jwt.sign({ id: mockAdmin._id, role: mockAdmin.role, isAdmin: true }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
+    const token = jwt.sign({ id: mockAdmin.id, role: mockAdmin.role, isAdmin: true }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
     return res.status(200).json({
       success: true,
       token,
       admin: {
-        id: mockAdmin._id,
+        id: mockAdmin.id,
         firstName: mockAdmin.firstName,
         lastName: mockAdmin.lastName,
         name: getAdminFullName(mockAdmin),
@@ -83,7 +83,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
     success: true,
     token,
     admin: {
-      id: admin._id,
+      id: admin.id,
       firstName: admin.firstName,
       lastName: admin.lastName,
       name: getAdminFullName(admin),
@@ -122,7 +122,7 @@ const getCurrentAdmin = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     admin: {
-      id: admin._id,
+      id: admin.id,
       firstName: admin.firstName,
       lastName: admin.lastName,
       name: getAdminFullName(admin),

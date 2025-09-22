@@ -1,136 +1,114 @@
-const mongoose = require('mongoose');
+const { DataTypes, Op } = require('sequelize');
+const { sequelize } = require('../config/db');
+const Merchant = require('./Merchant');
+const User = require('./User');
 
-const ReplySchema = new mongoose.Schema({
-  author: {
-    type: String,
-    required: true
+const Review = sequelize.define('Review', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
-  date: {
-    type: Date,
-    default: Date.now
+  merchantId: {
+    type: DataTypes.INTEGER,
+    allowNull: true, // allow null during cutover for legacy data
+    references: {
+      model: 'merchants',
+      key: 'id'
+    },
+    onDelete: 'CASCADE'
   },
-  content: {
-    type: String,
-    required: [true, 'Please add content to your reply']
-  }
-}, { _id: false });
-
-const ReviewSchema = new mongoose.Schema({
-  merchant: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Merchant',
-    required: true
+  // legacy support for ObjectId strings during migration
+  merchantLegacyId: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    onDelete: 'CASCADE'
+  },
+  userLegacyId: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   rating: {
-    type: Number,
-    required: [true, 'Please add a rating between 1 and 5'],
-    min: 1,
-    max: 5
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    validate: { min: 1, max: 5 }
   },
   content: {
-    type: String,
-    required: [true, 'Please add a review text'],
-    trim: true
+    type: DataTypes.TEXT,
+    allowNull: false
   },
   helpful: {
-    type: Number,
-    default: 0
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   },
-  helpfulBy: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  reply: ReplySchema,
+  helpfulBy: {
+    type: DataTypes.JSONB,
+    defaultValue: [] // array of user ids (numbers or strings during cutover)
+  },
+  reply: {
+    type: DataTypes.JSONB,
+    defaultValue: null // { author, content, date }
+  },
   createdAt: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
+}, {
+  tableName: 'reviews',
+  indexes: [
+    { fields: ['merchantId', 'createdAt'] },
+    { fields: ['rating'] },
+    { fields: ['createdAt'] },
+    { unique: true, fields: ['merchantId', 'userId'] }
+  ],
+  hooks: {
+    beforeUpdate: (review) => { review.updatedAt = new Date(); },
+    afterSave: async (review) => { await Review.updateMerchantRating(review.merchantId); },
+    afterDestroy: async (review) => { await Review.updateMerchantRating(review.merchantId); }
   }
 });
 
-// Prevent user from submitting more than one review per merchant
-ReviewSchema.index({ merchant: 1, user: 1 }, { unique: true });
+// Associations (optional until we wire globally)
+// Review.belongsTo(Merchant, { foreignKey: 'merchantId' });
+// Review.belongsTo(User, { foreignKey: 'userId' });
 
-// Add indexes for better query performance
-ReviewSchema.index({ merchant: 1, createdAt: -1 });
-ReviewSchema.index({ rating: 1 });
-ReviewSchema.index({ createdAt: -1 });
-
-// Static method to get average rating and update merchant
-ReviewSchema.statics.getAverageRating = async function(merchantId) {
+// Aggregate helper
+Review.updateMerchantRating = async function(merchantId) {
+  if (!merchantId) return;
   try {
-    const obj = await this.aggregate([
-      {
-        $match: { merchant: merchantId }
-      },
-      {
-        $group: {
-          _id: '$merchant',
-          averageRating: { $avg: '$rating' },
-          reviewCount: { $sum: 1 }
-        }
-      }
-    ]);
-
-    const averageRating = obj[0] ? Math.round(obj[0].averageRating * 10) / 10 : 0;
-    const reviewCount = obj[0] ? obj[0].reviewCount : 0;
-
-    await this.model('Merchant').findByIdAndUpdate(merchantId, {
-      rating: averageRating,
-      reviews: reviewCount
+    const rows = await Review.findAll({
+      where: { merchantId },
+      attributes: [
+        [sequelize.fn('AVG', sequelize.col('rating')), 'avgRating'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'reviewCount']
+      ],
+      raw: true
     });
 
-    console.log(`Updated merchant ${merchantId}: rating=${averageRating}, reviews=${reviewCount}`);
+    const avg = rows[0]?.avgRating ? Number(rows[0].avgRating).toFixed(1) : 0;
+    const count = rows[0]?.reviewCount ? parseInt(rows[0].reviewCount, 10) : 0;
+
+    const merchant = await Merchant.findByPk(merchantId);
+    if (merchant) {
+      merchant.rating = Number(avg);
+      merchant.reviews = count;
+      await merchant.save();
+    }
   } catch (err) {
     console.error('Error updating merchant rating:', err);
   }
 };
 
-// Virtual for formatted date
-ReviewSchema.virtual('formattedDate').get(function() {
-  return this.createdAt.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-});
-
-// Virtual for time ago
-ReviewSchema.virtual('timeAgo').get(function() {
-  const now = new Date();
-  const diffTime = Math.abs(now - this.createdAt);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 1) return '1 day ago';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-  return `${Math.floor(diffDays / 365)} years ago`;
-});
-
-// Call getAverageRating after save
-ReviewSchema.post('save', function() {
-  this.constructor.getAverageRating(this.merchant);
-});
-
-// Call getAverageRating after delete (updated from deprecated 'remove')
-ReviewSchema.post('findOneAndDelete', function(doc) {
-  if (doc) {
-    doc.constructor.getAverageRating(doc.merchant);
-  }
-});
-
-// Also handle deleteOne
-ReviewSchema.post('deleteOne', { document: true }, function() {
-  this.constructor.getAverageRating(this.merchant);
-});
-
-// Ensure virtuals are included in JSON
-ReviewSchema.set('toJSON', { virtuals: true });
-ReviewSchema.set('toObject', { virtuals: true });
-
-module.exports = mongoose.model('Review', ReviewSchema);
+module.exports = Review;
