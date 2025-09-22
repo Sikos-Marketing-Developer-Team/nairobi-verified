@@ -198,7 +198,7 @@ export const adminAPI = {
   getMerchant: (merchantId: string) => api.get(`/admin/merchants/${merchantId}`),
   updateMerchant: (merchantId: string, merchantData: any) => api.put(`/admin/merchants/${merchantId}`, merchantData),
   deleteMerchant: (merchantId: string) => api.delete(`/admin/merchants/${merchantId}`),
-  verifyMerchant: (merchantId: string) => api.post(`/admin/merchants/${merchantId}/verify`),
+  verifyMerchant: (merchantId: string) => api.put(`/merchants/${merchantId}/verify`),
   rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason }),
   updateMerchantStatus: (merchantId: string, isActive: boolean) => api.put(`/admin/dashboard/merchants/${merchantId}/status`, { isActive }),
   
@@ -237,7 +237,7 @@ export const adminAPI = {
   exportAnalytics: (type: string) => api.get(`/admin/dashboard/export/${type}`, { responseType: 'blob' }),
   
   // Bulk operations
-  bulkVerifyMerchants: (merchantIds: string[]) => api.post('/admin/dashboard/merchants/bulk-verify', { merchantIds }),
+  bulkVerifyMerchants: (merchantIds: string[]) => api.post('/admin/dashboard/merchants/bulk-verify', { merchantIds, action: 'verify' }),
   
   // Settings management
   getSettings: () => api.get('/admin/dashboard/settings'),

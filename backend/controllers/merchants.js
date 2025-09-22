@@ -249,7 +249,7 @@ exports.createMerchant = async (req, res) => {
       },
       featured: false,
       rating: 0,
-      reviews: []
+      reviews: 0
     });
 
     // Send notification email to admin about new merchant registration
@@ -539,7 +539,7 @@ exports.uploadLogo = async (req, res) => {
 
     const merchant = await Merchant.findByIdAndUpdate(
       req.params.id,
-      { logo: `/uploads/images/${req.file.filename}` },
+      { logo: req.file.path },
       { new: true }
     );
 
@@ -584,7 +584,7 @@ exports.uploadBanner = async (req, res) => {
 
     const merchant = await Merchant.findByIdAndUpdate(
       req.params.id,
-      { bannerImage: `/uploads/images/${req.file.filename}` },
+      { bannerImage: req.file.path },
       { new: true }
     );
 
@@ -637,7 +637,7 @@ exports.uploadGallery = async (req, res) => {
     }
 
     // Add new gallery images
-    const galleryImages = req.files.map(file => `/uploads/images/${file.filename}`);
+    const galleryImages = req.files.map(file => file.path); // Cloudinary path/URL
     merchant.gallery = [...merchant.gallery, ...galleryImages];
     await merchant.save();
 
@@ -682,29 +682,54 @@ exports.uploadDocuments = async (req, res) => {
       });
     }
 
-    // Update document paths
+    // Update document paths (Cloudinary metadata preserved by multer-storage-cloudinary)
     const documents = { ...merchant.documents };
     let updatedDocuments = [];
-    
+
     if (req.files.businessRegistration) {
-      documents.businessRegistration = `/uploads/documents/${req.files.businessRegistration[0].filename}`;
+      const f = req.files.businessRegistration[0];
+      documents.businessRegistration = {
+        path: f.path,
+        originalName: f.originalname,
+        fileSize: f.size,
+        mimeType: f.mimetype,
+        uploadedAt: new Date()
+      };
       updatedDocuments.push('Business Registration');
     }
-    
+
     if (req.files.idDocument) {
-      documents.idDocument = `/uploads/documents/${req.files.idDocument[0].filename}`;
+      const f = req.files.idDocument[0];
+      documents.idDocument = {
+        path: f.path,
+        originalName: f.originalname,
+        fileSize: f.size,
+        mimeType: f.mimetype,
+        uploadedAt: new Date()
+      };
       updatedDocuments.push('ID Document');
     }
-    
+
     if (req.files.utilityBill) {
-      documents.utilityBill = `/uploads/documents/${req.files.utilityBill[0].filename}`;
+      const f = req.files.utilityBill[0];
+      documents.utilityBill = {
+        path: f.path,
+        originalName: f.originalname,
+        fileSize: f.size,
+        mimeType: f.mimetype,
+        uploadedAt: new Date()
+      };
       updatedDocuments.push('Utility Bill');
     }
-    
+
     if (req.files.additionalDocs) {
-      documents.additionalDocs = req.files.additionalDocs.map(
-        file => `/uploads/documents/${file.filename}`
-      );
+      documents.additionalDocs = req.files.additionalDocs.map(file => ({
+        path: file.path,
+        originalName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        uploadedAt: new Date()
+      }));
       updatedDocuments.push('Additional Documents');
     }
 
