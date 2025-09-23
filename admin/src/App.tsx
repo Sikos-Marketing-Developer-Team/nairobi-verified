@@ -13,6 +13,8 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminLayout from './components/layout/AdminLayout';
 import PageTransition from './components/common/PageTransition';
+import { DocumentsTab } from './pages/DocumentsTab';
+import BulkVerificationUI from './pages/BulkVerificationUI';
 
 // Protected route component
 interface ProtectedRouteProps {
@@ -96,6 +98,20 @@ const AppRoutes: React.FC = () => {
                   <SettingsPage />
                 </PageTransition>
               } />
+
+              <Route path="/documents" element={
+                <PageTransition>
+                 <DocumentsTab merchantId="example-merchant-id" />
+                </PageTransition>
+              } />
+
+              <Route path="/bulk-verification" element={
+                <PageTransition>
+                  <BulkVerificationUI />
+                </PageTransition>
+              } />
+
+              {/* Redirect unknown routes to dashboard */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </AdminLayout>

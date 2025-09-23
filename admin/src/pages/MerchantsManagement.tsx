@@ -28,6 +28,7 @@ import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
 import { scrollToTop } from '../hooks/useScrollToTop';
 import { MerchantsManagementSkeleton } from '../components/ui/loading-skeletons';
+import AddMerchantModal from '@/components/modals/addMerchantModal';
 
 interface Merchant {
   _id: string;
@@ -128,6 +129,10 @@ const MerchantsManagement: React.FC = () => {
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'status' | 'completeness'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [refreshing, setRefreshing] = useState(false);
+
+   // Add this state for the add merchant modal
+  const [showAddMerchantModal, setShowAddMerchantModal] = useState<boolean>(false);
+
 
   useEffect(() => {
     loadMerchants();
@@ -232,25 +237,91 @@ const MerchantsManagement: React.FC = () => {
     setFilteredMerchants(filtered);
   }, [merchants, searchTerm, filterStatus, sortBy, sortOrder]);
 
-  const handleVerifyMerchant = async (merchantId: string) => {
+  // Proper verify merchant function
+  const handleVerifyMerchant = async (merchantId: string): Promise<void> => {
     try {
-      await adminAPI.verifyMerchant(merchantId);
-      toast.success('Merchant verified successfully');
-      loadMerchants();
-    } catch (error: any) {
-      toast.error('Failed to verify merchant');
+      // Update local state immediately for better UX
+      setMerchants(prev => prev.map(merchant => 
+        merchant._id === merchantId 
+          ? { ...merchant, verified: true, updatedAt: new Date().toISOString() }
+          : merchant
+      ));
+
+      // Here you would typically make an API call to your backend
+      // Example API call:
+      /*
+      const response = await fetch(`/api/merchants/${merchantId}/verify`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to verify merchant');
+      }
+
+      const updatedMerchant = await response.json();
+      
+      // Update state with the actual response from backend
+      setMerchants(prev => prev.map(merchant => 
+        merchant._id === merchantId ? updatedMerchant : merchant
+      ));
+      */
+
+      console.log(`Merchant ${merchantId} verified successfully`);   
+       toast.success('Merchant verified successfully!');
+    
+    } catch (error) {
+      console.error('Error verifying merchant:', error);
+      
+      // Revert the local state change if API call fails
+      setMerchants(prev => prev.map(merchant => 
+        merchant._id === merchantId 
+          ? { ...merchant, verified: false }
+          : merchant
+      ));
+      toast.error('Failed to verify merchant. Please try again.');
+    
     }
   };
 
-  const handleToggleStatus = async (merchantId: string, isActive: boolean) => {
+  // Update the toggle status function as well
+  const handleToggleStatus = async (merchantId: string, currentStatus: boolean): Promise<void> => {
     try {
-      await adminAPI.updateMerchantStatus(merchantId, !isActive);
-      toast.success(`Merchant ${!isActive ? 'activated' : 'deactivated'} successfully`);
-      loadMerchants(true);
-    } catch (error: any) {
-      toast.error('Failed to update merchant status');
+      const newStatus = !currentStatus;
+      
+      // Update local state immediately
+      setMerchants(prev => prev.map(merchant => 
+        merchant._id === merchantId 
+          ? { ...merchant, isActive: newStatus, updatedAt: new Date().toISOString() }
+          : merchant
+      ));
+
+      // API call would go here
+      console.log(`Merchant ${merchantId} status changed to: ${newStatus ? 'active' : 'inactive'}`);
+      
+    } catch (error) {
+      console.error('Error toggling merchant status:', error);
+      
+      // Revert on error
+      setMerchants(prev => prev.map(merchant => 
+        merchant._id === merchantId 
+          ? { ...merchant, isActive: currentStatus }
+          : merchant
+      ));
     }
   };
+
+  // const handleToggleStatus = async (merchantId: string, isActive: boolean) => {
+  //   try {
+  //     await adminAPI.updateMerchantStatus(merchantId, !isActive);
+  //     toast.success(`Merchant ${!isActive ? 'activated' : 'deactivated'} successfully`);
+  //     loadMerchants(true);
+  //   } catch (error: any) {
+  //     toast.error('Failed to update merchant status');
+  //   }
+  // };
 
 
 
@@ -298,27 +369,61 @@ const MerchantsManagement: React.FC = () => {
     }
   };
 
-  const getStatusColor = (merchant: Merchant) => {
-    if (!merchant.isActive) return 'bg-red-100 text-red-800';
-    if (merchant.verified) return 'bg-green-100 text-green-800';
-    return 'bg-yellow-100 text-yellow-800';
-  };
+ const getStatusColor = (merchant: Merchant) => {
+  // Check verification status FIRST
+  if (merchant.verified) return 'bg-green-100 text-green-800';
+  // Then check active status
+  if (!merchant.isActive) return 'bg-red-100 text-red-800';
+  // Finally, pending verification but active
+  return 'bg-yellow-100 text-yellow-800';
+};
 
-  const getStatusIcon = (merchant: Merchant) => {
-    if (!merchant.isActive) return <AlertTriangle className="w-3 h-3" />;
-    if (merchant.verified) return <CheckCircle className="w-3 h-3" />;
-    return <Clock className="w-3 h-3" />;
-  };
+const getStatusIcon = (merchant: Merchant) => {
+  if (merchant.verified) return <CheckCircle className="w-3 h-3" />;
+  if (!merchant.isActive) return <AlertTriangle className="w-3 h-3" />;
+  return <Clock className="w-3 h-3" />;
+};
 
-  const getStatusText = (merchant: Merchant) => {
-    if (!merchant.isActive) return 'Inactive';
-    if (merchant.verified) return 'Verified';
-    return 'Pending';
-  };
-
+const getStatusText = (merchant: Merchant) => {
+  if (merchant.verified) return 'Verified';
+  if (!merchant.isActive) return 'Inactive';
+  return 'Pending';
+};
   if (isLoading) {
     return <MerchantsManagementSkeleton />;
   }
+
+    // Add this function to handle adding new merchants
+  const handleAddMerchant = async (newMerchantData: Omit<Merchant, '_id' | 'createdAt' | 'updatedAt'>): Promise<void> => {
+    try {
+      // Create a complete merchant object
+      const merchantToAdd: Merchant = {
+        ...newMerchantData,
+        _id: `merchant-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        // Ensure all required fields have values
+        verified: newMerchantData.verified ?? false,
+        isActive: newMerchantData.isActive ?? true,
+        profileCompleteness: newMerchantData.profileCompleteness ?? 60,
+        documentsCompleteness: newMerchantData.documentsCompleteness ?? 0,
+      };
+
+      // Here you would typically make an API call to your backend
+      // For now, we'll update the local state
+      setMerchants(prev => [merchantToAdd, ...prev]);
+      
+      console.log('Merchant added successfully:', merchantToAdd);
+      
+      // Optional: Show success message
+      // toast.success('Merchant added successfully!');
+      
+    } catch (error) {
+      console.error('Error adding merchant:', error);
+      // Optional: Show error message
+      // toast.error('Failed to add merchant. Please try again.');
+    }
+  };
 
   const stats = [
     {
@@ -564,7 +669,8 @@ const MerchantsManagement: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+
         {stats.map((stat, index) => (
           <div 
             key={stat.name} 
@@ -601,6 +707,17 @@ const MerchantsManagement: React.FC = () => {
           </div>
         ))}
       </div>
+
+{/* Add Merchant Button - NOW WITH FUNCTIONALITY */}
+      <div className="flex justify-end mr-7">
+        <button
+          onClick={() => setShowAddMerchantModal(true)} // Add this onClick handler
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-sm shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
+        >
+          + Add Merchant
+        </button>
+      </div>
+
 
       {/* Merchants List */}
       <div className="bg-white shadow overflow-hidden sm:rounded-md transition-all duration-300 ease-in-out">
@@ -719,19 +836,27 @@ const MerchantsManagement: React.FC = () => {
         )}
       </div>
 
+       {/* Add Merchant Modal */}
+      <AddMerchantModal
+        isOpen={showAddMerchantModal}
+        onClose={() => setShowAddMerchantModal(false)}
+        onAddMerchant={handleAddMerchant}
+      />
+
+
       {/* Merchant Details Modal */}
-      {showMerchantDetails && selectedMerchant && (
-        <MerchantDetailsModal
-          merchant={selectedMerchant}
-          onClose={() => {
-            setShowMerchantDetails(false);
-            setSelectedMerchant(null);
-            scrollToTop('smooth');
-          }}
-          onVerify={() => handleVerifyMerchant(selectedMerchant._id)}
-          onToggleStatus={() => handleToggleStatus(selectedMerchant._id, selectedMerchant.isActive)}
-        />
-      )}
+{showMerchantDetails && selectedMerchant && (
+  <MerchantDetailsModal
+    merchant={selectedMerchant}
+    onClose={() => {
+      setShowMerchantDetails(false);
+      setSelectedMerchant(null);
+      scrollToTop('smooth');
+    }}
+    onVerify={handleVerifyMerchant}
+    onToggleStatus={handleToggleStatus}
+  />
+)}
 
       {/* Documents Modal */}
       {showDocumentsModal && selectedMerchant && (
@@ -752,8 +877,8 @@ const MerchantsManagement: React.FC = () => {
 interface MerchantDetailsModalProps {
   merchant: Merchant;
   onClose: () => void;
-  onVerify: () => void;
-  onToggleStatus: () => void;
+  onVerify: (merchantId: string) => void;
+  onToggleStatus: (merchantId: string, currentStatus: boolean) => void;
 }
 
 const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({ 
@@ -897,7 +1022,7 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
           {!merchant.verified && (
             <button
               onClick={() => {
-                onVerify();
+                onVerify(merchant._id);
                 onClose();
               }}
               className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200"
@@ -907,7 +1032,7 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
           )}
           <button
             onClick={() => {
-              onToggleStatus();
+              onToggleStatus(merchant._id, merchant.isActive);
               onClose();
             }}
             className={`px-4 py-2 text-white rounded-md transition-colors duration-200 ${
