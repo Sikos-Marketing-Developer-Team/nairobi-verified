@@ -152,13 +152,16 @@ const Navbar = () => {
             </Link>
           )}
           
-          <Link 
-            to="/favorites" 
-            className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
-          >
-            <Heart className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
-          </Link>
+          {/* Conditionally render wishlist only when authenticated */}
+          {isAuthenticated && (
+            <Link 
+              to="/favorites" 
+              className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
+            >
+              <Heart className="w-5 h-5" />
+              <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
+            </Link>
+          )}
           
           <Link 
             to="/cart" 
@@ -345,6 +348,17 @@ const Navbar = () => {
           About
         </Link>
         
+        {/* Conditionally render wishlist in mobile menu only when authenticated */}
+        {isAuthenticated && (
+          <Link 
+            to="/favorites" 
+            onClick={() => setIsMenuOpen(false)}
+            className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
+          >
+            <Heart className="w-4 h-4" /> My Wishlist
+          </Link>
+        )}
+        
         <Link 
           to="/auth/register/merchant" 
           onClick={() => setIsMenuOpen(false)}
@@ -390,7 +404,6 @@ const Navbar = () => {
                 <Phone className="w-4 h-4 text-[#EC5C0A]" /> Contact Us
               </Link>
             </li>
-           
           </ul>
         </div>
       </div>
