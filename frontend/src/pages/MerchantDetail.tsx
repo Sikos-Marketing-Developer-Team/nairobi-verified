@@ -1,3 +1,4 @@
+// src/pages/MerchantDetail.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, Image, MessageSquare, AlertCircle, Loader2, X, Send } from 'lucide-react';
@@ -48,7 +49,12 @@ const MerchantDetail = () => {
       }
     };
 
-    fetchMerchantData();
+    if (id) {
+      fetchMerchantData();
+    } else {
+      setError('Merchant ID not provided');
+      setLoading(false);
+    }
   }, [id]);
 
   // Check if merchant is in favorites
@@ -239,19 +245,6 @@ const MerchantDetail = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-        <Header />
-        <div className="flex flex-col items-center justify-center flex-1">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-          <p className="text-gray-600">Loading merchant details...</p>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
   if (error || !merchant) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -380,7 +373,7 @@ const MerchantDetail = () => {
             <Card>
               <CardContent className="p-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Customer Reviews</h2>
-                <ReviewsSection merchantId={merchant.id} reviews={merchant.reviewsList} />
+                <ReviewsSection merchantId={merchant._id} reviews={reviews} />
               </CardContent>
             </Card>
 
@@ -643,9 +636,10 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
 
     try {
       setIsSubmitting(true);
-      await reviewsAPI.createReview(merchant._id, {
+      await reviewsAPI.createReview({
+        merchant: merchant._id,
         rating,
-        comment: comment.trim()
+        content: comment.trim()
       });
       
       toast({
