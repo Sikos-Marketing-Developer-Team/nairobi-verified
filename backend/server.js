@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const rateLimit = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
-const { client, webVitalsLCP, webVitalsCLS, webVitalsFID } = require('./utils/metrics'); // MONITORING: Updated import for Web Vitals
+const { client, webVitalsLCP, webVitalsCLS, webVitalsFID } = require('./utils/metrics');
 
 // Load environment variables
 dotenv.config();
@@ -53,10 +53,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Rate limiting for sensitive auth routes (production-ready)
+// Rate limiting for sensitive auth routes
 const strictAuthLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 requests per IP
+  max: 5, // 5 requests per IP
   message: {
     success: false,
     error: 'Too many login or registration attempts, please try again after 15 minutes'
@@ -65,10 +65,10 @@ const strictAuthLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Rate limiting for all auth routes (production-ready)
+// General rate limiter for all auth routes
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per IP
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: {
     success: false,
     error: 'Too many requests from this IP, please try again after 15 minutes'
@@ -81,13 +81,13 @@ const authLimiter = rateLimit({
 const mongoStore = MongoStore.create({
   mongoUrl: process.env.MONGODB_URI,
   collectionName: 'sessions',
-  ttl: 7 * 24 * 60 * 60, // 7 days
-  autoRemove: 'native', // Automatically remove expired sessions
-  touchAfter: 24 * 3600, // lazy session update
+  ttl: 7 * 24 * 60 * 60,
+  autoRemove: 'native',
+  touchAfter: 24 * 3600,
   stringify: false,
-  writeOperationOptions: { 
+  writeOperationOptions: {
     upsert: true,
-    retryWrites: false 
+    retryWrites: false
   }
 });
 
@@ -101,7 +101,7 @@ mongoStore.on('connected', () => {
 
 app.use(session({
   name: 'nairobi_verified_session',
-  genid: (req) => uuidv4(),
+  genid: () => uuidv4(),
   secret: process.env.JWT_SECRET || 'your-session-secret',
   resave: false,
   saveUninitialized: false,
@@ -109,7 +109,7 @@ app.use(session({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
@@ -126,23 +126,16 @@ if (process.env.NODE_ENV === 'development') {
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 
-// Apply rate limiting to auth routes
-app.use('/api/auth/login', strictAuthLimiter);
-app.use('/api/auth/register', strictAuthLimiter);
-app.use('/api/auth/register/merchant', strictAuthLimiter);
-app.use('/api/auth/login/merchant', strictAuthLimiter);
-app.use('/api/auth', authLimiter);
-
 // MONITORING: Endpoint to receive frontend Web Vitals
 app.post('/api/metrics/frontend', (req, res) => {
   const { name, value, navigationType } = req.body;
   try {
     if (name === 'LCP') {
-      webVitalsLCP.observe({ labels: { navigation_type: navigationType || 'unknown' } }, value / 1000); // Convert ms to seconds
+      webVitalsLCP.observe({ labels: { navigation_type: navigationType || 'unknown' } }, value / 1000);
     } else if (name === 'CLS') {
       webVitalsCLS.observe({ labels: { navigation_type: navigationType || 'unknown' } }, value);
     } else if (name === 'FID') {
-      webVitalsFID.observe({ labels: { navigation_type: navigationType || 'unknown' } }, value / 1000); // Convert ms to seconds
+      webVitalsFID.observe({ labels: { navigation_type: navigationType || 'unknown' } }, value / 1000);
     }
     res.status(200).json({ success: true });
   } catch (error) {
@@ -157,8 +150,16 @@ app.get('/metrics', async (req, res) => {
   res.end(await client.register.metrics());
 });
 
-// Routes - FIXED: Reordered to prevent conflicts
-app.use('/api/auth', require('./routes/auth'));
+// Routes - Apply strict limiter directly on login/register
+app.use('/api/auth/login', strictAuthLimiter, require('./routes/auth'));
+app.use('/api/auth/register', strictAuthLimiter, require('./routes/auth'));
+app.use('/api/auth/register/merchant', strictAuthLimiter, require('./routes/auth'));
+app.use('/api/auth/login/merchant', strictAuthLimiter, require('./routes/auth'));
+
+// General limiter for all auth
+app.use('/api/auth', authLimiter, require('./routes/auth'));
+
+// Other routes
 app.use('/api/auth/admin', require('./routes/adminAuth'));
 app.use('/api/admin/dashboard', require('./routes/adminDashboard'));
 app.use('/api/users', require('./routes/users'));
@@ -173,7 +174,7 @@ app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/uploads', require('./routes/uploads'));
 
-// 404 handler for undefined routes
+// 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
@@ -181,34 +182,25 @@ app.use('*', (req, res) => {
   });
 });
 
-// Error handling middleware
+// Error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  
-  // Check if response was already sent
-  if (res.headersSent) {
-    return next(err);
-  }
 
-  // Handle different types of errors
+  if (res.headersSent) return next(err);
+
   let error = { ...err };
   error.message = err.message;
 
-  // Mongoose bad ObjectId
   if (err.name === 'CastError') {
-    const message = 'Resource not found';
-    error = { message, statusCode: 404 };
+    error = { message: 'Resource not found', statusCode: 404 };
   }
 
-  // Mongoose duplicate key
   if (err.code === 11000) {
-    const message = 'Duplicate field value entered';
-    error = { message, statusCode: 400 };
+    error = { message: 'Duplicate field value entered', statusCode: 400 };
   }
 
-  // Mongoose validation error
   if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors).map(error => error.message);
+    const message = Object.values(err.errors).map(e => e.message);
     error = { message, statusCode: 400 };
   }
 
@@ -241,9 +233,7 @@ const server = app.listen(PORT, () => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   console.log(`Unhandled Promise Rejection: ${err.message}`);
-  server.close(() => {
-    process.exit(1);
-  });
+  server.close(() => process.exit(1));
 });
 
 // Handle uncaught exceptions
