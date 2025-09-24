@@ -1,114 +1,147 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MapPin, Star, X, ArrowUpDown, SortAsc, SortDesc, Loader2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+import { Heart, MapPin, Star, Phone, Mail, ExternalLink, Trash2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { favoritesAPI, merchantsAPI } from '@/lib/api';
-import { useToast } from '@/components/ui/use-toast';
-import { Merchant } from '@/types';
-import { usePageLoading } from '@/hooks/use-loading';
-import { MerchantGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
+import { useFavorites } from '@/contexts/FavoritesContext';
 
 const Favorites = () => {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [favorites, setFavorites] = useState<Merchant[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated } = useAuth();
+  const { updateFavoritesCount } = useFavorites();
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const isPageLoading = usePageLoading(500);
-  
-  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'rating'>('recent');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
-  const fetchFavorites = async () => {
-    if (!isAuthenticated || !user?._id) {
-      setIsLoading(false);
-      return;
-    }
+  // Fetch favorites data
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      if (!isAuthenticated) {
+        setLoading(false);
+        return;
+      }
 
-    setIsLoading(true);
+      try {
+        setLoading(true);
+        const favoritesRes = await favoritesAPI.getFavorites();
+        const favoritesData = favoritesRes.data.data;
+        
+        // If favorites are populated with merchant data, use it directly
+        if (favoritesData.length > 0 && favoritesData[0].businessName) {
+          setFavorites(favoritesData);
+        } else {
+          // If favorites are just IDs, fetch merchant details
+          const merchantPromises = favoritesData.map((fav: any) => 
+            merchantsAPI.getMerchant(fav._id || fav)
+          );
+          const merchantsRes = await Promise.all(merchantPromises);
+          setFavorites(merchantsRes.map(res => res.data.data));
+        }
+        
+        setError(null);
+      } catch (error: any) {
+        setError(error.response?.data?.error || 'Failed to load favorites');
+        console.error('Error fetching favorites:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFavorites();
+  }, [isAuthenticated]);
+
+  // Handle remove from favorites
+  const handleRemoveFavorite = async (merchantId: string, merchantName: string) => {
     try {
-      const response = await favoritesAPI.getFavorites();
-      // Assuming the response data contains an array of merchant objects directly
-      setFavorites(response.data.data);
-    } catch (err) {
-      console.error('Error fetching favorites:', err);
-      setError('Failed to load favorites.');
+      setRemovingId(merchantId);
+      await favoritesAPI.removeFavorite(merchantId);
+      
+      // Update local state
+      setFavorites(prev => prev.filter(merchant => merchant._id !== merchantId));
+      
+      // Update global favorites count
+      updateFavoritesCount();
+      
+      toast({
+        title: 'Removed from favorites',
+        description: `${merchantName} has been removed from your favorites`,
+        variant: 'destructive',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.error || 'Failed to remove from favorites',
+        variant: 'destructive',
+      });
     } finally {
-      setIsLoading(false);
+      setRemovingId(null);
     }
   };
 
-  useEffect(() => {
-    fetchFavorites();
-  }, [isAuthenticated, user]);
-
-  const removeFavorite = async (merchantId: string) => {
+  // Handle clear all favorites
+  const handleClearAll = async () => {
     try {
-      await favoritesAPI.removeFavorite(merchantId);
+      // Remove each favorite individually
+      const removePromises = favorites.map(merchant => 
+        favoritesAPI.removeFavorite(merchant._id)
+      );
+      
+      await Promise.all(removePromises);
+      
+      // Clear local state
+      setFavorites([]);
+      
+      // Update global favorites count
+      updateFavoritesCount();
+      
       toast({
-        title: 'Favorite Removed',
-        description: 'Merchant successfully removed from your favorites.',
+        title: 'Cleared all favorites',
+        description: 'All merchants have been removed from your favorites',
+        variant: 'destructive',
       });
-      fetchFavorites(); // Refresh the list
-    } catch (err) {
-      console.error('Error removing favorite:', err);
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to remove favorite. Please try again.',
+        description: 'Failed to clear favorites',
         variant: 'destructive',
       });
     }
   };
-  
-  // Sort favorites based on selected criteria
-  const sortedFavorites = [...favorites].sort((a, b) => {
-    let comparison = 0;
-    
-    if (sortBy === 'recent') {
-      // Assuming createdAt is available and is a valid date string
-      comparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    } else if (sortBy === 'name') {
-      comparison = a.businessName.localeCompare(b.businessName);
-    } else if (sortBy === 'rating') {
-      comparison = a.rating - b.rating;
-    }
-    
-    return sortOrder === 'asc' ? comparison : -comparison;
-  });
 
-  if (isLoading || authLoading || isPageLoading) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        
-        <PageSkeleton>
-          <div className="space-y-6">
-            {/* Header Skeleton */}
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-1/3" />
-              <Skeleton className="h-6 w-2/3" />
-            </div>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Authentication Required</h1>
+          <p className="text-gray-600 mb-8">Please sign in to view your favorites</p>
+          <Link to="/auth">
+            <Button className="bg-primary hover:bg-primary-dark">
+              Sign In
+            </Button>
+          </Link>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
-            {/* Controls Skeleton */}
-            <div className="flex justify-between items-center">
-              <Skeleton className="h-6 w-48" />
-              <div className="flex space-x-2">
-                <Skeleton className="h-10 w-32" />
-                <Skeleton className="h-10 w-10" />
-              </div>
-            </div>
-
-            {/* Favorites Grid Skeleton */}
-            <MerchantGridSkeleton />
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        </PageSkeleton>
-        
+        </div>
         <Footer />
       </div>
     );
@@ -116,16 +149,15 @@ const Favorites = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-red-600">{error}</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Please log in to view your favorites.</p>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Error Loading Favorites</h1>
+          <p className="text-gray-600 mb-8">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -134,128 +166,150 @@ const Favorites = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold inter text-gray-900 mb-2">My Favorites</h1>
-          <p className="text-gray-600">Your saved merchants for easy access</p>
-        </div>
-
-        {favorites.length > 0 ? (
-          <>
-            {/* Sorting Controls */}
-            <div className="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Sort by:</span>
-                <Select value={sortBy} onValueChange={(value: 'recent' | 'name' | 'rating') => setSortBy(value)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recent">Date Added</SelectItem>
-                    <SelectItem value="name">Merchant Name</SelectItem>
-                    <SelectItem value="rating">Rating</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="flex items-center gap-1"
-                >
-                  {sortOrder === 'asc' ? (
-                    <>
-                      <SortAsc className="h-4 w-4" />
-                      <span>Ascending</span>
-                    </>
-                  ) : (
-                    <>
-                      <SortDesc className="h-4 w-4" />
-                      <span>Descending</span>
-                    </>
-                  )}
-                </Button>
-              </div>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">My Favorites</h1>
+              <p className="text-gray-600 mt-2">
+                {favorites.length} {favorites.length === 1 ? 'merchant' : 'merchants'} saved
+              </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sortedFavorites.map((merchant) => (
-              <Card key={merchant._id} className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden">
+            {favorites.length > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={handleClearAll}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear All
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Favorites Grid */}
+        {favorites.length === 0 ? (
+          <div className="text-center py-16">
+            <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">No favorites yet</h2>
+            <p className="text-gray-600 mb-6">Start exploring and add your favorite merchants!</p>
+            <Link to="/merchants">
+              <Button className="bg-primary hover:bg-primary-dark">
+                Browse Merchants
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {favorites.map((merchant) => (
+              <Card key={merchant._id} className="hover:shadow-lg transition-shadow duration-300">
                 <CardContent className="p-0">
-                  <div className="relative">
+                  {/* Merchant Image */}
+                  <div className="relative h-48 overflow-hidden rounded-t-lg">
                     <img
-                      src={merchant.logo}
+                      src={merchant.bannerImage || merchant.logo}
                       alt={merchant.businessName}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-full object-cover"
                     />
-                    {merchant.verified && (
-                      <div className="absolute top-4 right-4 flex gap-2">
-                        <div className="verified-badge bg-white">
-                          <span className="text-green-600">✓</span>
-                          Verified
-                        </div>
-                      </div>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="absolute top-4 right-4 bg-white/90 hover:bg-white"
-                      onClick={(e) => {
-                        e.preventDefault(); // Prevent navigating to merchant detail page
-                        removeFavorite(merchant._id);
-                      }}
-                    >
-                      <X className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm px-2 py-1 bg-primary/10 text-primary rounded-full">
-                        {merchant.businessType}
-                      </span>
-                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     
-                    <h3 className="font-bold text-xl text-gray-900 mb-2">
-                      {merchant.businessName}
-                    </h3>
+                    {/* Remove Button */}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-3 right-3"
+                      onClick={() => handleRemoveFavorite(merchant._id, merchant.businessName)}
+                      disabled={removingId === merchant._id}
+                    >
+                      {removingId === merchant._id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                    
+                    {/* Merchant Logo */}
+                    <div className="absolute bottom-3 left-3">
+                      <img
+                        src={merchant.logo}
+                        alt={merchant.businessName}
+                        className="w-12 h-12 rounded-lg border-2 border-white shadow-lg object-cover"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Merchant Info */}
+                  <div className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">
+                        {merchant.businessName}
+                      </h3>
+                    </div>
                     
                     <div className="flex items-center gap-2 mb-3">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">{merchant.location}</span>
+                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                      <span className="text-sm font-medium">{merchant.rating}</span>
+                      <span className="text-gray-500 text-sm">({merchant.reviews} reviews)</span>
                     </div>
                     
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                        <span className="text-sm font-medium ml-1">{merchant.rating}</span>
-                      </div>
-                      <span className="text-sm text-gray-500">({merchant.reviews} reviews)</span>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                      <MapPin className="h-4 w-4" />
+                      <span className="line-clamp-1">{merchant.location}</span>
                     </div>
                     
-                    <Link to={`/merchant/${merchant._id}`}>
-                      <Button className="w-full bg-primary hover:bg-primary-dark text-white">
-                        View Profile
-                      </Button>
-                    </Link>
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+                      {merchant.description}
+                    </p>
+                    
+                    {/* Contact Info */}
+                    <div className="space-y-2 mb-4">
+                      {merchant.phone && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-4 w-4 text-gray-400" />
+                          <a href={`tel:${merchant.phone}`} className="text-primary hover:underline">
+                            {merchant.phone}
+                          </a>
+                        </div>
+                      )}
+                      
+                      {merchant.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="h-4 w-4 text-gray-400" />
+                          <a href={`mailto:${merchant.email}`} className="text-primary hover:underline line-clamp-1">
+                            {merchant.email}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <Link 
+                        to={`/merchant/${merchant._id}`} 
+                        className="flex-1"
+                      >
+                        <Button className="w-full bg-primary hover:bg-primary-dark">
+                          View Details
+                        </Button>
+                      </Link>
+                      
+                      {merchant.website && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(merchant.website, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
-          </div>
-          </>
-        ) : (
-          <div className="text-center py-12">
-            <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No favorites yet</h3>
-            <p className="text-gray-500 mb-6">Start exploring and save merchants you love</p>
-            <Link to="/merchants">
-              <Button className="bg-primary hover:bg-primary-dark">
-                Discover Merchants
-              </Button>
-            </Link>
           </div>
         )}
       </div>
