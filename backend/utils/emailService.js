@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const { EMAIL_CONFIG } = require('../config/constants');
+const { emailSentCounter, emailFailedCounter, emailSendDuration } = require('./metrics'); // MONITORING: Import metrics
 
 /**
  * Email Service for sending various types of emails
@@ -40,6 +41,7 @@ class EmailService {
    * @param {Object} options - Email options
    */
   async sendEmail(options) {
+    const end = emailSendDuration.startTimer(); // MONITORING: Start timer
     try {
       const mailOptions = {
         from: `${EMAIL_CONFIG.FROM_NAME} <${EMAIL_CONFIG.FROM_EMAIL}>`,
@@ -56,6 +58,9 @@ class EmailService {
         console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
       }
 
+      emailSentCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other' }); // MONITORING: Increment sent
+      end(); // MONITORING: Record duration
+
       return {
         success: true,
         messageId: info.messageId,
@@ -64,6 +69,8 @@ class EmailService {
 
     } catch (error) {
       console.error('Email sending failed:', error);
+      emailFailedCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other', error_code: error.code || 'unknown' }); // MONITORING: Increment failed
+      end(); // MONITORING: Record duration
       throw new Error(`Failed to send email: ${error.message}`);
     }
   }

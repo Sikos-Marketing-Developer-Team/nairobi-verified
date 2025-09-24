@@ -1,5 +1,7 @@
+// controllers/reviews.js
 const Review = require('../models/Review');
 const Merchant = require('../models/Merchant');
+const mongoose = require('mongoose');
 const { HTTP_STATUS } = require('../config/constants');
 
 // Error handling utility
@@ -17,13 +19,22 @@ const handleError = (res, error, message, statusCode = 500) => {
 // @access  Public
 exports.getReviews = async (req, res) => {
   try {
-    const merchantId = req.params.merchantId;
-    
+    const { merchantId } = req.params;
+    console.log('Fetching reviews for merchant:', merchantId);
+
     // Validate merchantId
-    if (!merchantId) {
+    if (!merchantId || merchantId === 'undefined') {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'Merchant ID is required'
+        error: 'Invalid merchant ID'
+      });
+    }
+
+    // Check if merchantId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(merchantId)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Invalid merchant ID format'
       });
     }
 
@@ -47,6 +58,8 @@ exports.getReviews = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
+    console.log('Reviews found:', reviews.length);
+
     // Always return success, even if no reviews
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -55,6 +68,12 @@ exports.getReviews = async (req, res) => {
       message: reviews.length === 0 ? 'No reviews found for this merchant' : undefined
     });
   } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Invalid merchant ID'
+      });
+    }
     handleError(res, error, 'Failed to fetch reviews', HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 };

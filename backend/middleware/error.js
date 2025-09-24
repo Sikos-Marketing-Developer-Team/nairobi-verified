@@ -1,3 +1,5 @@
+const { httpErrorsCounter } = require('../utils/metrics'); // MONITORING: Import counter
+
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
@@ -26,7 +28,10 @@ const errorHandler = (err, req, res, next) => {
     error.statusCode = 400;
   }
 
-  res.status(error.statusCode || 500).json({
+  const statusCode = error.statusCode || 500; // MONITORING: Get status
+  httpErrorsCounter.inc({ status_code: statusCode }); // MONITORING: Increment error by status
+
+  res.status(statusCode).json({
     success: false,
     error: error.message || 'Server Error'
   });

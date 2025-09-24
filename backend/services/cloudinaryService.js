@@ -1,6 +1,7 @@
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { cloudinaryUploadCounter, cloudinaryDeleteCounter, cloudinaryOperationDuration } = require('../utils/metrics'); // MONITORING: Import metrics
 
 // Configure Cloudinary
 cloudinary.config({
@@ -91,24 +92,32 @@ const documentUpload = multer({
 
 // Helper functions
 const deleteFromCloudinary = async (publicId) => {
+  const end = cloudinaryOperationDuration.startTimer(); // MONITORING: Start timer
   try {
     const result = await cloudinary.uploader.destroy(publicId);
+    cloudinaryDeleteCounter.inc(); // MONITORING: Increment delete
+    end(); // MONITORING: Record duration
     return result;
   } catch (error) {
     console.error('Error deleting from Cloudinary:', error);
+    end(); // MONITORING: Record duration
     throw error;
   }
 };
 
 const uploadToCloudinary = async (filePath, options = {}) => {
+  const end = cloudinaryOperationDuration.startTimer(); // MONITORING: Start timer
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder: 'nairobi-verified',
       ...options
     });
+    cloudinaryUploadCounter.inc({ type: options.resource_type || 'image' }); // MONITORING: Increment upload
+    end(); // MONITORING: Record duration
     return result;
   } catch (error) {
     console.error('Error uploading to Cloudinary:', error);
+    end(); // MONITORING: Record duration
     throw error;
   }
 };

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { PASSWORD_VALIDATION } = require('../config/constants');
 
 const BusinessHoursSchema = new mongoose.Schema({
   open: String,
@@ -33,7 +34,7 @@ const MerchantSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Please add a password'],
-    minlength: 6,
+    minlength: 8,
     select: false
   },
   businessType: {
@@ -77,7 +78,6 @@ const MerchantSchema = new mongoose.Schema({
     default: ''
   },
   gallery: [String],
-  // ENHANCED: Document schema with metadata
   documents: {
     businessRegistration: {
       path: String,
@@ -106,9 +106,8 @@ const MerchantSchema = new mongoose.Schema({
       originalName: String,
       fileSize: Number,
       mimeType: String,
-      description: String // NEW: Allow description for additional docs
+      description: String
     }],
-    // NEW: Document verification tracking
     verificationNotes: String,
     documentsSubmittedAt: Date,
     documentsReviewedAt: Date,
@@ -125,7 +124,6 @@ const MerchantSchema = new mongoose.Schema({
   verifiedDate: {
     type: Date
   },
-  // NEW: Enhanced verification tracking
   verificationHistory: [{
     action: {
       type: String,
@@ -159,7 +157,6 @@ const MerchantSchema = new mongoose.Schema({
   },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
-  // Account setup fields
   accountSetupToken: String,
   accountSetupExpire: Date,
   accountSetupDate: Date,
@@ -168,20 +165,17 @@ const MerchantSchema = new mongoose.Schema({
     enum: ['credentials_sent', 'account_setup', 'documents_submitted', 'under_review', 'completed'],
     default: 'credentials_sent'
   },
-  // Admin creation tracking
   createdByAdmin: {
     type: Boolean,
     default: false
   },
   createdByAdminId: String,
   createdByAdminName: String,
-  // Programmatic creation tracking
   createdProgrammatically: {
     type: Boolean,
     default: false
   },
   createdBy: String,
-  // NEW: Additional tracking fields
   lastLoginAt: Date,
   profileCompleteness: {
     type: Number,
@@ -205,11 +199,9 @@ const MerchantSchema = new mongoose.Schema({
   }
 });
 
-// NEW: Pre-save middleware to update timestamps and completeness
 MerchantSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   
-  // Calculate profile completeness
   const profileFields = [
     this.businessName,
     this.email,
@@ -235,7 +227,6 @@ MerchantSchema.pre('save', function(next) {
     ((completedOptional / optionalFields.length) * 30)
   );
   
-  // Calculate documents completeness
   const requiredDocs = [
     this.documents?.businessRegistration?.path,
     this.documents?.idDocument?.path,
@@ -245,7 +236,6 @@ MerchantSchema.pre('save', function(next) {
   const completedDocs = requiredDocs.filter(doc => doc && doc.trim()).length;
   this.documentsCompleteness = Math.round((completedDocs / requiredDocs.length) * 100);
   
-  // Update onboarding status based on completeness
   if (this.documentsCompleteness === 100 && this.onboardingStatus === 'account_setup') {
     this.onboardingStatus = 'documents_submitted';
     this.documents.documentsSubmittedAt = new Date();
@@ -255,29 +245,30 @@ MerchantSchema.pre('save', function(next) {
   next();
 });
 
-// Encrypt password using bcrypt
 MerchantSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
+  }
+
+  if (!PASSWORD_VALIDATION.REGEX.test(this.password)) {
+    return next(new Error(PASSWORD_VALIDATION.ERROR_MESSAGE));
   }
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
-// Sign JWT and return
 MerchantSchema.methods.getSignedJwtToken = function() {
   return jwt.sign({ id: this._id, isMerchant: true }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE
   });
 };
 
-// Match merchant entered password to hashed password in database
 MerchantSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// NEW: Instance method to check document completeness
 MerchantSchema.methods.getDocumentStatus = function() {
   const requiredDocs = {
     businessRegistration: !!(this.documents?.businessRegistration?.path),
@@ -299,7 +290,6 @@ MerchantSchema.methods.getDocumentStatus = function() {
   };
 };
 
-// NEW: Instance method to add verification history entry
 MerchantSchema.methods.addVerificationHistory = function(action, performedBy, notes, documentsInvolved = []) {
   if (!this.verificationHistory) {
     this.verificationHistory = [];
@@ -315,7 +305,6 @@ MerchantSchema.methods.addVerificationHistory = function(action, performedBy, no
   return this.save();
 };
 
-// NEW: Static method to get merchants needing review
 MerchantSchema.statics.getMerchantsNeedingReview = function() {
   return this.find({
     verified: false,
@@ -326,7 +315,6 @@ MerchantSchema.statics.getMerchantsNeedingReview = function() {
   }).sort({ 'documents.documentsSubmittedAt': 1 });
 };
 
-// NEW: Static method to get document statistics
 MerchantSchema.statics.getDocumentStats = async function() {
   const stats = await this.aggregate([
     {
@@ -408,7 +396,6 @@ MerchantSchema.statics.getDocumentStats = async function() {
   };
 };
 
-// NEW: Create indexes for better query performance
 MerchantSchema.index({ verified: 1 });
 MerchantSchema.index({ 'documents.documentsSubmittedAt': 1 });
 MerchantSchema.index({ 'documents.documentReviewStatus': 1 });

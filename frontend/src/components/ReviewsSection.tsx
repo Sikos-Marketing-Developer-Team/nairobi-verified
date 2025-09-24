@@ -1,3 +1,4 @@
+// src/components/ReviewsSection.tsx
 import React, { useState, useEffect } from 'react';
 import { Star, ThumbsUp, Flag, MessageSquare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,9 +18,8 @@ type Review = {
   };
   merchant: string;
   rating: number;
-  title?: string;
   content: string;
-  date: string;
+  createdAt: string;
   helpful: number;
   helpfulBy: string[];
   reply?: {
@@ -45,18 +45,28 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
   const [sortBy, setSortBy] = useState<'recent' | 'highest' | 'lowest'>('recent');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   
-  // Fetch reviews if not provided
+  // Fetch reviews if not provided or invalid merchantId
   useEffect(() => {
+    if (!merchantId || merchantId === 'undefined') {
+      setReviews([]);
+      toast({
+        title: 'Error',
+        description: 'Invalid merchant ID',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!initialReviews || initialReviews.length === 0) {
       fetchReviews();
     }
-  }, [merchantId]);
+  }, [merchantId, initialReviews]);
 
   const fetchReviews = async () => {
     try {
       setLoading(true);
       const response = await reviewsAPI.getReviews(merchantId);
-      setReviews(response.data.data);
+      setReviews(response.data.data || []);
     } catch (error) {
       console.error('Error fetching reviews:', error);
       toast({
@@ -64,6 +74,7 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
         description: 'Failed to load reviews',
         variant: 'destructive',
       });
+      setReviews([]);
     } finally {
       setLoading(false);
     }
@@ -75,7 +86,7 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
   
   const sortedReviews = [...reviews].sort((a, b) => {
     if (sortBy === 'recent') {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     } else if (sortBy === 'highest') {
       return b.rating - a.rating;
     } else {
@@ -289,7 +300,7 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
                           <div className="flex items-center justify-between">
                             <h4 className="font-medium">{review.user.firstName} {review.user.lastName}</h4>
                             <span className="text-sm text-gray-500">
-                              {new Date(review.date).toLocaleDateString()}
+                              {new Date(review.createdAt).toLocaleDateString()}
                             </span>
                           </div>
                           
@@ -304,9 +315,6 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
                             ))}
                           </div>
                           
-                          {review.title && (
-                            <h5 className="font-medium mb-1">{review.title}</h5>
-                          )}
                           <p className="text-gray-700 mb-3">{review.content}</p>
                           
                           <div className="flex items-center gap-4">
