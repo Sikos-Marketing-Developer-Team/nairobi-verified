@@ -31,9 +31,15 @@ const EMAIL_CONFIG = {
 
 const DEFAULT_MAX_QUANTITY_PER_USER = 5;
 
+const PASSWORD_VALIDATION = {
+  REGEX: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/,
+  ERROR_MESSAGE: 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*).'
+};
+
 module.exports = {
   HTTP_STATUS,
   TIME,
   EMAIL_CONFIG,
   DEFAULT_MAX_QUANTITY_PER_USER,
+  PASSWORD_VALIDATION,
 };
