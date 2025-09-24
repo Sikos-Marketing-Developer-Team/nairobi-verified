@@ -14,11 +14,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePageLoading } from '@/hooks/use-loading';
 import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useFavorites } from '../contexts/FavoritesContext';
 
 const MerchantDetail = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
+  const { updateFavoritesCount } = useFavorites(); // Move this up with other hooks
   const [isFavorite, setIsFavorite] = useState(false);
   const [merchant, setMerchant] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -58,23 +60,28 @@ const MerchantDetail = () => {
   }, [id]);
 
   // Check if merchant is in favorites
-  useEffect(() => {
-    const checkFavorite = async () => {
-      if (isAuthenticated && user) {
-        try {
-          const favoritesRes = await favoritesAPI.getFavorites();
-          const favorites = favoritesRes.data.data;
-          setIsFavorite(favorites.some((fav: any) => fav._id === id));
-        } catch (error) {
-          console.error('Error checking favorites:', error);
-        }
+  // Check if merchant is in favorites - CORRECTED
+useEffect(() => {
+  const checkFavorite = async () => {
+    if (isAuthenticated && user) {
+      try {
+        const favoritesRes = await favoritesAPI.getFavorites();
+        const favorites = favoritesRes.data.data; // Array of merchant objects
+        
+        // Check if current merchant ID exists in favorites
+        setIsFavorite(favorites.some((fav: any) => 
+          fav._id === id || fav.toString() === id
+        ));
+      } catch (error) {
+        console.error('Error checking favorites:', error);
       }
-    };
+    }
+  };
 
-    checkFavorite();
-  }, [id, isAuthenticated, user]);
+  checkFavorite();
+}, [id, isAuthenticated, user]);
 
-  // Handle favorite toggle
+  // Handle favorite toggle - SINGLE FUNCTION DEFINITION
   const handleFavoriteToggle = async () => {
     if (!isAuthenticated) {
       toast({
@@ -90,6 +97,7 @@ const MerchantDetail = () => {
       if (isFavorite) {
         await favoritesAPI.removeFavorite(id as string);
         setIsFavorite(false);
+        updateFavoritesCount(); // Update the count after removal
         toast({
           title: 'Removed from favorites',
           description: `${merchant.businessName} has been removed from your favorites`,
@@ -98,6 +106,7 @@ const MerchantDetail = () => {
       } else {
         await favoritesAPI.addFavorite(id as string);
         setIsFavorite(true);
+        updateFavoritesCount(); // Update the count after addition
         toast({
           title: 'Added to favorites',
           description: `${merchant.businessName} has been added to your favorites`,
@@ -114,12 +123,11 @@ const MerchantDetail = () => {
     }
   };
 
-  // Handle contact merchant
+  // ... rest of your handler functions remain the same
   const handleContactMerchant = () => {
     setShowContactModal(true);
   };
 
-  // Handle write review
   const handleWriteReview = () => {
     if (!isAuthenticated) {
       toast({
@@ -132,9 +140,8 @@ const MerchantDetail = () => {
     setShowReviewModal(true);
   };
 
-  // Handle get directions
   const handleGetDirections = () => {
-    if (merchant.address) {
+    if (merchant?.address) {
       const encodedAddress = encodeURIComponent(merchant.address);
       const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
       window.open(googleMapsUrl, '_blank');
@@ -147,7 +154,6 @@ const MerchantDetail = () => {
     }
   };
 
-  // Handle report issue
   const handleReportIssue = () => {
     if (!isAuthenticated) {
       toast({
@@ -159,6 +165,8 @@ const MerchantDetail = () => {
     }
     setShowReportModal(true);
   };
+
+  // ... rest of your component remains the same
 
   if (loading || isPageLoading) {
     return (

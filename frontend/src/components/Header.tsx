@@ -17,6 +17,7 @@ import {
   Keyboard
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFavorites } from '../contexts/FavoritesContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -25,6 +26,7 @@ const Navbar = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const navbarRef = useRef(null);
   const searchInputRef = useRef(null);
+  const { favoritesCount } = useFavorites(); // Get favorites count from context
 
   // Get auth state from context
   const { user, isAuthenticated, logout } = useAuth();
@@ -153,15 +155,17 @@ const Navbar = () => {
           )}
           
           {/* Conditionally render wishlist only when authenticated */}
-          {isAuthenticated && (
-            <Link 
-              to="/favorites" 
-              className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
-            >
-              <Heart className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
-            </Link>
-          )}
+  {isAuthenticated && (
+    <Link 
+      to="/favorites" 
+      className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
+    >
+      <Heart className="w-5 h-5" />
+      <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">
+        {favoritesCount}
+      </span>
+    </Link>
+  )}
           
           <Link 
             to="/cart" 

@@ -40,7 +40,8 @@ import Contact from "./pages/Contact";
 import Status from "./pages/Status";
 import FlashSaleDetail from "./pages/FlashSaleDetail";
 import ProductPage from './pages/ProductPage';
-
+import { FavoritesProvider } from './contexts/FavoritesContext';
+''
 const queryClient = new QueryClient();
 
 // Protected route component
@@ -84,6 +85,7 @@ const App = () => (
       <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
         <BrowserRouter>
         <AuthProvider>
+           <FavoritesProvider>
           <CartProvider>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -155,8 +157,9 @@ const App = () => (
             {/* Cookie Consent Banner */}
             <CookieConsent />
           </CartProvider>
+          </FavoritesProvider>
         </AuthProvider>
-        </BrowserRouter>
+      </BrowserRouter>
       </GoogleOAuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

@@ -99,13 +99,11 @@ export const reviewsAPI = {
 };
 
 // Favorites API (consolidated)
+// Favorites API - CORRECTED to match backend routes
 export const favoritesAPI = {
-  getFavorites: () => api.get('/users/favorites'),
-  addToFavorites: (merchantId: string) => api.post('/users/favorites', { merchantId }),
-  removeFromFavorites: (merchantId: string) => api.delete(`/users/favorites/${merchantId}`),
-  // Legacy endpoints for backward compatibility
+  getFavorites: () => api.get('/favorites'),
   addFavorite: (merchantId: string) => api.post(`/favorites/${merchantId}`),
-  removeFavorite: (merchantId: string) => api.delete(`/favorites/${merchantId}`)
+  removeFavorite: (merchantId: string) => api.delete(`/favorites/${merchantId}`),
 };
 
 // Orders API
