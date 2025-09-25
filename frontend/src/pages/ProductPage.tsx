@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Star, MapPin, Check, Heart, ArrowLeft, Phone, Mail, Shield, Truck, Clock, Users, Image, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, MapPin, Check, Heart, ArrowLeft, Phone, Mail, Shield, Truck, Clock, Users, Image, ChevronLeft, ChevronRight, Bookmark } from 'lucide-react';
 import { FaWhatsapp, FaInstagram, FaTwitter } from 'react-icons/fa';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import './product.css'
@@ -463,7 +463,6 @@ const ProductPage = () => {
                     rel="noopener noreferrer"
                     aria-label={`Chat about ${product.name} on WhatsApp`}
                   >
-                    <FaWhatsapp className="h-5 md:h-6 w-5 md:w-6 mr-2 md:mr-3" />
                     💬 Chat on WhatsApp
                   </a>
                 </Button>
@@ -473,7 +472,8 @@ const ProductPage = () => {
                   className="w-full border-2 border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 font-medium py-2 md:py-3 text-sm md:text-base"
                   aria-label={`Add ${product.name} to wishlist`}
                 >
-                  <Heart className="h-4 md:h-5 w-4 md:w-5 mr-2" />
+                  
+                  <Bookmark />
                   Add to Wishlist
                 </Button>
               </section>

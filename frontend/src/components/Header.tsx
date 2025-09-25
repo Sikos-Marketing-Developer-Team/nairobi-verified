@@ -199,7 +199,7 @@ const Navbar = () => {
         <Link 
           to="/favorites" 
           className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
-          title="My Wishlist"
+          title="My Favorite Shops"
         >
           <Heart className="w-5 h-5" />
           <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">
