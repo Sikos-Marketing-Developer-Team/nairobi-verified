@@ -15,7 +15,7 @@ type Review = {
     firstName: string;
     lastName: string;
     avatar?: string;
-  };
+  } | null; // Added null possibility
   merchant: string;
   rating: number;
   content: string;
@@ -45,6 +45,9 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
   const [sortBy, setSortBy] = useState<'recent' | 'highest' | 'lowest'>('recent');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   
+  // Filter out reviews with null users to prevent errors
+  const safeReviews = reviews.filter(review => review?.user !== null);
+  
   // Fetch reviews if not provided or invalid merchantId
   useEffect(() => {
     if (!merchantId || merchantId === 'undefined') {
@@ -66,7 +69,9 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
     try {
       setLoading(true);
       const response = await reviewsAPI.getReviews(merchantId);
-      setReviews(response.data.data || []);
+      // Filter out any null users from the API response
+      const filteredReviews = (response.data.data || []).filter((review: Review) => review?.user !== null);
+      setReviews(filteredReviews);
     } catch (error) {
       console.error('Error fetching reviews:', error);
       toast({
@@ -80,11 +85,11 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
     }
   };
   
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length 
+  const averageRating = safeReviews.length > 0 
+    ? safeReviews.reduce((acc, review) => acc + review.rating, 0) / safeReviews.length 
     : 0;
   
-  const sortedReviews = [...reviews].sort((a, b) => {
+  const sortedReviews = [...safeReviews].sort((a, b) => {
     if (sortBy === 'recent') {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     } else if (sortBy === 'highest') {
@@ -207,10 +212,10 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
     });
   };
   
-  // Rating distribution
+  // Rating distribution - use safeReviews instead of reviews
   const ratingCounts = [5, 4, 3, 2, 1].map(rating => {
-    const count = reviews.filter(review => review.rating === rating).length;
-    const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+    const count = safeReviews.filter(review => review.rating === rating).length;
+    const percentage = safeReviews.length > 0 ? (count / safeReviews.length) * 100 : 0;
     return { rating, count, percentage };
   });
   
@@ -235,7 +240,7 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
                   ))}
                 </div>
               </div>
-              <p className="text-sm text-gray-500 mb-6">Based on {reviews.length} reviews</p>
+              <p className="text-sm text-gray-500 mb-6">Based on {safeReviews.length} reviews</p>
               
               {/* Rating Distribution */}
               <div className="space-y-2">
@@ -275,7 +280,7 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : reviews.length === 0 ? (
+          ) : safeReviews.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500">No reviews yet. Be the first to leave a review!</p>
             </div>
@@ -287,18 +292,24 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
                     <div className="p-4">
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                          {review.user.avatar ? (
-                            <img src={review.user.avatar} alt={`${review.user.firstName} ${review.user.lastName}`} className="w-full h-full object-cover" />
+                          {review.user?.avatar ? (
+                            <img 
+                              src={review.user.avatar} 
+                              alt={`${review.user.firstName || ''} ${review.user.lastName || ''}`} 
+                              className="w-full h-full object-cover" 
+                            />
                           ) : (
                             <span className="text-lg font-medium text-gray-600">
-                              {review.user.firstName.charAt(0)}
+                              {review.user?.firstName?.charAt(0) || 'U'}
                             </span>
                           )}
                         </div>
                         
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <h4 className="font-medium">{review.user.firstName} {review.user.lastName}</h4>
+                            <h4 className="font-medium">
+                              {review.user?.firstName || 'Unknown'} {review.user?.lastName || 'User'}
+                            </h4>
                             <span className="text-sm text-gray-500">
                               {new Date(review.createdAt).toLocaleDateString()}
                             </span>
@@ -364,13 +375,13 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
                         <div className="flex items-start gap-3">
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                             <span className="text-sm font-medium text-primary">
-                              {review.reply.author.charAt(0)}
+                              {review.reply.author?.charAt(0) || 'B'}
                             </span>
                           </div>
                           
                           <div>
                             <div className="flex items-center gap-2">
-                              <h5 className="text-sm font-medium text-primary">{review.reply.author}</h5>
+                              <h5 className="text-sm font-medium text-primary">{review.reply.author || 'Business'}</h5>
                               <span className="text-xs text-gray-500">
                                 {new Date(review.reply.date).toLocaleDateString()}
                               </span>
