@@ -481,11 +481,11 @@ const getStatusText = (merchant: Merchant) => {
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Merchants Management</h1>
-          <p className="mt-2 text-sm text-gray-700">
+          <h1 className="text-2xl font-bold text-gray-900 p-2 pl-5">Merchants Management</h1>
+          <p className="mt-2 text-sm text-gray-700 pl-5">
             Manage merchant accounts, verification status, and documents
           </p>
-          <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+          <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500 pl-5">
             <span>Total: {merchants.length}</span>
             <span>•</span>
             <span>Selected: {selectedMerchants.length}</span>
