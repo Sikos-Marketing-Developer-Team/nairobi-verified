@@ -19,19 +19,19 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('orders');
   const [orders, setOrders] = useState<Order[]>([]);
-  const [wishlistItems, setWishlistItems] = useState<Merchant[]>([]);
+  const [favouritesItems, setfavouritesItems] = useState<Merchant[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
-  const [isLoadingWishlist, setIsLoadingWishlist] = useState(false);
+  const [isLoadingfavourites, setIsLoadingfavourites] = useState(false);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
-  const [wishlistError, setWishlistError] = useState<string | null>(null);
+  const [favouritesError, setfavouritesError] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
   const isPageLoading = usePageLoading(500);
 
   const tabs = [
     { id: 'orders', label: 'My Orders', icon: Package },
-    { id: 'wishlist', label: 'Wishlist', icon: Heart },
+    { id: 'favourites', label: 'Favourites', icon: Heart },
     { id: 'addresses', label: 'Addresses', icon: MapPin },
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'settings', label: 'Settings', icon: Settings }
@@ -56,20 +56,20 @@ const Dashboard = () => {
   }, [activeTab, isAuthenticated, user]);
 
   useEffect(() => {
-    if (isAuthenticated && user && activeTab === 'wishlist') {
-      const fetchWishlist = async () => {
-        setIsLoadingWishlist(true);
+    if (isAuthenticated && user && activeTab === 'favourites') {
+      const fetchfavourites = async () => {
+        setIsLoadingfavourites(true);
         try {
           const response = await favoritesAPI.getFavorites();
-          setWishlistItems(response.data.data); // Assuming this returns Merchant array
+          setfavouritesItems(response.data.data); // Assuming this returns Merchant array
         } catch (err) {
-          console.error('Error fetching wishlist:', err);
-          setWishlistError('Failed to load wishlist.');
+          console.error('Error fetching favourites:', err);
+          setfavouritesError('Failed to load favourites.');
         } finally {
-          setIsLoadingWishlist(false);
+          setIsLoadingfavourites(false);
         }
       };
-      fetchWishlist();
+      fetchfavourites();
     }
   }, [activeTab, isAuthenticated, user]);
 
@@ -98,10 +98,10 @@ const Dashboard = () => {
         title: 'Favorite Removed',
         description: 'Merchant successfully removed from your favorites.',
       });
-      // Refresh wishlist after removal
+      // Refresh favourites after removal
       if (isAuthenticated && user) {
         const response = await favoritesAPI.getFavorites();
-        setWishlistItems(response.data.data);
+        setfavouritesItems(response.data.data);
       }
     } catch (err) {
       console.error('Error removing favorite:', err);
@@ -197,7 +197,7 @@ const Dashboard = () => {
             {/* Content based on active tab */}
             {activeTab === 'profile' || activeTab === 'settings' ? (
               <ProfileSkeleton />
-            ) : activeTab === 'orders' || activeTab === 'wishlist' || activeTab === 'addresses' ? (
+            ) : activeTab === 'orders' || activeTab === 'favourites' || activeTab === 'addresses' ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -361,32 +361,32 @@ const Dashboard = () => {
               </div>
             )}
 
-          {activeTab === 'wishlist' && (
+          {activeTab === 'favourites' && (
   <div className="space-y-6">
     <Card>
       <CardHeader>
-        <CardTitle>My Wishlist</CardTitle>
+        <CardTitle>My Favourite Shops </CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoadingWishlist ? (
+        {isLoadingfavourites ? (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-2 text-gray-600">Loading wishlist...</p>
+            <p className="ml-2 text-gray-600">Loading favourites...</p>
           </div>
-        ) : wishlistError ? (
+        ) : favouritesError ? (
            <div className="text-center py-8">
                         <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-xl font-semibold text-gray-600 mb-2">No items found</h3>
-                        <p className="text-gray-500 mb-6">You haven't added any items to your wishlist yet.</p>
+                        <p className="text-gray-500 mb-6">You haven't added any items to your favourites yet.</p>
                         <Link to="/merchants">
                           <Button className="bg-primary hover:bg-primary-dark">
                             Browse Items
                           </Button>
                         </Link>
                       </div>
-        ) : wishlistItems.length > 0 ? (
+        ) : favouritesItems.length > 0 ? (
           <div className="space-y-4">
-            {wishlistItems.map((item) => (
+            {favouritesItems.map((item) => (
               <div key={item._id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex gap-4">
@@ -416,7 +416,7 @@ const Dashboard = () => {
         ) : (
           <div className="text-center py-8">
             <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No items in wishlist</h3>
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">No items in favourites</h3>
             <p className="text-gray-500 mb-6">Start exploring and save merchants you love</p>
             <Link to="/merchants">
               <Button className="bg-primary hover:bg-primary-dark">
