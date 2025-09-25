@@ -20,7 +20,8 @@ const {
   getSystemStatus,
   exportData,
   getSettings,
-  updateSettings
+  updateSettings,
+  
 } = require('../controllers/adminDashboard');
 const { protectAdmin, checkPermission } = require('../middleware/adminAuth');
 

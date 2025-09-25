@@ -4,7 +4,7 @@ const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImhhcmRjb2RlZC1hZG1p
 const secret = 'mark1234';
 
 try {
-  const decoded = jwt.verify(token, secret);
+  const decoded = jwt.(token, secret);
   console.log('Token is valid:', decoded);
 } catch (error) {
   console.log('Token verification failed:', error.message);
