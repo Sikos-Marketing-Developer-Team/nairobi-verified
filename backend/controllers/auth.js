@@ -4,6 +4,7 @@ const passport = require('passport');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const { HTTP_STATUS, PASSWORD_VALIDATION } = require('../config/constants');
+const { emailService } = require('../utils/emailService'); // Import email service
 
 exports.register = async (req, res) => {
   try {
@@ -431,8 +432,17 @@ exports.googleCallback = (req, res, next) => {
 };
 
 exports.forgotPassword = async (req, res) => {
+  let user;
+  
   try {
     const { email } = req.body;
+
+    if (!email) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Please provide an email address'
+      });
+    }
 
     if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
       console.log('Mocking password reset for email:', email);
@@ -442,51 +452,83 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    let user = await User.findOne({ email });
+    // Find user in either User or Merchant collection
+    user = await User.findOne({ email });
+    let userType = 'user';
     
     if (!user) {
       user = await Merchant.findOne({ email });
+      userType = 'merchant';
     }
 
+    // Always return success message for security (don't reveal if email exists)
     if (!user) {
       return res.status(HTTP_STATUS.OK).json({
         success: true,
-        message: 'Password reset email sent'
+        message: 'If your email is registered with us, you will receive a password reset link shortly.'
       });
     }
 
+    // Generate reset token
     const resetToken = crypto.randomBytes(20).toString('hex');
     
+    // Hash token and set to resetPasswordToken field
     user.resetPasswordToken = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
     
+    // Set expire time (10 minutes)
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
     
     await user.save();
 
+    // Create reset URL
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password/${resetToken}`;
     
-    console.log('Reset URL:', resetUrl);
+    console.log('Reset URL generated:', resetUrl);
     
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Password reset email sent',
-      resetUrl
-    });
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    
-    if (user) {
+    try {
+      // Send password reset email using the email service
+      await emailService.sendPasswordReset(email, resetUrl, userType);
+      
+      console.log(`Password reset email sent to: ${email}`);
+      
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Password reset email sent successfully'
+      });
+    } catch (emailError) {
+      console.error('Email sending error:', emailError);
+      
+      // Reset the user fields if email fails
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save();
+      
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: 'Email could not be sent. Please try again later.'
+      });
+    }
+    
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    
+    // Clean up user fields if error occurs
+    if (user) {
+      try {
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+        await user.save();
+      } catch (saveError) {
+        console.error('Error cleaning up user fields:', saveError);
+      }
     }
     
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: 'Email could not be sent'
+      error: 'An error occurred while processing your request. Please try again later.'
     });
   }
 };
@@ -505,6 +547,7 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
+    // Find user with valid reset token
     let user = await User.findOne({
       resetPasswordToken,
       resetPasswordExpire: { $gt: Date.now() }
@@ -520,7 +563,15 @@ exports.resetPassword = async (req, res) => {
     if (!user) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'Invalid or expired token'
+        error: 'Invalid or expired reset token'
+      });
+    }
+
+    // Validate new password
+    if (!req.body.password) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Please provide a new password'
       });
     }
 
@@ -531,22 +582,25 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
+    // Set new password and clear reset fields
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     
     await user.save();
 
+    console.log(`Password reset successful for user: ${user.email}`);
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Password reset successful'
+      message: 'Password reset successful. You can now log in with your new password.'
     });
   } catch (error) {
     console.error('Reset password error:', error);
     
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: 'Could not reset password'
+      error: 'Could not reset password. Please try again later.'
     });
   }
 };
