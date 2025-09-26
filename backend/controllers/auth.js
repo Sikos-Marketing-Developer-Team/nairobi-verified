@@ -483,8 +483,18 @@ exports.forgotPassword = async (req, res) => {
     
     await user.save();
 
-    // Create reset URL
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password/${resetToken}`;
+    // Determine the correct frontend URL based on environment
+    let frontendUrl;
+    if (process.env.NODE_ENV === 'production') {
+      // For production, use the production frontend URL
+      frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://nairobi-verified.netlify.app';
+    } else {
+      // For development, use localhost
+      frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    }
+
+    // Create reset URL - Fixed to match frontend route
+    const resetUrl = `${frontendUrl}/auth/reset-password/${resetToken}`;
     
     console.log('Reset URL generated:', resetUrl);
     
