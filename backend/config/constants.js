@@ -20,12 +20,12 @@ const EMAIL_CONFIG = {
   SERVICE: process.env.EMAIL_SERVICE || 'gmail',
   DEV_HOST: 'smtp.ethereal.email',
   DEV_PORT: 587,
-  FROM_NAME: 'Nairobi CBD Directory',
-  FROM_EMAIL: 'noreply@nairobicbd.com',
+  FROM_NAME: 'Nairobi Verified Team',
+  FROM_EMAIL: 'noreply@nairobiverified.com',
   SUBJECTS: {
-    WELCOME: 'Welcome to Nairobi CBD Business Directory!',
-    PASSWORD_RESET: 'Password Reset Request - Nairobi CBD',
-    VERIFICATION: 'Business Verification Required - Nairobi CBD',
+    WELCOME: 'Welcome to Nairobi Verified!',
+    PASSWORD_RESET: 'Password Reset Request - Nairobi Verified',
+    VERIFICATION: 'Business Verification Required - Nairobi Verified',
   },
 };
 
