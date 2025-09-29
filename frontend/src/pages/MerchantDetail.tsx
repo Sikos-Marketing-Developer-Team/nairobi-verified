@@ -1,13 +1,12 @@
-// src/pages/MerchantDetail.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, 
   Image, MessageSquare, AlertCircle, Loader2, X, Send, 
-  Facebook, Instagram, Globe, Map, Twitter, Film
+  Facebook, Instagram, Globe, Map, Twitter, Film, Copy, Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
@@ -19,16 +18,18 @@ import { usePageLoading } from '@/hooks/use-loading';
 import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 // Social media icon mapping
 const socialIcons = {
   facebook: Facebook,
   instagram: Instagram,
   twitter: Twitter,
-  tiktok: Film, // Using Film as a better placeholder for TikTok videos
+  tiktok: Film,
   website: ExternalLink,
   phone: Phone,
-  google: Map
+  google: Map,
+  whatsapp: Send,
 };
 
 const MerchantDetail = () => {
@@ -47,7 +48,7 @@ const MerchantDetail = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
 
-  // Enhanced merchant data fetching with SEO data
+  // SEO and Data Fetching
   useEffect(() => {
     const fetchMerchantData = async () => {
       try {
@@ -55,22 +56,37 @@ const MerchantDetail = () => {
         const merchantRes = await merchantsAPI.getMerchant(id as string);
         const merchantData = merchantRes.data.data;
         setMerchant(merchantData);
-        
-        // Update document title for SEO
-        document.title = `${merchantData.businessName} - ${merchantData.businessType} | YourPlatform`;
-        
-        // Update meta description
+
+        // Update document title and meta tags for SEO
+        document.title = `${merchantData.businessName} - ${merchantData.businessType} in ${merchantData.location} | YourPlatform`;
         const metaDescription = document.querySelector('meta[name="description"]');
         if (metaDescription) {
           metaDescription.setAttribute('content', 
-            `${merchantData.businessName} - ${merchantData.description?.substring(0, 160)}...`
+            `${merchantData.businessName} - ${merchantData.description?.substring(0, 160) || 'Discover this local business'}...`
           );
         }
+
+        // Add Open Graph meta tags
+        const ogTags = [
+          { property: 'og:title', content: `${merchantData.businessName} - ${merchantData.businessType}` },
+          { property: 'og:description', content: merchantData.description?.substring(0, 200) || '' },
+          { property: 'og:image', content: merchantData.bannerImage || merchantData.logo },
+          { property: 'og:url', content: window.location.href },
+          { property: 'og:type', content: 'website' },
+        ];
+        ogTags.forEach(tag => {
+          let meta = document.querySelector(`meta[property="${tag.property}"]`);
+          if (!meta) {
+            meta = document.createElement('meta');
+            meta.setAttribute('property', tag.property);
+            document.head.appendChild(meta);
+          }
+          meta.setAttribute('content', tag.content);
+        });
 
         // Fetch reviews
         const reviewsRes = await reviewsAPI.getReviews(id as string);
         setReviews(reviewsRes.data.data);
-        
         setLoading(false);
       } catch (error: any) {
         setError(error.response?.data?.error || 'Failed to load merchant data');
@@ -86,7 +102,7 @@ const MerchantDetail = () => {
     }
   }, [id]);
 
-  // Check if merchant is in favorites
+  // Check favorite status
   useEffect(() => {
     const checkFavorite = async () => {
       if (isAuthenticated && user) {
@@ -123,7 +139,7 @@ const MerchantDetail = () => {
         setIsFavorite(false);
         updateFavoritesCount();
         toast({
-          title: 'Removed from favorites',
+          title: 'Removed from Favorites',
           description: `${merchant.businessName} has been removed from your favorites`,
           variant: 'destructive',
         });
@@ -132,7 +148,7 @@ const MerchantDetail = () => {
         setIsFavorite(true);
         updateFavoritesCount();
         toast({
-          title: 'Added to favorites',
+          title: 'Added to Favorites',
           description: `${merchant.businessName} has been added to your favorites`,
         });
       }
@@ -147,15 +163,31 @@ const MerchantDetail = () => {
     }
   };
 
-  // Enhanced contact handler with multiple options
+  // Copy link to clipboard
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({
+      title: 'Link Copied',
+      description: 'The business page link has been copied to your clipboard',
+    });
+  };
+
+  // Share via WhatsApp
+  const handleWhatsAppShare = () => {
+    const message = `Check out ${merchant.businessName}, a ${merchant.businessType} in ${merchant.location}! ${window.location.href}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  // Contact handler
   const handleContactMerchant = () => {
     setShowContactModal(true);
   };
 
-  // Enhanced directions handler with Google Maps integration
+  // Directions handler
   const handleGetDirections = () => {
     if (merchant?.address) {
-      const encodedAddress = encodeURIComponent(merchant.address);
+      const encodedAddress = encodeURIComponent(`${merchant.address}, ${merchant.location}`);
       const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
       window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
     } else {
@@ -167,12 +199,11 @@ const MerchantDetail = () => {
     }
   };
 
-  // Open Google My Business profile
+  // Google My Business handler
   const handleOpenGoogleBusiness = () => {
     if (merchant?.googleBusinessUrl) {
       window.open(merchant.googleBusinessUrl, '_blank', 'noopener,noreferrer');
     } else {
-      // Fallback to Google Maps search
       const searchQuery = encodeURIComponent(`${merchant.businessName} ${merchant.address}`);
       window.open(`https://www.google.com/maps/search/?api=1&query=${searchQuery}`, '_blank', 'noopener,noreferrer');
     }
@@ -191,6 +222,7 @@ const MerchantDetail = () => {
     }
   };
 
+  // Review handler
   const handleWriteReview = () => {
     if (!isAuthenticated) {
       toast({
@@ -203,6 +235,7 @@ const MerchantDetail = () => {
     setShowReviewModal(true);
   };
 
+  // Report handler
   const handleReportIssue = () => {
     if (!isAuthenticated) {
       toast({
@@ -215,7 +248,7 @@ const MerchantDetail = () => {
     setShowReportModal(true);
   };
 
-  // Format business hours for display
+  // Format business hours
   const businessHoursFormatted: Record<string, string> = {};
   Object.entries(merchant?.businessHours || {}).forEach(([day, hours]: [string, any]) => {
     if (hours.closed) {
@@ -228,13 +261,14 @@ const MerchantDetail = () => {
   const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
   const isOpen = businessHoursFormatted[currentDay] !== 'Closed';
 
-  // Enhanced social links data structure
-  const socialLinks = merchant?.socialLinks || {
+  // Social links
+  const socialLinks = {
     facebook: merchant?.facebookUrl,
     instagram: merchant?.instagramUrl,
     twitter: merchant?.twitterUrl,
     tiktok: merchant?.tiktokUrl,
-    website: merchant?.website
+    website: merchant?.website,
+    whatsapp: merchant?.whatsapp,
   };
 
   if (loading || isPageLoading) {
@@ -342,12 +376,12 @@ const MerchantDetail = () => {
             "address": {
               "@type": "PostalAddress",
               "streetAddress": merchant.address,
-              "addressLocality": merchant.location
+              "addressLocality": merchant.location,
             },
             "geo": {
               "@type": "GeoCoordinates",
               "latitude": merchant.latitude,
-              "longitude": merchant.longitude
+              "longitude": merchant.longitude,
             },
             "openingHours": Object.entries(businessHoursFormatted).map(([day, hours]) => 
               `${day.substring(0, 2)} ${hours}`
@@ -355,24 +389,41 @@ const MerchantDetail = () => {
             "aggregateRating": {
               "@type": "AggregateRating",
               "ratingValue": merchant.rating,
-              "reviewCount": merchant.reviews
+              "reviewCount": merchant.reviews,
             },
-            "image": merchant.gallery,
-            "priceRange": merchant.priceRange
+            "image": merchant.gallery?.[0] || merchant.bannerImage,
+            "priceRange": merchant.priceRange,
+            "sameAs": Object.values(socialLinks).filter(Boolean),
           })
         }}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Section with Semantic HTML */}
+        {/* Hero Section with Carousel */}
         <header className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-          <div className="relative h-64 md:h-80">
-            <img
-              src={merchant.bannerImage}
-              alt={`${merchant.businessName} - ${merchant.businessType} in ${merchant.location}`}
-              className="w-full h-full object-cover"
-              loading="eager"
-            />
+          <Carousel className="relative h-64 md:h-80">
+            <CarouselContent>
+              <CarouselItem>
+                <img
+                  src={merchant.bannerImage}
+                  alt={`${merchant.businessName} - ${merchant.businessType} in ${merchant.location}`}
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                />
+              </CarouselItem>
+              {merchant.gallery?.map((image: string, index: number) => (
+                <CarouselItem key={index}>
+                  <img
+                    src={image}
+                    alt={`${merchant.businessName} gallery image ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
               <div className="flex items-end gap-6">
@@ -396,36 +447,78 @@ const MerchantDetail = () => {
                     <span>{merchant.location}</span>
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  className={`${
-                    isFavorite 
-                      ? "bg-primary border-primary text-white hover:bg-primary-dark" 
-                      : "bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
-                  }`}
-                  onClick={handleFavoriteToggle}
-                  disabled={favoriteLoading}
-                >
-                  {favoriteLoading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Heart className={`h-4 w-4 mr-2 ${isFavorite ? "fill-current" : ""}`} />
-                  )}
-                  {isFavorite ? 'Saved to Favorites' : 'Save to Favorites'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    className={`${
+                      isFavorite 
+                        ? "bg-primary border-primary text-white hover:bg-primary-dark" 
+                        : "bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
+                    }`}
+                    onClick={handleFavoriteToggle}
+                    disabled={favoriteLoading}
+                  >
+                    {favoriteLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Heart className={`h-4 w-4 mr-2 ${isFavorite ? "fill-current" : ""}`} />
+                    )}
+                    {isFavorite ? 'Saved' : 'Save'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
+                    onClick={handleCopyLink}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Link
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
+                    onClick={handleWhatsAppShare}
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          </Carousel>
         </header>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Sidebar (moved to left for better attention) */}
+          {/* Sidebar */}
           <aside className="space-y-6">
+            {/* Trust Indicators */}
+            <Card>
+              <CardHeader>
+                <h3 className="text-xl font-bold text-gray-900">Why Choose {merchant.businessName}</h3>
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Check className="h-5 w-5 text-green-500" />
+                    <p className="text-sm">Verified Business since {merchant.yearEstablished}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                    <p className="text-sm">{merchant.rating} ({merchant.reviews} reviews)</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-gray-400" />
+                    <p className="text-sm">Serving customers for {new Date().getFullYear() - merchant.yearEstablished} years</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Contact Information */}
             <Card>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Contact Information</h3>
-                
+              <CardHeader>
+                <h3 className="text-xl font-bold text-gray-900">Contact Information</h3>
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <Phone className="h-5 w-5 text-gray-400" />
@@ -440,7 +533,6 @@ const MerchantDetail = () => {
                       </a>
                     </div>
                   </div>
-                  
                   <div className="flex items-center gap-3">
                     <Mail className="h-5 w-5 text-gray-400" />
                     <div>
@@ -454,11 +546,24 @@ const MerchantDetail = () => {
                       </a>
                     </div>
                   </div>
-                  
-                  {/* Social Media Links */}
+                  {merchant.whatsapp && (
+                    <div className="flex items-center gap-3">
+                      <Send className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">WhatsApp</p>
+                        <a 
+                          href={`https://wa.me/${merchant.whatsapp}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
+                          className="font-medium text-primary hover:text-primary-dark"
+                          aria-label={`Message ${merchant.businessName} on WhatsApp`}
+                        >
+                          Message on WhatsApp
+                        </a>
+                      </div>
+                    </div>
+                  )}
                   <div className="pt-4 border-t">
                     <p className="text-sm font-medium text-gray-700 mb-3">Follow & Connect</p>
-                    <div className="flex gap-3">
+                    <div className="flex gap-2 flex-wrap">
                       {Object.entries(socialLinks).map(([platform, url]) => {
                         if (!url) return null;
                         const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
@@ -467,7 +572,7 @@ const MerchantDetail = () => {
                             key={platform}
                             variant="outline"
                             size="sm"
-                            className="flex-1"
+                            className="flex-1 min-w-[80px]"
                             onClick={() => handleSocialMediaClick(url as string, platform)}
                             aria-label={`Visit ${merchant.businessName} on ${platform}`}
                           >
@@ -475,12 +580,10 @@ const MerchantDetail = () => {
                           </Button>
                         );
                       })}
-                      
-                      {/* Google My Business Button */}
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 min-w-[80px]"
                         onClick={handleOpenGoogleBusiness}
                         aria-label={`View ${merchant.businessName} on Google Business`}
                       >
@@ -494,17 +597,18 @@ const MerchantDetail = () => {
 
             {/* Business Hours */}
             <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2 mb-4">
+              <CardHeader>
+                <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-gray-400" />
                   <h3 className="text-xl font-bold text-gray-900">Business Hours</h3>
                   <span className={`text-sm px-2 py-1 rounded-full ${
                     isOpen ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}>
-                    {isOpen ? 'Open' : 'Closed'}
+                    {isOpen ? 'Open Now' : 'Closed'}
                   </span>
                 </div>
-                
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
                 <div className="space-y-2">
                   {Object.entries(businessHoursFormatted).map(([day, hoursStr]) => (
                     <div 
@@ -521,14 +625,14 @@ const MerchantDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Quick Actions - Made more persuasive with action-oriented text */}
+            {/* Quick Actions */}
             <nav className="space-y-3" aria-label="Quick actions for merchant">
               <Button 
                 className="w-full bg-primary hover:bg-primary-dark"
                 onClick={handleContactMerchant}
               >
                 <Phone className="h-4 w-4 mr-2" />
-                Contact Now - Get in Touch Today!
+                Contact Now
               </Button>
               <Button 
                 variant="outline" 
@@ -536,7 +640,7 @@ const MerchantDetail = () => {
                 onClick={handleWriteReview}
               >
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Share Your Experience - Write a Review
+                Write a Review
               </Button>
               <Button 
                 variant="outline" 
@@ -544,7 +648,7 @@ const MerchantDetail = () => {
                 onClick={handleGetDirections}
               >
                 <MapPin className="h-4 w-4 mr-2" />
-                Visit Us - Get Directions Immediately
+                Get Directions
               </Button>
               <Button 
                 variant="outline" 
@@ -552,7 +656,7 @@ const MerchantDetail = () => {
                 onClick={handleOpenGoogleBusiness}
               >
                 <Map className="h-4 w-4 mr-2" />
-                See More on Google Business
+                View on Google
               </Button>
               <Button 
                 variant="outline" 
@@ -567,56 +671,110 @@ const MerchantDetail = () => {
 
           {/* Main Content */}
           <section className="lg:col-span-2 space-y-8">
-            {/* About Section */}
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">About {merchant.businessName}</h2>
-                <p className="text-gray-600 leading-relaxed">{merchant.description}</p>
-                
-                <div className="mt-6 flex items-center gap-4">
-                  <div className="flex items-center">
-                    <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                    <span className="text-lg font-semibold ml-1">{merchant.rating}</span>
-                  </div>
-                  <span className="text-gray-500">({merchant.reviews} reviews)</span>
-                  <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
-                    Verified since {new Date(merchant.verifiedDate).toLocaleDateString()}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+            <Tabs defaultValue="about" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="about">About</TabsTrigger>
+                <TabsTrigger value="services">Services</TabsTrigger>
+                <TabsTrigger value="gallery">Gallery</TabsTrigger>
+                <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              </TabsList>
 
-            {/* Photo Gallery */}
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Photo Gallery</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {merchant.gallery.map((image, index) => (
-                    <figure key={index} className="aspect-square overflow-hidden rounded-lg">
-                      <img
-                        src={image}
-                        alt={`${merchant.businessName} gallery image ${index + 1}`}
-                        className="w-full h-full object-cover hover:scale-110 transition-transform duration-300 cursor-pointer"
-                        loading="lazy"
-                      />
-                    </figure>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+              {/* About Tab */}
+              <TabsContent value="about">
+                <Card>
+                  <CardHeader>
+                    <h2 className="text-2xl font-bold text-gray-900">About {merchant.businessName}</h2>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 leading-relaxed">{merchant.description}</p>
+                    <div className="mt-6 flex items-center gap-4">
+                      <div className="flex items-center">
+                        <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                        <span className="text-lg font-semibold ml-1">{merchant.rating}</span>
+                      </div>
+                      <span className="text-gray-500">({merchant.reviews} reviews)</span>
+                      <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
+                        Verified since {new Date(merchant.verifiedDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-            {/* Reviews Section */}
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Customer Reviews</h2>
-                <ReviewsSection merchantId={merchant._id} reviews={reviews} />
-              </CardContent>
-            </Card>
+              {/* Services Tab */}
+              <TabsContent value="services">
+                <Card>
+                  <CardHeader>
+                    <h2 className="text-2xl font-bold text-gray-900">Services & Pricing</h2>
+                  </CardHeader>
+                  <CardContent>
+                    {merchant.services?.length > 0 ? (
+                      <ul className="space-y-4">
+                        {merchant.services.map((service: any, index: number) => (
+                          <li key={index} className="flex justify-between items-center border-b pb-2">
+                            <div>
+                              <p className="font-medium">{service.name}</p>
+                              <p className="text-sm text-gray-600">{service.description}</p>
+                            </div>
+                            <p className="font-semibold">{service.price || 'Contact for pricing'}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-600">No services listed. Contact the business for more information.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Gallery Tab */}
+              <TabsContent value="gallery">
+                <Card>
+                  <CardHeader>
+                    <h2 className="text-2xl font-bold text-gray-900">Photo Gallery</h2>
+                  </CardHeader>
+                  <CardContent>
+                    <Carousel className="w-full">
+                      <CarouselContent>
+                        {merchant.gallery.map((image: string, index: number) => (
+                          <CarouselItem key={index}>
+                            <figure className="aspect-square overflow-hidden rounded-lg">
+                              <img
+                                src={image}
+                                alt={`${merchant.businessName} gallery image ${index + 1}`}
+                                className="w-full h-full object-cover hover:scale-110 transition-transform duration-300 cursor-pointer"
+                                loading="lazy"
+                              />
+                            </figure>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious />
+                      <CarouselNext />
+                    </Carousel>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Reviews Tab */}
+              <TabsContent value="reviews">
+                <Card>
+                  <CardHeader>
+                    <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
+                  </CardHeader>
+                  <CardContent>
+                    <ReviewsSection merchantId={merchant._id} reviews={reviews} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
 
             {/* Location & Map */}
             <Card>
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Location</h2>
+              <CardHeader>
+                <h2 className="text-2xl font-bold text-gray-900">Location</h2>
+              </CardHeader>
+              <CardContent>
                 <div className="flex items-start gap-3 mb-4">
                   <MapPin className="h-5 w-5 text-gray-400 mt-1" />
                   <div>
@@ -624,8 +782,6 @@ const MerchantDetail = () => {
                     <p className="text-gray-600">{merchant.location}</p>
                   </div>
                 </div>
-                
-                {/* Interactive Map */}
                 <div className="rounded-lg h-64 overflow-hidden">
                   <iframe 
                     title={`Location of ${merchant.businessName} in ${merchant.location}`}
@@ -639,7 +795,6 @@ const MerchantDetail = () => {
                     loading="lazy"
                   ></iframe>
                 </div>
-                
                 <Button 
                   className="w-full mt-4 bg-primary hover:bg-primary-dark"
                   onClick={handleGetDirections}
@@ -652,7 +807,7 @@ const MerchantDetail = () => {
         </div>
       </main>
 
-      {/* Enhanced Contact Modal with Social Links */}
+      {/* Enhanced Contact Modal */}
       {showContactModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
@@ -667,6 +822,20 @@ const MerchantDetail = () => {
               </Button>
             </div>
             <div className="space-y-4">
+              {merchant.whatsapp && (
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                  <Send className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">WhatsApp</p>
+                    <a 
+                      href={`https://wa.me/${merchant.whatsapp}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
+                      className="text-primary hover:underline"
+                    >
+                      Message on WhatsApp
+                    </a>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                 <Phone className="h-5 w-5 text-primary" />
                 <div>
@@ -691,8 +860,6 @@ const MerchantDetail = () => {
                   </a>
                 </div>
               </div>
-              
-              {/* Social Media in Contact Modal */}
               <div className="pt-4 border-t">
                 <p className="font-medium mb-3">Connect on Social Media</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -751,7 +918,7 @@ const MerchantDetail = () => {
   );
 };
 
-// Review Modal Component (unchanged, but you can enhance it similarly)
+// Review Modal Component
 const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
   merchant: any;
   onClose: () => void;
@@ -761,6 +928,14 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  const ratingDescriptions = [
+    'Poor',
+    'Fair',
+    'Good',
+    'Very Good',
+    'Excellent',
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -803,7 +978,7 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Write a Review</h3>
+          <h3 className="text-lg font-semibold">Write a Review for {merchant.businessName}</h3>
           <Button
             variant="ghost"
             size="sm"
@@ -816,7 +991,7 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Rating for {merchant.businessName}
+              Your Rating
             </label>
             <div className="flex space-x-1">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -833,6 +1008,9 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
                 </button>
               ))}
             </div>
+            {rating > 0 && (
+              <p className="text-sm text-gray-600 mt-1">{ratingDescriptions[rating - 1]}</p>
+            )}
           </div>
           
           <div>
@@ -881,7 +1059,7 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
   );
 };
 
-// Report Modal Component (unchanged)
+// Report Modal Component
 const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
   merchant: any;
   onClose: () => void;
@@ -934,7 +1112,7 @@ const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Report Issue</h3>
+          <h3 className="text-lg font-semibold">Report Issue with {merchant.businessName}</h3>
           <Button
             variant="ghost"
             size="sm"
@@ -947,7 +1125,7 @@ const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              What's the issue with {merchant.businessName}?
+              Select Issue
             </label>
             <select
               value={reportType}
