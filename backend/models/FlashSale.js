@@ -97,6 +97,7 @@ const flashSaleSchema = new mongoose.Schema({
 flashSaleSchema.index({ startDate: 1, endDate: 1, isActive: 1 });
 // Optimizes sorting by creation date
 flashSaleSchema.index({ createdAt: -1 });
+flashSaleSchema.index({ endDate: 1 }, { expireAfterSeconds: 0 }); // TTL to auto-delete expired sales
 
 // Virtual: Indicates if sale is currently active
 flashSaleSchema.virtual('isCurrentlyActive').get(function () {
