@@ -138,6 +138,7 @@ productSchema.index({ price: 1 });
 productSchema.index({ rating: -1 });
 // Optimizes sorting by creation date
 productSchema.index({ createdAt: -1 });
+productSchema.index({ category: 1, price: 1 }); // New compound for price filtering by category
 
 // Virtual: Indicates if stock is available
 productSchema.virtual('isInStock').get(function () {
