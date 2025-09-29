@@ -25,12 +25,14 @@ exports.getMerchants = async (req, res) => {
   queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
 
   // Finding resource
-  query = Merchant.find(JSON.parse(queryStr));
+  query = Merchant.find(JSON.parse(queryStr)).lean(); // Added lean() for performance
 
   // Select Fields
   if (req.query.select) {
     const fields = req.query.select.split(',').join(' ');
     query = query.select(fields);
+  } else {
+    query = query.select('-password'); // Default exclude password
   }
 
   // Sort
@@ -46,7 +48,7 @@ exports.getMerchants = async (req, res) => {
   const limit = parseInt(req.query.limit, 10) || 25;
   const startIndex = (page - 1) * limit;
   const endIndex = page * limit;
-  const total = await Merchant.countDocuments();
+  const total = await Merchant.countDocuments(JSON.parse(queryStr)); // Optimized count
 
   query = query.skip(startIndex).limit(limit);
 
@@ -137,7 +139,7 @@ exports.getMerchants = async (req, res) => {
 // @access  Public
 exports.getMerchant = async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.params.id);
+    const merchant = await Merchant.findById(req.params.id).lean(); // Added lean() for performance
 
     if (!merchant) {
       return res.status(404).json({
@@ -147,8 +149,8 @@ exports.getMerchant = async (req, res) => {
     }
 
     // NEW: Add document analysis for admin/merchant view
-    let responseData = merchant.toObject();
-    
+    let responseData = merchant;
+
     // Add document completeness info if user is admin or the merchant themselves
     if (req.user && (req.user.role === 'admin' || req.merchant)) {
       const documentAnalysis = {
@@ -431,7 +433,7 @@ exports.updateMerchant = async (req, res) => {
         businessHours
       },
       { new: true, runValidators: true }
-    );
+    ).lean();
 
     if (!merchant) {
       return res.status(404).json({
@@ -455,7 +457,7 @@ exports.updateMerchant = async (req, res) => {
     ].filter(Boolean).length;
 
     const responseData = {
-      ...merchant.toObject(),
+      ...merchant,
       documentStatus: {
         ...documentAnalysis,
         completionPercentage: Math.round((requiredDocsCount / 3) * 100),
@@ -541,7 +543,7 @@ exports.uploadLogo = async (req, res) => {
       req.params.id,
       { logo: `/uploads/images/${req.file.filename}` },
       { new: true }
-    );
+    ).lean();
 
     if (!merchant) {
       return res.status(404).json({
@@ -586,7 +588,7 @@ exports.uploadBanner = async (req, res) => {
       req.params.id,
       { bannerImage: `/uploads/images/${req.file.filename}` },
       { new: true }
-    );
+    ).lean();
 
     if (!merchant) {
       return res.status(404).json({
@@ -641,9 +643,11 @@ exports.uploadGallery = async (req, res) => {
     merchant.gallery = [...merchant.gallery, ...galleryImages];
     await merchant.save();
 
+    const updatedMerchant = merchant.toObject();
+
     res.status(200).json({
       success: true,
-      data: merchant
+      data: updatedMerchant
     });
   } catch (error) {
     res.status(400).json({
@@ -820,7 +824,7 @@ exports.completeAccountSetup = async (req, res) => {
     );
 
     // NEW: Add document status to setup completion response
-    const merchant = await Merchant.findById(result.merchant.id);
+    const merchant = await Merchant.findById(result.merchant.id).lean();
     
     const documentAnalysis = {
       businessRegistration: !!(merchant.documents?.businessRegistration),
@@ -868,7 +872,7 @@ exports.getSetupInfo = async (req, res) => {
     const merchant = await Merchant.findOne({
       accountSetupToken: setupTokenHash,
       accountSetupExpire: { $gt: Date.now() }
-    });
+    }).lean();
 
     if (!merchant) {
       return res.status(400).json({
@@ -989,7 +993,7 @@ exports.verifyMerchant = async (req, res) => {
 // @access  Private (Merchant only)
 exports.sendCredentials = async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.user.id);
+    const merchant = await Merchant.findById(req.user.id).lean();
 
     if (!merchant) {
       return res.status(404).json({
@@ -1126,7 +1130,7 @@ exports.setFeatured = async (req, res) => {
   try {
     const { featured } = req.body;
     
-    const merchant = await Merchant.findById(req.params.id);
+    const merchant = await Merchant.findById(req.params.id).lean();
 
     if (!merchant) {
       return res.status(404).json({
