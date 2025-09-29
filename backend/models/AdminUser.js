@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { PASSWORD_VALIDATION } = require('../config/constants');
 
 const adminUserSchema = new mongoose.Schema({
   firstName: {
@@ -135,6 +136,7 @@ const adminUserSchema = new mongoose.Schema({
 adminUserSchema.index({ email: 1 });
 adminUserSchema.index({ role: 1 });
 adminUserSchema.index({ isActive: 1 });
+adminUserSchema.index({ lastLogin: -1 }); // New for recent logins
 
 // Virtual for full name
 adminUserSchema.virtual('fullName').get(function() {
@@ -145,6 +147,10 @@ adminUserSchema.virtual('fullName').get(function() {
 adminUserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
+  if (!PASSWORD_VALIDATION.REGEX.test(this.password)) {
+    return next(new Error(PASSWORD_VALIDATION.ERROR_MESSAGE));
+  }
+
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
