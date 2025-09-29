@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Insert merchants from merchants.json into the database
+ * Insert or update merchants from merchants.json into the database (with upsert for updates)
  */
 
 const path = require('path');
@@ -16,7 +16,6 @@ const connectDB = require('../config/db');
  * Requirements: At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character (!@#$%^&*)
  */
 function generateCompliantPassword() {
-  // Example: P@ssw0rd123!
   return 'P@ssw0rd123!';
 }
 
@@ -203,10 +202,10 @@ const merchantsData = [
 
 
 /**
- * Insert merchants from merchants.json into the database
+ * Insert or update merchants from merchants.json into the database
  */
-async function insertMerchants() {
-  console.log('🚀 INSERTING MERCHANTS FROM merchants.json');
+async function upsertMerchants() {
+  console.log('🚀 UPSERTING MERCHANTS FROM merchants.json');
   console.log('=========================================\n');
 
   const results = [];
@@ -214,18 +213,17 @@ async function insertMerchants() {
   for (let i = 0; i < merchantsData.length; i++) {
     const merchantData = merchantsData[i];
     try {
-      console.log(`📋 Inserting merchant ${i + 1}/${merchantsData.length}: ${merchantData.businessName}`);
+      console.log(`📋 Processing merchant ${i + 1}/${merchantsData.length}: ${merchantData.businessName}`);
 
-      // Generate a compliant password
+      // Generate a compliant password if needed
       const compliantPassword = generateCompliantPassword();
 
-      // Prepare merchant data, ensuring _id is set explicitly
+      // Prepare merchant data
       const merchantPayload = {
-        _id: merchantData._id,
         businessName: merchantData.businessName,
-        email: merchantData.email.toLowerCase(), // Normalize email
+        email: merchantData.email.toLowerCase(),
         phone: merchantData.phone,
-        password: compliantPassword, // Use generated password
+        password: compliantPassword,
         businessType: merchantData.businessType,
         description: merchantData.description,
         yearEstablished: merchantData.yearEstablished,
@@ -237,40 +235,48 @@ async function insertMerchants() {
         reviews: merchantData.reviews,
         createdProgrammatically: true,
         createdBy: 'merchants-json-import',
-        onboardingStatus: 'credentials_sent'
+        onboardingStatus: 'credentials_sent',
+        documents: {
+          businessRegistration: '',
+          idDocument: '',
+          utilityBill: '',
+          additionalDocs: []
+        },
+        gallery: [],
+        bannerImage: ''
       };
 
-      // Check for existing merchant by email to avoid duplicates
-      const existingMerchant = await Merchant.findOne({ email: merchantData.email.toLowerCase() });
-      if (existingMerchant) {
-        console.warn(`⚠️ Merchant with email ${merchantData.email} already exists. Skipping.`);
+      // Upsert: Update if _id exists, insert if not
+      const result = await Merchant.updateOne(
+        { _id: merchantData._id },
+        { $set: merchantPayload },
+        { upsert: true, runValidators: true }
+      );
+
+      if (result.matchedCount > 0) {
+        console.log(`✅ Updated: ${merchantData.businessName} (${merchantData._id})`);
         results.push({
-          success: false,
-          error: `Merchant with email ${merchantData.email} already exists`,
-          merchantData
+          success: true,
+          updated: true,
+          _id: merchantData._id,
+          businessName: merchantData.businessName,
+          email: merchantData.email
         });
-        continue;
+      } else {
+        console.log(`✅ Inserted: ${merchantData.businessName} (${merchantData._id})`);
+        results.push({
+          success: true,
+          updated: false,
+          _id: merchantData._id,
+          businessName: merchantData.businessName,
+          email: merchantData.email
+        });
       }
 
-      // Insert merchant
-      const merchant = await Merchant.create(merchantPayload);
-
-      results.push({
-        success: true,
-        merchant: {
-          _id: merchant._id,
-          businessName: merchant.businessName,
-          email: merchant.email
-        }
-      });
-
-      console.log(`✅ Inserted: ${merchant.businessName} (${merchant._id})`);
-
-      // Small delay to prevent overwhelming the database
       await new Promise(resolve => setTimeout(resolve, 500));
 
     } catch (error) {
-      console.error(`❌ Failed to insert ${merchantData.businessName}:`, error.message);
+      console.error(`❌ Failed to process ${merchantData.businessName}:`, error.message);
       results.push({
         success: false,
         error: error.message,
@@ -286,15 +292,17 @@ async function insertMerchants() {
 }
 
 /**
- * Display insertion results
+ * Display upsert results
  */
 function displayResults(results) {
   const successful = results.filter(r => r.success).length;
+  const updated = results.filter(r => r.success && r.updated).length;
+  const inserted = results.filter(r => r.success && !r.updated).length;
   const failed = results.filter(r => !r.success).length;
 
-  console.log('\n🎯 INSERTION SUMMARY');
+  console.log('\n🎯 UPSERT SUMMARY');
   console.log('==================');
-  console.log(`✅ Successful: ${successful}`);
+  console.log(`✅ Successful: ${successful} (Updated: ${updated}, Inserted: ${inserted})`);
   console.log(`❌ Failed: ${failed}`);
   console.log(`📊 Total: ${results.length}`);
 
@@ -308,14 +316,14 @@ function displayResults(results) {
   }
 
   if (successful > 0) {
-    console.log('\n✅ MERCHANTS INSERTED:');
+    console.log('\n✅ PROCESSED MERCHANTS:');
     console.log('============================');
     results
       .filter(r => r.success)
       .forEach((r, index) => {
-        console.log(`${index + 1}. ${r.merchant.businessName}`);
-        console.log(`   📧 Email: ${r.merchant.email}`);
-        console.log(`   🆔 ID: ${r.merchant._id}`);
+        console.log(`${index + 1}. ${r.businessName} (${r.updated ? 'Updated' : 'Inserted'})`);
+        console.log(`   📧 Email: ${r.email}`);
+        console.log(`   🆔 ID: ${r._id}`);
         console.log('');
       });
   }
@@ -327,16 +335,16 @@ function displayResults(results) {
 async function main() {
   try {
     await connectDB();
-    console.log('Starting merchant insertion from merchants.json...\n');
+    console.log('Starting merchant upsert from merchants.json...\n');
 
-    const results = await insertMerchants();
+    const results = await upsertMerchants();
 
-    console.log('\n🎉 MERCHANT INSERTION COMPLETE!');
+    console.log('\n🎉 MERCHANT UPSERT COMPLETE!');
     console.log('================================');
     console.log('✅ All merchant accounts from merchants.json have been processed');
     console.log('\n📞 Next Steps:');
-    console.log('1. Verify inserted merchants in the database');
-    console.log('2. Check for any accounts marked as failed and resolve issues (e.g., duplicate emails)');
+    console.log('1. Verify updated/inserted merchants in the database');
+    console.log('2. Check for any accounts marked as failed and resolve issues');
     console.log('3. Update merchant profiles with additional details if needed');
     console.log('4. Notify merchants of their new credentials (password: P@ssw0rd123!)');
 
@@ -356,6 +364,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-  insertMerchants,
+  upsertMerchants,
   merchantsData
 };
