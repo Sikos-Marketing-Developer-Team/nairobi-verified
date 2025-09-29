@@ -54,29 +54,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Rate limiting for sensitive auth routes
-const strictAuthLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per IP
-  message: {
-    success: false,
-    error: 'Too many login or registration attempts, please try again after 15 minutes'
-  },
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
-// General rate limiter for all auth routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: {
-    success: false,
-    error: 'Too many requests from this IP, please try again after 15 minutes'
-  },
-  standardHeaders: true,
-  legacyHeaders: false
-});
 
 // Session configuration
 const mongoStore = MongoStore.create({
@@ -151,14 +128,10 @@ app.get('/metrics', async (req, res) => {
   res.end(await client.register.metrics());
 });
 
-// Routes - Apply strict limiter directly on login/register
-app.use('/api/auth', strictAuthLimiter, require('./routes/auth'));
-app.use('/api/auth', strictAuthLimiter, require('./routes/auth'));
-app.use('/api/auth', strictAuthLimiter, require('./routes/auth'));
-app.use('/api/auth', strictAuthLimiter, require('./routes/auth'));
 
-// General limiter for all auth
-// app.use('/api/auth', authLimiter, require('./routes/auth'));
+
+// auth routes
+app.use('/api/auth', require('./routes/auth'));
 
 // Other routes
 app.use('/api/auth/admin', require('./routes/adminAuth'));
