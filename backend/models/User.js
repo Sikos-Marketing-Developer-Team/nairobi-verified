@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { PASSWORD_VALIDATION } = require('../config/constants');
 
 const UserSchema = new mongoose.Schema({
   firstName: {
@@ -86,6 +87,10 @@ UserSchema.set('toJSON', {
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
     next();
+  }
+
+  if (!PASSWORD_VALIDATION.REGEX.test(this.password)) {
+    return next(new Error(PASSWORD_VALIDATION.ERROR_MESSAGE));
   }
 
   const salt = await bcrypt.genSalt(10);
