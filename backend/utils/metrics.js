@@ -28,6 +28,13 @@ const dbConnectionGauge = new client.Gauge({
   help: 'MongoDB connection status (1 = connected, 0 = disconnected)'
 });
 
+const dbQueryDuration = new client.Histogram({
+  name: 'db_query_duration_seconds',
+  help: 'Duration of MongoDB queries in seconds',
+  labelNames: ['operation', 'collection'],
+  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
+}); // New for query performance
+
 const cloudinaryUploadCounter = new client.Counter({
   name: 'cloudinary_uploads_total',
   help: 'Total number of uploads to Cloudinary',
@@ -79,6 +86,7 @@ module.exports = {
   emailFailedCounter,
   emailSendDuration,
   dbConnectionGauge,
+  dbQueryDuration,
   cloudinaryUploadCounter,
   cloudinaryDeleteCounter,
   cloudinaryOperationDuration,
