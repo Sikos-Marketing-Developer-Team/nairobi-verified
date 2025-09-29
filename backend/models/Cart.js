@@ -72,5 +72,6 @@ cartSchema.pre('save', function(next) {
 // Index for efficient queries
 cartSchema.index({ user: 1 });
 cartSchema.index({ updatedAt: -1 });
+cartSchema.index({ updatedAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 }); // TTL: Expire carts after 7 days of inactivity
 
 module.exports = mongoose.model('Cart', cartSchema);
