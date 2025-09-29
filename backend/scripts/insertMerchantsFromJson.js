@@ -96,7 +96,7 @@ const merchantsData = [
     "yearEstablished": 2020,
     "address": "Gaborone road",
     "location": "Nairobi, Nairobi County, 00100, Kenya",
-    "logo": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=300&fit=crop",
+    "logo": "https://res.cloudinary.com/dzs7bswxi/image/upload/v1759129174/united_textiles_akzl2n.png",
     "verified": true,
     "rating": 4.5,
     "reviews": 203
@@ -112,7 +112,7 @@ const merchantsData = [
     "yearEstablished": 2020,
     "address": "Sasa Mall, First floor A14",
     "location": "Nairobi, Nairobi County, 00504, Kenya",
-    "logo": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=300&fit=crop",
+    "logo": "https://res.cloudinary.com/dzs7bswxi/image/upload/v1758809065/joy_annes_gvmphq.jpg",
     "verified": true,
     "rating": 4.4,
     "reviews": 78
@@ -144,7 +144,7 @@ const merchantsData = [
     "yearEstablished": 2020,
     "address": "Sawa mall, 2nd floor shop B19",
     "location": "Nairobi, Nairobi County, 00100, Kenya",
-    "logo": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=300&fit=crop",
+    "logo": "https://res.cloudinary.com/dzs7bswxi/image/upload/v1759133249/luxurre_inuwad.png",
     "verified": true,
     "rating": 4.7,
     "reviews": 115
@@ -180,8 +180,26 @@ const merchantsData = [
     "verified": true,
     "rating": 4.8,
     "reviews": 134
+  },
+  {
+    "_id": "60d0fe4f5311236168a1011",
+    "businessName": "Kassanga Music Store",
+    "email": "tba",
+    "phone": "0706243617",
+    "password": "password123",
+    "businessType": "Music",
+    "description": "Your Journey in Music Starts Here",
+    "yearEstablished": 1990,
+    "address": "Tembo Co op House, Moi Avenue",
+    "location": "Nairobi, Nairobi County, 00100, Kenya",
+    "logo": "https://res.cloudinary.com/dzs7bswxi/image/upload/v1759147730/kassanga_uvbgge.jpg",
+    "verified": true,
+    "rating": 4.8,
+    "reviews": 134
   }
-];
+]
+  
+
 
 /**
  * Insert or update merchants from merchants.json into the database

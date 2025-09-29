@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
-import api from '@/lib/api';
+import { authAPI } from '@/lib/api';
 import { usePageLoading } from '@/hooks/use-loading';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -32,7 +32,8 @@ const ForgotPassword = () => {
     
     try {
       // Call the forgot password API endpoint
-      await api.post('/auth/forgot-password', { email });
+      // CORRECT - using the named export from authAPI
+await authAPI.forgotPassword(email);
       
       setIsSubmitted(true);
       toast({
