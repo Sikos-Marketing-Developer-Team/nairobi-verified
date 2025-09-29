@@ -25,4 +25,5 @@ export type AuthContextType = {
   updateProfile: (userData: any) => Promise<void>;
   refreshUser: () => Promise<boolean>;
   googleAuth: (credential: string) => Promise<any>;
+  merchantLogin: (email: string, password: string) => Promise<void>;
 };

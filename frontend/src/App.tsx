@@ -41,6 +41,7 @@ import Status from "./pages/Status";
 import FlashSaleDetail from "./pages/FlashSaleDetail";
 import ProductPage from './pages/ProductPage';
 import { FavoritesProvider } from './contexts/FavoritesContext';
+import MerchantAuth from './pages/MerchantAuth';
 ''
 const queryClient = new QueryClient();
 
@@ -150,6 +151,7 @@ const App = () => (
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/cookie-policy" element={<CookiePolicy />} />
+              <Route path="/merchant/sign-in" element={<MerchantAuth />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
