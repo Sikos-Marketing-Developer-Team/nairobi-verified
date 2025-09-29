@@ -78,45 +78,7 @@ const MerchantSchema = new mongoose.Schema({
     default: ''
   },
   gallery: [String],
-  documents: {
-    businessRegistration: {
-      path: String,
-      uploadedAt: { type: Date, default: Date.now },
-      originalName: String,
-      fileSize: Number,
-      mimeType: String
-    },
-    idDocument: {
-      path: String,
-      uploadedAt: { type: Date, default: Date.now },
-      originalName: String,
-      fileSize: Number,
-      mimeType: String
-    },
-    utilityBill: {
-      path: String,
-      uploadedAt: { type: Date, default: Date.now },
-      originalName: String,
-      fileSize: Number,
-      mimeType: String
-    },
-    additionalDocs: [{
-      path: String,
-      uploadedAt: { type: Date, default: Date.now },
-      originalName: String,
-      fileSize: Number,
-      mimeType: String,
-      description: String
-    }],
-    verificationNotes: String,
-    documentsSubmittedAt: Date,
-    documentsReviewedAt: Date,
-    documentReviewStatus: {
-      type: String,
-      enum: ['pending', 'under_review', 'approved', 'rejected', 'incomplete'],
-      default: 'pending'
-    }
-  },
+  documents: { type: mongoose.Schema.ObjectId, ref: 'MerchantDocument' }, // Split to separate collection for optimization
   verified: {
     type: Boolean,
     default: false
@@ -227,20 +189,7 @@ MerchantSchema.pre('save', function(next) {
     ((completedOptional / optionalFields.length) * 30)
   );
   
-  const requiredDocs = [
-    this.documents?.businessRegistration?.path,
-    this.documents?.idDocument?.path,
-    this.documents?.utilityBill?.path
-  ];
-  
-  const completedDocs = requiredDocs.filter(doc => doc && doc.trim()).length;
-  this.documentsCompleteness = Math.round((completedDocs / requiredDocs.length) * 100);
-  
-  if (this.documentsCompleteness === 100 && this.onboardingStatus === 'account_setup') {
-    this.onboardingStatus = 'documents_submitted';
-    this.documents.documentsSubmittedAt = new Date();
-    this.documents.documentReviewStatus = 'pending';
-  }
+  // Removed documents completeness calculation, as documents are now referenced
   
   next();
 });
@@ -402,5 +351,7 @@ MerchantSchema.index({ 'documents.documentReviewStatus': 1 });
 MerchantSchema.index({ onboardingStatus: 1 });
 MerchantSchema.index({ createdAt: -1 });
 MerchantSchema.index({ businessType: 1 });
+MerchantSchema.index({ rating: -1, reviews: -1 }); // New compound index for sorting by popularity
+MerchantSchema.index({ businessType: 1, verified: 1 }); // New for filtered queries
 
 module.exports = mongoose.model('Merchant', MerchantSchema);
