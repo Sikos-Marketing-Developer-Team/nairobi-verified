@@ -59,6 +59,7 @@ ReviewSchema.index({ merchant: 1, user: 1 }, { unique: true });
 ReviewSchema.index({ merchant: 1, createdAt: -1 });
 ReviewSchema.index({ rating: 1 });
 ReviewSchema.index({ createdAt: -1 });
+ReviewSchema.index({ merchant: 1, rating: 1 }); // New compound for rated reviews
 
 // Static method to get average rating and update merchant
 ReviewSchema.statics.getAverageRating = async function(merchantId) {
@@ -117,7 +118,7 @@ ReviewSchema.post('save', function() {
   this.constructor.getAverageRating(this.merchant);
 });
 
-// Call getAverageRating after delete (updated from deprecated 'remove')
+// Call getAverageRating after delete
 ReviewSchema.post('findOneAndDelete', function(doc) {
   if (doc) {
     doc.constructor.getAverageRating(doc.merchant);
