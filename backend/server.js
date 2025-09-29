@@ -152,10 +152,10 @@ app.get('/metrics', async (req, res) => {
 });
 
 // Routes - Apply strict limiter directly on login/register
-app.use('/api/auth/login', strictAuthLimiter, require('./routes/auth'));
-app.use('/api/auth/register', strictAuthLimiter, require('./routes/auth'));
-app.use('/api/auth/register/merchant', strictAuthLimiter, require('./routes/auth'));
-app.use('/api/auth/login/merchant', strictAuthLimiter, require('./routes/auth'));
+app.use('/api/auth', strictAuthLimiter, require('./routes/auth'));
+app.use('/api/auth', strictAuthLimiter, require('./routes/auth'));
+app.use('/api/auth', strictAuthLimiter, require('./routes/auth'));
+app.use('/api/auth', strictAuthLimiter, require('./routes/auth'));
 
 // General limiter for all auth
 // app.use('/api/auth', authLimiter, require('./routes/auth'));
