@@ -158,7 +158,7 @@ app.use('/api/auth/register/merchant', strictAuthLimiter, require('./routes/auth
 app.use('/api/auth/login/merchant', strictAuthLimiter, require('./routes/auth'));
 
 // General limiter for all auth
-app.use('/api/auth', authLimiter, require('./routes/auth'));
+// app.use('/api/auth', authLimiter, require('./routes/auth'));
 
 // Other routes
 app.use('/api/auth/admin', require('./routes/adminAuth'));
