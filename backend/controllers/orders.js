@@ -1,4 +1,5 @@
 const Order = require('../models/Order');
+const Product = require('../models/Product');
 
 // @desc    Get user orders
 // @route   GET /api/orders
@@ -8,7 +9,8 @@ const getUserOrders = async (req, res) => {
     const orders = await Order.find({ user: req.user._id })
       .populate('items.product', 'name price image')
       .populate('items.merchant', 'name')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean(); // Added lean() for performance
 
     // Handle empty orders gracefully for new users
     if (orders.length === 0) {
@@ -44,7 +46,8 @@ const getSingleOrder = async (req, res) => {
       user: req.user._id 
     })
     .populate('items.product', 'name price image')
-    .populate('items.merchant', 'name');
+    .populate('items.merchant', 'name')
+    .lean();
 
     if (!order) {
       return res.status(404).json({
@@ -70,6 +73,9 @@ const getSingleOrder = async (req, res) => {
 // @route   POST /api/orders
 // @access  Private
 const createOrder = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const {
       items,
@@ -80,6 +86,7 @@ const createOrder = async (req, res) => {
 
     // Validate required fields
     if (!items || items.length === 0) {
+      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         error: 'Order items are required'
@@ -87,6 +94,7 @@ const createOrder = async (req, res) => {
     }
 
     if (!shippingAddress) {
+      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         error: 'Shipping address is required'
@@ -94,6 +102,7 @@ const createOrder = async (req, res) => {
     }
 
     if (!paymentMethod) {
+      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         error: 'Payment method is required'
@@ -105,7 +114,7 @@ const createOrder = async (req, res) => {
       return total + (item.price * item.quantity);
     }, 0);
 
-    const order = await Order.create({
+    const order = new Order({
       user: req.user._id,
       items,
       totalAmount,
@@ -113,6 +122,19 @@ const createOrder = async (req, res) => {
       paymentMethod,
       notes
     });
+
+    // Update product stock
+    for (const item of items) {
+      await Product.updateOne(
+        { _id: item.product, stockQuantity: { $gte: item.quantity } },
+        { $inc: { stockQuantity: -item.quantity, soldQuantity: item.quantity } },
+        { session }
+      );
+    }
+
+    await order.save({ session });
+
+    await session.commitTransaction();
 
     await order.populate('items.product', 'name price image');
     await order.populate('items.merchant', 'name');
@@ -122,11 +144,14 @@ const createOrder = async (req, res) => {
       data: order
     });
   } catch (error) {
+    await session.abortTransaction();
     console.error('Error creating order:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to create order. Please try again later.'
     });
+  } finally {
+    session.endSession();
   }
 };
 
@@ -176,6 +201,9 @@ const updateOrderStatus = async (req, res) => {
 // @route   DELETE /api/orders/:id
 // @access  Private
 const cancelOrder = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const order = await Order.findOne({ 
       _id: req.params.id, 
@@ -183,6 +211,7 @@ const cancelOrder = async (req, res) => {
     });
 
     if (!order) {
+      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         error: 'Order not found'
@@ -191,6 +220,7 @@ const cancelOrder = async (req, res) => {
 
     // Only allow cancellation if order is pending or confirmed
     if (!['pending', 'confirmed'].includes(order.status)) {
+      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         error: 'Cannot cancel order in current status'
@@ -198,18 +228,33 @@ const cancelOrder = async (req, res) => {
     }
 
     order.status = 'cancelled';
-    await order.save();
+
+    // Restore stock
+    for (const item of order.items) {
+      await Product.updateOne(
+        { _id: item.product },
+        { $inc: { stockQuantity: item.quantity, soldQuantity: -item.quantity } },
+        { session }
+      );
+    }
+
+    await order.save({ session });
+
+    await session.commitTransaction();
 
     res.json({
       success: true,
       data: order
     });
   } catch (error) {
+    await session.abortTransaction();
     console.error('Error cancelling order:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to cancel order. Please try again later.'
     });
+  } finally {
+    session.endSession();
   }
 };
 
