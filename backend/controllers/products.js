@@ -183,7 +183,7 @@ const getFeaturedProducts = async (req, res) => {
 const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('merchant', 'businessName address phone email')
+      .populate('merchant', 'businessName address')
       .lean();
 
     if (!product) {
@@ -299,7 +299,7 @@ const updateProduct = async (req, res) => {
 
     if (req.user.role === 'merchant') {
       const merchant = await Merchant.findOne({ owner: req.user.id });
-      if (!merchant || !product.merchant.equals(merchant._id)) {
+      if (!merchant || !product.merchant.equals(merchant._id) ) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
           error: 'Not authorized to update this product',
