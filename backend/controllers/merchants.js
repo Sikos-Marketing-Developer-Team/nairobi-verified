@@ -393,11 +393,41 @@ exports.createMerchant = async (req, res) => {
 // @desc    Update merchant with document validation
 // @route   PUT /api/merchants/:id
 // @access  Private/Merchant
+// @desc    Update merchant with document validation
+// @route   PUT /api/merchants/:id
+// @access  Private/Merchant
 exports.updateMerchant = async (req, res) => {
   try {
-    // Make sure merchant is updating their own profile
-    if (req.params.id !== req.merchant.id) {
-      return res.status(401).json({
+    console.log('Update merchant request:', {
+      params: req.params,
+      user: req.user,
+      body: req.body
+    });
+
+    // Find the merchant first to check ownership
+    const merchant = await Merchant.findById(req.params.id);
+
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Check if user owns this merchant or is admin
+    // Assuming merchant has an 'owner' field that references the User
+    const isOwner = merchant.owner && merchant.owner.toString() === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+
+    console.log('Ownership check:', {
+      merchantOwner: merchant.owner,
+      userId: req.user.id,
+      isOwner,
+      isAdmin
+    });
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
         success: false,
         error: 'Not authorized to update this merchant'
       });
@@ -414,63 +444,55 @@ exports.updateMerchant = async (req, res) => {
       address,
       location,
       landmark,
-      businessHours
+      businessHours,
+      socialLinks, // Add socialLinks
+      priceRange, // Add priceRange
+      googleBusinessUrl, // Add googleBusinessUrl
+      seoTitle, // Add seoTitle
+      seoDescription // Add seoDescription
     } = req.body;
 
-    const merchant = await Merchant.findByIdAndUpdate(
+    // Update fields
+    const updateData = {
+      businessName,
+      email,
+      phone,
+      businessType,
+      description,
+      yearEstablished,
+      website,
+      address,
+      location,
+      landmark,
+      businessHours,
+      socialLinks,
+      priceRange,
+      googleBusinessUrl,
+      seoTitle,
+      seoDescription
+    };
+
+    // Remove undefined fields
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key];
+      }
+    });
+
+    const updatedMerchant = await Merchant.findByIdAndUpdate(
       req.params.id,
-      {
-        businessName,
-        email,
-        phone,
-        businessType,
-        description,
-        yearEstablished,
-        website,
-        address,
-        location,
-        landmark,
-        businessHours
-      },
+      updateData,
       { new: true, runValidators: true }
     ).lean();
 
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Merchant not found'
-      });
-    }
-
-    // NEW: Add document status info to response
-    const documentAnalysis = {
-      businessRegistration: !!(merchant.documents?.businessRegistration),
-      idDocument: !!(merchant.documents?.idDocument),
-      utilityBill: !!(merchant.documents?.utilityBill),
-      additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
-    };
-
-    const requiredDocsCount = [
-      documentAnalysis.businessRegistration,
-      documentAnalysis.idDocument,
-      documentAnalysis.utilityBill
-    ].filter(Boolean).length;
-
-    const responseData = {
-      ...merchant,
-      documentStatus: {
-        ...documentAnalysis,
-        completionPercentage: Math.round((requiredDocsCount / 3) * 100),
-        canBeVerified: requiredDocsCount === 3 && !merchant.verified,
-        requiresDocuments: requiredDocsCount < 3
-      }
-    };
+    console.log('Merchant updated successfully:', updatedMerchant._id);
 
     res.status(200).json({
       success: true,
-      data: responseData
+      data: updatedMerchant
     });
   } catch (error) {
+    console.error('Update merchant error:', error);
     res.status(400).json({
       success: false,
       error: error.message

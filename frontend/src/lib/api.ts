@@ -1,3 +1,4 @@
+// src/lib/api.ts
 import axios from 'axios';
 
 // Create axios instance with base URL
@@ -8,8 +9,6 @@ const api = axios.create({
   },
   withCredentials: true // Important for sending/receiving cookies with CORS
 });
-
-// Add this to your lib/api.js file, right after creating the axios instance
 
 // Request interceptor
 api.interceptors.request.use(
@@ -72,8 +71,9 @@ export const usersAPI = {
   updatePassword: (id: string, passwordData: any) => api.put(`/users/${id}/password`, passwordData)
 };
 
-// Merchants API
+// Merchants API - ENHANCED with dashboard functionality
 export const merchantsAPI = {
+  // Existing endpoints
   getMerchants: (params = {}) => api.get('/merchants', { params }),
   searchMerchants: (searchTerm: string, category?: string) => api.get('/merchants', { 
     params: { 
@@ -84,6 +84,13 @@ export const merchantsAPI = {
   getMerchant: (id: string) => api.get(`/merchants/${id}`),
   updateMerchant: (id: string, merchantData: any) => api.put(`/merchants/${id}`, merchantData),
   deleteMerchant: (id: string) => api.delete(`/merchants/${id}`),
+  verifyMerchant: (id: string) => api.put(`/merchants/${id}/verify`),
+
+  // NEW: Merchant dashboard specific endpoints
+  getMyMerchant: () => api.get('/merchants/me'), // Get merchant for logged-in user
+  updateMyMerchant: (merchantData: any) => api.put('/merchants/me', merchantData),
+  
+  // Image upload endpoints
   uploadLogo: (id: string, logoFile: File) => {
     const formData = new FormData();
     formData.append('logo', logoFile);
@@ -107,6 +114,49 @@ export const merchantsAPI = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
+  
+  // NEW: Convenience methods for current merchant
+  uploadMyLogo: (logoFile: File) => {
+    const formData = new FormData();
+    formData.append('logo', logoFile);
+    return api.put('/merchants/me/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  uploadMyBanner: (bannerFile: File) => {
+    const formData = new FormData();
+    formData.append('banner', bannerFile);
+    return api.put('/merchants/me/banner', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  uploadMyGallery: (galleryFiles: File[]) => {
+    const formData = new FormData();
+    galleryFiles.forEach(file => {
+      formData.append('gallery', file);
+    });
+    return api.put('/merchants/me/gallery', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  
+  // NEW: Gallery management
+  deleteGalleryImage: (id: string, imageIndex: number) => api.delete(`/merchants/${id}/gallery/${imageIndex}`),
+  deleteMyGalleryImage: (imageIndex: number) => api.delete(`/merchants/me/gallery/${imageIndex}`),
+  
+  // Business hours management
+  updateBusinessHours: (id: string, businessHours: any) => api.put(`/merchants/${id}/hours`, { businessHours }),
+  updateMyBusinessHours: (businessHours: any) => api.put('/merchants/me/hours', { businessHours }),
+  
+  // Social links management
+  updateSocialLinks: (id: string, socialLinks: any) => api.put(`/merchants/${id}/social`, { socialLinks }),
+  updateMySocialLinks: (socialLinks: any) => api.put('/merchants/me/social', { socialLinks }),
+  
+  // SEO settings
+  updateSEOSettings: (id: string, seoSettings: any) => api.put(`/merchants/${id}/seo`, seoSettings),
+  updateMySEOSettings: (seoSettings: any) => api.put('/merchants/me/seo', seoSettings),
+
+  // Documents upload (existing)
   uploadDocuments: (id: string, documents: Record<string, File | File[]>) => {
     const formData = new FormData();
     Object.entries(documents).forEach(([key, value]) => {
@@ -122,7 +172,11 @@ export const merchantsAPI = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
-  verifyMerchant: (id: string) => api.put(`/merchants/${id}/verify`)
+
+  // NEW: Dashboard analytics
+  getDashboardStats: () => api.get('/merchants/me/stats'),
+  getRecentReviews: () => api.get('/merchants/me/reviews/recent'),
+  getPerformanceMetrics: (period: string = 'monthly') => api.get(`/merchants/me/analytics?period=${period}`),
 };
 
 // Reviews API (consolidated)
@@ -135,11 +189,15 @@ export const reviewsAPI = {
   updateReview: (id: string, reviewData: any) => api.put(`/reviews/${id}`, reviewData),
   deleteReview: (id: string) => api.delete(`/reviews/${id}`),
   addReply: (id: string, replyData: any) => api.post(`/reviews/${id}/reply`, replyData),
-  markHelpful: (id: string) => api.put(`/reviews/${id}/helpful`)
+  markHelpful: (id: string) => api.put(`/reviews/${id}/helpful`),
+  
+  // NEW: Merchant review management
+  getMyMerchantReviews: (params = {}) => api.get('/merchants/me/reviews', { params }),
+  replyToReview: (reviewId: string, reply: string) => api.post(`/merchants/me/reviews/${reviewId}/reply`, { reply }),
+  deleteReviewReply: (reviewId: string) => api.delete(`/merchants/me/reviews/${reviewId}/reply`),
 };
 
 // Favorites API (consolidated)
-// Favorites API - CORRECTED to match backend routes
 export const favoritesAPI = {
   getFavorites: () => api.get('/favorites'),
   addFavorite: (merchantId: string) => api.post(`/favorites/${merchantId}`),
@@ -150,6 +208,11 @@ export const favoritesAPI = {
 export const ordersAPI = {
   getOrders: () => api.get('/orders'),
   getOrder: (id: string) => api.get(`/orders/${id}`),
+  
+  // NEW: Merchant order management
+  getMyMerchantOrders: (params = {}) => api.get('/merchants/me/orders', { params }),
+  updateOrderStatus: (orderId: string, status: string) => api.put(`/merchants/me/orders/${orderId}/status`, { status }),
+  getOrderAnalytics: (period: string = 'monthly') => api.get(`/merchants/me/orders/analytics?period=${period}`),
 };
 
 // Addresses API
@@ -191,8 +254,6 @@ export const userAPI = {
   removeFromWishlist: (productId: string) => api.delete(`/users/wishlist/${productId}`),
 };
 
-
-
 // Products API
 export const productsAPI = {
   getProducts: (params = {}) => api.get('/products', { params }),
@@ -205,6 +266,14 @@ export const productsAPI = {
   createProduct: (productData: any) => api.post('/products', productData),
   updateProduct: (id: string, productData: any) => api.put(`/products/${id}`, productData),
   deleteProduct: (id: string) => api.delete(`/products/${id}`),
+  
+  // NEW: Merchant product management
+  getMyProducts: (params = {}) => api.get('/merchants/me/products', { params }),
+  createMyProduct: (productData: any) => api.post('/merchants/me/products', productData),
+  updateMyProduct: (productId: string, productData: any) => api.put(`/merchants/me/products/${productId}`, productData),
+  deleteMyProduct: (productId: string) => api.delete(`/merchants/me/products/${productId}`),
+  updateProductInventory: (productId: string, inventory: number) => api.put(`/merchants/me/products/${productId}/inventory`, { inventory }),
+  bulkUpdateProducts: (updates: Array<{ id: string; data: any }>) => api.put('/merchants/me/products/bulk', { updates }),
 };
 
 // Admin API
@@ -226,6 +295,40 @@ export const adminAPI = {
   getPendingVerifications: (params?: any) => api.get('/admin/merchants', { params: { ...params, documentStatus: 'pending_review' } }),
   approveMerchant: (merchantId: string, notes?: string) => api.post(`/admin/merchants/${merchantId}/verify`, { notes }),
   rejectMerchantVerification: (merchantId: string, reason: string, notes?: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason, notes }),
+  
+  // NEW: Admin merchant management
+  getMerchantAnalytics: (merchantId: string) => api.get(`/admin/merchants/${merchantId}/analytics`),
+  suspendMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/suspend`, { reason }),
+  unsuspendMerchant: (merchantId: string) => api.post(`/admin/merchants/${merchantId}/unsuspend`),
+};
+
+// NEW: Analytics API for comprehensive dashboard data
+export const analyticsAPI = {
+  // Merchant analytics
+  getMerchantOverview: (period: string = 'monthly') => api.get(`/analytics/merchant/overview?period=${period}`),
+  getRevenueAnalytics: (period: string = 'monthly') => api.get(`/analytics/merchant/revenue?period=${period}`),
+  getCustomerAnalytics: (period: string = 'monthly') => api.get(`/analytics/merchant/customers?period=${period}`),
+  getProductPerformance: (period: string = 'monthly') => api.get(`/analytics/merchant/products?period=${period}`),
+  getReviewAnalytics: (period: string = 'monthly') => api.get(`/analytics/merchant/reviews?period=${period}`),
+  
+  // Admin analytics
+  getPlatformOverview: (period: string = 'monthly') => api.get(`/analytics/admin/overview?period=${period}`),
+  getPlatformRevenue: (period: string = 'monthly') => api.get(`/analytics/admin/revenue?period=${period}`),
+  getUserGrowth: (period: string = 'monthly') => api.get(`/analytics/admin/users?period=${period}`),
+  getMerchantGrowth: (period: string = 'monthly') => api.get(`/analytics/admin/merchants?period=${period}`),
+};
+
+// NEW: Notifications API for merchant dashboard
+export const notificationsAPI = {
+  getNotifications: (params = {}) => api.get('/notifications', { params }),
+  markAsRead: (notificationId: string) => api.put(`/notifications/${notificationId}/read`),
+  markAllAsRead: () => api.put('/notifications/read-all'),
+  getUnreadCount: () => api.get('/notifications/unread/count'),
+  deleteNotification: (notificationId: string) => api.delete(`/notifications/${notificationId}`),
+  
+  // Merchant specific notifications
+  getMerchantNotifications: (params = {}) => api.get('/merchants/me/notifications', { params }),
+  getMerchantUnreadCount: () => api.get('/merchants/me/notifications/unread/count'),
 };
 
 export default api;
