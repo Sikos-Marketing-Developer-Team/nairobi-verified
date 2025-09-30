@@ -31,6 +31,25 @@ const app = express();
 // Trust proxy for accurate IP addresses
 app.set('trust proxy', 1);
 
+// Debug middleware to log IP information (helpful for troubleshooting rate limiting)
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    // Only log auth endpoints to reduce noise
+    if (req.path.startsWith('/api/auth')) {
+      console.log('\n--- Request IP Debug Info ---');
+      console.log('Path:', req.path);
+      console.log('Method:', req.method);
+      console.log('req.ip:', req.ip);
+      console.log('req.ips:', req.ips);
+      console.log('X-Forwarded-For:', req.headers['x-forwarded-for']);
+      console.log('X-Real-IP:', req.headers['x-real-ip']);
+      console.log('Remote Address:', req.connection?.remoteAddress);
+      console.log('----------------------------\n');
+    }
+    next();
+  });
+}
+
 // Middleware
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
