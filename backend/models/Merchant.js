@@ -12,6 +12,31 @@ const BusinessHoursSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
+const DocumentsSchema = new mongoose.Schema({
+  businessRegistration: {
+    path: { type: String, default: '' },
+    uploadedAt: Date
+  },
+  idDocument: {
+    path: { type: String, default: '' },
+    uploadedAt: Date
+  },
+  utilityBill: {
+    path: { type: String, default: '' },
+    uploadedAt: Date
+  },
+  additionalDocs: {
+    type: [String],
+    default: []
+  },
+  documentsSubmittedAt: Date,
+  documentReviewStatus: {
+    type: String,
+    enum: ['pending', 'under_review', 'approved', 'rejected'],
+    default: 'pending'
+  }
+}, { _id: false });
+
 const MerchantSchema = new mongoose.Schema({
   businessName: {
     type: String,
@@ -77,8 +102,14 @@ const MerchantSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  gallery: [String],
-  documents: { type: mongoose.Schema.ObjectId, ref: 'MerchantDocument' }, // Split to separate collection for optimization
+  gallery: {
+    type: [String],
+    default: []
+  },
+  documents: {
+    type: DocumentsSchema,
+    default: {}
+  }, // Embedded documents schema (replaces ObjectId ref)
   verified: {
     type: Boolean,
     default: false
@@ -161,6 +192,7 @@ const MerchantSchema = new mongoose.Schema({
   }
 });
 
+// Profile completeness calculation & updatedAt
 MerchantSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   
@@ -172,28 +204,33 @@ MerchantSchema.pre('save', function(next) {
     this.description,
     this.address,
     this.location
-  ];
-  
+  ].filter(Boolean);
+
   const optionalFields = [
     this.website,
     this.yearEstablished,
     this.logo,
     this.businessHours
-  ];
+  ].filter(Boolean);
   
-  const completedRequired = profileFields.filter(field => field && field.trim()).length;
-  const completedOptional = optionalFields.filter(field => field).length;
+  const completedRequired = profileFields.filter(field => {
+    if (typeof field === 'string') return field.trim().length > 0;
+    return !!field;
+  }).length;
+  
+  const completedOptional = optionalFields.filter(field => !!field).length;
+  const requiredLen = 7;
+  const optionalLen = 4;
   
   this.profileCompleteness = Math.round(
-    ((completedRequired / profileFields.length) * 70) + 
-    ((completedOptional / optionalFields.length) * 30)
+    ((completedRequired / requiredLen) * 70) + 
+    ((optionalLen ? (completedOptional / optionalLen) : 0) * 30)
   );
-  
-  // Removed documents completeness calculation, as documents are now referenced
-  
+
   next();
 });
 
+// Password hashing
 MerchantSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
     return next();
@@ -351,7 +388,7 @@ MerchantSchema.index({ 'documents.documentReviewStatus': 1 });
 MerchantSchema.index({ onboardingStatus: 1 });
 MerchantSchema.index({ createdAt: -1 });
 MerchantSchema.index({ businessType: 1 });
-MerchantSchema.index({ rating: -1, reviews: -1 }); // New compound index for sorting by popularity
-MerchantSchema.index({ businessType: 1, verified: 1 }); // New for filtered queries
+MerchantSchema.index({ rating: -1, reviews: -1 });
+MerchantSchema.index({ businessType: 1, verified: 1 });
 
 module.exports = mongoose.model('Merchant', MerchantSchema);

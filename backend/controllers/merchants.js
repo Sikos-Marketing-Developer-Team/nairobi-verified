@@ -1,162 +1,145 @@
 const Merchant = require('../models/Merchant');
 const Review = require('../models/Review');
 const MerchantOnboardingService = require('../services/merchantOnboarding');
-const { emailService } = require('../utils/emailService');
+const { emailService, sendEmail } = require('../utils/emailService');
+const { HTTP_STATUS } = require('../config/constants');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+
+/**
+ * Helper: normalize id from req.user / req.merchant
+ */
+function getUserIdFromReq(req) {
+  if (!req) return null;
+  if (req.merchant && (req.merchant._id || req.merchant.id)) return String(req.merchant._id || req.merchant.id);
+  if (req.user && (req.user._id || req.user.id)) return String(req.user._id || req.user.id);
+  return null;
+}
 
 // @desc    Get all merchants with enhanced document visibility
 // @route   GET /api/merchants
 // @access  Public
 exports.getMerchants = async (req, res) => {
-  let query;
+  try {
+    let query;
+    const reqQuery = { ...req.query };
+    const removeFields = ['select', 'sort', 'page', 'limit', 'search', 'category', 'documentStatus'];
+    removeFields.forEach(param => delete reqQuery[param]);
 
-  // Copy req.query
-  const reqQuery = { ...req.query };
+    let queryStr = JSON.stringify(reqQuery);
+    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
 
-  // Fields to exclude
-  const removeFields = ['select', 'sort', 'page', 'limit', 'search', 'category', 'documentStatus'];
+    query = Merchant.find(JSON.parse(queryStr)).lean();
 
-  // Loop over removeFields and delete them from reqQuery
-  removeFields.forEach(param => delete reqQuery[param]);
-
-  // Create query string
-  let queryStr = JSON.stringify(reqQuery);
-
-  // Create operators ($gt, $gte, etc)
-  queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
-
-  // Finding resource
-  query = Merchant.find(JSON.parse(queryStr)).lean(); // Added lean() for performance
-
-  // Select Fields
-  if (req.query.select) {
-    const fields = req.query.select.split(',').join(' ');
-    query = query.select(fields);
-  } else {
-    query = query.select('-password'); // Default exclude password
-  }
-
-  // Sort
-  if (req.query.sort) {
-    const sortBy = req.query.sort.split(',').join(' ');
-    query = query.sort(sortBy);
-  } else {
-    query = query.sort('-createdAt');
-  }
-
-  // Pagination
-  const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 25;
-  const startIndex = (page - 1) * limit;
-  const endIndex = page * limit;
-  const total = await Merchant.countDocuments(JSON.parse(queryStr)); // Optimized count
-
-  query = query.skip(startIndex).limit(limit);
-
-  // Search
-  if (req.query.search) {
-    query = query.where(
-      '$or',
-      [
-        { businessName: { $regex: req.query.search, $options: 'i' } },
-        { description: { $regex: req.query.search, $options: 'i' } },
-        { businessType: { $regex: req.query.search, $options: 'i' } }
-      ]
-    );
-  }
-
-  // Category Filter
-  if (req.query.category && req.query.category !== 'All') {
-    query = query.where('businessType', req.query.category);
-  }
-
-  // NEW: Document Status Filter
-  if (req.query.documentStatus) {
-    switch (req.query.documentStatus) {
-      case 'complete':
-        query = query.where({
-          $and: [
-            { 'documents.businessRegistration': { $exists: true, $ne: '' } },
-            { 'documents.idDocument': { $exists: true, $ne: '' } },
-            { 'documents.utilityBill': { $exists: true, $ne: '' } }
-          ]
-        });
-        break;
-      case 'incomplete':
-        query = query.where({
-          $or: [
-            { 'documents.businessRegistration': { $exists: false } },
-            { 'documents.businessRegistration': '' },
-            { 'documents.idDocument': { $exists: false } },
-            { 'documents.idDocument': '' },
-            { 'documents.utilityBill': { $exists: false } },
-            { 'documents.utilityBill': '' }
-          ]
-        });
-        break;
-      case 'pending_review':
-        query = query.where({
-          $and: [
-            { 'documents.businessRegistration': { $exists: true, $ne: '' } },
-            { 'documents.idDocument': { $exists: true, $ne: '' } },
-            { 'documents.utilityBill': { $exists: true, $ne: '' } },
-            { verified: false }
-          ]
-        });
-        break;
+    if (req.query.select) {
+      const fields = req.query.select.split(',').join(' ');
+      query = query.select(fields);
+    } else {
+      query = query.select('-password');
     }
+
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(',').join(' ');
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort('-createdAt');
+    }
+
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 25;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const total = await Merchant.countDocuments(JSON.parse(queryStr));
+
+    query = query.skip(startIndex).limit(limit);
+
+    if (req.query.search) {
+      query = query.where(
+        '$or',
+        [
+          { businessName: { $regex: req.query.search, $options: 'i' } },
+          { description: { $regex: req.query.search, $options: 'i' } },
+          { businessType: { $regex: req.query.search, $options: 'i' } }
+        ]
+      );
+    }
+
+    if (req.query.category && req.query.category !== 'All') {
+      query = query.where('businessType', req.query.category);
+    }
+
+    if (req.query.documentStatus) {
+      switch (req.query.documentStatus) {
+        case 'complete':
+          query = query.where({
+            $and: [
+              { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
+              { 'documents.idDocument.path': { $exists: true, $ne: '' } },
+              { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
+            ]
+          });
+          break;
+        case 'incomplete':
+          query = query.where({
+            $or: [
+              { 'documents.businessRegistration.path': { $exists: false } },
+              { 'documents.businessRegistration.path': '' },
+              { 'documents.idDocument.path': { $exists: false } },
+              { 'documents.idDocument.path': '' },
+              { 'documents.utilityBill.path': { $exists: false } },
+              { 'documents.utilityBill.path': '' }
+            ]
+          });
+          break;
+        case 'pending_review':
+          query = query.where({
+            $and: [
+              { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
+              { 'documents.idDocument.path': { $exists: true, $ne: '' } },
+              { 'documents.utilityBill.path': { $exists: true, $ne: '' } },
+              { verified: false }
+            ]
+          });
+          break;
+      }
+    }
+
+    const merchants = await query;
+
+    const pagination = {};
+    if (endIndex < total) pagination.next = { page: page + 1, limit };
+    if (startIndex > 0) pagination.prev = { page: page - 1, limit };
+
+    res.status(200).json({
+      success: true,
+      count: merchants.length,
+      pagination,
+      data: merchants
+    });
+  } catch (error) {
+    console.error('getMerchants error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
-
-  const merchants = await query;
-
-  // Pagination result
-  const pagination = {};
-
-  if (endIndex < total) {
-    pagination.next = {
-      page: page + 1,
-      limit
-    };
-  }
-
-  if (startIndex > 0) {
-    pagination.prev = {
-      page: page - 1,
-      limit
-    };
-  }
-
-  res.status(200).json({
-    success: true,
-    count: merchants.length,
-    pagination,
-    data: merchants
-  });
 };
-
 
 // @desc    Get single merchant with full document information
 // @route   GET /api/merchants/:id
 // @access  Public
 exports.getMerchant = async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.params.id).lean(); // Added lean() for performance
-
+    const merchant = await Merchant.findById(req.params.id).lean();
     if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: `Merchant not found with id of ${req.params.id}`
-      });
+      return res.status(404).json({ success: false, error: `Merchant not found with id of ${req.params.id}` });
     }
 
-    // NEW: Add document analysis for admin/merchant view
-    let responseData = merchant;
+    let responseData = { ...merchant };
 
-    // Add document completeness info if user is admin or the merchant themselves
-    if (req.user && (req.user.role === 'admin' || req.merchant)) {
+    // Expose document analysis only to admin or the merchant themselves
+    if (req.user && (req.user.role === 'admin' || getUserIdFromReq(req) === String(merchant._id))) {
       const documentAnalysis = {
-        businessRegistration: !!(merchant.documents?.businessRegistration),
-        idDocument: !!(merchant.documents?.idDocument),
-        utilityBill: !!(merchant.documents?.utilityBill),
+        businessRegistration: !!(merchant.documents?.businessRegistration?.path),
+        idDocument: !!(merchant.documents?.idDocument?.path),
+        utilityBill: !!(merchant.documents?.utilityBill?.path),
         additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
       };
 
@@ -173,19 +156,14 @@ exports.getMerchant = async (req, res) => {
         requiresDocuments: requiredDocsCount < 3
       };
     } else {
-      // Remove sensitive document info for public access
+      // hide sensitive document info from public
       delete responseData.documents;
     }
 
-    res.status(200).json({
-      success: true,
-      data: responseData
-    });
+    res.status(200).json({ success: true, data: responseData });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('getMerchant error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -208,27 +186,32 @@ exports.createMerchant = async (req, res) => {
       businessHours
     } = req.body;
 
-    // Check if merchant already exists
-    const existingMerchant = await Merchant.findOne({ email });
-    if (existingMerchant) {
+    // Simple validation for required fields
+    if (!businessName || !email || !phone || !password || !businessType || !address || !description) {
       return res.status(400).json({
         success: false,
-        error: 'A merchant with this email already exists'
+        error: 'Missing required fields (businessName, email, phone, password, businessType, address, description)'
       });
     }
 
-    // Create merchant with default values
-    const merchant = await Merchant.create({
+    // Check if merchant already exists
+    const existingMerchant = await Merchant.findOne({ email: email.toLowerCase() });
+    if (existingMerchant) {
+      return res.status(400).json({ success: false, error: 'Merchant with this email already exists' });
+    }
+
+    // Build merchant payload
+    const merchantPayload = {
       businessName,
-      email,
+      email: email.toLowerCase(),
       phone,
       password,
       businessType,
-      description: description || `${businessName} - Business description to be updated`,
-      yearEstablished,
+      description,
+      yearEstablished: yearEstablished ? parseInt(yearEstablished, 10) : undefined,
       website,
       address,
-      location: address, // Use address as location
+      location: address,
       landmark,
       businessHours: businessHours || {
         monday: { open: '08:00', close: '18:00', closed: false },
@@ -244,23 +227,27 @@ exports.createMerchant = async (req, res) => {
       bannerImage: '',
       gallery: [],
       documents: {
-        businessRegistration: '',
-        idDocument: '',
-        utilityBill: '',
-        additionalDocs: []
+        businessRegistration: { path: '', uploadedAt: null },
+        idDocument: { path: '', uploadedAt: null },
+        utilityBill: { path: '', uploadedAt: null },
+        additionalDocs: [],
+        documentsSubmittedAt: null,
+        documentReviewStatus: 'pending'
       },
       featured: false,
       rating: 0,
-      reviews: []
-    });
+      reviews: 0
+    };
 
-    // Send notification email to admin about new merchant registration
+    const merchant = await Merchant.create(merchantPayload);
+
+    // Try sending admin notification (non-blocking)
     try {
-      await emailService.sendAdminMerchantNotification(merchant);
-      console.log('Admin notification sent for new merchant:', merchant.businessName);
+      if (emailService && typeof emailService.sendAdminMerchantNotification === 'function') {
+        await emailService.sendAdminMerchantNotification(merchant);
+      }
     } catch (emailError) {
       console.error('Failed to send admin notification email:', emailError);
-      // Don't fail the registration if email fails
     }
 
     res.status(201).json({
@@ -276,208 +263,49 @@ exports.createMerchant = async (req, res) => {
         message: 'Merchant registration submitted successfully. You will be contacted within 2-3 business days for verification.'
       }
     });
-
   } catch (error) {
-    // Handle duplicate key error
+    console.error('createMerchant error:', error);
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({
-        success: false,
-        error: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`
-      });
+      return res.status(400).json({ success: false, error: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists` });
     }
-
-    // Handle validation errors
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(val => val.message);
-      return res.status(400).json({
-        success: false,
-        error: messages.join(', ')
-      });
+      return res.status(400).json({ success: false, error: messages.join(', ') });
     }
-
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
-// @desc    Create new merchant (Public Registration)
-// @route   POST /api/merchants
-// @access  Public
-exports.createMerchant = async (req, res) => {
-  try {
-    const {
-      businessName,
-      email,
-      phone,
-      password,
-      businessType,
-      description,
-      yearEstablished,
-      website,
-      address,
-      landmark,
-      businessHours
-    } = req.body;
-
-    // Check if merchant already exists
-    const existingMerchant = await Merchant.findOne({ email });
-    if (existingMerchant) {
-      return res.status(400).json({
-        success: false,
-        error: 'Merchant with this email already exists'
-      });
-    }
-
-    // Create merchant
-    const merchant = await Merchant.create({
-      businessName,
-      email,
-      phone,
-      password,
-      businessType,
-      description,
-      yearEstablished: yearEstablished ? parseInt(yearEstablished) : undefined,
-      website,
-      address,
-      location: address, // Use address as location for now
-      landmark,
-      businessHours: businessHours || {
-        monday: { open: '08:00', close: '18:00', closed: false },
-        tuesday: { open: '08:00', close: '18:00', closed: false },
-        wednesday: { open: '08:00', close: '18:00', closed: false },
-        thursday: { open: '08:00', close: '18:00', closed: false },
-        friday: { open: '08:00', close: '18:00', closed: false },
-        saturday: { open: '09:00', close: '16:00', closed: false },
-        sunday: { open: '', close: '', closed: true }
-      },
-      verified: false,
-      rating: 0,
-      reviews: 0, // Initialize as number, not array
-      featured: false
-    });
-
-    // Send notification email to admin about new merchant registration
-    try {
-      await emailService.sendAdminMerchantNotification(merchant);
-      console.log('Admin notification sent for new merchant:', merchant.businessName);
-    } catch (emailError) {
-      console.error('Failed to send admin notification email:', emailError);
-      // Don't fail the registration if email fails
-    }
-
-    res.status(201).json({
-      success: true,
-      data: {
-        id: merchant._id,
-        businessName: merchant.businessName,
-        email: merchant.email,
-        phone: merchant.phone,
-        businessType: merchant.businessType,
-        verified: merchant.verified,
-        createdAt: merchant.createdAt,
-        message: 'Merchant registration submitted successfully. You will be contacted within 2-3 business days for verification.'
-      }
-    });
-  } catch (error) {
-    console.error('Create merchant error:', error);
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-// @desc    Update merchant with document validation
-// @route   PUT /api/merchants/:id
-// @access  Private/Merchant
-// @desc    Update merchant with document validation
+// @desc    Update merchant with document status
 // @route   PUT /api/merchants/:id
 // @access  Private/Merchant
 exports.updateMerchant = async (req, res) => {
   try {
-    console.log('Update merchant request:', {
-      params: req.params,
-      user: req.user,
-      body: req.body
+    const requesterId = getUserIdFromReq(req);
+    if (!requesterId || String(req.params.id) !== requesterId) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ success: false, error: 'Not authorized to update this merchant' });
+    }
+
+    const updateFields = {};
+    // pick allowed fields from req.body to avoid overwriting sensitive fields
+    const allowed = ['businessName','email','phone','businessType','description','yearEstablished','website','address','location','landmark','businessHours','logo','bannerImage'];
+    allowed.forEach(key => {
+      if (req.body[key] !== undefined) updateFields[key] = req.body[key];
     });
 
-    // Find the merchant first to check ownership
-    const merchant = await Merchant.findById(req.params.id);
+    const merchant = await Merchant.findByIdAndUpdate(req.params.id, updateFields, { new: true, runValidators: true }).lean();
 
     if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Merchant not found'
-      });
+      return res.status(404).json({ success: false, error: 'Merchant not found' });
     }
 
-    // Check if user owns this merchant or is admin
-    // Assuming merchant has an 'owner' field that references the User
-    const isOwner = merchant.owner && merchant.owner.toString() === req.user.id;
-    const isAdmin = req.user.role === 'admin';
-
-    console.log('Ownership check:', {
-      merchantOwner: merchant.owner,
-      userId: req.user.id,
-      isOwner,
-      isAdmin
-    });
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({
-        success: false,
-        error: 'Not authorized to update this merchant'
-      });
-    }
-
-    const {
-      businessName,
-      email,
-      phone,
-      businessType,
-      description,
-      yearEstablished,
-      website,
-      address,
-      location,
-      landmark,
-      businessHours,
-      socialLinks, // Add socialLinks
-      priceRange, // Add priceRange
-      googleBusinessUrl, // Add googleBusinessUrl
-      seoTitle, // Add seoTitle
-      seoDescription // Add seoDescription
-    } = req.body;
-
-    // Update fields
-    const updateData = {
-      businessName,
-      email,
-      phone,
-      businessType,
-      description,
-      yearEstablished,
-      website,
-      address,
-      location,
-      landmark,
-      businessHours,
-      socialLinks,
-      priceRange,
-      googleBusinessUrl,
-      seoTitle,
-      seoDescription
+    const documentAnalysis = {
+      businessRegistration: !!(merchant.documents?.businessRegistration?.path),
+      idDocument: !!(merchant.documents?.idDocument?.path),
+      utilityBill: !!(merchant.documents?.utilityBill?.path),
+      additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
     };
-
-    // Remove undefined fields
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key] === undefined) {
-        delete updateData[key];
-      }
-    });
 
     const updatedMerchant = await Merchant.findByIdAndUpdate(
       req.params.id,
@@ -487,16 +315,10 @@ exports.updateMerchant = async (req, res) => {
 
     console.log('Merchant updated successfully:', updatedMerchant._id);
 
-    res.status(200).json({
-      success: true,
-      data: updatedMerchant
-    });
+    res.status(200).json({ success: true, data: responseData });
   } catch (error) {
-    console.error('Update merchant error:', error);
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('updateMerchant error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -506,26 +328,18 @@ exports.updateMerchant = async (req, res) => {
 exports.deleteMerchant = async (req, res) => {
   try {
     const merchant = await Merchant.findById(req.params.id);
-
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Merchant not found'
-      });
-    }
+    if (!merchant) return res.status(404).json({ success: false, error: 'Merchant not found' });
 
     // Delete all reviews associated with the merchant
     await Review.deleteMany({ merchant: req.params.id });
 
-    // NEW: Log document cleanup if documents existed
     const hadDocuments = !!(
-      merchant.documents?.businessRegistration ||
-      merchant.documents?.idDocument ||
-      merchant.documents?.utilityBill ||
-      merchant.documents?.additionalDocs?.length > 0
+      merchant.documents?.businessRegistration?.path ||
+      merchant.documents?.idDocument?.path ||
+      merchant.documents?.utilityBill?.path ||
+      (merchant.documents?.additionalDocs && merchant.documents.additionalDocs.length > 0)
     );
 
-    // Delete the merchant
     await merchant.deleteOne();
 
     res.status(200).json({
@@ -534,10 +348,8 @@ exports.deleteMerchant = async (req, res) => {
       message: `Merchant ${merchant.businessName} deleted successfully${hadDocuments ? ' (including documents)' : ''}`
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('deleteMerchant error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -546,43 +358,22 @@ exports.deleteMerchant = async (req, res) => {
 // @access  Private/Merchant
 exports.uploadLogo = async (req, res) => {
   try {
-    // Make sure merchant is updating their own profile
-    if (req.params.id !== req.merchant.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authorized to update this merchant'
-      });
+    const requesterId = getUserIdFromReq(req);
+    if (!requesterId || String(req.params.id) !== requesterId) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ success: false, error: 'Not authorized to update this merchant' });
     }
 
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please upload a file'
-      });
+      return res.status(400).json({ success: false, error: 'Please upload a file' });
     }
 
-    const merchant = await Merchant.findByIdAndUpdate(
-      req.params.id,
-      { logo: `/uploads/images/${req.file.filename}` },
-      { new: true }
-    ).lean();
+    const updated = await Merchant.findByIdAndUpdate(req.params.id, { logo: `/uploads/images/${req.file.filename}` }, { new: true, runValidators: true }).lean();
+    if (!updated) return res.status(404).json({ success: false, error: 'Merchant not found' });
 
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Merchant not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: merchant
-    });
+    res.status(200).json({ success: true, data: updated });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('uploadLogo error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -591,43 +382,22 @@ exports.uploadLogo = async (req, res) => {
 // @access  Private/Merchant
 exports.uploadBanner = async (req, res) => {
   try {
-    // Make sure merchant is updating their own profile
-    if (req.params.id !== req.merchant.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authorized to update this merchant'
-      });
+    const requesterId = getUserIdFromReq(req);
+    if (!requesterId || String(req.params.id) !== requesterId) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ success: false, error: 'Not authorized to update this merchant' });
     }
 
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please upload a file'
-      });
+      return res.status(400).json({ success: false, error: 'Please upload a file' });
     }
 
-    const merchant = await Merchant.findByIdAndUpdate(
-      req.params.id,
-      { bannerImage: `/uploads/images/${req.file.filename}` },
-      { new: true }
-    ).lean();
+    const updated = await Merchant.findByIdAndUpdate(req.params.id, { bannerImage: `/uploads/images/${req.file.filename}` }, { new: true, runValidators: true }).lean();
+    if (!updated) return res.status(404).json({ success: false, error: 'Merchant not found' });
 
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Merchant not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: merchant
-    });
+    res.status(200).json({ success: true, data: updated });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('uploadBanner error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -636,46 +406,26 @@ exports.uploadBanner = async (req, res) => {
 // @access  Private/Merchant
 exports.uploadGallery = async (req, res) => {
   try {
-    // Make sure merchant is updating their own profile
-    if (req.params.id !== req.merchant.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authorized to update this merchant'
-      });
+    const requesterId = getUserIdFromReq(req);
+    if (!requesterId || String(req.params.id) !== requesterId) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ success: false, error: 'Not authorized to update this merchant' });
     }
 
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please upload at least one file'
-      });
+      return res.status(400).json({ success: false, error: 'Please upload at least one file' });
     }
 
     const merchant = await Merchant.findById(req.params.id);
+    if (!merchant) return res.status(404).json({ success: false, error: 'Merchant not found' });
 
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Merchant not found'
-      });
-    }
-
-    // Add new gallery images
     const galleryImages = req.files.map(file => `/uploads/images/${file.filename}`);
-    merchant.gallery = [...merchant.gallery, ...galleryImages];
+    merchant.gallery = [...(merchant.gallery || []), ...galleryImages];
     await merchant.save();
 
-    const updatedMerchant = merchant.toObject();
-
-    res.status(200).json({
-      success: true,
-      data: updatedMerchant
-    });
+    res.status(200).json({ success: true, data: merchant.toObject() });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('uploadGallery error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -684,75 +434,67 @@ exports.uploadGallery = async (req, res) => {
 // @access  Private/Merchant
 exports.uploadDocuments = async (req, res) => {
   try {
-    // Make sure merchant is updating their own profile
-    if (req.params.id !== req.merchant.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authorized to update this merchant'
-      });
+    const requesterId = getUserIdFromReq(req);
+    if (!requesterId || String(req.params.id) !== requesterId) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ success: false, error: 'Not authorized to update this merchant' });
     }
 
     if (!req.files) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please upload required documents'
-      });
+      return res.status(400).json({ success: false, error: 'Please upload required documents' });
     }
 
     const merchant = await Merchant.findById(req.params.id);
+    if (!merchant) return res.status(404).json({ success: false, error: 'Merchant not found' });
 
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Merchant not found'
-      });
-    }
+    const documents = merchant.documents || { additionalDocs: [] };
+    const updatedDocuments = [];
 
-    // Update document paths
-    const documents = { ...merchant.documents };
-    let updatedDocuments = [];
-    
     if (req.files.businessRegistration) {
-      documents.businessRegistration = `/uploads/documents/${req.files.businessRegistration[0].filename}`;
+      documents.businessRegistration = {
+        path: `/uploads/documents/${req.files.businessRegistration[0].filename}`,
+        uploadedAt: Date.now()
+      };
       updatedDocuments.push('Business Registration');
     }
-    
+
     if (req.files.idDocument) {
-      documents.idDocument = `/uploads/documents/${req.files.idDocument[0].filename}`;
+      documents.idDocument = {
+        path: `/uploads/documents/${req.files.idDocument[0].filename}`,
+        uploadedAt: Date.now()
+      };
       updatedDocuments.push('ID Document');
     }
-    
+
     if (req.files.utilityBill) {
-      documents.utilityBill = `/uploads/documents/${req.files.utilityBill[0].filename}`;
+      documents.utilityBill = {
+        path: `/uploads/documents/${req.files.utilityBill[0].filename}`,
+        uploadedAt: Date.now()
+      };
       updatedDocuments.push('Utility Bill');
     }
-    
+
     if (req.files.additionalDocs) {
-      documents.additionalDocs = req.files.additionalDocs.map(
-        file => `/uploads/documents/${file.filename}`
-      );
+      const additional = req.files.additionalDocs.map(file => `/uploads/documents/${file.filename}`);
+      documents.additionalDocs = [...(documents.additionalDocs || []), ...additional];
       updatedDocuments.push('Additional Documents');
     }
 
-    // Update merchant documents
+    documents.documentsSubmittedAt = Date.now();
+    documents.documentReviewStatus = 'pending';
     merchant.documents = documents;
-    
-    // NEW: Update onboarding status based on document completeness
-    const hasRequiredDocs = documents.businessRegistration && 
-                           documents.idDocument && 
-                           documents.utilityBill;
-    
+
+    // Update onboarding status if required docs now exist
+    const hasRequiredDocs = documents.businessRegistration?.path && documents.idDocument?.path && documents.utilityBill?.path;
     if (hasRequiredDocs && merchant.onboardingStatus === 'credentials_sent') {
       merchant.onboardingStatus = 'documents_submitted';
     }
 
     await merchant.save();
 
-    // NEW: Document analysis for response
     const documentAnalysis = {
-      businessRegistration: !!documents.businessRegistration,
-      idDocument: !!documents.idDocument,
-      utilityBill: !!documents.utilityBill,
+      businessRegistration: !!documents.businessRegistration?.path,
+      idDocument: !!documents.idDocument?.path,
+      utilityBill: !!documents.utilityBill?.path,
       additionalDocs: !!(documents.additionalDocs?.length > 0)
     };
 
@@ -780,35 +522,25 @@ exports.uploadDocuments = async (req, res) => {
       documentStatus: hasRequiredDocs ? 'complete' : 'incomplete'
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('uploadDocuments error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
 // @desc    Create merchant by admin (ENHANCED)
 exports.createMerchantByAdmin = async (req, res) => {
   try {
-    // Ensure user is admin
     if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied. Admin privileges required.'
-      });
+      return res.status(403).json({ success: false, error: 'Access denied. Admin privileges required.' });
     }
 
-    const result = await MerchantOnboardingService.createMerchantByAdmin(
-      req.body, 
-      req.user
-    );
+    const result = await MerchantOnboardingService.createMerchantByAdmin(req.body, req.user);
 
     res.status(201).json({
       success: true,
       data: result.merchant,
       credentials: result.credentials,
       message: result.message,
-      // NEW: Document status info
       documentStatus: {
         required: true,
         submitted: false,
@@ -816,13 +548,9 @@ exports.createMerchantByAdmin = async (req, res) => {
         nextStep: 'Upload verification documents'
       }
     });
-
   } catch (error) {
-    console.error('Admin merchant creation error:', error);
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('createMerchantByAdmin error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -833,25 +561,16 @@ exports.completeAccountSetup = async (req, res) => {
     const { password, businessHours, description, website } = req.body;
 
     if (!password) {
-      return res.status(400).json({
-        success: false,
-        error: 'New password is required'
-      });
+      return res.status(400).json({ success: false, error: 'New password is required' });
     }
 
-    const result = await MerchantOnboardingService.completeAccountSetup(
-      token,
-      password,
-      { businessHours, description, website }
-    );
+    const result = await MerchantOnboardingService.completeAccountSetup(token, password, { businessHours, description, website });
 
-    // NEW: Add document status to setup completion response
     const merchant = await Merchant.findById(result.merchant.id).lean();
-    
     const documentAnalysis = {
-      businessRegistration: !!(merchant.documents?.businessRegistration),
-      idDocument: !!(merchant.documents?.idDocument),
-      utilityBill: !!(merchant.documents?.utilityBill),
+      businessRegistration: !!(merchant.documents?.businessRegistration?.path),
+      idDocument: !!(merchant.documents?.idDocument?.path),
+      utilityBill: !!(merchant.documents?.utilityBill?.path),
       additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
     };
 
@@ -871,13 +590,9 @@ exports.completeAccountSetup = async (req, res) => {
     };
 
     res.status(200).json(enhancedResult);
-
   } catch (error) {
-    console.error('Account setup error:', error);
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('completeAccountSetup error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -885,25 +600,17 @@ exports.completeAccountSetup = async (req, res) => {
 exports.getSetupInfo = async (req, res) => {
   try {
     const { token } = req.params;
-    const crypto = require('crypto');
-    
-    // Hash the token to compare with stored hash
     const setupTokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-    // Find merchant with valid setup token
     const merchant = await Merchant.findOne({
       accountSetupToken: setupTokenHash,
       accountSetupExpire: { $gt: Date.now() }
     }).lean();
 
     if (!merchant) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid or expired setup token'
-      });
+      return res.status(400).json({ success: false, error: 'Invalid or expired setup token' });
     }
 
-    // NEW: Add document requirement info
     const documentRequirements = {
       required: [
         'Business Registration Certificate',
@@ -928,13 +635,9 @@ exports.getSetupInfo = async (req, res) => {
       },
       documentRequirements
     });
-
   } catch (error) {
-    console.error('Setup info error:', error);
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('getSetupInfo error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -942,24 +645,12 @@ exports.getSetupInfo = async (req, res) => {
 exports.verifyMerchant = async (req, res) => {
   try {
     const merchant = await Merchant.findById(req.params.id);
+    if (!merchant) return res.status(404).json({ success: false, error: 'Merchant not found' });
 
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Merchant not found'
-      });
-    }
-
-    // NEW: Check if merchant has required documents
-    const hasRequiredDocs = merchant.documents?.businessRegistration && 
-                           merchant.documents?.idDocument && 
-                           merchant.documents?.utilityBill;
+    const hasRequiredDocs = merchant.documents?.businessRegistration?.path && merchant.documents?.idDocument?.path && merchant.documents?.utilityBill?.path;
 
     if (!hasRequiredDocs) {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot verify merchant: Required documents are missing'
-      });
+      return res.status(400).json({ success: false, error: 'Cannot verify merchant: Required documents are missing' });
     }
 
     merchant.verified = true;
@@ -967,46 +658,39 @@ exports.verifyMerchant = async (req, res) => {
     merchant.onboardingStatus = 'completed';
     await merchant.save();
 
-    // NEW: Send verification confirmation email
     try {
-      const { sendEmail } = require('../utils/emailService');
-      
-      await sendEmail({
-        to: merchant.email,
-        subject: '🎉 Business Verification Approved - Nairobi CBD',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: #4caf50; color: white; padding: 20px; text-align: center;">
-              <h1>✅ Verification Approved!</h1>
-            </div>
-            <div style="padding: 20px;">
-              <h2>Congratulations ${merchant.businessName}!</h2>
-              <p>Your business has been successfully verified and is now live on Nairobi CBD Business Directory.</p>
-              <p>You can now enjoy all the benefits of being a verified business.</p>
-              <div style="text-align: center; margin: 20px 0;">
-                <a href="${process.env.FRONTEND_URL}/merchant/dashboard" 
-                   style="background: #4caf50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
-                  Visit Dashboard
-                </a>
+      if (sendEmail) {
+        await sendEmail({
+          to: merchant.email,
+          subject: '🎉 Business Verification Approved - Nairobi CBD',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: #4caf50; color: white; padding: 20px; text-align: center;">
+                <h1>✅ Verification Approved!</h1>
+              </div>
+              <div style="padding: 20px;">
+                <h2>Congratulations ${merchant.businessName}!</h2>
+                <p>Your business has been successfully verified and is now live on Nairobi CBD Business Directory.</p>
+                <p>You can now enjoy all the benefits of being a verified business.</p>
+                <div style="text-align: center; margin: 20px 0;">
+                  <a href="${process.env.FRONTEND_URL}/merchant/dashboard" 
+                     style="background: #4caf50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
+                    Visit Dashboard
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
-        `
-      });
+          `
+        });
+      }
     } catch (emailError) {
       console.error('Failed to send verification email:', emailError);
     }
 
-    res.status(200).json({
-      success: true,
-      data: merchant,
-      message: 'Merchant verified successfully and notification sent'
-    });
+    res.status(200).json({ success: true, data: merchant, message: 'Merchant verified successfully and notification sent' });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('verifyMerchant error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -1015,20 +699,14 @@ exports.verifyMerchant = async (req, res) => {
 // @access  Private (Merchant only)
 exports.sendCredentials = async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.user.id).lean();
+    const requesterId = getUserIdFromReq(req);
+    if (!requesterId) return res.status(404).json({ success: false, error: 'Merchant not found' });
 
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Merchant not found'
-      });
-    }
+    const merchant = await Merchant.findById(requesterId).lean();
+    if (!merchant) return res.status(404).json({ success: false, error: 'Merchant not found' });
 
-    // Import nodemailer
-    const nodemailer = require('nodemailer');
-
-    // Create transporter
-    const transporter = nodemailer.createTransporter({
+    // nodemailer transporter (best to store credentials in env)
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
@@ -1036,94 +714,36 @@ exports.sendCredentials = async (req, res) => {
       }
     });
 
-    // Email HTML template
     const emailHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-          }
-          .header {
-            background-color: #2563eb;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-radius: 8px 8px 0 0;
-          }
-          .content {
-            background-color: #f8fafc;
-            padding: 30px;
-            border: 1px solid #e2e8f0;
-            border-radius: 0 0 8px 8px;
-          }
-          .credentials {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            margin: 20px 0;
-          }
-          .button {
-            display: inline-block;
-            background-color: #2563eb;
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 6px;
-            margin: 20px 0;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #64748b;
-            font-size: 14px;
-          }
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background-color: #f8fafc; padding: 30px; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; }
+          .credentials { background-color: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 20px 0; }
+          .button { display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #64748b; font-size: 14px; }
         </style>
       </head>
       <body>
-        <div class="header">
-          <h1>Nairobi Verified - Merchant Login Credentials</h1>
-        </div>
+        <div class="header"><h1>Nairobi Verified - Merchant Login Credentials</h1></div>
         <div class="content">
           <h2>Hello ${merchant.businessName}!</h2>
           <p>Here are your login credentials for the Nairobi Verified merchant portal:</p>
-          
           <div class="credentials">
             <p><strong>Email:</strong> ${merchant.email}</p>
             <p><strong>Dashboard URL:</strong> <a href="${process.env.FRONTEND_URL}/merchant/dashboard">Merchant Dashboard</a></p>
           </div>
-          
-          <p>You can use these credentials to:</p>
-          <ul>
-            <li>Access your merchant dashboard</li>
-            <li>Update your business information</li>
-            <li>View performance analytics</li>
-            <li>Manage your business profile</li>
-          </ul>
-          
-          <a href="${process.env.FRONTEND_URL}/merchant/dashboard" class="button">
-            Access Dashboard
-          </a>
-          
           <p>If you have any questions or need support, please contact our team.</p>
-          
-          <div class="footer">
-            <p>© 2024 Nairobi Verified. All rights reserved.</p>
-            <p>This is an automated message. Please do not reply to this email.</p>
-          </div>
+          <a href="${process.env.FRONTEND_URL}/merchant/dashboard" class="button">Access Dashboard</a>
+          <div class="footer"><p>© 2024 Nairobi Verified. All rights reserved.</p></div>
         </div>
       </body>
       </html>
     `;
 
-    // Send email
     await transporter.sendMail({
       from: `"Nairobi Verified" <${process.env.EMAIL_USER}>`,
       to: merchant.email,
@@ -1131,17 +751,10 @@ exports.sendCredentials = async (req, res) => {
       html: emailHtml
     });
 
-    res.status(200).json({
-      success: true,
-      message: 'Login credentials sent successfully to your email'
-    });
-
+    res.status(200).json({ success: true, message: 'Login credentials sent successfully to your email' });
   } catch (error) {
-    console.error('Error sending credentials:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to send credentials'
-    });
+    console.error('sendCredentials error:', error);
+    res.status(500).json({ success: false, error: 'Failed to send credentials' });
   }
 };
 
@@ -1150,34 +763,21 @@ exports.sendCredentials = async (req, res) => {
 // @access  Private (Admin only)
 exports.setFeatured = async (req, res) => {
   try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Access denied. Admin privileges required.' });
+    }
+
     const { featured } = req.body;
-    
-    const merchant = await Merchant.findById(req.params.id).lean();
+    const merchant = await Merchant.findById(req.params.id);
+    if (!merchant) return res.status(404).json({ success: false, error: 'Merchant not found' });
 
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Merchant not found'
-      });
-    }
-
-    merchant.featured = featured;
-    if (featured) {
-      merchant.featuredDate = Date.now();
-    } else {
-      merchant.featuredDate = null;
-    }
-    
+    merchant.featured = !!featured;
+    merchant.featuredDate = featured ? Date.now() : null;
     await merchant.save();
 
-    res.status(200).json({
-      success: true,
-      data: merchant
-    });
+    res.status(200).json({ success: true, data: merchant });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    console.error('setFeatured error:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
