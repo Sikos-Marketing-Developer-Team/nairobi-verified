@@ -672,12 +672,3 @@ function getTimeAgo(date) {
   if (diffDays < 365) return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
   return `${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) > 1 ? 's' : ''} ago`;
 }
-
-module.exports = {
-  getDashboardOverview,
-  getPerformanceAnalytics,
-  getRecentActivity,
-  getNotifications,
-  getMerchantReviews,
-  getQuickActions
-};
