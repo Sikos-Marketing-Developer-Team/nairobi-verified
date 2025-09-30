@@ -545,6 +545,7 @@ exports.forgotPassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
+    // Hash the token from params to compare with stored hash
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(req.params.resetToken)
@@ -557,25 +558,50 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // Find user with valid reset token
+    // CRITICAL FIX: Get current time for consistent comparison
+    const currentTime = Date.now();
+    console.log('Current time:', new Date(currentTime).toISOString());
+
+    // Find user with valid reset token that hasn't expired
     let user = await User.findOne({
       resetPasswordToken,
-      resetPasswordExpire: { $gt: Date.now() }
+      resetPasswordExpire: { $gt: currentTime }
     });
     
     if (!user) {
       user = await Merchant.findOne({
         resetPasswordToken,
-        resetPasswordExpire: { $gt: Date.now() }
+        resetPasswordExpire: { $gt: currentTime }
       });
     }
 
     if (!user) {
+      // Additional logging to help debug
+      const expiredUser = await User.findOne({ resetPasswordToken }) || 
+                         await Merchant.findOne({ resetPasswordToken });
+      
+      if (expiredUser) {
+        console.log('Token found but expired:', {
+          tokenExpiry: new Date(expiredUser.resetPasswordExpire).toISOString(),
+          currentTime: new Date(currentTime).toISOString(),
+          expired: expiredUser.resetPasswordExpire <= currentTime
+        });
+      } else {
+        console.log('No user found with this reset token');
+      }
+
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'Invalid or expired reset token'
+        error: 'Invalid or expired reset token. Please request a new password reset.'
       });
     }
+
+    // Log successful token validation
+    console.log('Valid reset token found:', {
+      userEmail: user.email,
+      tokenExpiry: new Date(user.resetPasswordExpire).toISOString(),
+      timeRemaining: Math.floor((user.resetPasswordExpire - currentTime) / 1000) + ' seconds'
+    });
 
     // Validate new password
     if (!req.body.password) {
