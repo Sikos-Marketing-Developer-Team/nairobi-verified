@@ -174,6 +174,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, 'Login', 'Login');
   };
 
+  const merchantLogin = async (email: string, password: string) => {
+  return handleAuthAction(async () => {
+    const response = await authAPI.loginMerchant(email, password);
+    const { user } = response.data;
+    
+    if (user.role === 'admin') {
+      showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
+      throw new Error('Admin access restricted');
+    }
+    
+    setUser(user);
+    navigate('/merchant/dashboard', { replace: true });
+    showToast('Merchant Login Successful', 'Welcome to your merchant dashboard');
+    return response;
+  }, 'Merchant Login', 'Merchant Login');
+};
+
   const googleAuth = async (credential: string) => {
     return handleAuthAction(async () => {
       const response = await authAPI.googleAuth(credential);
@@ -268,6 +285,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isLoading,
     isAuthenticated: !!user,
     login,
+    merchantLogin, // Add this line
     googleAuth,
     register,
     registerMerchant,

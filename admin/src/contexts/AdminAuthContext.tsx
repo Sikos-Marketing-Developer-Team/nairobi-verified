@@ -21,6 +21,7 @@ interface AdminAuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
+  
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
