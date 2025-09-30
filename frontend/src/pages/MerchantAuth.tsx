@@ -236,7 +236,7 @@ const MerchantAuth = () => {
                 Are you a customer?
               </span>
               <a
-                href="/auth/login"
+                href="/auth"
                 className="ml-1 text-blue-600 hover:text-blue-800 font-medium"
               >
                 Sign in as customer
