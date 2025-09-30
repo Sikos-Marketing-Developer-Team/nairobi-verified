@@ -11,6 +11,8 @@ const connectDB = require('./config/db');
 const rateLimit = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
 const { client, webVitalsLCP, webVitalsCLS, webVitalsFID } = require('./utils/metrics');
+const merchantDashboardRoutes = require('./routes/merchantDashboard');
+
 
 // Load environment variables
 dotenv.config();
@@ -166,6 +168,8 @@ app.use('/api/cart', require('./routes/cart'));
 app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/uploads', require('./routes/uploads'));
+app.use('/api/merchants/dashboard', merchantDashboardRoutes);
+
 
 // 404 handler
 app.use('*', (req, res) => {
