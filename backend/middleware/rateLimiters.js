@@ -11,10 +11,8 @@ const getClientIp = (req) => {
              req.socket?.remoteAddress ||
              'unknown';
   
-  // Log IP info for debugging
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[Rate Limiter] IP: ${ip}, Path: ${req.originalUrl}`);
-  }
+  // Log IP info ALWAYS (not just in development) for debugging
+  console.log(`[Rate Limiter] IP: ${ip}, Path: ${req.originalUrl}, XFF: ${req.headers['x-forwarded-for']}`);
   
   return ip;
 };
