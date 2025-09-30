@@ -103,7 +103,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center px-2 py-2">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center px-2 py-5">
       <div className="w-full max-w-[90vw] sm:max-w-sm space-y-4">
         {/* Logo */}
         <div className="text-center">
@@ -314,7 +314,12 @@ const Auth = () => {
         {isLogin && (
           <div className="mt-3 text-center text-xs text-gray-500">
             <p>Are you a business owner?</p>
-            <Link to="/auth/register/merchant" className="text-primary hover:text-primary-dark font-medium">
+            <Link to="/merchant/sign-in" className="text-primary hover:text-primary-dark font-medium">
+              Sign in here
+            </Link>
+            <br/>
+               or
+               <br/>       <Link to="/auth/register/merchant" className="text-primary hover:text-primary-dark font-medium">
               Register your business
             </Link>
           </div>
