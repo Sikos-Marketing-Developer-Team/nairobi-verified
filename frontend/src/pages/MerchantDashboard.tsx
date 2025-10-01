@@ -29,7 +29,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { merchantsAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Skeleton } from '@/componentsಸ
+import { Skeleton } from '@/components'
 
 // Default empty merchant structure
 const defaultMerchant = {
