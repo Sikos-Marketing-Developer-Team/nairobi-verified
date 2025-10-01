@@ -23,16 +23,16 @@ passport.use(
         // Check for existing merchant
         const merchant = await Merchant.findOne({ email: profile.emails[0].value });
         if (merchant) {
-          if (!merchant.isVerified) {
-            console.log('Unverified merchant attempted Google Sign-In:', merchant.id);
+          if (!merchant.verified) {
+            console.log('Unverified merchant attempted Google Sign-In:', merchant._id);
             return done(null, false, { message: 'Merchant account is not verified. Please complete registration.' });
           }
           // Verified merchant: update googleId and avatar if needed
           if (!merchant.googleId) {
             merchant.googleId = profile.id;
-            merchant.avatar = merchant.avatar || profile.photos[0]?.value || '';
+            merchant.logo = merchant.logo || profile.photos[0]?.value || '';
             await merchant.save();
-            console.log('Updated verified merchant with Google ID:', merchant.id);
+            console.log('Updated verified merchant with Google ID:', merchant._id);
           }
           return done(null, merchant);
         }
@@ -46,17 +46,16 @@ passport.use(
             email: profile.emails[0].value,
             password: crypto.randomBytes(16).toString('hex'), // Secure random password
             phone: '',
-            avatar: profile.photos[0]?.value || '',
-            googleId: profile.id,
-            isMerchant: false
+            profilePicture: profile.photos[0]?.value || '',
+            googleId: profile.id
           });
-          console.log('Created new user from Google OAuth:', user.id);
+          console.log('Created new user from Google OAuth:', user._id);
         } else if (!user.googleId) {
           // Existing user: update googleId and avatar
           user.googleId = profile.id;
-          user.avatar = user.avatar || profile.photos[0]?.value || '';
+          user.profilePicture = user.profilePicture || profile.photos[0]?.value || '';
           await user.save();
-          console.log('Updated existing user with Google ID:', user.id);
+          console.log('Updated existing user with Google ID:', user._id);
         }
 
         return done(null, user);
@@ -68,32 +67,48 @@ passport.use(
   )
 );
 
-// Serialize user into the session
+// CRITICAL FIX: Serialize user into the session - use _id instead of id
 passport.serializeUser((user, done) => {
-  console.log('Serializing user:', user.id);
-  done(null, { id: user.id, isMerchant: user.isMerchant || !!user.isVerified });
+  const userId = user._id || user.id; // MongoDB uses _id
+  const isMerchant = !!user.businessName; // Merchants have businessName field
+  
+  console.log('🔐 Serializing user:', {
+    id: userId,
+    isMerchant,
+    email: user.email
+  });
+  
+  done(null, { id: String(userId), isMerchant });
 });
 
-// Deserialize user from the session
+// CRITICAL FIX: Deserialize user from the session
 passport.deserializeUser(async (obj, done) => {
   try {
-    console.log('Deserializing user:', obj);
+    console.log('🔓 Deserializing user:', obj);
+    
     let user;
     if (obj.isMerchant) {
-      user = await Merchant.findById(obj.id);
+      user = await Merchant.findById(obj.id).select('-password');
+      console.log('📦 Found merchant:', user ? user._id : 'NOT FOUND');
     } else {
-      user = await User.findById(obj.id);
+      user = await User.findById(obj.id).select('-password');
+      console.log('👤 Found user:', user ? user._id : 'NOT FOUND');
     }
 
     if (!user) {
-      console.log('User not found during deserialization:', obj.id);
+      console.error('❌ User not found during deserialization:', obj.id);
       return done(null, false);
     }
 
-    console.log('Successfully deserialized user:', user.id);
+    console.log('✅ Successfully deserialized:', {
+      id: user._id,
+      email: user.email,
+      isMerchant: obj.isMerchant
+    });
+    
     done(null, user);
   } catch (error) {
-    console.error('Deserialization error:', error.message);
+    console.error('❌ Deserialization error:', error.message);
     done(error, null);
   }
 });
