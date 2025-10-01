@@ -11,9 +11,13 @@ const { HTTP_STATUS } = require('../config/constants');
  */
 exports.getDashboardOverview = async (req, res) => {
   try {
+    // Use the merchant ID from the authenticated user
+    // Since you're using session auth, req.user IS the merchant when they log in
     const merchantId = req.user._id;
 
-    // Fetch merchant data
+    console.log('🔍 Fetching dashboard for merchant ID:', merchantId);
+
+    // Fetch merchant data directly using the logged-in merchant's ID
     const merchant = await Merchant.findById(merchantId)
       .select('businessName email phone verified featured rating reviews profileCompleteness documentsCompleteness createdAt verifiedDate')
       .lean();
@@ -119,7 +123,7 @@ exports.getPerformanceAnalytics = async (req, res) => {
       ? ((recentReviews - previousPeriodReviews) / previousPeriodReviews * 100).toFixed(1)
       : recentReviews > 0 ? '100' : '0';
 
-    // Get products data (only if Product model exists)
+    // Get products data
     let productsData = null;
     try {
       const [totalProducts, activeProducts, recentProducts, previousProducts] = await Promise.all([
@@ -150,12 +154,9 @@ exports.getPerformanceAnalytics = async (req, res) => {
       console.log('Product model not available:', error.message);
     }
 
-    // Get orders data (only if Order model exists)
+    // Get orders data
     let ordersData = null;
     try {
-      const merchantProducts = await Product.find({ merchant: merchantId }).select('_id');
-      const productIds = merchantProducts.map(p => p._id);
-
       const [totalOrders, recentOrders, previousOrders] = await Promise.all([
         Order.countDocuments({ 'items.merchant': merchantId }),
         Order.countDocuments({
@@ -257,7 +258,7 @@ exports.getPerformanceAnalytics = async (req, res) => {
 };
 
 /**
- * @desc    Get merchant recent activity (REAL DATA ONLY)
+ * @desc    Get merchant recent activity
  * @route   GET /api/merchants/dashboard/activity
  * @access  Private/Merchant
  */
@@ -294,7 +295,7 @@ exports.getRecentActivity = async (req, res) => {
       });
     });
 
-    // Get recent products (if available)
+    // Get recent products
     try {
       const recentProducts = await Product.find({ merchant: merchantId })
         .sort({ createdAt: -1 })
@@ -318,7 +319,7 @@ exports.getRecentActivity = async (req, res) => {
       console.log('No products found or Product model unavailable');
     }
 
-    // Get recent orders (if available)
+    // Get recent orders
     try {
       const recentOrders = await Order.find({ 'items.merchant': merchantId })
         .sort({ createdAt: -1 })
@@ -364,7 +365,7 @@ exports.getRecentActivity = async (req, res) => {
 };
 
 /**
- * @desc    Get merchant notifications (REAL DATA ONLY)
+ * @desc    Get merchant notifications
  * @route   GET /api/merchants/dashboard/notifications
  * @access  Private/Merchant
  */
@@ -438,7 +439,7 @@ exports.getNotifications = async (req, res) => {
       });
     }
 
-    // Recent review notifications (last 7 days)
+    // Recent review notifications
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -507,7 +508,6 @@ exports.getMerchantReviews = async (req, res) => {
 
     const query = { merchant: merchantId };
     
-    // Filter by rating if provided
     if (rating && rating !== 'all') {
       query.rating = parseInt(rating);
     }
@@ -515,7 +515,6 @@ exports.getMerchantReviews = async (req, res) => {
     const sort = {};
     sort[sortBy] = order === 'desc' ? -1 : 1;
 
-    // Get reviews with pagination
     const reviews = await Review.find(query)
       .populate('user', 'firstName lastName profilePicture')
       .sort(sort)
@@ -525,27 +524,23 @@ exports.getMerchantReviews = async (req, res) => {
 
     const totalReviews = await Review.countDocuments(query);
 
-    // Calculate rating distribution
     const ratingDistribution = await Review.aggregate([
       { $match: { merchant: merchantId } },
       { $group: { _id: '$rating', count: { $sum: 1 } } },
       { $sort: { _id: -1 } }
     ]);
 
-    // Format rating distribution
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     ratingDistribution.forEach(item => {
       distribution[item._id] = item.count;
     });
 
-    // Calculate average rating
     const avgResult = await Review.aggregate([
       { $match: { merchant: merchantId } },
       { $group: { _id: null, avgRating: { $avg: '$rating' } } }
     ]);
     const averageRating = avgResult[0]?.avgRating || 0;
 
-    // Format reviews
     const formattedReviews = reviews.map(review => ({
       id: review._id,
       rating: review.rating,
@@ -656,7 +651,7 @@ exports.getQuickActions = async (req, res) => {
   }
 };
 
-// Helper function to calculate time ago
+// Helper: time ago
 function getTimeAgo(date) {
   const now = new Date();
   const diffMs = now - new Date(date);
