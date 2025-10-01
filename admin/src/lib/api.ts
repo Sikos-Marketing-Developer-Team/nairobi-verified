@@ -203,7 +203,7 @@ export const adminAPI = {
   updateMerchantStatus: (merchantIdOrIds: string | string[], isActive: boolean) => {
     const endpoint = Array.isArray(merchantIdOrIds) 
       ? '/admin/dashboard/merchants/bulk-status' 
-      : `/admin/merchants/${merchantIdOrIds}/status`;
+      : `/admin/dashboard/merchants/${merchantIdOrIds}/status`;
     return api.put(endpoint, { isActive, merchantIds: Array.isArray(merchantIdOrIds) ? merchantIdOrIds : undefined });
   },
   createMerchant: (merchantData: any) => api.post('/admin/dashboard/merchants', merchantData),
