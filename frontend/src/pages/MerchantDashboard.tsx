@@ -29,7 +29,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { merchantsAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Skeleton } from '@/components'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Default empty merchant structure
 const defaultMerchant = {
@@ -740,7 +740,7 @@ const ContactSocialTab = ({ merchant, setMerchant }: { merchant: any; setMerchan
                   type="url"
                   value={socialLinks.twitter || ''}
                   onChange={(e) => updateSocialLinks('twitter', e.target.value)}
-                 ече
+                
 
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="https://twitter.com/yourbusiness"
@@ -773,7 +773,7 @@ const ContactSocialTab = ({ merchant, setMerchant }: { merchant: any; setMerchan
 // Business Hours Tab Component with null checks
 const BusinessHoursTab = ({ merchant, setMerchant }: { merchant: any; setMerchant: any }) => {
   const days = [
-    'monday', 'tK, 'tuesday', 'wednesday', 'thursday', 
+    'monday','tuesday', 'wednesday', 'thursday', 
     'friday', 'saturday', 'sunday'
   ];
 
@@ -947,8 +947,7 @@ const GalleryTab = ({ merchant, setMerchant }: { merchant: any; setMerchant: any
               {logo ? (
                 <img
                   src={logo}
-                  alt="Business logoगे
-
+                  alt="Business logo"
                   className="w-full h-full object-cover"
                 />
               ) : (
