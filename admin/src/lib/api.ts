@@ -202,7 +202,7 @@ export const adminAPI = {
   rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason }),
   updateMerchantStatus: (merchantIdOrIds: string | string[], isActive: boolean) => {
     const endpoint = Array.isArray(merchantIdOrIds) 
-      ? '/admin/merchants/bulk-status' 
+      ? '/admin/dashboard/merchants/bulk-status' 
       : `/admin/merchants/${merchantIdOrIds}/status`;
     return api.put(endpoint, { isActive, merchantIds: Array.isArray(merchantIdOrIds) ? merchantIdOrIds : undefined });
   },
