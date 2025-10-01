@@ -21,6 +21,7 @@ const {
   exportData,
   getSettings,
   updateSettings,
+  bulkUpdateMerchantStatus,
   
 } = require('../controllers/adminDashboard');
 const { protectAdmin, checkPermission } = require('../middleware/adminAuth');
@@ -43,6 +44,7 @@ router.get('/export/:type', exportData);
 router.get('/merchants', checkPermission('merchants.read'), getMerchants);
 router.post('/merchants', checkPermission('merchants.write'), createMerchant);
 router.put('/merchants/:id/status', checkPermission('merchants.approve'), updateMerchantStatus);
+router.put('/merchants/bulk-status', checkPermission('merchants.approve'), bulkUpdateMerchantStatus);
 
 // Document management routes
 router.get('/merchants/:id/documents', checkPermission('merchants.read'), getMerchantDocuments);

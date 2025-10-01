@@ -735,6 +735,69 @@ const bulkVerifyMerchants = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Bulk update merchant activation status
+// @route   PUT /api/admin/dashboard/merchants/bulk-status
+// @access  Private (Admin)
+const bulkUpdateMerchantStatus = asyncHandler(async (req, res) => {
+  try {
+    const { merchantIds, isActive } = req.body;
+
+    if (!merchantIds || !Array.isArray(merchantIds) || merchantIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an array of merchant IDs'
+      });
+    }
+
+    if (isActive === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please specify the activation status (true/false)'
+      });
+    }
+
+    const updateData = {
+      isActive: Boolean(isActive),
+      activatedDate: isActive ? new Date() : null,
+      deactivatedDate: !isActive ? new Date() : null
+    };
+
+    const result = await Merchant.updateMany(
+      { _id: { $in: merchantIds } },
+      updateData,
+      { runValidators: true }
+    );
+
+    const updatedMerchants = await Merchant.find({ _id: { $in: merchantIds } })
+      .select('businessName email isActive activatedDate deactivatedDate');
+
+    if (req.admin && req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: `bulk_merchant_${isActive ? 'activate' : 'deactivate'}`,
+            details: `${isActive ? 'Activated' : 'Deactivated'} ${result.modifiedCount} merchants`,
+            timestamp: new Date()
+          }
+        }
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully ${isActive ? 'activated' : 'deactivated'} ${result.modifiedCount} merchants`,
+      modifiedCount: result.modifiedCount,
+      merchants: updatedMerchants
+    });
+  } catch (error) {
+    console.error('Bulk update merchant status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process bulk status update'
+    });
+  }
+});
+
 // @desc    Create merchant
 // @route   POST /api/admin/dashboard/merchants
 // @access  Private (Admin)
@@ -1847,6 +1910,7 @@ module.exports = {
   getMerchantDocuments,
   viewMerchantDocument,
   bulkVerifyMerchants,
+  bulkUpdateMerchantStatus,
   createMerchant,
   updateMerchantStatus,
   getUsers,
