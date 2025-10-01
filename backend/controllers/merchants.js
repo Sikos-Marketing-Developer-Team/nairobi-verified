@@ -307,21 +307,13 @@ exports.updateMerchant = async (req, res) => {
       additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
     };
 
-    const requiredDocsCount = [
-      documentAnalysis.businessRegistration,
-      documentAnalysis.idDocument,
-      documentAnalysis.utilityBill
-    ].filter(Boolean).length;
+    const updatedMerchant = await Merchant.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    ).lean();
 
-    const responseData = {
-      ...merchant,
-      documentStatus: {
-        ...documentAnalysis,
-        completionPercentage: Math.round((requiredDocsCount / 3) * 100),
-        canBeVerified: requiredDocsCount === 3 && !merchant.verified,
-        requiresDocuments: requiredDocsCount < 3
-      }
-    };
+    console.log('Merchant updated successfully:', updatedMerchant._id);
 
     res.status(200).json({ success: true, data: responseData });
   } catch (error) {

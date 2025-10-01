@@ -76,6 +76,14 @@ const Navbar = () => {
     return user?.name || user?.email?.split('@')[0] || 'User';
   };
 
+  // Function to determine dashboard URL based on user role
+  const getDashboardUrl = () => {
+    if (user?.role === 'merchant') {
+      return '/merchant/dashboard';
+    }
+    return '/dashboard';
+  };
+
   return (
   <nav 
   ref={navbarRef}
@@ -151,7 +159,7 @@ const Navbar = () => {
             {/* Dropdown Menu */}
             <div className="absolute right-0 mt-2 w-48 rounded-[16px] bg-white shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-100">
               <Link 
-                to="/dashboard"
+                to={getDashboardUrl()}
                 className="block px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
                 title="My Dashboard"
               >
@@ -456,7 +464,7 @@ const Navbar = () => {
     {/* Dashboard Link for Authenticated Users in Mobile Menu */}
     {isAuthenticated && (
       <Link 
-        to="/dashboard"
+        to={getDashboardUrl()}
         onClick={() => setIsMenuOpen(false)}
         className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
         title="My Dashboard"
