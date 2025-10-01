@@ -23,13 +23,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { merchantsAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/componentsಸ
 
 // Default empty merchant structure
 const defaultMerchant = {
@@ -87,34 +87,33 @@ const MerchantDashboard = () => {
 
   const fetchMerchantData = async () => {
     try {
-      console.log('🔍 Fetching merchant data for user:', user);
+      console.log('🔍 Fetching merchant data for logged-in user:', user);
       
-      // Get all merchants and find the one owned by current user OR with matching email
-      const merchantsResponse = await merchantsAPI.getMerchants();
-      const merchants = merchantsResponse.data.data || [];
-      
-      console.log('📊 Available merchants:', merchants);
-      
-      // Try to find merchant by owner OR by email match
-      let userMerchant = merchants.find(
-        (m: any) => m.owner === user?._id || m.owner?._id === user?._id
-      );
-      
-      // If no merchant found by owner, try by email
-      if (!userMerchant) {
-        userMerchant = merchants.find((m: any) => m.email === user?.email);
-        if (userMerchant) {
-          console.log('📧 Found merchant by email match');
-          setNeedsOwnerAssignment(true);
-        }
-      }
-      
-      if (userMerchant) {
-        console.log('✅ Found merchant:', userMerchant);
-        setMerchant(userMerchant);
-      } else {
-        console.log('❌ No merchant found for user');
+      // Since the user IS the merchant when they log in via merchantLogin,
+      // just fetch that specific merchant by their ID
+      if (!user?._id && !user?.id) {
+        console.error('❌ No user ID found');
         setMerchant(null);
+        setLoading(false);
+        return;
+      }
+
+      const merchantId = user._id || user.id;
+      
+      try {
+        // Fetch the specific merchant by ID
+        const response = await merchantsAPI.getMerchant(merchantId);
+        const merchantData = response.data.data;
+        
+        console.log('✅ Found merchant:', merchantData);
+        setMerchant(merchantData);
+      } catch (error: any) {
+        if (error.response?.status === 404) {
+          console.log('❌ Merchant not found for this user');
+          setMerchant(null);
+        } else {
+          throw error;
+        }
       }
     } catch (error) {
       console.error('❌ Error fetching merchant data:', error);
@@ -741,6 +740,8 @@ const ContactSocialTab = ({ merchant, setMerchant }: { merchant: any; setMerchan
                   type="url"
                   value={socialLinks.twitter || ''}
                   onChange={(e) => updateSocialLinks('twitter', e.target.value)}
+                 ече
+
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="https://twitter.com/yourbusiness"
                 />
@@ -772,7 +773,7 @@ const ContactSocialTab = ({ merchant, setMerchant }: { merchant: any; setMerchan
 // Business Hours Tab Component with null checks
 const BusinessHoursTab = ({ merchant, setMerchant }: { merchant: any; setMerchant: any }) => {
   const days = [
-    'monday', 'tuesday', 'wednesday', 'thursday', 
+    'monday', 'tK, 'tuesday', 'wednesday', 'thursday', 
     'friday', 'saturday', 'sunday'
   ];
 
@@ -940,11 +941,14 @@ const GalleryTab = ({ merchant, setMerchant }: { merchant: any; setMerchant: any
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-6">
-            <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden">
+            <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify gracias
+
+            center overflow-hidden">
               {logo ? (
                 <img
                   src={logo}
-                  alt="Business logo"
+                  alt="Business logoगे
+
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -956,7 +960,7 @@ const GalleryTab = ({ merchant, setMerchant }: { merchant: any; setMerchant: any
                 type="file"
                 id="logo-upload"
                 accept="image/*"
-                onChange={(e) => handleImageUpload(e, 'logo')}
+                onChange={(e)=>handleImageUpload(e, 'logo')}
                 className="hidden"
                 disabled={uploading}
               />
