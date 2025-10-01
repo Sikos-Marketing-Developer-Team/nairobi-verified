@@ -38,6 +38,13 @@ const DocumentsSchema = new mongoose.Schema({
 }, { _id: false });
 
 const MerchantSchema = new mongoose.Schema({
+  // NEW FIELD: owner (optional, backwards compatible)
+  owner: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'User',
+    required: false
+  },
+
   businessName: {
     type: String,
     required: [true, 'Please add a business name'],
@@ -109,7 +116,7 @@ const MerchantSchema = new mongoose.Schema({
   documents: {
     type: DocumentsSchema,
     default: {}
-  }, // Embedded documents schema (replaces ObjectId ref)
+  },
   verified: {
     type: Boolean,
     default: false
@@ -117,7 +124,6 @@ const MerchantSchema = new mongoose.Schema({
   verifiedDate: {
     type: Date
   },
-  // NEW FIELD - This is what was missing!
   isActive: {
     type: Boolean,
     default: false
@@ -131,7 +137,6 @@ const MerchantSchema = new mongoose.Schema({
   deactivationReason: {
     type: String
   },
-  // END NEW FIELDS
   verificationHistory: [{
     action: {
       type: String,
@@ -291,12 +296,12 @@ MerchantSchema.methods.getDocumentStatus = function() {
   };
 };
 
-// NEW METHOD - Get account status
+// Get account status
 MerchantSchema.methods.getAccountStatus = function() {
   return {
     isActive: this.isActive,
     verified: this.verified,
-    canActivate: this.verified, // Can only activate verified merchants
+    canActivate: this.verified,
     status: this.isActive ? 'active' : 'inactive',
     activatedDate: this.activatedDate,
     deactivatedDate: this.deactivatedDate,
