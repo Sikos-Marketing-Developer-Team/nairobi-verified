@@ -282,24 +282,67 @@ exports.createMerchant = async (req, res) => {
 // @access  Private/Merchant
 exports.updateMerchant = async (req, res) => {
   try {
-    const requesterId = getUserIdFromReq(req);
-    if (!requesterId || String(req.params.id) !== requesterId) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({ success: false, error: 'Not authorized to update this merchant' });
-    }
-
-    const updateFields = {};
-    // pick allowed fields from req.body to avoid overwriting sensitive fields
-    const allowed = ['businessName','email','phone','businessType','description','yearEstablished','website','address','location','landmark','businessHours','logo','bannerImage'];
-    allowed.forEach(key => {
-      if (req.body[key] !== undefined) updateFields[key] = req.body[key];
+    console.log('🔧 updateMerchant called:', {
+      merchantIdFromUrl: req.params.id,
+      userId: req.user?._id,
+      userEmail: req.user?.email,
+      isMerchant: !!req.user?.businessName
     });
 
-    const merchant = await Merchant.findByIdAndUpdate(req.params.id, updateFields, { new: true, runValidators: true }).lean();
+    // CRITICAL FIX: When a merchant logs in, req.user IS the merchant
+    // So we need to check if the logged-in merchant's ID matches the ID being updated
+    const requesterId = getUserIdFromReq(req);
+    const merchantIdToUpdate = String(req.params.id);
+    
+    console.log('🔐 Authorization check:', {
+      requesterId,
+      merchantIdToUpdate,
+      matches: requesterId === merchantIdToUpdate
+    });
+
+    // Authorization: merchant can only update their own profile
+    if (!requesterId || requesterId !== merchantIdToUpdate) {
+      console.error('❌ Authorization failed:', {
+        requesterId,
+        merchantIdToUpdate,
+        message: 'Merchant can only update their own profile'
+      });
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ 
+        success: false, 
+        error: 'Not authorized to update this merchant' 
+      });
+    }
+
+    // Pick only allowed fields from req.body to avoid overwriting sensitive fields
+    const updateFields = {};
+    const allowed = [
+      'businessName', 'email', 'phone', 'businessType', 'description', 
+      'yearEstablished', 'website', 'address', 'location', 'landmark', 
+      'businessHours', 'logo', 'bannerImage', 'gallery', 'socialLinks',
+      'priceRange', 'latitude', 'longitude', 'seoTitle', 'seoDescription',
+      'googleBusinessUrl'
+    ];
+    
+    allowed.forEach(key => {
+      if (req.body[key] !== undefined) {
+        updateFields[key] = req.body[key];
+      }
+    });
+
+    console.log('📝 Updating fields:', Object.keys(updateFields));
+
+    const merchant = await Merchant.findByIdAndUpdate(
+      merchantIdToUpdate, 
+      updateFields, 
+      { new: true, runValidators: true }
+    ).lean();
 
     if (!merchant) {
+      console.error('❌ Merchant not found:', merchantIdToUpdate);
       return res.status(404).json({ success: false, error: 'Merchant not found' });
     }
 
+    // Add document analysis to response
     const documentAnalysis = {
       businessRegistration: !!(merchant.documents?.businessRegistration?.path),
       idDocument: !!(merchant.documents?.idDocument?.path),
@@ -307,20 +350,31 @@ exports.updateMerchant = async (req, res) => {
       additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
     };
 
-    const updatedMerchant = await Merchant.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    ).lean();
+    const requiredDocsCount = [
+      documentAnalysis.businessRegistration,
+      documentAnalysis.idDocument,
+      documentAnalysis.utilityBill
+    ].filter(Boolean).length;
 
-    console.log('Merchant updated successfully:', updatedMerchant._id);
+    const responseData = {
+      ...merchant,
+      documentStatus: {
+        ...documentAnalysis,
+        completionPercentage: Math.round((requiredDocsCount / 3) * 100),
+        canBeVerified: requiredDocsCount === 3 && !merchant.verified,
+        requiresDocuments: requiredDocsCount < 3
+      }
+    };
+
+    console.log('✅ Merchant updated successfully:', merchant._id);
 
     res.status(200).json({ success: true, data: responseData });
   } catch (error) {
-    console.error('updateMerchant error:', error);
+    console.error('❌ updateMerchant error:', error);
     res.status(400).json({ success: false, error: error.message });
   }
 };
+
 
 // @desc    Delete merchant with document cleanup
 // @route   DELETE /api/merchants/:id
