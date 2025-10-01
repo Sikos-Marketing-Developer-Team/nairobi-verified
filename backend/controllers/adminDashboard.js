@@ -33,7 +33,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       pendingMerchants,
       activeProducts,
       totalOrders,
-      // NEW: Document verification statistics
       merchantsWithDocuments,
       merchantsPendingDocuments,
       documentsAwaitingReview
@@ -45,8 +44,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       Merchant.countDocuments({ verified: true }),
       Merchant.countDocuments({ verified: false }),
       Product.countDocuments({ isActive: true }),
-      Promise.resolve(0), // Placeholder for orders
-      // NEW: Document verification counts
+      Promise.resolve(0),
       Merchant.countDocuments({
         $or: [
           { 'documents.businessRegistration': { $exists: true, $ne: '' } },
@@ -79,7 +77,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       })
     ]);
 
-    // Get active flash sales
     let activeFlashSales = 0;
     try {
       activeFlashSales = await FlashSale.countDocuments({ 
@@ -90,7 +87,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       console.log('Flash sales model not available yet');
     }
 
-    // Get recent activity (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -101,7 +97,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       merchantsThisMonth,
       usersThisMonth,
       reviewsThisMonth,
-      // NEW: Recent merchants with document info
       merchantsNeedingVerification
     ] = await Promise.all([
       Merchant.find()
@@ -124,7 +119,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         createdAt: { $gte: thirtyDaysAgo } 
       }),
       Review.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
-      // NEW: Merchants needing verification
       Merchant.find({
         verified: false,
         $and: [
@@ -138,7 +132,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         .select('businessName email createdAt documents businessType')
     ]);
 
-    // Calculate growth percentages
     const previousPeriodStart = new Date();
     previousPeriodStart.setDate(previousPeriodStart.getDate() - 60);
     previousPeriodStart.setDate(previousPeriodStart.getDate() + 30);
@@ -169,7 +162,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       })
     ]);
 
-    // Calculate growth rates
     const merchantGrowth = previousMerchants > 0 
       ? ((merchantsThisMonth - previousMerchants) / previousMerchants * 100).toFixed(1)
       : merchantsThisMonth > 0 ? 100 : 0;
@@ -182,17 +174,14 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       ? ((reviewsThisMonth - previousReviews) / previousReviews * 100).toFixed(1)
       : reviewsThisMonth > 0 ? 100 : 0;
 
-    // Get merchant verification rate
     const verificationRate = totalMerchants > 0 
       ? ((verifiedMerchants / totalMerchants) * 100).toFixed(1)
       : 0;
 
-    // NEW: Document completion rate
     const documentCompletionRate = totalMerchants > 0
       ? ((merchantsWithDocuments / totalMerchants) * 100).toFixed(1)
       : 0;
 
-    // System health metrics
     const systemHealth = {
       database: 'healthy',
       uptime: process.uptime(),
@@ -203,7 +192,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        // Main stats (UPDATED)
         totalMerchants,
         totalUsers,
         totalProducts,
@@ -213,8 +201,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         activeProducts,
         activeFlashSales,
         totalOrders,
-        
-        // NEW: Document verification stats
         verification: {
           merchantsWithDocuments,
           merchantsPendingDocuments,
@@ -222,8 +208,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
           documentCompletionRate: parseFloat(documentCompletionRate),
           merchantsNeedingVerification
         },
-        
-        // Growth metrics
         growth: {
           merchantsThisMonth,
           usersThisMonth,
@@ -232,16 +216,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
           userGrowth: parseFloat(userGrowth),
           reviewGrowth: parseFloat(reviewGrowth)
         },
-        
-        // Performance metrics (UPDATED)
         metrics: {
           verificationRate: parseFloat(verificationRate),
           documentCompletionRate: parseFloat(documentCompletionRate),
           averageRating: totalReviews > 0 ? 4.5 : 0,
           productUploadRate: totalProducts > 0 ? (totalProducts / totalMerchants).toFixed(1) : 0
         },
-        
-        // Recent activity (UPDATED with document info)
         recentActivity: {
           recentMerchants: recentMerchants.map(merchant => ({
             ...merchant.toObject(),
@@ -254,8 +234,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
           recentUsers,
           recentReviews
         },
-        
-        // System status
         systemHealth
       }
     });
@@ -269,7 +247,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   }
 });
 
-
 // @desc    Get all merchants with enhanced document information
 // @route   GET /api/admin/dashboard/merchants
 // @access  Private (Admin)
@@ -280,7 +257,7 @@ const getMerchants = asyncHandler(async (req, res) => {
     verified, 
     businessType, 
     search,
-    documentStatus // NEW: Filter by document status
+    documentStatus
   } = req.query;
 
   const query = {};
@@ -300,7 +277,6 @@ const getMerchants = asyncHandler(async (req, res) => {
     ];
   }
 
-  // NEW: Document status filtering
   if (documentStatus) {
     switch (documentStatus) {
       case 'complete':
@@ -335,10 +311,9 @@ const getMerchants = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .limit(limit * 1)
     .skip((page - 1) * limit)
-    .select('-password') // UPDATED: Include all fields including documents
+    .select('-password')
     .lean();
 
-  // NEW: Enhance merchant data with document analysis
   const enhancedMerchants = merchants.map(merchant => {
     const documentStatus = {
       businessRegistration: !!(merchant.documents?.businessRegistration),
@@ -361,7 +336,6 @@ const getMerchants = asyncHandler(async (req, res) => {
 
   const total = await Merchant.countDocuments(query);
 
-  // NEW: Additional statistics for this query
   const queryStats = await Merchant.aggregate([
     { $match: query },
     {
@@ -412,7 +386,6 @@ const getMerchants = asyncHandler(async (req, res) => {
       total,
       pages: Math.ceil(total / limit)
     },
-    // NEW: Query-specific statistics
     queryStats: queryStats[0] || {
       totalMerchants: 0,
       verifiedMerchants: 0,
@@ -423,8 +396,6 @@ const getMerchants = asyncHandler(async (req, res) => {
   });
 });
 
-
-// NEW: Get merchant documents for review
 // @desc    Get merchant documents for admin review
 // @route   GET /api/admin/dashboard/merchants/:id/documents
 // @access  Private (Admin)
@@ -440,7 +411,6 @@ const getMerchantDocuments = asyncHandler(async (req, res) => {
       });
     }
 
-    // Analyze document completeness
     const documentAnalysis = {
       businessRegistration: {
         submitted: !!(merchant.documents?.businessRegistration),
@@ -520,7 +490,6 @@ const viewMerchantDocument = asyncHandler(async (req, res) => {
       });
     }
 
-    // Validate document type and get document path
     let documentInfo = null;
     let isAdditionalDoc = false;
     let additionalDocIndex = null;
@@ -536,7 +505,6 @@ const viewMerchantDocument = asyncHandler(async (req, res) => {
         documentInfo = merchant.documents?.utilityBill;
         break;
       default:
-        // Check if it's an additional document with format "additionalDocs[index]"
         const additionalMatch = docType.match(/additionalDocs\[(\d+)\]/);
         if (additionalMatch && merchant.documents?.additionalDocs) {
           additionalDocIndex = parseInt(additionalMatch[1]);
@@ -562,11 +530,9 @@ const viewMerchantDocument = asyncHandler(async (req, res) => {
       });
     }
 
-    // Construct full file path
     const uploadsDir = path.join(__dirname, '..', 'uploads');
     const filePath = path.join(uploadsDir, documentInfo.path);
 
-    // Check if file exists
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({
         success: false,
@@ -574,24 +540,18 @@ const viewMerchantDocument = asyncHandler(async (req, res) => {
       });
     }
 
-    // Get file stats
     const stats = fs.statSync(filePath);
     const fileSize = stats.size;
     
-    // Set appropriate headers
     res.setHeader('Content-Type', documentInfo.mimeType || 'application/octet-stream');
     res.setHeader('Content-Length', fileSize);
     res.setHeader('Content-Disposition', `inline; filename="${documentInfo.originalName || docType}"`);
-    
-    // For security, add headers to prevent XSS
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     
-    // Stream the file
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
 
-    // Handle stream errors
     fileStream.on('error', (error) => {
       console.error('File stream error:', error);
       if (!res.headersSent) {
@@ -611,13 +571,12 @@ const viewMerchantDocument = asyncHandler(async (req, res) => {
   }
 });
 
-// NEW: Bulk document verification actions
 // @desc    Process multiple merchant verifications
 // @route   POST /api/admin/dashboard/merchants/bulk-verify
 // @access  Private (Admin)
 const bulkVerifyMerchants = asyncHandler(async (req, res) => {
   try {
-    const { merchantIds, action } = req.body; // action: 'verify' or 'reject'
+    const { merchantIds, action } = req.body;
 
     if (!merchantIds || !Array.isArray(merchantIds) || merchantIds.length === 0) {
       return res.status(400).json({
@@ -642,11 +601,9 @@ const bulkVerifyMerchants = asyncHandler(async (req, res) => {
       updateData
     );
 
-    // Get updated merchants for response
     const updatedMerchants = await Merchant.find({ _id: { $in: merchantIds } })
       .select('businessName email verified verifiedDate');
 
-    // Log admin activity (skip for hardcoded admin)
     if (req.admin && req.admin.id !== 'hardcoded-admin-id') {
       await AdminUser.findByIdAndUpdate(req.admin.id, {
         $push: {
@@ -674,7 +631,9 @@ const bulkVerifyMerchants = asyncHandler(async (req, res) => {
   }
 });
 
-// UPDATED: Enhanced createMerchant function
+// @desc    Create merchant
+// @route   POST /api/admin/dashboard/merchants
+// @access  Private (Admin)
 const createMerchant = asyncHandler(async (req, res) => {
   const {
     businessName,
@@ -686,13 +645,11 @@ const createMerchant = asyncHandler(async (req, res) => {
     location,
     website,
     yearEstablished,
-    autoVerify = false // NEW: Option to auto-verify
+    autoVerify = false
   } = req.body;
 
-  // Generate temporary password
   const tempPassword = crypto.randomBytes(8).toString('hex');
 
-  // Set default business hours
   const defaultBusinessHours = {
     monday: { open: '09:00', close: '18:00', closed: false },
     tuesday: { open: '09:00', close: '18:00', closed: false },
@@ -715,15 +672,14 @@ const createMerchant = asyncHandler(async (req, res) => {
     website,
     yearEstablished,
     businessHours: defaultBusinessHours,
-    verified: autoVerify, // NEW: Auto-verify option
-    verifiedDate: autoVerify ? new Date() : null, // NEW
+    verified: autoVerify,
+    verifiedDate: autoVerify ? new Date() : null,
     createdByAdmin: true,
     createdByAdminId: req.admin.id,
     createdByAdminName: req.admin.firstName + ' ' + req.admin.lastName,
     onboardingStatus: 'credentials_sent'
   });
 
-  // Send email with login credentials
   const emailContent = `
     <h2>Welcome to Nairobi Verified!</h2>
     <p>Your merchant account has been created by our admin team.</p>
@@ -746,7 +702,6 @@ const createMerchant = asyncHandler(async (req, res) => {
       html: emailContent
     });
 
-    // Log admin activity (skip for hardcoded admin)
     if (req.admin.id !== 'hardcoded-admin-id') {
       await AdminUser.findByIdAndUpdate(req.admin.id, {
         $push: {
@@ -769,7 +724,6 @@ const createMerchant = asyncHandler(async (req, res) => {
         businessType: merchant.businessType,
         verified: merchant.verified,
         createdAt: merchant.createdAt,
-        // NEW: Document status info
         documentsRequired: !autoVerify,
         verificationStatus: autoVerify ? 'verified' : 'pending_documents'
       },
@@ -795,9 +749,8 @@ const createMerchant = asyncHandler(async (req, res) => {
   }
 });
 
-
-// FIXED: Update merchant status - THIS WAS THE ISSUE
-// @desc    Update merchant status (activate/verify merchant)
+// FIXED: Update merchant status (activate/verify merchant)
+// @desc    Update merchant status
 // @route   PUT /api/admin/dashboard/merchants/:id/status
 // @access  Private (Admin)
 const updateMerchantStatus = asyncHandler(async (req, res) => {
@@ -811,18 +764,20 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
       body: req.body
     });
 
-    // Build update object
     const updateData = {};
     
-    // Handle verification status
     if (verified !== undefined) {
       updateData.verified = verified;
       updateData.verifiedDate = verified ? new Date() : null;
     }
 
-    // Handle active status (if your schema has isActive field)
     if (active !== undefined) {
       updateData.isActive = active;
+      if (active) {
+        updateData.activatedDate = new Date();
+      } else {
+        updateData.deactivatedDate = new Date();
+      }
     }
 
     console.log('Update data:', updateData);
@@ -843,7 +798,22 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
 
     console.log('Merchant updated successfully:', merchant);
 
-    // Send email notification to merchant
+    if (req.admin && req.admin.id !== 'hardcoded-admin-id') {
+      try {
+        await AdminUser.findByIdAndUpdate(req.admin.id, {
+          $push: {
+            activityLog: {
+              action: 'merchant_status_updated',
+              details: `${verified ? 'Verified' : 'Unverified'} merchant ${merchant.businessName}${active !== undefined ? ` and ${active ? 'activated' : 'deactivated'}` : ''}`,
+              timestamp: new Date()
+            }
+          }
+        });
+      } catch (logError) {
+        console.error('Failed to log admin activity:', logError);
+      }
+    }
+
     try {
       const statusMessage = verified 
         ? 'Your merchant account has been verified and activated!' 
@@ -865,25 +835,6 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
       });
     } catch (emailError) {
       console.error('Email notification failed:', emailError);
-      // Don't fail the request if email fails
-    }
-
-    // Log admin activity (skip for hardcoded admin)
-    if (req.admin && req.admin.id !== 'hardcoded-admin-id') {
-      try {
-        await AdminUser.findByIdAndUpdate(req.admin.id, {
-          $push: {
-            activityLog: {
-              action: 'merchant_status_updated',
-              details: `${verified ? 'Verified' : 'Unverified'} merchant ${merchant.businessName}${active !== undefined ? ` and ${active ? 'activated' : 'deactivated'}` : ''}`,
-              timestamp: new Date()
-            }
-          }
-        });
-      } catch (logError) {
-        console.error('Failed to log admin activity:', logError);
-        // Don't fail the request if logging fails
-      }
     }
 
     res.status(200).json({
@@ -896,6 +847,7 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
         verified: merchant.verified,
         verifiedDate: merchant.verifiedDate,
         isActive: merchant.isActive,
+        activatedDate: merchant.activatedDate,
         updatedAt: merchant.updatedAt
       }
     });
@@ -924,9 +876,8 @@ const getUsers = asyncHandler(async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
-    const query = { role: { $ne: 'admin' } }; // Exclude admin users
+    const query = { role: { $ne: 'admin' } };
     
-    // Search functionality
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -934,19 +885,16 @@ const getUsers = asyncHandler(async (req, res) => {
       ];
     }
 
-    // Filter by role
     if (role && role !== 'all') {
       query.role = role;
     }
 
-    // Filter by status
     if (status === 'active') {
       query.isActive = true;
     } else if (status === 'inactive') {
       query.isActive = false;
     }
 
-    // Sorting
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
@@ -959,7 +907,6 @@ const getUsers = asyncHandler(async (req, res) => {
 
     const total = await User.countDocuments(query);
 
-    // Get user statistics
     const userStats = await User.aggregate([
       { $match: { role: { $ne: 'admin' } } },
       {
@@ -998,7 +945,6 @@ const getUsers = asyncHandler(async (req, res) => {
 const createUser = asyncHandler(async (req, res) => {
   const { name, email, phone, role = 'user' } = req.body;
 
-  // Check if user already exists
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     return res.status(400).json({
@@ -1007,7 +953,6 @@ const createUser = asyncHandler(async (req, res) => {
     });
   }
 
-  // Generate temporary password
   const tempPassword = crypto.randomBytes(8).toString('hex');
 
   const user = await User.create({
@@ -1021,7 +966,6 @@ const createUser = asyncHandler(async (req, res) => {
     createdByAdminId: req.admin.id
   });
 
-  // Send welcome email (optional)
   try {
     const emailContent = `
       <h2>Welcome to Nairobi Verified!</h2>
@@ -1163,7 +1107,6 @@ const createProduct = asyncHandler(async (req, res) => {
       isActive = true
     } = req.body;
 
-    // Validation
     if (!name || !description || !price || !category || !merchant) {
       return res.status(400).json({
         success: false,
@@ -1171,8 +1114,6 @@ const createProduct = asyncHandler(async (req, res) => {
       });
     }
 
-    // Verify merchant exists
-    const Merchant = require('../models/Merchant');
     const existingMerchant = await Merchant.findById(merchant);
     if (!existingMerchant) {
       return res.status(400).json({
@@ -1181,7 +1122,6 @@ const createProduct = asyncHandler(async (req, res) => {
       });
     }
 
-    // Create new product
     const newProduct = new Product({
       name: name.trim(),
       description: description.trim(),
@@ -1195,7 +1135,7 @@ const createProduct = asyncHandler(async (req, res) => {
       specifications: specifications || {},
       isActive: Boolean(isActive),
       inStock: parseInt(stock) > 0,
-      images: [], // Will be added later through separate image upload
+      images: [],
       rating: 0,
       totalReviews: 0,
       totalSales: 0
@@ -1203,7 +1143,6 @@ const createProduct = asyncHandler(async (req, res) => {
 
     await newProduct.save();
 
-    // Populate merchant details for response
     await newProduct.populate('merchant', 'businessName verified');
 
     res.status(201).json({
@@ -1268,7 +1207,6 @@ const deleteReview = asyncHandler(async (req, res) => {
 
   await review.remove();
 
-  // Log admin activity (skip for hardcoded admin)
   if (req.admin.id !== 'hardcoded-admin-id') {
     await AdminUser.findByIdAndUpdate(req.admin.id, {
       $push: {
@@ -1292,11 +1230,9 @@ const deleteReview = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const getSystemStatus = asyncHandler(async (req, res) => {
   try {
-    // Database connection status
     const mongoose = require('mongoose');
     const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
     
-    // Memory usage
     const memUsage = process.memoryUsage();
     const memUsageFormatted = {
       rss: (memUsage.rss / 1024 / 1024).toFixed(2) + ' MB',
@@ -1305,7 +1241,6 @@ const getSystemStatus = asyncHandler(async (req, res) => {
       external: (memUsage.external / 1024 / 1024).toFixed(2) + ' MB'
     };
 
-    // Server uptime
     const uptimeSeconds = process.uptime();
     const uptimeFormatted = {
       days: Math.floor(uptimeSeconds / 86400),
@@ -1314,7 +1249,6 @@ const getSystemStatus = asyncHandler(async (req, res) => {
       seconds: Math.floor(uptimeSeconds % 60)
     };
 
-    // Recent activity counts
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [
       newMerchantsToday,
@@ -1328,7 +1262,6 @@ const getSystemStatus = asyncHandler(async (req, res) => {
       Product.countDocuments({ createdAt: { $gte: last24Hours } })
     ]);
 
-    // Storage metrics (approximate)
     const [
       totalMerchants,
       totalUsers,
@@ -1360,8 +1293,8 @@ const getSystemStatus = asyncHandler(async (req, res) => {
       },
       performance: {
         memoryUsage: memUsageFormatted,
-        cpuUsage: 'N/A', // Would need additional monitoring
-        responseTime: 'Good' // Based on request processing
+        cpuUsage: 'N/A',
+        responseTime: 'Good'
       },
       activity: {
         last24Hours: {
@@ -1457,7 +1390,6 @@ const exportData = asyncHandler(async (req, res) => {
         totalRecords: data.length
       });
     } else {
-      // CSV format
       const createCsvContent = (data) => {
         if (data.length === 0) return 'No data available';
         
@@ -1492,7 +1424,6 @@ const exportData = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const getSettings = asyncHandler(async (req, res) => {
   try {
-    // For now, return default settings - later can store in database
     const settings = {
       general: {
         siteName: 'Nairobi Verified',
@@ -1516,7 +1447,7 @@ const getSettings = asyncHandler(async (req, res) => {
       },
       security: {
         twoFactorAuth: false,
-        sessionTimeout: 24, // hours
+        sessionTimeout: 24,
         maxLoginAttempts: 5,
         requireStrongPasswords: true
       },
@@ -1547,9 +1478,6 @@ const getSettings = asyncHandler(async (req, res) => {
 const updateSettings = asyncHandler(async (req, res) => {
   try {
     const { category, settings } = req.body;
-    
-    // For now, just return success - later implement database storage
-    // This would typically update a Settings model in the database
     
     res.status(200).json({
       success: true,
@@ -1625,7 +1553,6 @@ const getAnalytics = asyncHandler(async (req, res) => {
         };
     }
 
-    // Registration trends
     const [merchantRegistrations, userRegistrations] = await Promise.all([
       Merchant.aggregate([
         { $match: { createdAt: { $gte: startDate } } },
@@ -1639,19 +1566,16 @@ const getAnalytics = asyncHandler(async (req, res) => {
       ])
     ]);
 
-    // Business type distribution
     const businessTypeDistribution = await Merchant.aggregate([
       { $group: { _id: '$businessType', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
 
-    // Geographic distribution
     const geographicDistribution = await Merchant.aggregate([
       { $group: { _id: '$location', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
 
-    // Verification status analytics
     const verificationAnalytics = await Merchant.aggregate([
       {
         $group: {
@@ -1664,7 +1588,6 @@ const getAnalytics = asyncHandler(async (req, res) => {
       }
     ]);
 
-    // Review analytics
     const reviewAnalytics = await Review.aggregate([
       { $match: { createdAt: { $gte: startDate } } },
       {
@@ -1679,20 +1602,17 @@ const getAnalytics = asyncHandler(async (req, res) => {
       }
     ]);
 
-    // Rating distribution breakdown
     const ratingDistribution = await Review.aggregate([
       { $group: { _id: '$rating', count: { $sum: 1 } } },
       { $sort: { '_id': 1 } }
     ]);
 
-    // Top performing merchants
     const topMerchants = await Merchant.find({ rating: { $exists: true } })
       .sort({ rating: -1, reviews: -1 })
       .limit(10)
       .select('businessName rating reviews businessType verified createdAt')
       .lean();
 
-    // Recent activity
     const recentActivity = await Promise.all([
       Merchant.find().sort({ createdAt: -1 }).limit(5)
         .select('businessName businessType verified createdAt'),
@@ -1704,21 +1624,18 @@ const getAnalytics = asyncHandler(async (req, res) => {
         .select('rating comment createdAt')
     ]);
 
-    // Growth metrics
     const previousPeriodStart = new Date();
     const periodDays = Math.floor((new Date() - startDate) / (1000 * 60 * 60 * 24));
     previousPeriodStart.setDate(previousPeriodStart.getDate() - (periodDays * 2));
     previousPeriodStart.setDate(previousPeriodStart.getDate() + periodDays);
 
     const [currentPeriodMetrics, previousPeriodMetrics] = await Promise.all([
-      // Current period
       Promise.all([
         Merchant.countDocuments({ createdAt: { $gte: startDate } }),
         User.countDocuments({ createdAt: { $gte: startDate }, role: { $ne: 'admin' } }),
         Review.countDocuments({ createdAt: { $gte: startDate } }),
         Product.countDocuments({ createdAt: { $gte: startDate } })
       ]),
-      // Previous period
       Promise.all([
         Merchant.countDocuments({ 
           createdAt: { $gte: previousPeriodStart, $lt: startDate } 
@@ -1736,7 +1653,6 @@ const getAnalytics = asyncHandler(async (req, res) => {
       ])
     ]);
 
-    // Calculate growth percentages
     const calculateGrowth = (current, previous) => {
       if (previous === 0) return current > 0 ? 100 : 0;
       return ((current - previous) / previous * 100).toFixed(1);
@@ -1811,21 +1727,18 @@ const getRecentActivity = asyncHandler(async (req, res) => {
     const { limit = 10 } = req.query;
     const recentActivities = [];
 
-    // Get recent user registrations
     const recentUsers = await User.find({ role: { $ne: 'admin' } })
       .select('name email createdAt role')
       .sort({ createdAt: -1 })
       .limit(Math.floor(limit / 4))
       .lean();
 
-    // Get recent merchant registrations
     const recentMerchants = await Merchant.find()
       .select('businessName email createdAt verified')
       .sort({ createdAt: -1 })
       .limit(Math.floor(limit / 4))
       .lean();
 
-    // Get recent products
     const recentProducts = await Product.find()
       .select('name price merchant createdAt')
       .populate('merchant', 'businessName')
@@ -1833,7 +1746,6 @@ const getRecentActivity = asyncHandler(async (req, res) => {
       .limit(Math.floor(limit / 4))
       .lean();
 
-    // Get recent reviews
     const recentReviews = await Review.find()
       .select('rating comment user merchant createdAt')
       .populate('user', 'name')
@@ -1842,7 +1754,6 @@ const getRecentActivity = asyncHandler(async (req, res) => {
       .limit(Math.floor(limit / 4))
       .lean();
 
-    // Format activities
     recentUsers.forEach(user => {
       recentActivities.push({
         id: `user_${user._id}`,
@@ -1889,7 +1800,6 @@ const getRecentActivity = asyncHandler(async (req, res) => {
       });
     });
 
-    // Sort by timestamp and limit
     const sortedActivities = recentActivities
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(0, parseInt(limit))
