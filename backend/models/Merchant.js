@@ -117,10 +117,25 @@ const MerchantSchema = new mongoose.Schema({
   verifiedDate: {
     type: Date
   },
+  // NEW FIELD - This is what was missing!
+  isActive: {
+    type: Boolean,
+    default: false
+  },
+  activatedDate: {
+    type: Date
+  },
+  deactivatedDate: {
+    type: Date
+  },
+  deactivationReason: {
+    type: String
+  },
+  // END NEW FIELDS
   verificationHistory: [{
     action: {
       type: String,
-      enum: ['submitted', 'under_review', 'approved', 'rejected', 'resubmitted']
+      enum: ['submitted', 'under_review', 'approved', 'rejected', 'resubmitted', 'activated', 'deactivated']
     },
     performedBy: {
       type: mongoose.Schema.ObjectId,
@@ -276,6 +291,19 @@ MerchantSchema.methods.getDocumentStatus = function() {
   };
 };
 
+// NEW METHOD - Get account status
+MerchantSchema.methods.getAccountStatus = function() {
+  return {
+    isActive: this.isActive,
+    verified: this.verified,
+    canActivate: this.verified, // Can only activate verified merchants
+    status: this.isActive ? 'active' : 'inactive',
+    activatedDate: this.activatedDate,
+    deactivatedDate: this.deactivatedDate,
+    deactivationReason: this.deactivationReason
+  };
+};
+
 MerchantSchema.methods.addVerificationHistory = function(action, performedBy, notes, documentsInvolved = []) {
   if (!this.verificationHistory) {
     this.verificationHistory = [];
@@ -352,6 +380,7 @@ MerchantSchema.statics.getDocumentStats = async function() {
           }
         },
         verifiedMerchants: { $sum: { $cond: [{ $eq: ['$verified', true] }, 1, 0] } },
+        activeMerchants: { $sum: { $cond: [{ $eq: ['$isActive', true] }, 1, 0] } },
         pendingReview: {
           $sum: {
             $cond: [
@@ -378,11 +407,14 @@ MerchantSchema.statics.getDocumentStats = async function() {
     withUtilityBill: 0,
     completeDocuments: 0,
     verifiedMerchants: 0,
+    activeMerchants: 0,
     pendingReview: 0
   };
 };
 
 MerchantSchema.index({ verified: 1 });
+MerchantSchema.index({ isActive: 1 });
+MerchantSchema.index({ verified: 1, isActive: 1 });
 MerchantSchema.index({ 'documents.documentsSubmittedAt': 1 });
 MerchantSchema.index({ 'documents.documentReviewStatus': 1 });
 MerchantSchema.index({ onboardingStatus: 1 });
