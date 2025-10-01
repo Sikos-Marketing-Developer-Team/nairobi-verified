@@ -122,7 +122,6 @@ const MerchantsManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'pending' | 'active' | 'inactive' | 'needs_review' | 'featured'>('all');
   const [showMerchantDetails, setShowMerchantDetails] = useState(false);
-
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [selectedMerchants, setSelectedMerchants] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -130,9 +129,8 @@ const MerchantsManagement: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [refreshing, setRefreshing] = useState(false);
 
-   // Add this state for the add merchant modal
+  // Add this state for the add merchant modal
   const [showAddMerchantModal, setShowAddMerchantModal] = useState<boolean>(false);
-
 
   useEffect(() => {
     loadMerchants();
@@ -247,31 +245,12 @@ const MerchantsManagement: React.FC = () => {
           : merchant
       ));
 
-      // Here you would typically make an API call to your backend
-      // Example API call:
-      /*
-      const response = await fetch(`/api/merchants/${merchantId}/verify`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
+      const response = await adminAPI.verifyMerchant(merchantId);
+      if (response.data.success) {
+        toast.success('Merchant verified successfully!');
+      } else {
         throw new Error('Failed to verify merchant');
       }
-
-      const updatedMerchant = await response.json();
-      
-      // Update state with the actual response from backend
-      setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId ? updatedMerchant : merchant
-      ));
-      */
-
-      console.log(`Merchant ${merchantId} verified successfully`);   
-       toast.success('Merchant verified successfully!');
-    
     } catch (error) {
       console.error('Error verifying merchant:', error);
       
@@ -282,7 +261,6 @@ const MerchantsManagement: React.FC = () => {
           : merchant
       ));
       toast.error('Failed to verify merchant. Please try again.');
-    
     }
   };
 
@@ -298,9 +276,12 @@ const MerchantsManagement: React.FC = () => {
           : merchant
       ));
 
-      // API call would go here
-      console.log(`Merchant ${merchantId} status changed to: ${newStatus ? 'active' : 'inactive'}`);
-      
+      const response = await adminAPI.updateMerchantStatus(merchantId, newStatus);
+      if (response.data.success) {
+        toast.success(`Merchant ${newStatus ? 'activated' : 'deactivated'} successfully`);
+      } else {
+        throw new Error('Failed to update merchant status');
+      }
     } catch (error) {
       console.error('Error toggling merchant status:', error);
       
@@ -310,20 +291,9 @@ const MerchantsManagement: React.FC = () => {
           ? { ...merchant, isActive: currentStatus }
           : merchant
       ));
+      toast.error('Failed to update merchant status');
     }
   };
-
-  // const handleToggleStatus = async (merchantId: string, isActive: boolean) => {
-  //   try {
-  //     await adminAPI.updateMerchantStatus(merchantId, !isActive);
-  //     toast.success(`Merchant ${!isActive ? 'activated' : 'deactivated'} successfully`);
-  //     loadMerchants(true);
-  //   } catch (error: any) {
-  //     toast.error('Failed to update merchant status');
-  //   }
-  // };
-
-
 
   const handleBulkAction = async (action: 'verify' | 'activate' | 'deactivate' | 'delete') => {
     if (selectedMerchants.length === 0) {
@@ -338,16 +308,16 @@ const MerchantsManagement: React.FC = () => {
           toast.success(`${selectedMerchants.length} merchants verified successfully`);
           break;
         case 'activate':
-          // Implement bulk activate
-          toast.info('Bulk activate feature coming soon');
+          await adminAPI.updateMerchantStatus(selectedMerchants, true); // Updated to handle bulk
+          toast.success(`${selectedMerchants.length} merchants activated successfully`);
           break;
         case 'deactivate':
-          // Implement bulk deactivate
-          toast.info('Bulk deactivate feature coming soon');
+          await adminAPI.updateMerchantStatus(selectedMerchants, false); // Updated to handle bulk
+          toast.success(`${selectedMerchants.length} merchants deactivated successfully`);
           break;
         case 'delete':
-          // Implement bulk delete
-          toast.info('Bulk delete feature coming soon');
+          await adminAPI.deleteMerchant(selectedMerchants); // Updated to handle bulk
+          toast.success(`${selectedMerchants.length} merchants deleted successfully`);
           break;
       }
       
@@ -359,8 +329,6 @@ const MerchantsManagement: React.FC = () => {
     }
   };
 
-
-
   const handleSelectAll = () => {
     if (selectedMerchants.length === filteredMerchants.length) {
       setSelectedMerchants([]);
@@ -369,59 +337,49 @@ const MerchantsManagement: React.FC = () => {
     }
   };
 
- const getStatusColor = (merchant: Merchant) => {
-  // Check verification status FIRST
-  if (merchant.verified) return 'bg-green-100 text-green-800';
-  // Then check active status
-  if (!merchant.isActive) return 'bg-red-100 text-red-800';
-  // Finally, pending verification but active
-  return 'bg-yellow-100 text-yellow-800';
-};
+  const getStatusColor = (merchant: Merchant) => {
+    if (merchant.verified) return 'bg-green-100 text-green-800';
+    if (!merchant.isActive) return 'bg-red-100 text-red-800';
+    return 'bg-yellow-100 text-yellow-800';
+  };
 
-const getStatusIcon = (merchant: Merchant) => {
-  if (merchant.verified) return <CheckCircle className="w-3 h-3" />;
-  if (!merchant.isActive) return <AlertTriangle className="w-3 h-3" />;
-  return <Clock className="w-3 h-3" />;
-};
+  const getStatusIcon = (merchant: Merchant) => {
+    if (merchant.verified) return <CheckCircle className="w-3 h-3" />;
+    if (!merchant.isActive) return <AlertTriangle className="w-3 h-3" />;
+    return <Clock className="w-3 h-3" />;
+  };
 
-const getStatusText = (merchant: Merchant) => {
-  if (merchant.verified) return 'Verified';
-  if (!merchant.isActive) return 'Inactive';
-  return 'Pending';
-};
+  const getStatusText = (merchant: Merchant) => {
+    if (merchant.verified) return 'Verified';
+    if (!merchant.isActive) return 'Inactive';
+    return 'Pending';
+  };
+
   if (isLoading) {
     return <MerchantsManagementSkeleton />;
   }
 
-    // Add this function to handle adding new merchants
   const handleAddMerchant = async (newMerchantData: Omit<Merchant, '_id' | 'createdAt' | 'updatedAt'>): Promise<void> => {
     try {
-      // Create a complete merchant object
       const merchantToAdd: Merchant = {
         ...newMerchantData,
         _id: `merchant-${Date.now()}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        // Ensure all required fields have values
         verified: newMerchantData.verified ?? false,
         isActive: newMerchantData.isActive ?? true,
         profileCompleteness: newMerchantData.profileCompleteness ?? 60,
         documentsCompleteness: newMerchantData.documentsCompleteness ?? 0,
       };
 
-      // Here you would typically make an API call to your backend
-      // For now, we'll update the local state
-      setMerchants(prev => [merchantToAdd, ...prev]);
-      
-      console.log('Merchant added successfully:', merchantToAdd);
-      
-      // Optional: Show success message
-      // toast.success('Merchant added successfully!');
-      
+      const response = await adminAPI.createMerchant(merchantToAdd); // New API call
+      if (response.data.success) {
+        setMerchants(prev => [response.data.merchant, ...prev]);
+        toast.success('Merchant added successfully!');
+      }
     } catch (error) {
       console.error('Error adding merchant:', error);
-      // Optional: Show error message
-      // toast.error('Failed to add merchant. Please try again.');
+      toast.error('Failed to add merchant. Please try again.');
     }
   };
 
@@ -669,8 +627,7 @@ const getStatusText = (merchant: Merchant) => {
       </div>
 
       {/* Stats Cards */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {stats.map((stat, index) => (
           <div 
             key={stat.name} 
@@ -708,16 +665,15 @@ const getStatusText = (merchant: Merchant) => {
         ))}
       </div>
 
-{/* Add Merchant Button - NOW WITH FUNCTIONALITY */}
+      {/* Add Merchant Button - NOW WITH FUNCTIONALITY */}
       <div className="flex justify-end mr-7">
         <button
-          onClick={() => setShowAddMerchantModal(true)} // Add this onClick handler
+          onClick={() => setShowAddMerchantModal(true)}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-sm shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
         >
           + Add Merchant
         </button>
       </div>
-
 
       {/* Merchants List */}
       <div className="bg-white shadow overflow-hidden sm:rounded-md transition-all duration-300 ease-in-out">
@@ -836,27 +792,26 @@ const getStatusText = (merchant: Merchant) => {
         )}
       </div>
 
-       {/* Add Merchant Modal */}
+      {/* Add Merchant Modal */}
       <AddMerchantModal
         isOpen={showAddMerchantModal}
         onClose={() => setShowAddMerchantModal(false)}
         onAddMerchant={handleAddMerchant}
       />
 
-
       {/* Merchant Details Modal */}
-{showMerchantDetails && selectedMerchant && (
-  <MerchantDetailsModal
-    merchant={selectedMerchant}
-    onClose={() => {
-      setShowMerchantDetails(false);
-      setSelectedMerchant(null);
-      scrollToTop('smooth');
-    }}
-    onVerify={handleVerifyMerchant}
-    onToggleStatus={handleToggleStatus}
-  />
-)}
+      {showMerchantDetails && selectedMerchant && (
+        <MerchantDetailsModal
+          merchant={selectedMerchant}
+          onClose={() => {
+            setShowMerchantDetails(false);
+            setSelectedMerchant(null);
+            scrollToTop('smooth');
+          }}
+          onVerify={handleVerifyMerchant}
+          onToggleStatus={handleToggleStatus}
+        />
+      )}
 
       {/* Documents Modal */}
       {showDocumentsModal && selectedMerchant && (

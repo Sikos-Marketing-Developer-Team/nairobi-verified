@@ -197,10 +197,16 @@ export const adminAPI = {
   getMerchants: (params?: any) => api.get('/admin/dashboard/merchants', { params }),
   getMerchant: (merchantId: string) => api.get(`/admin/merchants/${merchantId}`),
   updateMerchant: (merchantId: string, merchantData: any) => api.put(`/admin/merchants/${merchantId}`, merchantData),
-  deleteMerchant: (merchantId: string) => api.delete(`/admin/merchants/${merchantId}`),
-  verifyMerchant: (merchantId: string) => api.post(`/merchants/${merchantId}/verify`),
+  deleteMerchant: (merchantIds: string[]) => api.delete('/admin/merchants/bulk-delete', { data: { merchantIds } }),
+  verifyMerchant: (merchantId: string) => api.put(`/admin/merchants/${merchantId}/verify`),
   rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason }),
-  updateMerchantStatus: (merchantId: string, isActive: boolean) => api.put(`/admin/dashboard/merchants/${merchantId}/status`, { isActive }),
+  updateMerchantStatus: (merchantIdOrIds: string | string[], isActive: boolean) => {
+    const endpoint = Array.isArray(merchantIdOrIds) 
+      ? '/admin/merchants/bulk-status' 
+      : `/admin/merchants/${merchantIdOrIds}/status`;
+    return api.put(endpoint, { isActive, merchantIds: Array.isArray(merchantIdOrIds) ? merchantIdOrIds : undefined });
+  },
+  createMerchant: (merchantData: any) => api.post('/admin/dashboard/merchants', merchantData),
   
   // Document management
   getMerchantDocuments: (merchantId: string) => api.get(`/admin/dashboard/merchants/${merchantId}/documents`),
