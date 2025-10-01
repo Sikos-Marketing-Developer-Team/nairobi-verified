@@ -247,6 +247,110 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Get recent activity
+// @route   GET /api/admin/dashboard/recent-activity
+// @access  Private (Admin)
+const getRecentActivity = asyncHandler(async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    const recentActivities = [];
+
+    const recentUsers = await User.find({ role: { $ne: 'admin' } })
+      .select('name email createdAt role')
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 4))
+      .lean();
+
+    const recentMerchants = await Merchant.find()
+      .select('businessName email createdAt verified')
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 4))
+      .lean();
+
+    const recentProducts = await Product.find()
+      .select('name price merchant createdAt')
+      .populate('merchant', 'businessName')
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 4))
+      .lean();
+
+    const recentReviews = await Review.find()
+      .select('rating comment user merchant createdAt')
+      .populate('user', 'name')
+      .populate('merchant', 'businessName')
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 4))
+      .lean();
+
+    recentUsers.forEach(user => {
+      recentActivities.push({
+        id: `user_${user._id}`,
+        type: 'user_signup',
+        description: `New ${user.role} "${user.name}" registered`,
+        timestamp: user.createdAt,
+        user: user.name,
+        details: { email: user.email, role: user.role }
+      });
+    });
+
+    recentMerchants.forEach(merchant => {
+      recentActivities.push({
+        id: `merchant_${merchant._id}`,
+        type: merchant.verified ? 'merchant_verified' : 'merchant_registration',
+        description: merchant.verified 
+          ? `Merchant "${merchant.businessName}" was verified`
+          : `New merchant "${merchant.businessName}" submitted application`,
+        timestamp: merchant.createdAt,
+        user: merchant.businessName,
+        details: { email: merchant.email, verified: merchant.verified }
+      });
+    });
+
+    recentProducts.forEach(product => {
+      recentActivities.push({
+        id: `product_${product._id}`,
+        type: 'product_added',
+        description: `New product "${product.name}" added by ${product.merchant?.businessName || 'Unknown'}`,
+        timestamp: product.createdAt,
+        user: product.merchant?.businessName,
+        details: { productName: product.name, price: product.price }
+      });
+    });
+
+    recentReviews.forEach(review => {
+      recentActivities.push({
+        id: `review_${review._id}`,
+        type: 'review_posted',
+        description: `${review.user?.name || 'Anonymous'} left a ${review.rating}★ review for ${review.merchant?.businessName || 'Unknown'}`,
+        timestamp: review.createdAt,
+        user: review.user?.name,
+        details: { rating: review.rating, merchant: review.merchant?.businessName }
+      });
+    });
+
+    const sortedActivities = recentActivities
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, parseInt(limit))
+      .map(activity => ({
+        ...activity,
+        timestamp: formatTimeAgo(activity.timestamp)
+      }));
+
+    res.json({
+      success: true,
+      data: sortedActivities,
+      count: sortedActivities.length
+    });
+
+  } catch (error) {
+    console.error('Get recent activity error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent activity'
+    });
+  }
+});
+
 // @desc    Get all merchants with enhanced document information
 // @route   GET /api/admin/dashboard/merchants
 // @access  Private (Admin)
@@ -749,7 +853,6 @@ const createMerchant = asyncHandler(async (req, res) => {
   }
 });
 
-// FIXED: Update merchant status (activate/verify merchant)
 // @desc    Update merchant status
 // @route   PUT /api/admin/dashboard/merchants/:id/status
 // @access  Private (Admin)
@@ -1718,107 +1821,6 @@ const getAnalytics = asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch analytics data'
-    });
-  }
-});
-
-const getRecentActivity = asyncHandler(async (req, res) => {
-  try {
-    const { limit = 10 } = req.query;
-    const recentActivities = [];
-
-    const recentUsers = await User.find({ role: { $ne: 'admin' } })
-      .select('name email createdAt role')
-      .sort({ createdAt: -1 })
-      .limit(Math.floor(limit / 4))
-      .lean();
-
-    const recentMerchants = await Merchant.find()
-      .select('businessName email createdAt verified')
-      .sort({ createdAt: -1 })
-      .limit(Math.floor(limit / 4))
-      .lean();
-
-    const recentProducts = await Product.find()
-      .select('name price merchant createdAt')
-      .populate('merchant', 'businessName')
-      .sort({ createdAt: -1 })
-      .limit(Math.floor(limit / 4))
-      .lean();
-
-    const recentReviews = await Review.find()
-      .select('rating comment user merchant createdAt')
-      .populate('user', 'name')
-      .populate('merchant', 'businessName')
-      .sort({ createdAt: -1 })
-      .limit(Math.floor(limit / 4))
-      .lean();
-
-    recentUsers.forEach(user => {
-      recentActivities.push({
-        id: `user_${user._id}`,
-        type: 'user_signup',
-        description: `New ${user.role} "${user.name}" registered`,
-        timestamp: user.createdAt,
-        user: user.name,
-        details: { email: user.email, role: user.role }
-      });
-    });
-
-    recentMerchants.forEach(merchant => {
-      recentActivities.push({
-        id: `merchant_${merchant._id}`,
-        type: merchant.verified ? 'merchant_verified' : 'merchant_registration',
-        description: merchant.verified 
-          ? `Merchant "${merchant.businessName}" was verified`
-          : `New merchant "${merchant.businessName}" submitted application`,
-        timestamp: merchant.createdAt,
-        user: merchant.businessName,
-        details: { email: merchant.email, verified: merchant.verified }
-      });
-    });
-
-    recentProducts.forEach(product => {
-      recentActivities.push({
-        id: `product_${product._id}`,
-        type: 'product_added',
-        description: `New product "${product.name}" added by ${product.merchant?.businessName || 'Unknown'}`,
-        timestamp: product.createdAt,
-        user: product.merchant?.businessName,
-        details: { productName: product.name, price: product.price }
-      });
-    });
-
-    recentReviews.forEach(review => {
-      recentActivities.push({
-        id: `review_${review._id}`,
-        type: 'review_posted',
-        description: `${review.user?.name || 'Anonymous'} left a ${review.rating}★ review for ${review.merchant?.businessName || 'Unknown'}`,
-        timestamp: review.createdAt,
-        user: review.user?.name,
-        details: { rating: review.rating, merchant: review.merchant?.businessName }
-      });
-    });
-
-    const sortedActivities = recentActivities
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      .slice(0, parseInt(limit))
-      .map(activity => ({
-        ...activity,
-        timestamp: formatTimeAgo(activity.timestamp)
-      }));
-
-    res.json({
-      success: true,
-      data: sortedActivities,
-      count: sortedActivities.length
-    });
-
-  } catch (error) {
-    console.error('Get recent activity error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch recent activity'
     });
   }
 });
