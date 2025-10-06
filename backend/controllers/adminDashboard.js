@@ -851,8 +851,32 @@ const createMerchant = asyncHandler(async (req, res) => {
     });
   }
 
-  // Generate secure temporary password
-  const tempPassword = crypto.randomBytes(12).toString('base64').slice(0, 16);
+  // Generate secure temporary password that meets validation requirements
+  // Format: 8+ chars with uppercase, lowercase, number, and special char
+  const generateSecurePassword = () => {
+    const upperCase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowerCase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const specialChars = '!@#$%^&*';
+    
+    // Ensure at least one character from each required category
+    let password = '';
+    password += upperCase[Math.floor(Math.random() * upperCase.length)];
+    password += lowerCase[Math.floor(Math.random() * lowerCase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += specialChars[Math.floor(Math.random() * specialChars.length)];
+    
+    // Fill remaining 8 characters randomly from all categories
+    const allChars = upperCase + lowerCase + numbers + specialChars;
+    for (let i = 4; i < 12; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password to randomize character positions
+    return password.split('').sort(() => 0.5 - Math.random()).join('');
+  };
+  
+  const tempPassword = generateSecurePassword();
 
   const defaultBusinessHours = {
     monday: { open: '09:00', close: '18:00', closed: false },
@@ -1210,8 +1234,32 @@ const createUser = asyncHandler(async (req, res) => {
     });
   }
 
-  // Generate strong temporary password
-  const tempPassword = crypto.randomBytes(12).toString('base64').slice(0, 12) + '!1';
+  // Generate secure temporary password that meets validation requirements
+  // Format: 8+ chars with uppercase, lowercase, number, and special char
+  const generateSecurePassword = () => {
+    const upperCase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowerCase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const specialChars = '!@#$%^&*';
+    
+    // Ensure at least one character from each required category
+    let password = '';
+    password += upperCase[Math.floor(Math.random() * upperCase.length)];
+    password += lowerCase[Math.floor(Math.random() * lowerCase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += specialChars[Math.floor(Math.random() * specialChars.length)];
+    
+    // Fill remaining 8 characters randomly from all categories
+    const allChars = upperCase + lowerCase + numbers + specialChars;
+    for (let i = 4; i < 12; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password to randomize character positions
+    return password.split('').sort(() => 0.5 - Math.random()).join('');
+  };
+  
+  const tempPassword = generateSecurePassword();
 
   const user = await User.create({
     firstName: userFirstName,
