@@ -1118,6 +1118,121 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Delete merchant
+// @route   DELETE /api/admin/dashboard/merchants/:id
+// @access  Private (Admin)
+const deleteMerchant = asyncHandler(async (req, res) => {
+  const merchant = await Merchant.findById(req.params.id);
+
+  if (!merchant) {
+    return res.status(404).json({
+      success: false,
+      message: 'Merchant not found'
+    });
+  }
+
+  // Store merchant info for logging before deletion
+  const merchantInfo = {
+    businessName: merchant.businessName,
+    email: merchant.email,
+    businessType: merchant.businessType
+  };
+
+  // Delete all products associated with this merchant
+  try {
+    const deletedProducts = await Product.deleteMany({ merchant: req.params.id });
+    console.log(`Deleted ${deletedProducts.deletedCount} products for merchant ${merchantInfo.businessName}`);
+  } catch (error) {
+    console.error('Error deleting merchant products:', error);
+  }
+
+  // Delete all reviews associated with this merchant
+  try {
+    const deletedReviews = await Review.deleteMany({ merchant: req.params.id });
+    console.log(`Deleted ${deletedReviews.deletedCount} reviews for merchant ${merchantInfo.businessName}`);
+  } catch (error) {
+    console.error('Error deleting merchant reviews:', error);
+  }
+
+  // Delete the merchant from database
+  await Merchant.findByIdAndDelete(req.params.id);
+
+  // Log admin activity
+  try {
+    if (req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: 'merchant_deleted',
+            details: `Deleted merchant: ${merchantInfo.businessName} (${merchantInfo.email}) - ${merchantInfo.businessType}`,
+            timestamp: new Date()
+          }
+        }
+      });
+    }
+  } catch (logError) {
+    console.error('Failed to log admin activity:', logError);
+  }
+
+  // Send notification email to the merchant
+  try {
+    const { emailService } = require('../utils/emailService');
+    
+    const emailContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #f44336; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">Account Deletion Notice</h1>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+          <h2 style="color: #333; margin-top: 0;">Dear ${merchantInfo.businessName},</h2>
+          <p style="color: #666; line-height: 1.6;">
+            We regret to inform you that your merchant account with Nairobi Verified has been deleted by our administration team.
+          </p>
+          <p style="color: #666; line-height: 1.6;">
+            This action has resulted in the removal of:
+          </p>
+          <ul style="color: #666; line-height: 1.6;">
+            <li>Your business profile</li>
+            <li>All uploaded products and services</li>
+            <li>Customer reviews and ratings</li>
+            <li>Verification documents</li>
+          </ul>
+        </div>
+
+        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="color: #ef6c00; margin: 0; font-size: 14px;">
+            <strong>Need Help?</strong> If you believe this deletion was made in error or if you have questions about this action, please contact our support team immediately.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          <p style="color: #999; font-size: 12px;">
+            Nairobi CBD Business Directory Team<br>
+            Email: support@nairobiverified.com
+          </p>
+        </div>
+      </div>
+    `;
+
+    await emailService.sendEmail({
+      to: merchantInfo.email,
+      subject: '⚠️ Account Deletion Notice - Nairobi Verified',
+      html: emailContent
+    });
+    
+    console.log(`✅ Deletion notification email sent to: ${merchantInfo.email}`);
+    
+  } catch (emailError) {
+    console.error('❌ Email sending failed:', emailError);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Merchant and all associated data deleted successfully'
+  });
+});
+
 // @desc    Get all users with pagination and filtering
 // @route   GET /api/admin/dashboard/users
 // @access  Private (Admin)
@@ -1261,6 +1376,9 @@ const createUser = asyncHandler(async (req, res) => {
   
   const tempPassword = generateSecurePassword();
 
+  // Set password expiry (24 hours from now)
+  const passwordExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
   const user = await User.create({
     firstName: userFirstName,
     lastName: userLastName,
@@ -1269,6 +1387,7 @@ const createUser = asyncHandler(async (req, res) => {
     password: tempPassword,
     role,
     isActive: true,
+    // tempPasswordExpiry: passwordExpiry, // Commented out temporarily
     createdByAdmin: true,
     createdByAdminId: req.admin.id
   });
@@ -1353,11 +1472,24 @@ const createUser = asyncHandler(async (req, res) => {
 // @route   PUT /api/admin/dashboard/users/:id
 // @access  Private (Admin)
 const updateUser = asyncHandler(async (req, res) => {
-  const { name, email, phone, role, isActive } = req.body;
+  const { firstName, lastName, name, email, phone, role, isActive } = req.body;
+
+  // Handle both firstName/lastName and name field formats
+  const updateData = { email, phone, role, isActive };
+  
+  if (firstName && lastName) {
+    updateData.firstName = firstName;
+    updateData.lastName = lastName;
+  } else if (name) {
+    // If only name is provided, split it into firstName and lastName
+    const nameParts = name.trim().split(' ');
+    updateData.firstName = nameParts[0];
+    updateData.lastName = nameParts.slice(1).join(' ') || nameParts[0];
+  }
 
   const user = await User.findByIdAndUpdate(
     req.params.id,
-    { name, email, phone, role, isActive },
+    updateData,
     { new: true, runValidators: true }
   ).select('-password');
 
@@ -1368,10 +1500,110 @@ const updateUser = asyncHandler(async (req, res) => {
     });
   }
 
+  // Log admin activity
+  try {
+    if (req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: 'user_updated',
+            details: `Updated user: ${user.firstName} ${user.lastName} (${user.email})`,
+            timestamp: new Date()
+          }
+        }
+      });
+    }
+  } catch (logError) {
+    console.error('Failed to log admin activity:', logError);
+  }
+
   res.status(200).json({
     success: true,
-    user,
+    user: {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt
+    },
     message: 'User updated successfully'
+  });
+});
+
+// @desc    Update user status
+// @route   PUT /api/admin/dashboard/users/:id/status
+// @access  Private (Admin)
+const updateUserStatus = asyncHandler(async (req, res) => {
+  const { isActive } = req.body;
+
+  if (typeof isActive !== 'boolean') {
+    return res.status(400).json({
+      success: false,
+      message: 'isActive must be a boolean value'
+    });
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { isActive },
+    { new: true, runValidators: true, upsert: false }
+  ).select('-password');
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found'
+    });
+  }
+
+  // Debug: Log the user object to see what fields are available
+  console.log('🔍 User object after update:', {
+    id: user._id,
+    isActive: user.isActive,
+    firstName: user.firstName,
+    allFields: Object.keys(user.toObject())
+  });
+
+  // Ensure isActive field exists and has the correct value
+  if (user.isActive === undefined) {
+    console.log('⚠️ isActive is undefined, setting it manually');
+    user.isActive = isActive;
+    await user.save();
+  }
+
+  // Log admin activity
+  try {
+    if (req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: 'user_status_updated',
+            details: `${isActive ? 'Activated' : 'Deactivated'} user: ${user.firstName} ${user.lastName} (${user.email})`,
+            timestamp: new Date()
+          }
+        }
+      });
+    }
+  } catch (logError) {
+    console.error('Failed to log admin activity:', logError);
+  }
+
+  res.status(200).json({
+    success: true,
+    user: {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt
+    },
+    message: `User ${isActive ? 'activated' : 'deactivated'} successfully`
   });
 });
 
@@ -1388,7 +1620,32 @@ const deleteUser = asyncHandler(async (req, res) => {
     });
   }
 
-  await user.deleteOne();
+  // Store user info for logging before deletion
+  const userInfo = {
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email
+  };
+
+  // Delete the user from database
+  await User.findByIdAndDelete(req.params.id);
+
+  // Log admin activity
+  try {
+    if (req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: 'user_deleted',
+            details: `Deleted user: ${userInfo.firstName} ${userInfo.lastName} (${userInfo.email})`,
+            timestamp: new Date()
+          }
+        }
+      });
+    }
+  } catch (logError) {
+    console.error('Failed to log admin activity:', logError);
+  }
 
   res.status(200).json({
     success: true,
@@ -2094,9 +2351,11 @@ module.exports = {
   bulkUpdateMerchantStatus,
   createMerchant,
   updateMerchantStatus,
+  deleteMerchant,
   getUsers,
   createUser,
   updateUser,
+  updateUserStatus,
   deleteUser,
   getProducts,
   createProduct,
