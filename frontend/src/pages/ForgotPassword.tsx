@@ -105,7 +105,7 @@ await authAPI.forgotPassword(email);
             <span className="text-secondary-dark"> Verified</span>
           </h1>
           <p className="mt-2 text-gray-600">
-            {isSubmitted ? 'Check your email' : 'Recover your account'}
+            {isSubmitted ? 'Check your email' : (isMerchantReset ? 'Recover your merchant account' : 'Recover your account')}
           </p>
         </div>
 
@@ -115,7 +115,7 @@ await authAPI.forgotPassword(email);
               {isSubmitted ? 'Email Sent' : 'Forgot Password'}
             </CardTitle>
             <div className="text-center text-sm text-gray-500">
-              {isSubmitted ? 'Check your inbox for recovery instructions' : 'Enter your email to receive a reset link'}
+              {isSubmitted ? 'Check your inbox for recovery instructions' : (isMerchantReset ? 'Enter your business email to receive a reset link' : 'Enter your email to receive a reset link')}
             </div>
           </CardHeader>
           <CardContent>
