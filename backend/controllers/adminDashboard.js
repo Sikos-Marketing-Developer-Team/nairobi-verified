@@ -1241,7 +1241,8 @@ const createUser = asyncHandler(async (req, res) => {
     success: true,
     user: {
       id: user._id,
-      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       phone: user.phone,
       role: user.role,
