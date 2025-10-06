@@ -1128,7 +1128,31 @@ const getUsers = asyncHandler(async (req, res) => {
 // @route   POST /api/admin/dashboard/users
 // @access  Private (Admin)
 const createUser = asyncHandler(async (req, res) => {
-  const { name, email, phone, role = 'user' } = req.body;
+  const { firstName, lastName, name, email, phone, role = 'user' } = req.body;
+
+  // Validate required fields
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email is required'
+    });
+  }
+
+  // Handle name field - split if provided as single name, or use firstName/lastName
+  let userFirstName, userLastName;
+  if (firstName && lastName) {
+    userFirstName = firstName.trim();
+    userLastName = lastName.trim();
+  } else if (name) {
+    const nameParts = name.trim().split(' ');
+    userFirstName = nameParts[0] || 'User';
+    userLastName = nameParts.slice(1).join(' ') || 'Account';
+  } else {
+    return res.status(400).json({
+      success: false,
+      message: 'First name and last name are required'
+    });
+  }
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -1138,12 +1162,14 @@ const createUser = asyncHandler(async (req, res) => {
     });
   }
 
-  const tempPassword = crypto.randomBytes(8).toString('hex');
+  // Generate strong temporary password
+  const tempPassword = crypto.randomBytes(12).toString('base64').slice(0, 12) + '!1';
 
   const user = await User.create({
-    name,
+    firstName: userFirstName,
+    lastName: userLastName,
     email,
-    phone,
+    phone: phone || '',
     password: tempPassword,
     role,
     isActive: true,
