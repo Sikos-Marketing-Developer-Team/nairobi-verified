@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { authAPI } from '@/lib/api';
 import { usePageLoading } from '@/hooks/use-loading';
@@ -11,10 +11,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const ForgotPassword = () => {
   const { toast } = useToast();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const isPageLoading = usePageLoading(400);
+  
+  // Check if this is for merchant password reset
+  const isMerchantReset = location.pathname.includes('/merchant/');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +105,7 @@ await authAPI.forgotPassword(email);
             <span className="text-secondary-dark"> Verified</span>
           </h1>
           <p className="mt-2 text-gray-600">
-            {isSubmitted ? 'Check your email' : 'Recover your account'}
+            {isSubmitted ? 'Check your email' : (isMerchantReset ? 'Recover your merchant account' : 'Recover your account')}
           </p>
         </div>
 
@@ -111,7 +115,7 @@ await authAPI.forgotPassword(email);
               {isSubmitted ? 'Email Sent' : 'Forgot Password'}
             </CardTitle>
             <div className="text-center text-sm text-gray-500">
-              {isSubmitted ? 'Check your inbox for recovery instructions' : 'Enter your email to receive a reset link'}
+              {isSubmitted ? 'Check your inbox for recovery instructions' : (isMerchantReset ? 'Enter your business email to receive a reset link' : 'Enter your email to receive a reset link')}
             </div>
           </CardHeader>
           <CardContent>
@@ -141,7 +145,7 @@ await authAPI.forgotPassword(email);
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <Input
                     type="email"
-                    placeholder="Email Address"
+                    placeholder={isMerchantReset ? "Business Email Address" : "Email Address"}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -165,7 +169,7 @@ await authAPI.forgotPassword(email);
                 </Button>
 
                 <div className="text-center mt-4">
-                  <Link to="/auth/login" className="text-primary hover:text-primary-dark">
+                  <Link to={isMerchantReset ? "/merchant/sign-in" : "/auth/login"} className="text-primary hover:text-primary-dark">
                     Back to Sign In
                   </Link>
                 </div>

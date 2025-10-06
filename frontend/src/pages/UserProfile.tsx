@@ -160,19 +160,16 @@ const UserProfile = () => {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Profile Information</CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
+                  {!isEditing && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditing(true)}
+                    >
                       <Edit className="h-4 w-4 mr-2" />
-                    )}
-                    {isEditing ? (isSaving ? 'Saving...' : 'Edit') : 'Edit'}
-                  </Button>
+                      Edit
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -269,14 +266,30 @@ const UserProfile = () => {
                 </div>
 
                 {isEditing && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setIsEditing(false)}
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleSave}
+                      className="flex-1"
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Changes'
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditing(false)}
+                      disabled={isSaving}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
