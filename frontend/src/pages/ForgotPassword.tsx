@@ -11,10 +11,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const ForgotPassword = () => {
   const { toast } = useToast();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const isPageLoading = usePageLoading(400);
+  
+  // Check if this is for merchant password reset
+  const isMerchantReset = location.pathname.includes('/merchant/');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
