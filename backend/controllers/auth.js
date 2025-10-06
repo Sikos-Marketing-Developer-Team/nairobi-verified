@@ -35,6 +35,19 @@ exports.register = async (req, res) => {
       password
     });
 
+    // Send welcome email (don't block registration if email fails)
+    try {
+      await emailService.sendUserWelcome({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
+      });
+      console.log(`Welcome email sent to: ${user.email}`);
+    } catch (emailError) {
+      console.error('Welcome email failed:', emailError);
+      // Don't fail registration if email fails
+    }
+
     req.login(user, (err) => {
       if (err) {
         console.error('Login error after registration:', err);

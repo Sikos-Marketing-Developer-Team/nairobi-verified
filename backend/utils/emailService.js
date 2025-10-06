@@ -14,26 +14,14 @@ class EmailService {
    * Create email transporter based on environment
    */
   createTransporter() {
-    if (process.env.NODE_ENV === 'production') {
-      // Production email configuration
-      return nodemailer.createTransport({
-        service: EMAIL_CONFIG.SERVICE,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
-        }
-      });
-    } else {
-      // Development configuration (using Ethereal for testing)
-      return nodemailer.createTransport({
-        host: EMAIL_CONFIG.DEV_HOST,
-        port: EMAIL_CONFIG.DEV_PORT,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
-        }
-      });
-    }
+    // Always use Gmail for email sending (both production and development)
+    return nodemailer.createTransport({
+      service: EMAIL_CONFIG.SERVICE,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
   }
 
   /**
@@ -96,6 +84,19 @@ class EmailService {
       to: merchantData.email,
       subject: EMAIL_CONFIG.SUBJECTS.WELCOME,
       html: this.getMerchantWelcomeTemplate(merchantData, credentials, setupUrl)
+    };
+
+    return this.sendEmail(emailOptions);
+  }
+
+  /**
+   * Send user welcome email
+   */
+  async sendUserWelcome(userData) {
+    const emailOptions = {
+      to: userData.email,
+      subject: 'Welcome to Nairobi Verified!',
+      html: this.getUserWelcomeTemplate(userData)
     };
 
     return this.sendEmail(emailOptions);
@@ -179,6 +180,51 @@ class EmailService {
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
           <p style="color: #999; font-size: 12px;">
             Nairobi CBD Business Directory | Connecting Businesses with Customers
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * User welcome email template
+   */
+  getUserWelcomeTemplate(userData) {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Nairobi Verified!</h1>
+          <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Your account is ready to explore</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+          <h2 style="color: #333; margin-top: 0;">Hello ${userData.firstName} ${userData.lastName}!</h2>
+          <p style="color: #666; line-height: 1.6;">
+            Thank you for joining Nairobi Verified! Your account has been created successfully. 
+            You can now explore verified merchants, discover great products, and enjoy a safe shopping experience.
+          </p>
+        </div>
+
+        <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+          <h3 style="color: #2e7d32; margin-top: 0;">🌟 What you can do now:</h3>
+          <ul style="color: #666; line-height: 1.8; padding-left: 20px;">
+            <li>Browse verified merchants and products</li>
+            <li>Add items to your favorites</li>
+            <li>Leave reviews for merchants</li>
+            <li>Get personalized recommendations</li>
+            <li>Enjoy secure and verified shopping</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" style="background: #4caf50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            🛍️ Start Exploring
+          </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          <p style="color: #999; font-size: 12px;">
+            Nairobi Verified | Connecting You with Trusted Merchants
           </p>
         </div>
       </div>
