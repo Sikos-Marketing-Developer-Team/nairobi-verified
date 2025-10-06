@@ -1178,24 +1178,63 @@ const createUser = asyncHandler(async (req, res) => {
   });
 
   try {
+    // Use the email service for consistent email handling
+    const { emailService } = require('../utils/emailService');
+    
+    // Set password expiry (24 hours from now)
+    const passwordExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    user.tempPasswordExpiry = passwordExpiry;
+    await user.save();
+    
     const emailContent = `
-      <h2>Welcome to Nairobi Verified!</h2>
-      <p>Your account has been created by our admin team.</p>
-      <p><strong>Login Credentials:</strong></p>
-      <p>Email: ${email}</p>
-      <p>Temporary Password: ${tempPassword}</p>
-      <p>Please log in and change your password immediately.</p>
-      <p>Login here: ${process.env.FRONTEND_URL}/login</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #f44336; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Welcome to Nairobi Verified!</h1>
+          <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Your account has been created successfully</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+          <h2 style="color: #333; margin-top: 0;">Account Details</h2>
+          <p style="color: #666; line-height: 1.6;">
+            Welcome <strong>${userFirstName} ${userLastName}</strong>! Your account has been created by our admin team.
+          </p>
+          <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #f44336;">
+            <h3 style="margin-top: 0; color: #333;">🔐 Login Credentials</h3>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Temporary Password:</strong> <code style="background: #f1f1f1; padding: 2px 8px; border-radius: 4px;">${tempPassword}</code></p>
+          </div>
+        </div>
+
+        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="color: #ef6c00; margin: 0; font-size: 14px;">
+            <strong>⚠️ Important Security Notice:</strong> You must change your password within 24 hours of receiving this email. After 24 hours, this temporary password will expire for security reasons.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/login" style="background: #f44336; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Login to Your Account
+          </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          <p style="color: #999; font-size: 12px;">
+            Nairobi CBD Business Directory Team
+          </p>
+        </div>
+      </div>
     `;
 
-    await transporter.sendMail({
-      from: process.env.FROM_EMAIL,
+    await emailService.sendEmail({
       to: email,
-      subject: 'Welcome to Nairobi Verified',
+      subject: '🎉 Welcome to Nairobi Verified - Account Created',
       html: emailContent
     });
+    
+    console.log(`✅ Welcome email sent to user: ${email}`);
+    
   } catch (emailError) {
-    console.log('Email sending failed:', emailError.message);
+    console.error('❌ Email sending failed:', emailError);
   }
 
   res.status(201).json({
