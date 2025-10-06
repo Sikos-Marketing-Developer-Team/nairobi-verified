@@ -5,7 +5,6 @@ const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const { HTTP_STATUS, PASSWORD_VALIDATION } = require('../config/constants');
 const { emailService } = require('../utils/emailService'); // Import email service
-const { generateTokenExpiry } = require('../utils/passwordResetSecurity'); // Import security utilities
 
 exports.register = async (req, res) => {
   try {
@@ -492,8 +491,8 @@ exports.forgotPassword = async (req, res) => {
       .update(resetToken)
       .digest('hex');
     
-    // Set expire time (10 minutes) - using utility function for consistency
-    user.resetPasswordExpire = generateTokenExpiry();
+    // Set expire time (10 minutes)
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
     
     await user.save();
 
@@ -575,53 +574,38 @@ exports.resetPassword = async (req, res) => {
     // Get current time for consistent comparison
     const currentTime = Date.now();
     console.log('Password reset attempt at:', new Date(currentTime).toISOString());
-    
-    // First, clean up any expired tokens to maintain database hygiene
-    await Promise.all([
-      User.updateMany(
-        { resetPasswordExpire: { $lt: currentTime } },
-        { $unset: { resetPasswordToken: 1, resetPasswordExpire: 1 } }
-      ),
-      Merchant.updateMany(
-        { resetPasswordExpire: { $lt: currentTime } },
-        { $unset: { resetPasswordToken: 1, resetPasswordExpire: 1 } }
-      )
-    ]);
-    console.log('Cleaned up expired password reset tokens');
 
-    // Find user with valid reset token that hasn't expired
-    let user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpire: { $gt: currentTime }
-    });
-    
+    // Find user with the matching reset token (regardless of expiry first)
+    let user = await User.findOne({ resetPasswordToken: resetPasswordToken }) || 
+               await Merchant.findOne({ resetPasswordToken: resetPasswordToken });
+
     if (!user) {
-      user = await Merchant.findOne({
-        resetPasswordToken,
-        resetPasswordExpire: { $gt: currentTime }
+      console.log('🔐 SECURITY: Attempted use of invalid token:', {
+        clientIP: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      });
+
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Invalid or expired reset token. Please request a new password reset.'
       });
     }
 
-    if (!user) {
-      // Additional logging to help debug and monitor security
-      const expiredUser = await User.findOne({ resetPasswordToken }) || 
-                         await Merchant.findOne({ resetPasswordToken });
-      
-      if (expiredUser) {
-        const timeSinceExpiry = Math.floor((currentTime - expiredUser.resetPasswordExpire) / 1000);
-        console.log('🔐 SECURITY: Attempted use of expired token:', {
-          userEmail: expiredUser.email,
-          tokenExpiry: new Date(expiredUser.resetPasswordExpire).toISOString(),
-          currentTime: new Date(currentTime).toISOString(),
-          expiredBySeconds: timeSinceExpiry,
-          clientIP: req.ip || req.connection.remoteAddress
-        });
-      } else {
-        console.log('🔐 SECURITY: Attempted use of invalid token:', {
-          clientIP: req.ip || req.connection.remoteAddress,
-          userAgent: req.get('User-Agent')
-        });
-      }
+    // Check if the token has expired
+    if (user.resetPasswordExpire <= currentTime) {
+      const timeSinceExpiry = Math.floor((currentTime - user.resetPasswordExpire) / 1000);
+      console.log('🔐 SECURITY: Attempted use of expired token:', {
+        userEmail: user.email,
+        tokenExpiry: new Date(user.resetPasswordExpire).toISOString(),
+        currentTime: new Date(currentTime).toISOString(),
+        expiredBySeconds: timeSinceExpiry,
+        clientIP: req.ip || req.connection.remoteAddress
+      });
+
+      // Clean up this expired token
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
 
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
