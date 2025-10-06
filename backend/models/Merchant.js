@@ -170,6 +170,7 @@ const MerchantSchema = new mongoose.Schema({
   },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
+  tempPasswordExpiry: Date,
   accountSetupToken: String,
   accountSetupExpire: Date,
   accountSetupDate: Date,
