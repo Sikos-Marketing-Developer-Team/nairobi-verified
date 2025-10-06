@@ -834,7 +834,25 @@ const createMerchant = asyncHandler(async (req, res) => {
     autoVerify = false
   } = req.body;
 
-  const tempPassword = crypto.randomBytes(8).toString('hex');
+  // Validate required fields
+  if (!businessName || !email || !phone || !businessType) {
+    return res.status(400).json({
+      success: false,
+      message: 'Business name, email, phone, and business type are required'
+    });
+  }
+
+  // Check if merchant already exists
+  const existingMerchant = await Merchant.findOne({ email });
+  if (existingMerchant) {
+    return res.status(400).json({
+      success: false,
+      message: 'Merchant with this email already exists'
+    });
+  }
+
+  // Generate secure temporary password
+  const tempPassword = crypto.randomBytes(12).toString('base64').slice(0, 16);
 
   const defaultBusinessHours = {
     monday: { open: '09:00', close: '18:00', closed: false },
@@ -846,11 +864,15 @@ const createMerchant = asyncHandler(async (req, res) => {
     sunday: { open: '10:00', close: '16:00', closed: true }
   };
 
+  // Set password expiry (24 hours from now)
+  const passwordExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
   const merchant = await Merchant.create({
     businessName,
     email,
     phone,
     password: tempPassword,
+    tempPasswordExpiry: passwordExpiry,
     businessType,
     description,
     address,
@@ -866,28 +888,69 @@ const createMerchant = asyncHandler(async (req, res) => {
     onboardingStatus: 'credentials_sent'
   });
 
-  const emailContent = `
-    <h2>Welcome to Nairobi Verified!</h2>
-    <p>Your merchant account has been created by our admin team.</p>
-    <p><strong>Business Name:</strong> ${businessName}</p>
-    <p><strong>Login Credentials:</strong></p>
-    <p>Email: ${email}</p>
-    <p>Temporary Password: ${tempPassword}</p>
-    ${autoVerify ? 
-      '<p><strong>Your account has been pre-verified!</strong></p>' : 
-      '<p>Please log in and upload your verification documents.</p>'
-    }
-    <p>Login here: ${process.env.FRONTEND_URL}/merchant/login</p>
-  `;
-
+  // Send welcome email with improved template
   try {
-    await transporter.sendMail({
-      from: process.env.FROM_EMAIL,
+    // Use the email service for consistent email handling
+    const { emailService } = require('../utils/emailService');
+    
+    const emailContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #f44336; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🏢 Welcome to Nairobi Verified!</h1>
+          <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Your merchant account has been created successfully</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+          <h2 style="color: #333; margin-top: 0;">Business Account Details</h2>
+          <p style="color: #666; line-height: 1.6;">
+            Welcome <strong>${businessName}</strong>! Your merchant account has been created by our admin team.
+          </p>
+          <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #f44336;">
+            <h3 style="margin-top: 0; color: #333;">🔐 Login Credentials</h3>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Temporary Password:</strong> <code style="background: #f1f1f1; padding: 2px 8px; border-radius: 4px;">${tempPassword}</code></p>
+          </div>
+        </div>
+
+        ${autoVerify ? 
+          '<div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;"><p style="color: #2e7d32; margin: 0; font-size: 14px;"><strong>✅ Pre-Verified:</strong> Your account has been pre-verified and is ready to use!</p></div>' : 
+          '<div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;"><p style="color: #ef6c00; margin: 0; font-size: 14px;"><strong>📋 Next Steps:</strong> Please log in and upload your verification documents to complete your account setup.</p></div>'
+        }
+
+        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="color: #ef6c00; margin: 0; font-size: 14px;">
+            <strong>⚠️ Important Security Notice:</strong> You must change your password within 24 hours of receiving this email. After 24 hours, this temporary password will expire for security reasons.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/merchant/login" style="background: #f44336; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Login to Your Account
+          </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          <p style="color: #999; font-size: 12px;">
+            Nairobi CBD Business Directory Team
+          </p>
+        </div>
+      </div>
+    `;
+
+    await emailService.sendEmail({
       to: email,
-      subject: 'Your Nairobi Verified Merchant Account',
+      subject: '🏢 Welcome to Nairobi Verified - Merchant Account Created',
       html: emailContent
     });
+    
+    console.log(`✅ Welcome email sent to merchant: ${email}`);
+    
+  } catch (emailError) {
+    console.error('❌ Email sending failed:', emailError);
+  }
 
+  // Log admin activity
+  try {
     if (req.admin.id !== 'hardcoded-admin-id') {
       await AdminUser.findByIdAndUpdate(req.admin.id, {
         $push: {
@@ -899,40 +962,25 @@ const createMerchant = asyncHandler(async (req, res) => {
         }
       });
     }
-
-    res.status(201).json({
-      success: true,
-      merchant: {
-        id: merchant._id,
-        businessName: merchant.businessName,
-        email: merchant.email,
-        phone: merchant.phone,
-        businessType: merchant.businessType,
-        verified: merchant.verified,
-        createdAt: merchant.createdAt,
-        documentsRequired: !autoVerify,
-        verificationStatus: autoVerify ? 'verified' : 'pending_documents'
-      },
-      message: 'Merchant created successfully and credentials sent via email'
-    });
-  } catch (error) {
-    console.error('Email sending failed:', error);
-    res.status(201).json({
-      success: true,
-      merchant: {
-        id: merchant._id,
-        businessName: merchant.businessName,
-        email: merchant.email,
-        phone: merchant.phone,
-        businessType: merchant.businessType,
-        verified: merchant.verified,
-        createdAt: merchant.createdAt,
-        documentsRequired: !autoVerify,
-        verificationStatus: autoVerify ? 'verified' : 'pending_documents'
-      },
-      message: 'Merchant created successfully but email sending failed'
-    });
+  } catch (logError) {
+    console.error('Failed to log admin activity:', logError);
   }
+
+  res.status(201).json({
+    success: true,
+    merchant: {
+      id: merchant._id,
+      businessName: merchant.businessName,
+      email: merchant.email,
+      phone: merchant.phone,
+      businessType: merchant.businessType,
+      verified: merchant.verified,
+      createdAt: merchant.createdAt,
+      documentsRequired: !autoVerify,
+      verificationStatus: autoVerify ? 'verified' : 'pending_documents'
+    },
+    message: 'Merchant created successfully'
+  });
 });
 
 // @desc    Update merchant status
