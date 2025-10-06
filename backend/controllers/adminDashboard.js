@@ -106,13 +106,13 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       User.find({ role: { $ne: 'admin' } })
         .sort({ createdAt: -1 })
         .limit(5)
-        .select('name email createdAt'),
+        .select('firstName lastName email createdAt'),
       Review.find()
         .sort({ createdAt: -1 })
         .limit(5)
-        .populate('user', 'name')
+        .populate('user', 'firstName lastName')
         .populate('merchant', 'businessName')
-        .select('rating comment createdAt'),
+        .select('rating content createdAt'),
       Merchant.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
       User.countDocuments({ 
         role: { $ne: 'admin' },
@@ -231,8 +231,19 @@ const getDashboardStats = asyncHandler(async (req, res) => {
               merchant.documents?.utilityBill
             )
           })),
-          recentUsers,
-          recentReviews
+          recentUsers: recentUsers.map(user => ({
+            ...user.toObject(),
+            name: `${user.firstName} ${user.lastName}`
+          })),
+          recentReviews: recentReviews.map(review => ({
+            ...review.toObject(),
+            user: review.user ? {
+              _id: review.user._id,
+              name: `${review.user.firstName} ${review.user.lastName}`,
+              firstName: review.user.firstName,
+              lastName: review.user.lastName
+            } : null
+          }))
         },
         systemHealth
       }
@@ -256,7 +267,7 @@ const getRecentActivity = asyncHandler(async (req, res) => {
     const recentActivities = [];
 
     const recentUsers = await User.find({ role: { $ne: 'admin' } })
-      .select('name email createdAt role')
+      .select('firstName lastName email createdAt role')
       .sort({ createdAt: -1 })
       .limit(Math.floor(limit / 4))
       .lean();
@@ -275,20 +286,24 @@ const getRecentActivity = asyncHandler(async (req, res) => {
       .lean();
 
     const recentReviews = await Review.find()
-      .select('rating comment user merchant createdAt')
-      .populate('user', 'name')
+      .select('rating content user merchant createdAt')
+      .populate('user', 'firstName lastName')
       .populate('merchant', 'businessName')
       .sort({ createdAt: -1 })
       .limit(Math.floor(limit / 4))
       .lean();
 
     recentUsers.forEach(user => {
+      const userName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user.firstName || user.email || 'Unknown User';
+      
       recentActivities.push({
         id: `user_${user._id}`,
         type: 'user_signup',
-        description: `New ${user.role} "${user.name}" registered`,
+        description: `New ${user.role || 'user'} "${userName}" registered`,
         timestamp: user.createdAt,
-        user: user.name,
+        user: userName,
         details: { email: user.email, role: user.role }
       });
     });
@@ -318,12 +333,16 @@ const getRecentActivity = asyncHandler(async (req, res) => {
     });
 
     recentReviews.forEach(review => {
+      const reviewerName = review.user?.firstName && review.user?.lastName
+        ? `${review.user.firstName} ${review.user.lastName}`
+        : review.user?.firstName || 'Anonymous';
+      
       recentActivities.push({
         id: `review_${review._id}`,
         type: 'review_posted',
-        description: `${review.user?.name || 'Anonymous'} left a ${review.rating}★ review for ${review.merchant?.businessName || 'Unknown'}`,
+        description: `${reviewerName} left a ${review.rating}★ review for ${review.merchant?.businessName || 'Unknown'}`,
         timestamp: review.createdAt,
-        user: review.user?.name,
+        user: reviewerName,
         details: { rating: review.rating, merchant: review.merchant?.businessName }
       });
     });
