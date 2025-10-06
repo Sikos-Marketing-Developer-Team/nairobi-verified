@@ -55,25 +55,76 @@ router.put('/me', protect, async (req, res) => {
   try {
     const { firstName, lastName, email, phone } = req.body;
     
-    // In a real application, update the user in the database
-    // For now, return updated user data
-    const updatedUser = {
-      ...req.user,
-      firstName: firstName || req.user.firstName,
-      lastName: lastName || req.user.lastName,
-      email: email || req.user.email,
-      phone: phone || req.user.phone
-    };
+    // Get the User model
+    const User = require('../models/User');
+    
+    // Validate email format if provided
+    if (email && !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please provide a valid email address'
+      });
+    }
+    
+    // Check if email is already taken by another user
+    if (email && email !== req.user.email) {
+      const existingUser = await User.findOne({ email, _id: { $ne: req.user.id } });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          error: 'Email is already taken by another user'
+        });
+      }
+    }
+    
+    // Update user in database
+    const updateData = {};
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password -resetPasswordToken -resetPasswordExpire');
+    
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
 
     res.json({
       success: true,
-      data: updatedUser
+      data: updatedUser,
+      message: 'Profile updated successfully'
     });
   } catch (error) {
     console.error('Error updating profile:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        error: messages.join('. ')
+      });
+    }
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is already registered'
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Failed to update profile'
+      error: 'Failed to update profile. Please try again.'
     });
   }
 });
