@@ -59,10 +59,7 @@ async function testAdminDashboard() {
         businessType: 'restaurant',
         description: 'A test restaurant for admin dashboard testing',
         address: '123 Test Street, Nairobi',
-        location: {
-          type: 'Point',
-          coordinates: [36.8219, -1.2921] // Nairobi coordinates
-        },
+        location: 'Nairobi CBD, Kenya',
         autoVerify: false
       };
       
@@ -84,15 +81,23 @@ async function testAdminDashboard() {
         }
       }
       
-      // Step 4: Test dashboard stats
+            // Step 4: Test dashboard stats
       console.log('\n4️⃣ Testing dashboard stats...');
       try {
         const statsResponse = await axios.get(`${BASE_URL}/admin/dashboard/stats`, { headers });
-        if (statsResponse.data.success) {
-          console.log('✅ Dashboard stats retrieved');
-          console.log(`   Total Users: ${statsResponse.data.stats.totalUsers}`);
-          console.log(`   Total Merchants: ${statsResponse.data.stats.totalMerchants}`);
-          console.log(`   Verified Merchants: ${statsResponse.data.stats.verifiedMerchants}`);
+        if (statsResponse.data.success && statsResponse.data.data) {
+          console.log('✅ Dashboard stats retrieved successfully');
+          const stats = statsResponse.data.data;
+          console.log(`   Total Users: ${stats.totalUsers}`);
+          console.log(`   Total Merchants: ${stats.totalMerchants}`);
+          console.log(`   Verified Merchants: ${stats.verifiedMerchants}`);
+          console.log(`   Pending Merchants: ${stats.pendingMerchants}`);
+          console.log(`   Total Products: ${stats.totalProducts}`);
+          console.log(`   Total Reviews: ${stats.totalReviews}`);
+          console.log(`   Verification Rate: ${stats.metrics.verificationRate}%`);
+        } else {
+          console.log('❌ Dashboard stats structure issue');
+          console.log(`   Response: ${JSON.stringify(statsResponse.data, null, 2)}`);
         }
       } catch (statsError) {
         console.log('❌ Dashboard stats failed');
