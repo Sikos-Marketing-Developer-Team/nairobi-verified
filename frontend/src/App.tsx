@@ -96,6 +96,7 @@ const App = () => (
               <Route path="/auth/register" element={<UserRegister />} />
               <Route path="/auth/register/merchant" element={<MerchantRegister />} />
               <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+              <Route path="/auth/merchant/forgot-password" element={<ForgotPassword />} />
               <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
               <Route path="/merchant/account-setup/:token" element={<MerchantAccountSetup />} />
               <Route path="/howitworks" element={<HowItWorks />} />
