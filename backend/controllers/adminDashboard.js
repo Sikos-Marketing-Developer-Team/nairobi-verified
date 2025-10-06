@@ -1376,6 +1376,9 @@ const createUser = asyncHandler(async (req, res) => {
   
   const tempPassword = generateSecurePassword();
 
+  // Set password expiry (24 hours from now)
+  const passwordExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
   const user = await User.create({
     firstName: userFirstName,
     lastName: userLastName,
@@ -1384,7 +1387,7 @@ const createUser = asyncHandler(async (req, res) => {
     password: tempPassword,
     role,
     isActive: true,
-    tempPasswordExpiry: passwordExpiry,
+    // tempPasswordExpiry: passwordExpiry, // Commented out temporarily
     createdByAdmin: true,
     createdByAdminId: req.admin.id
   });
