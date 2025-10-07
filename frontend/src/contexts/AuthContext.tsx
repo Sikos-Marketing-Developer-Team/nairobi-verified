@@ -41,46 +41,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('🔍 Checking authentication...');
       
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-        // CRITICAL: Always fetch fresh session data, never trust localStorage
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'https://nairobi-cbd-backend.onrender.com/api'}/auth/check`,
-          { 
-            credentials: 'include',
-            signal: controller.signal
-          }
-        );
-        
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        if (data.success && data.isAuthenticated && data.user) {
-          console.log('✅ Session valid, user authenticated:', data.user.email);
-          handleSuccessfulAuth(data.user);
-          return;
-        }
-
-        // Fallback to getMe for OAuth callback
-        try {
-          console.log('🔄 Trying getMe fallback...');
-          const meResponse = await authAPI.getMe();
-          console.log('✅ getMe successful:', meResponse.data.data.email);
-          handleSuccessfulAuth(meResponse.data.data);
-        } catch (getMeError) {
-          console.log('❌ No active session, user is guest');
-          setUser(null);
-        }
-      } catch (error: any) {
-        console.warn('⚠️ Auth check failed:', error.message);
+        // Use authAPI.getMe() instead of direct fetch to maintain consistency
+        console.log('🔄 Checking session via getMe...');
+        const meResponse = await authAPI.getMe();
+        console.log('✅ getMe successful:', meResponse.data.data.email);
+        handleSuccessfulAuth(meResponse.data.data);
+      } catch (getMeError) {
+        console.log('❌ No active session, user is guest');
         setUser(null);
-        handleAuthError(error);
       } finally {
         setIsLoading(false);
         // Mark that we've checked auth in this session
@@ -110,21 +78,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const isMerchant = userData.isMerchant || userData.businessName;
       const targetPath = isMerchant ? '/merchant/dashboard' : '/dashboard';
       
-      if (location.pathname !== targetPath && location.pathname === '/auth') {
+      if (location.pathname === '/auth') {
         console.log('🚀 Redirecting to:', targetPath);
         navigate(targetPath, { replace: true });
         showToast('Login Successful', 'Your session has been restored');
-      }
-    };
-
-    const handleAuthError = (error: any) => {
-      const urlParams = new URLSearchParams(location.search);
-      if (urlParams.get('error') === 'authentication_failed') {
-        showToast(
-          'Authentication Failed',
-          urlParams.get('message') || 'Failed to authenticate. Please try again.',
-          'destructive'
-        );
       }
     };
 
@@ -175,16 +132,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       
       console.log('👤 User login successful:', user.email);
+      
+      // CRITICAL FIX: Set user state BEFORE navigation
       setUser(user);
       
-      // Clear session check flag to force re-check on next mount
+      // CRITICAL FIX: Clear session check flag to force re-check on next mount
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       
-      navigate(user.isMerchant || user.businessName 
+      // CRITICAL FIX: Wait for state update and then navigate
+      const targetPath = user.isMerchant || user.businessName 
         ? '/merchant/dashboard' 
-        : '/dashboard', 
-        { replace: true }
-      );
+        : '/dashboard';
+      
+      console.log('🚀 Navigating to:', targetPath);
+      navigate(targetPath, { replace: true });
+      
       showToast('Login Successful', 'You have been logged in');
       return response;
     }, 'Login', 'Login');
@@ -207,12 +169,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         businessName: user.businessName
       });
       
+      // CRITICAL FIX: Set user state BEFORE navigation
       setUser(user);
       
       // Clear session check flag to force re-check on next mount
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       
+      console.log('🚀 Navigating to merchant dashboard');
       navigate('/merchant/dashboard', { replace: true });
+      
       showToast('Merchant Login Successful', 'Welcome to your merchant dashboard');
       return response;
     }, 'Merchant Login', 'Merchant Login');
@@ -228,14 +193,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Admin access restricted');
       }
       
+      // CRITICAL FIX: Set user state BEFORE navigation
       setUser(user);
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       
-      navigate(user.isMerchant || user.businessName 
+      const targetPath = user.isMerchant || user.businessName 
         ? '/merchant/dashboard' 
-        : '/dashboard', 
-        { replace: true }
-      );
+        : '/dashboard';
+      
+      console.log('🚀 Navigating to:', targetPath);
+      navigate(targetPath, { replace: true });
+      
       showToast('Google Login Successful', 'You have been logged in with Google');
       return response;
     }, 'Google Login', 'Google Authentication');
@@ -244,6 +212,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: any) => {
     return handleAuthAction(async () => {
       const response = await authAPI.register(userData);
+      // CRITICAL FIX: Set user state BEFORE navigation
       setUser(response.data.user);
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       navigate('/dashboard', { replace: true });
@@ -255,6 +224,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const registerMerchant = async (merchantData: any) => {
     return handleAuthAction(async () => {
       const response = await authAPI.registerMerchant(merchantData);
+      // CRITICAL FIX: Set user state BEFORE navigation
       setUser(response.data.user);
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       navigate('/merchant/dashboard', { replace: true });
@@ -266,6 +236,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     return handleAuthAction(async () => {
       await authAPI.logout();
+      // CRITICAL FIX: Set user to null BEFORE navigation
       setUser(null);
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       navigate('/', { replace: true });
@@ -308,6 +279,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return true;
     } catch (error) {
       console.error('❌ Failed to refresh user data:', error);
+      // If refresh fails, log the user out
+      setUser(null);
       return false;
     }
   };

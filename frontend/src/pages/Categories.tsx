@@ -91,20 +91,28 @@ const ProductCard = ({ product }: { product: Product }) => {
     }).format(price);
   };
 
-  const handleViewProduct = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigate(`/product/${product._id || product.id}`);
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on interactive elements
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    const productId = product._id || product.id;
+    if (productId) {
+      navigate(`/product/${productId}`);
+    }
   };
 
   return (
-    <Card className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden">
+    <Card 
+      className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden group transition-transform duration-200 hover:scale-105"
+      onClick={handleCardClick}
+    >
       <CardContent className="p-0">
         <div className="relative">
           <img
             src={product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop'}
             alt={product.name}
-            className="w-full h-32 md:h-48 object-cover"
+            className="w-full h-32 md:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
           {product.featured && (
             <div className="absolute top-1 left-1 md:top-2 md:left-2 bg-secondary text-secondary-foreground px-1 py-0.5 md:px-2 md:py-1 rounded text-[10px] md:text-xs font-medium">
@@ -114,11 +122,10 @@ const ProductCard = ({ product }: { product: Product }) => {
           <Button
             variant="ghost"
             size="sm"
-            className="absolute top-1 right-1 md:top-2 md:right-2 bg-white/80 hover:bg-white p-1 md:p-2"
+            className="absolute top-1 right-1 md:top-2 md:right-2 bg-white/80 hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-1 md:p-2"
             onClick={(e) => {
-              e.preventDefault();
               e.stopPropagation();
-              alert('Added to favorites!');
+              alert(`Added ${product.name} to wishlist!`);
             }}
           >
             <Heart className="h-3 w-3 md:h-4 md:w-4" />
@@ -129,28 +136,28 @@ const ProductCard = ({ product }: { product: Product }) => {
           <div className="flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
             <span className="text-[10px] md:text-sm text-gray-600 line-clamp-1">{product.merchant?.businessName || product.merchantName}</span>
             {product.merchant?.verified && (
-              <div className="flex items-center gap-0.5 md:gap-1 bg-green-100 text-green-800 text-[10px] md:text-xs px-1 py-0.5 rounded">
+              <div className="flex items-center gap-0.5 md:gap-1 bg-green-100 text-green-800 text-[10px] md:text-xs px-1 py-0.5 rounded flex-shrink-0">
                 <Check className="h-2.5 w-2.5 md:h-3 md:w-3" />
                 Verified
               </div>
             )}
           </div>
           
-          <h3 className="font-semibold text-gray-900 mb-1 md:mb-2 line-clamp-2 text-[11px] md:text-base leading-tight">
+          <h3 className="font-semibold text-gray-900 mb-1 md:mb-2 line-clamp-2 text-[11px] md:text-base leading-tight group-hover:text-primary transition-colors">
             {product.name}
           </h3>
           
-          <Link to={`/merchant/${product.merchant?._id || product.merchantId}`} className="text-[10px] md:text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
+          <div className="text-[10px] md:text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
             <MapPin className="h-2.5 md:h-4 w-2.5 md:w-4 text-gray-400" />
             <span className="line-clamp-1">{product.merchant?.address || product.location}</span>
-          </Link>
+          </div>
           
-          <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3">
+          <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3 flex-wrap">
             <div className="flex items-center">
               <Star className="h-2.5 md:h-4 w-2.5 md:w-4 text-yellow-400 fill-current" />
               <span className="text-[10px] md:text-sm font-medium ml-0.5 md:ml-1">{product.rating || 0}</span>
             </div>
-            <span className="text-[10px] md:text-sm text-gray-500">({product.reviewCount || product.reviews || 0} reviews)</span>
+            <span className="text-[10px] md:text-sm text-gray-500">({product.reviewCount || product.reviews || 0})</span>
           </div>
           
           <div className="flex items-center gap-1 md:gap-2 mb-3 md:mb-4 flex-wrap">
@@ -164,22 +171,18 @@ const ProductCard = ({ product }: { product: Product }) => {
             )}
           </div>
           
-          <div className="hidden md:block">
-            <Button className="w-full bg-primary hover:bg-primary-dark text-white text-sm md:text-base"
-              onClick={handleViewProduct}
-            >
-              View
-            </Button>
-          </div>
-          <div className="md:hidden">
-            <a
-              href={`/product/${product._id || product.id}`}
-              className="block text-center text-[11px] text-orange-600 underline hover:no-underline"
-              onClick={handleViewProduct}
-            >
-              View
-            </a>
-          </div>
+          <Button 
+            className="w-full text-xs md:text-base"
+            onClick={(e) => {
+              e.stopPropagation();
+              const productId = product._id || product.id;
+              if (productId) {
+                navigate(`/product/${productId}`);
+              }
+            }}
+          >
+            View
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -535,9 +538,7 @@ const Categories = () => {
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {filteredProducts.map((product) => (
-                  <Link key={product._id || product.id} to={`/product/${product._id || product.id}`}>
-                    <ProductCard product={product} />
-                  </Link>
+                  <ProductCard key={product._id || product.id} product={product} />
                 ))}
               </div>
             ) : (

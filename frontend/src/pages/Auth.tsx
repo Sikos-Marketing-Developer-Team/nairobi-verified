@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Mail, Lock, User, Phone, Loader2 } from 'lucide-react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
@@ -11,6 +11,7 @@ import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 const Auth = () => {
   const { login, googleAuth, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
@@ -24,9 +25,14 @@ const Auth = () => {
     phone: ''
   });
 
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" />;
-  }
+  // FIX: Use useEffect to handle redirect instead of immediate Navigate
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🔄 Auth component: User is authenticated, allowing context to handle redirect');
+      // Don't navigate here - let the AuthContext handle the redirect
+      // This prevents the race condition
+    }
+  }, [isAuthenticated]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -42,10 +48,8 @@ const Auth = () => {
       setLocalLoading(true);
       try {
         await login(formData.email, formData.password);
-        toast({
-          title: 'Login Successful',
-          description: 'You have been logged in',
-        });
+        // REMOVED: Don't show toast here - it's already handled in AuthContext
+        // REMOVED: Don't navigate here - it's handled in AuthContext
       } catch (error: any) {
         console.error('Login error:', error);
         toast({
@@ -78,10 +82,7 @@ const Auth = () => {
     setGoogleLoading(true);
     try {
       await googleAuth(credentialResponse.credential);
-      toast({
-        title: 'Login Successful',
-        description: 'You have been logged in with Google',
-      });
+      // REMOVED: Don't show toast here - it's already handled in AuthContext
     } catch (error: any) {
       console.error('Google auth error:', error);
       toast({
@@ -101,6 +102,11 @@ const Auth = () => {
       variant: 'destructive',
     });
   };
+
+  // FIX: Remove the conditional return with Navigate - it causes the race condition
+  // if (isAuthenticated) {
+  //   return <Navigate to="/dashboard" />;
+  // }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center px-2 py-5">

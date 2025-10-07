@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Star, MapPin, Check, Heart, ArrowLeft, Phone, Mail, Shield, Truck, Clock, Users, Image, ChevronLeft, ChevronRight, Bookmark } from 'lucide-react';
+import { Star, MapPin, Check, Heart, ArrowLeft, Phone, Mail, Shield, Truck, Clock, Users, Image, ChevronLeft, ChevronRight, Bookmark, Store } from 'lucide-react';
 import { FaWhatsapp, FaInstagram, FaTwitter } from 'react-icons/fa';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import './product.css'
 
-// Mock products data with complete information
+// Mock products data with complete information including merchantId
 const products = [
   {
     id: 1,
@@ -13,6 +14,7 @@ const products = [
     price: 8500,
     originalPrice: 12000,
     merchant: "TechHub Kenya",
+    merchantId: "techhub-kenya-123",
     category: "Electronics",
     rating: 4.8,
     reviews: 156,
@@ -46,6 +48,7 @@ const products = [
     price: 15000,
     originalPrice: 20000,
     merchant: "FitTech Store",
+    merchantId: "fittech-store-456",
     category: "Electronics",
     rating: 4.6,
     reviews: 89,
@@ -79,6 +82,8 @@ const recentlyViewedProducts = [
     name: "Wireless Earbuds",
     price: 4500,
     originalPrice: 6000,
+    merchant: "AudioGadgets",
+    merchantId: "audiogadgets-789",
     image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&h=400&fit=crop",
     category: "Electronics"
   },
@@ -86,6 +91,8 @@ const recentlyViewedProducts = [
     id: 4,
     name: "Smartphone Stand",
     price: 1200,
+    merchant: "MobileAccessories Kenya",
+    merchantId: "mobile-accessories-101",
     image: "https://images.unsplash.com/photo-1605792657660-596af9009e82?w=400&h=400&fit=crop",
     category: "Accessories"
   }
@@ -97,6 +104,8 @@ const mostViewedProducts = [
     name: "Laptop Backpack",
     price: 2800,
     originalPrice: 3500,
+    merchant: "TravelGear Kenya",
+    merchantId: "travelgear-202",
     image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop",
     category: "Accessories"
   },
@@ -104,6 +113,8 @@ const mostViewedProducts = [
     id: 6,
     name: "Wireless Charger",
     price: 2200,
+    merchant: "TechHub Kenya",
+    merchantId: "techhub-kenya-123",
     image: "https://images.unsplash.com/photo-1583863788438-ec5b8deef2f1?w=400&h=400&fit=crop",
     category: "Electronics"
   },
@@ -355,16 +366,24 @@ const ProductPage = () => {
               </div>
 
               {/* Description (Full width below price) */}
-           <div className="col-span-2 mt-2 flex flex-col">
-  <h3 className="text-sm font-semibold mb-1 text-gray-900">
-    Description
-  </h3>
-  <p className="text-xs text-gray-700 leading-relaxed">
-    {product.description}
-  </p>
-</div>
+              <div className="col-span-2 mt-2 flex flex-col">
+                <h3 className="text-sm font-semibold mb-1 text-gray-900">
+                  Description
+                </h3>
+                <p className="text-xs text-gray-700 leading-relaxed">
+                  {product.description}
+                </p>
+              </div>
 
-
+              {/* Visit Shop CTA Button - Added below description */}
+              <div className="col-span-2 mt-3">
+                <Link to={`/merchant/${product.merchantId}`}>
+                  <Button className="w-full bg-[#FDF8E9] hover:bg-[#EC5C0A] text-[#EC5C0A] hover:text-white border-2 border-[#EC5C0A] font-semibold py-3 text-sm transition-all duration-300 transform hover:scale-[1.02] shadow-sm hover:shadow-md">
+                    <Store className="h-4 w-4 mr-2" />
+                    Visit Our Shop
+                  </Button>
+                </Link>
+              </div>
             </div>
 
             {/* Mobile-Optimized Contact and Location Section */}
@@ -385,21 +404,21 @@ const ProductPage = () => {
         <FaWhatsapp className="h-4 w-4 mr-1" />
         Chat on WhatsApp
       </a>
-    </Button>
-  </div>
+                </Button>
+              </div>
 
-  {/* Contact Seller */}
-  <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg flex flex-col">
-    <Button 
-      variant="outline" 
-      className="flex-grow border-2 border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 font-medium py-2 px-3 text-xs sm:text-sm flex items-center justify-center"
-      aria-label={`Add ${product.name} to wishlist`}
-    >
-      <Heart className="h-4 w-4 mr-1" />
-      Add to Wishlist
-    </Button>
-  </div>
-</div>
+              {/* Contact Seller */}
+              <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg flex flex-col">
+                <Button 
+                  variant="outline" 
+                  className="flex-grow border-2 border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 font-medium py-2 px-3 text-xs sm:text-sm flex items-center justify-center"
+                  aria-label={`Add ${product.name} to wishlist`}
+                >
+                  <Heart className="h-4 w-4 mr-1" />
+                  Add to Wishlist
+                </Button>
+              </div>
+            </div>
 
 
               {/* Location */}
@@ -467,13 +486,23 @@ const ProductPage = () => {
                   </a>
                 </Button>
 
+                {/* Visit Shop Button in Desktop Sidebar */}
+                <Link to={`/merchant/${product.merchantId}`} className="block mb-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-[#FDF8E9] hover:bg-[#EC5C0A] text-[#EC5C0A] hover:text-white border-2 border-[#EC5C0A] font-semibold py-3 text-sm transition-all duration-300 transform hover:scale-[1.02]"
+                  >
+                    <Store className="h-4 w-4 mr-2" />
+                    Visit Our Shop
+                  </Button>
+                </Link>
+
                 <Button 
                   variant="outline" 
                   className="w-full border-2 border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 font-medium py-2 md:py-3 text-sm md:text-base"
                   aria-label={`Add ${product.name} to wishlist`}
                 >
-                  
-                  <Bookmark />
+                  <Bookmark className="h-4 w-4 mr-2" />
                   Add to Wishlist
                 </Button>
               </section>
