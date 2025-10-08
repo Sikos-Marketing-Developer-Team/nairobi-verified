@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://nairobi-verified-backend-4c1b.onrender.com',
         changeOrigin: true,
         secure: false,
         withCredentials: true

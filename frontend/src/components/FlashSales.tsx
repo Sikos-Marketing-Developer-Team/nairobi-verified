@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Flame, Star, MapPin, Check, ShoppingCart, Eye, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
+import { flashSalesAPI } from '@/lib/api';
 
 interface FlashSaleProduct {
   productId: string;
@@ -75,40 +76,31 @@ const FlashSales = () => {
   }, []);
 
   const fetchFlashSales = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  try {
+    setLoading(true);
+    setError(null);
 
-      // Use your VITE_API_URL environment variable
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
-      const response = await fetch(`${apiUrl}/flash-sales`, {
-        credentials: 'include' // If using cookies/auth
+    // FIX: Use the centralized API instance
+    const response = await flashSalesAPI.getFlashSales();
+
+    if (response.data.success) {
+      setFlashSales(response.data.data);
+      // Initialize current indices for each flash sale
+      const indices: {[key: string]: number} = {};
+      response.data.data.forEach((sale: FlashSale) => {
+        indices[sale._id] = 0;
       });
-
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setFlashSales(data.data);
-        // Initialize current indices for each flash sale
-        const indices: {[key: string]: number} = {};
-        data.data.forEach((sale: FlashSale) => {
-          indices[sale._id] = 0;
-        });
-        setCurrentIndices(indices);
-      } else {
-        throw new Error(data.message || 'Failed to fetch flash sales');
-      }
-    } catch (err) {
-      console.error('Flash sales fetch error:', err);
-      setError('We couldn’t load the flash sales right now. Please try again.');
-    } finally {
-      setLoading(false);
+      setCurrentIndices(indices);
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch flash sales');
     }
-  };
+  } catch (err) {
+    console.error('Flash sales fetch error:', err);
+    setError('We couldn’t load the flash sales right now. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {

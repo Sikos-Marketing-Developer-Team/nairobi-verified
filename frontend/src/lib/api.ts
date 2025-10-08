@@ -1,9 +1,20 @@
 // src/lib/api.ts
 import axios from 'axios';
 
+// Determine base URL based on environment
+const getBaseURL = () => {
+  // Use proxy in development to avoid CORS issues
+  if (import.meta.env.DEV) {
+    return '/api'; // This will use the Vite proxy
+  }
+  
+  // Use environment variable or fallback in production
+  return import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
+};
+
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json'
   },
@@ -331,4 +342,10 @@ export const notificationsAPI = {
   getMerchantUnreadCount: () => api.get('/merchants/me/notifications/unread/count'),
 };
 
+
+// Add to your existing API exports
+export const flashSalesAPI = {
+  getFlashSales: () => api.get('/flash-sales'),
+  getFlashSale: (id: string) => api.get(`/flash-sales/${id}`),
+};
 export default api;

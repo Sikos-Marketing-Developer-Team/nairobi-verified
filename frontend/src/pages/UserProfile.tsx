@@ -1,6 +1,5 @@
-// Test comment to check if edits are being applied
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Heart, Clock, Edit, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Heart, Clock, Edit, Loader2, Save, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,8 +29,9 @@ const UserProfile = () => {
     lastName: user?.lastName || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    address: user?.address || '' // Assuming 'address' is a field in your User type
+    address: user?.address || ''
   });
+  const [originalUserData, setOriginalUserData] = useState<UserProfileData>({ ...userData });
   const [isSaving, setIsSaving] = useState(false);
   const [favoriteMerchants, setFavoriteMerchants] = useState([]);
   const [recentlyReviewed, setRecentlyReviewed] = useState([]);
@@ -41,13 +41,15 @@ const UserProfile = () => {
 
   useEffect(() => {
     if (user) {
-      setUserData({
+      const newUserData = {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
         phone: user.phone || '',
         address: user.address || ''
-      });
+      };
+      setUserData(newUserData);
+      setOriginalUserData(newUserData);
     }
   }, [user]);
 
@@ -92,15 +94,29 @@ const UserProfile = () => {
     });
   };
 
+  const handleEdit = () => {
+    setOriginalUserData({ ...userData });
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setUserData({ ...originalUserData });
+    setIsEditing(false);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Send updated profile data to backend
       await userAPI.updateProfile(userData);
+      
       toast({
         title: "Profile Updated",
-        description: "Your profile information has been saved.",
+        description: "Your profile information has been successfully saved.",
       });
-      const refreshed = await refreshUser(); // Refresh user data in AuthContext
+      
+      // Refresh user data in AuthContext
+      const refreshed = await refreshUser();
       if (!refreshed) {
         toast({
           title: "Warning",
@@ -108,6 +124,7 @@ const UserProfile = () => {
           variant: "destructive",
         });
       }
+      
       setIsEditing(false);
     } catch (error) {
       console.error('Error saving user data:', error);
@@ -121,15 +138,16 @@ const UserProfile = () => {
     }
   };
 
+  // Check if there are any changes to save
+  const hasChanges = JSON.stringify(userData) !== JSON.stringify(originalUserData);
+
   if (authLoading || isPageLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        
         <PageSkeleton>
           <ProfileSkeleton />
         </PageSkeleton>
-        
         <Footer />
       </div>
     );
@@ -160,15 +178,39 @@ const UserProfile = () => {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Profile Information</CardTitle>
-                  {!isEditing && (
+                  {!isEditing ? (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setIsEditing(true)}
+                      onClick={handleEdit}
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit
                     </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancel}
+                        disabled={isSaving}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSave}
+                        disabled={isSaving || !hasChanges}
+                      >
+                        {isSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {isSaving ? 'Saving...' : 'Save'}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardHeader>
@@ -194,6 +236,7 @@ const UserProfile = () => {
                         name="firstName"
                         value={userData.firstName}
                         onChange={handleInputChange}
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="text-gray-900">{user?.firstName || 'No info'}</p>
@@ -210,6 +253,7 @@ const UserProfile = () => {
                         name="lastName"
                         value={userData.lastName}
                         onChange={handleInputChange}
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="text-gray-900">{user?.lastName || 'No info'}</p>
@@ -236,6 +280,7 @@ const UserProfile = () => {
                         name="phone"
                         value={userData.phone}
                         onChange={handleInputChange}
+                        disabled={isSaving}
                       />
                     ) : (
                       <div className="flex items-center gap-2">
@@ -255,6 +300,7 @@ const UserProfile = () => {
                         name="address"
                         value={userData.address}
                         onChange={handleInputChange}
+                        disabled={isSaving}
                       />
                     ) : (
                       <div className="flex items-center gap-2">
@@ -265,37 +311,18 @@ const UserProfile = () => {
                   </div>
                 </div>
 
-                {isEditing && (
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={handleSave}
-                      className="flex-1"
-                      disabled={isSaving}
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        'Save Changes'
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsEditing(false)}
-                      disabled={isSaving}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
+                {isEditing && hasChanges && (
+                  <div className="p-3 bg-blue-50 rounded-md">
+                    <p className="text-sm text-blue-700">
+                      You have unsaved changes. Don't forget to save your profile.
+                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Main Content */}
+          {/* Main Content - Rest of the component remains the same */}
           <div className="lg:col-span-2 space-y-8">
             {/* Favorite Merchants */}
             <Card>
