@@ -471,14 +471,14 @@ const ProductPage = () => {
     variant="outline" 
     className={`flex-grow border-2 font-medium py-2 px-3 text-xs sm:text-sm flex items-center justify-center transition-all duration-300 ${
       isInWishlist(product.id) 
-        ? 'bg-blue-50 border-blue-300 text-blue-600 hover:bg-blue-100' 
-        : 'border-blue-200 hover:bg-blue-50 text-blue-600 hover:text-blue-700'
+        ? 'bg-blue-50 border-blue-300 text-green-600 hover:bg-blue-100' 
+        : 'border-blue-200 hover:bg-blue-50 text-green-600 hover:text-green-700'
     }`}
     onClick={handleWishlistClick}
     aria-label={`${isInWishlist(product.id) ? 'Remove from' : 'Add to'} wishlist`}
   >
     <Bookmark 
-      className={`h-4 w-4 mr-1 ${isInWishlist(product.id) ? 'fill-blue-600' : ''}`} 
+      className={`h-4 w-4 mr-1 ${isInWishlist(product.id) ? 'fill-green-600' : ''}`} 
     />
     {isInWishlist(product.id) ? 'Saved' : 'Wishlist'}
   </Button>
@@ -565,14 +565,14 @@ const ProductPage = () => {
   variant="outline" 
   className={`w-full border-2 font-medium py-2 md:py-3 text-sm md:text-base transition-all duration-300 ${
     isInWishlist(product.id) 
-      ? 'bg-blue-50 border-blue-300 text-blue-600 hover:bg-blue-100' 
-      : 'border-blue-200 hover:bg-blue-50 text-blue-600 hover:text-blue-700'
+      ? 'bg-green-50 border-green-300 text-green-600 hover:bg-green-100' 
+      : 'border-green-200 hover:bg-green-50 text-green-600 hover:text-green-700'
   }`}
   onClick={handleWishlistClick}
   aria-label={`${isInWishlist(product.id) ? 'Remove from' : 'Add to'} wishlist`}
 >
   <Bookmark 
-    className={`h-4 w-4 mr-2 ${isInWishlist(product.id) ? 'fill-blue-600' : ''}`} 
+    className={`h-4 w-4 mr-2 ${isInWishlist(product.id) ? 'fill-green-600' : ''}`} 
   />
   {isInWishlist(product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
 </Button>
