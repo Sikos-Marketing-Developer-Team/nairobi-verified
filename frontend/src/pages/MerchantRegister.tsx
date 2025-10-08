@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Upload, Building, User, Clock, FileText, CheckCircle, X, Trash2 } from 'lucide-react';
+import { MapPin, Upload, Building, User, Clock, FileText, CheckCircle, X, Trash2, EyeClosed, Eye } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
@@ -19,6 +19,12 @@ const MerchantRegister = () => {
   const idDocRef = useRef<HTMLInputElement>(null);
   const utilityBillRef = useRef<HTMLInputElement>(null);
   const additionalDocsRef = useRef<HTMLInputElement>(null);
+   
+                 // Add this state to your component
+const [showPassword, setShowPassword] = useState({
+  password: false,
+  confirmPassword: false
+});
   
   const [uploadedFiles, setUploadedFiles] = useState({
     businessRegistration: [],
@@ -437,34 +443,69 @@ const response = await fetch(`${apiUrl}/merchants`, {
                       />
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Password *
-                      </label>
-                      <Input
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
-                        placeholder="Create a strong password"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Confirm Password *
-                      </label>
-                      <Input
-                        type="password"
-                        value={formData.confirmPassword}
-                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                        placeholder="Confirm your password"
-                        required
-                      />
-                    </div>
-                  </div>
+                 
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Password *
+    </label>
+    <div className="relative">
+      <Input
+        type={showPassword.password ? "text" : "password"}
+        value={formData.password}
+        onChange={(e) => handleInputChange('password', e.target.value)}
+        placeholder="Create a strong password"
+        required
+        className="pr-10"
+      />
+      <button
+        type="button"
+        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+        onClick={() => setShowPassword(prev => ({
+          ...prev,
+          password: !prev.password
+        }))}
+      >
+       {showPassword.password ? (
+          <EyeClosed className="h-5 w-5" />
+        ) : (
+          <Eye className="h-5 w-5" />
+        )}
+      </button>
+    </div>
+  </div>
+  
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Confirm Password *
+    </label>
+    <div className="relative">
+      <Input
+        type={showPassword.confirmPassword ? "text" : "password"}
+        value={formData.confirmPassword}
+        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+        placeholder="Confirm your password"
+        required
+        className="pr-10"
+      />
+      <button
+        type="button"
+        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+        onClick={() => setShowPassword(prev => ({
+          ...prev,
+          confirmPassword: !prev.confirmPassword
+        }))}
+      >
+        {showPassword.confirmPassword ? (
+          <EyeClosed className="h-5 w-5" />
+        ) : (
+          <Eye className="h-5 w-5" />
+        )}
+      </button>
+    </div>
+  </div>
+</div>
                 </div>
               )}
 
