@@ -106,13 +106,13 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       User.find({ role: { $ne: 'admin' } })
         .sort({ createdAt: -1 })
         .limit(5)
-        .select('name email createdAt'),
+        .select('firstName lastName email createdAt'),
       Review.find()
         .sort({ createdAt: -1 })
         .limit(5)
-        .populate('user', 'name')
+        .populate('user', 'firstName lastName')
         .populate('merchant', 'businessName')
-        .select('rating comment createdAt'),
+        .select('rating content createdAt'),
       Merchant.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
       User.countDocuments({ 
         role: { $ne: 'admin' },
@@ -231,8 +231,19 @@ const getDashboardStats = asyncHandler(async (req, res) => {
               merchant.documents?.utilityBill
             )
           })),
-          recentUsers,
-          recentReviews
+          recentUsers: recentUsers.map(user => ({
+            ...user.toObject(),
+            name: `${user.firstName} ${user.lastName}`
+          })),
+          recentReviews: recentReviews.map(review => ({
+            ...review.toObject(),
+            user: review.user ? {
+              _id: review.user._id,
+              name: `${review.user.firstName} ${review.user.lastName}`,
+              firstName: review.user.firstName,
+              lastName: review.user.lastName
+            } : null
+          }))
         },
         systemHealth
       }
@@ -256,7 +267,7 @@ const getRecentActivity = asyncHandler(async (req, res) => {
     const recentActivities = [];
 
     const recentUsers = await User.find({ role: { $ne: 'admin' } })
-      .select('name email createdAt role')
+      .select('firstName lastName email createdAt role')
       .sort({ createdAt: -1 })
       .limit(Math.floor(limit / 4))
       .lean();
@@ -275,20 +286,24 @@ const getRecentActivity = asyncHandler(async (req, res) => {
       .lean();
 
     const recentReviews = await Review.find()
-      .select('rating comment user merchant createdAt')
-      .populate('user', 'name')
+      .select('rating content user merchant createdAt')
+      .populate('user', 'firstName lastName')
       .populate('merchant', 'businessName')
       .sort({ createdAt: -1 })
       .limit(Math.floor(limit / 4))
       .lean();
 
     recentUsers.forEach(user => {
+      const userName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user.firstName || user.email || 'Unknown User';
+      
       recentActivities.push({
         id: `user_${user._id}`,
         type: 'user_signup',
-        description: `New ${user.role} "${user.name}" registered`,
+        description: `New ${user.role || 'user'} "${userName}" registered`,
         timestamp: user.createdAt,
-        user: user.name,
+        user: userName,
         details: { email: user.email, role: user.role }
       });
     });
@@ -318,12 +333,16 @@ const getRecentActivity = asyncHandler(async (req, res) => {
     });
 
     recentReviews.forEach(review => {
+      const reviewerName = review.user?.firstName && review.user?.lastName
+        ? `${review.user.firstName} ${review.user.lastName}`
+        : review.user?.firstName || 'Anonymous';
+      
       recentActivities.push({
         id: `review_${review._id}`,
         type: 'review_posted',
-        description: `${review.user?.name || 'Anonymous'} left a ${review.rating}★ review for ${review.merchant?.businessName || 'Unknown'}`,
+        description: `${reviewerName} left a ${review.rating}★ review for ${review.merchant?.businessName || 'Unknown'}`,
         timestamp: review.createdAt,
-        user: review.user?.name,
+        user: reviewerName,
         details: { rating: review.rating, merchant: review.merchant?.businessName }
       });
     });
@@ -815,7 +834,49 @@ const createMerchant = asyncHandler(async (req, res) => {
     autoVerify = false
   } = req.body;
 
-  const tempPassword = crypto.randomBytes(8).toString('hex');
+  // Validate required fields
+  if (!businessName || !email || !phone || !businessType) {
+    return res.status(400).json({
+      success: false,
+      message: 'Business name, email, phone, and business type are required'
+    });
+  }
+
+  // Check if merchant already exists
+  const existingMerchant = await Merchant.findOne({ email });
+  if (existingMerchant) {
+    return res.status(400).json({
+      success: false,
+      message: 'Merchant with this email already exists'
+    });
+  }
+
+  // Generate secure temporary password that meets validation requirements
+  // Format: 8+ chars with uppercase, lowercase, number, and special char
+  const generateSecurePassword = () => {
+    const upperCase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowerCase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const specialChars = '!@#$%^&*';
+    
+    // Ensure at least one character from each required category
+    let password = '';
+    password += upperCase[Math.floor(Math.random() * upperCase.length)];
+    password += lowerCase[Math.floor(Math.random() * lowerCase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += specialChars[Math.floor(Math.random() * specialChars.length)];
+    
+    // Fill remaining 8 characters randomly from all categories
+    const allChars = upperCase + lowerCase + numbers + specialChars;
+    for (let i = 4; i < 12; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password to randomize character positions
+    return password.split('').sort(() => 0.5 - Math.random()).join('');
+  };
+  
+  const tempPassword = generateSecurePassword();
 
   const defaultBusinessHours = {
     monday: { open: '09:00', close: '18:00', closed: false },
@@ -827,11 +888,15 @@ const createMerchant = asyncHandler(async (req, res) => {
     sunday: { open: '10:00', close: '16:00', closed: true }
   };
 
+  // Set password expiry (24 hours from now)
+  const passwordExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
   const merchant = await Merchant.create({
     businessName,
     email,
     phone,
     password: tempPassword,
+    tempPasswordExpiry: passwordExpiry,
     businessType,
     description,
     address,
@@ -847,28 +912,69 @@ const createMerchant = asyncHandler(async (req, res) => {
     onboardingStatus: 'credentials_sent'
   });
 
-  const emailContent = `
-    <h2>Welcome to Nairobi Verified!</h2>
-    <p>Your merchant account has been created by our admin team.</p>
-    <p><strong>Business Name:</strong> ${businessName}</p>
-    <p><strong>Login Credentials:</strong></p>
-    <p>Email: ${email}</p>
-    <p>Temporary Password: ${tempPassword}</p>
-    ${autoVerify ? 
-      '<p><strong>Your account has been pre-verified!</strong></p>' : 
-      '<p>Please log in and upload your verification documents.</p>'
-    }
-    <p>Login here: ${process.env.FRONTEND_URL}/merchant/login</p>
-  `;
-
+  // Send welcome email with improved template
   try {
-    await transporter.sendMail({
-      from: process.env.FROM_EMAIL,
+    // Use the email service for consistent email handling
+    const { emailService } = require('../utils/emailService');
+    
+    const emailContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #f44336; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🏢 Welcome to Nairobi Verified!</h1>
+          <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Your merchant account has been created successfully</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+          <h2 style="color: #333; margin-top: 0;">Business Account Details</h2>
+          <p style="color: #666; line-height: 1.6;">
+            Welcome <strong>${businessName}</strong>! Your merchant account has been created by our admin team.
+          </p>
+          <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #f44336;">
+            <h3 style="margin-top: 0; color: #333;">🔐 Login Credentials</h3>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Temporary Password:</strong> <code style="background: #f1f1f1; padding: 2px 8px; border-radius: 4px;">${tempPassword}</code></p>
+          </div>
+        </div>
+
+        ${autoVerify ? 
+          '<div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;"><p style="color: #2e7d32; margin: 0; font-size: 14px;"><strong>✅ Pre-Verified:</strong> Your account has been pre-verified and is ready to use!</p></div>' : 
+          '<div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;"><p style="color: #ef6c00; margin: 0; font-size: 14px;"><strong>📋 Next Steps:</strong> Please log in and upload your verification documents to complete your account setup.</p></div>'
+        }
+
+        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="color: #ef6c00; margin: 0; font-size: 14px;">
+            <strong>⚠️ Important Security Notice:</strong> You must change your password within 24 hours of receiving this email. After 24 hours, this temporary password will expire for security reasons.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/merchant/login" style="background: #f44336; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Login to Your Account
+          </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          <p style="color: #999; font-size: 12px;">
+            Nairobi CBD Business Directory Team
+          </p>
+        </div>
+      </div>
+    `;
+
+    await emailService.sendEmail({
       to: email,
-      subject: 'Your Nairobi Verified Merchant Account',
+      subject: '🏢 Welcome to Nairobi Verified - Merchant Account Created',
       html: emailContent
     });
+    
+    console.log(`✅ Welcome email sent to merchant: ${email}`);
+    
+  } catch (emailError) {
+    console.error('❌ Email sending failed:', emailError);
+  }
 
+  // Log admin activity
+  try {
     if (req.admin.id !== 'hardcoded-admin-id') {
       await AdminUser.findByIdAndUpdate(req.admin.id, {
         $push: {
@@ -880,40 +986,25 @@ const createMerchant = asyncHandler(async (req, res) => {
         }
       });
     }
-
-    res.status(201).json({
-      success: true,
-      merchant: {
-        id: merchant._id,
-        businessName: merchant.businessName,
-        email: merchant.email,
-        phone: merchant.phone,
-        businessType: merchant.businessType,
-        verified: merchant.verified,
-        createdAt: merchant.createdAt,
-        documentsRequired: !autoVerify,
-        verificationStatus: autoVerify ? 'verified' : 'pending_documents'
-      },
-      message: 'Merchant created successfully and credentials sent via email'
-    });
-  } catch (error) {
-    console.error('Email sending failed:', error);
-    res.status(201).json({
-      success: true,
-      merchant: {
-        id: merchant._id,
-        businessName: merchant.businessName,
-        email: merchant.email,
-        phone: merchant.phone,
-        businessType: merchant.businessType,
-        verified: merchant.verified,
-        createdAt: merchant.createdAt,
-        documentsRequired: !autoVerify,
-        verificationStatus: autoVerify ? 'verified' : 'pending_documents'
-      },
-      message: 'Merchant created successfully but email sending failed'
-    });
+  } catch (logError) {
+    console.error('Failed to log admin activity:', logError);
   }
+
+  res.status(201).json({
+    success: true,
+    merchant: {
+      id: merchant._id,
+      businessName: merchant.businessName,
+      email: merchant.email,
+      phone: merchant.phone,
+      businessType: merchant.businessType,
+      verified: merchant.verified,
+      createdAt: merchant.createdAt,
+      documentsRequired: !autoVerify,
+      verificationStatus: autoVerify ? 'verified' : 'pending_documents'
+    },
+    message: 'Merchant created successfully'
+  });
 });
 
 // @desc    Update merchant status
@@ -1027,6 +1118,121 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Delete merchant
+// @route   DELETE /api/admin/dashboard/merchants/:id
+// @access  Private (Admin)
+const deleteMerchant = asyncHandler(async (req, res) => {
+  const merchant = await Merchant.findById(req.params.id);
+
+  if (!merchant) {
+    return res.status(404).json({
+      success: false,
+      message: 'Merchant not found'
+    });
+  }
+
+  // Store merchant info for logging before deletion
+  const merchantInfo = {
+    businessName: merchant.businessName,
+    email: merchant.email,
+    businessType: merchant.businessType
+  };
+
+  // Delete all products associated with this merchant
+  try {
+    const deletedProducts = await Product.deleteMany({ merchant: req.params.id });
+    console.log(`Deleted ${deletedProducts.deletedCount} products for merchant ${merchantInfo.businessName}`);
+  } catch (error) {
+    console.error('Error deleting merchant products:', error);
+  }
+
+  // Delete all reviews associated with this merchant
+  try {
+    const deletedReviews = await Review.deleteMany({ merchant: req.params.id });
+    console.log(`Deleted ${deletedReviews.deletedCount} reviews for merchant ${merchantInfo.businessName}`);
+  } catch (error) {
+    console.error('Error deleting merchant reviews:', error);
+  }
+
+  // Delete the merchant from database
+  await Merchant.findByIdAndDelete(req.params.id);
+
+  // Log admin activity
+  try {
+    if (req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: 'merchant_deleted',
+            details: `Deleted merchant: ${merchantInfo.businessName} (${merchantInfo.email}) - ${merchantInfo.businessType}`,
+            timestamp: new Date()
+          }
+        }
+      });
+    }
+  } catch (logError) {
+    console.error('Failed to log admin activity:', logError);
+  }
+
+  // Send notification email to the merchant
+  try {
+    const { emailService } = require('../utils/emailService');
+    
+    const emailContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #f44336; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">Account Deletion Notice</h1>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+          <h2 style="color: #333; margin-top: 0;">Dear ${merchantInfo.businessName},</h2>
+          <p style="color: #666; line-height: 1.6;">
+            We regret to inform you that your merchant account with Nairobi Verified has been deleted by our administration team.
+          </p>
+          <p style="color: #666; line-height: 1.6;">
+            This action has resulted in the removal of:
+          </p>
+          <ul style="color: #666; line-height: 1.6;">
+            <li>Your business profile</li>
+            <li>All uploaded products and services</li>
+            <li>Customer reviews and ratings</li>
+            <li>Verification documents</li>
+          </ul>
+        </div>
+
+        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="color: #ef6c00; margin: 0; font-size: 14px;">
+            <strong>Need Help?</strong> If you believe this deletion was made in error or if you have questions about this action, please contact our support team immediately.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          <p style="color: #999; font-size: 12px;">
+            Nairobi CBD Business Directory Team<br>
+            Email: support@nairobiverified.com
+          </p>
+        </div>
+      </div>
+    `;
+
+    await emailService.sendEmail({
+      to: merchantInfo.email,
+      subject: '⚠️ Account Deletion Notice - Nairobi Verified',
+      html: emailContent
+    });
+    
+    console.log(`✅ Deletion notification email sent to: ${merchantInfo.email}`);
+    
+  } catch (emailError) {
+    console.error('❌ Email sending failed:', emailError);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Merchant and all associated data deleted successfully'
+  });
+});
+
 // @desc    Get all users with pagination and filtering
 // @route   GET /api/admin/dashboard/users
 // @access  Private (Admin)
@@ -1109,7 +1315,31 @@ const getUsers = asyncHandler(async (req, res) => {
 // @route   POST /api/admin/dashboard/users
 // @access  Private (Admin)
 const createUser = asyncHandler(async (req, res) => {
-  const { name, email, phone, role = 'user' } = req.body;
+  const { firstName, lastName, name, email, phone, role = 'user' } = req.body;
+
+  // Validate required fields
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email is required'
+    });
+  }
+
+  // Handle name field - split if provided as single name, or use firstName/lastName
+  let userFirstName, userLastName;
+  if (firstName && lastName) {
+    userFirstName = firstName.trim();
+    userLastName = lastName.trim();
+  } else if (name) {
+    const nameParts = name.trim().split(' ');
+    userFirstName = nameParts[0] || 'User';
+    userLastName = nameParts.slice(1).join(' ') || 'Account';
+  } else {
+    return res.status(400).json({
+      success: false,
+      message: 'First name and last name are required'
+    });
+  }
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -1119,45 +1349,115 @@ const createUser = asyncHandler(async (req, res) => {
     });
   }
 
-  const tempPassword = crypto.randomBytes(8).toString('hex');
+  // Generate secure temporary password that meets validation requirements
+  // Format: 8+ chars with uppercase, lowercase, number, and special char
+  const generateSecurePassword = () => {
+    const upperCase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowerCase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const specialChars = '!@#$%^&*';
+    
+    // Ensure at least one character from each required category
+    let password = '';
+    password += upperCase[Math.floor(Math.random() * upperCase.length)];
+    password += lowerCase[Math.floor(Math.random() * lowerCase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += specialChars[Math.floor(Math.random() * specialChars.length)];
+    
+    // Fill remaining 8 characters randomly from all categories
+    const allChars = upperCase + lowerCase + numbers + specialChars;
+    for (let i = 4; i < 12; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password to randomize character positions
+    return password.split('').sort(() => 0.5 - Math.random()).join('');
+  };
+  
+  const tempPassword = generateSecurePassword();
+
+  // Set password expiry (24 hours from now)
+  const passwordExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   const user = await User.create({
-    name,
+    firstName: userFirstName,
+    lastName: userLastName,
     email,
-    phone,
+    phone: phone || '',
     password: tempPassword,
     role,
     isActive: true,
+    // tempPasswordExpiry: passwordExpiry, // Commented out temporarily
     createdByAdmin: true,
     createdByAdminId: req.admin.id
   });
 
   try {
+    // Use the email service for consistent email handling
+    const { emailService } = require('../utils/emailService');
+    
+    // Set password expiry (24 hours from now)
+    const passwordExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    user.tempPasswordExpiry = passwordExpiry;
+    await user.save();
+    
     const emailContent = `
-      <h2>Welcome to Nairobi Verified!</h2>
-      <p>Your account has been created by our admin team.</p>
-      <p><strong>Login Credentials:</strong></p>
-      <p>Email: ${email}</p>
-      <p>Temporary Password: ${tempPassword}</p>
-      <p>Please log in and change your password immediately.</p>
-      <p>Login here: ${process.env.FRONTEND_URL}/login</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #f44336; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Welcome to Nairobi Verified!</h1>
+          <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Your account has been created successfully</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+          <h2 style="color: #333; margin-top: 0;">Account Details</h2>
+          <p style="color: #666; line-height: 1.6;">
+            Welcome <strong>${userFirstName} ${userLastName}</strong>! Your account has been created by our admin team.
+          </p>
+          <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #f44336;">
+            <h3 style="margin-top: 0; color: #333;">🔐 Login Credentials</h3>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Temporary Password:</strong> <code style="background: #f1f1f1; padding: 2px 8px; border-radius: 4px;">${tempPassword}</code></p>
+          </div>
+        </div>
+
+        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="color: #ef6c00; margin: 0; font-size: 14px;">
+            <strong>⚠️ Important Security Notice:</strong> You must change your password within 24 hours of receiving this email. After 24 hours, this temporary password will expire for security reasons.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/login" style="background: #f44336; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Login to Your Account
+          </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          <p style="color: #999; font-size: 12px;">
+            Nairobi CBD Business Directory Team
+          </p>
+        </div>
+      </div>
     `;
 
-    await transporter.sendMail({
-      from: process.env.FROM_EMAIL,
+    await emailService.sendEmail({
       to: email,
-      subject: 'Welcome to Nairobi Verified',
+      subject: '🎉 Welcome to Nairobi Verified - Account Created',
       html: emailContent
     });
+    
+    console.log(`✅ Welcome email sent to user: ${email}`);
+    
   } catch (emailError) {
-    console.log('Email sending failed:', emailError.message);
+    console.error('❌ Email sending failed:', emailError);
   }
 
   res.status(201).json({
     success: true,
     user: {
       id: user._id,
-      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       phone: user.phone,
       role: user.role,
@@ -1172,11 +1472,24 @@ const createUser = asyncHandler(async (req, res) => {
 // @route   PUT /api/admin/dashboard/users/:id
 // @access  Private (Admin)
 const updateUser = asyncHandler(async (req, res) => {
-  const { name, email, phone, role, isActive } = req.body;
+  const { firstName, lastName, name, email, phone, role, isActive } = req.body;
+
+  // Handle both firstName/lastName and name field formats
+  const updateData = { email, phone, role, isActive };
+  
+  if (firstName && lastName) {
+    updateData.firstName = firstName;
+    updateData.lastName = lastName;
+  } else if (name) {
+    // If only name is provided, split it into firstName and lastName
+    const nameParts = name.trim().split(' ');
+    updateData.firstName = nameParts[0];
+    updateData.lastName = nameParts.slice(1).join(' ') || nameParts[0];
+  }
 
   const user = await User.findByIdAndUpdate(
     req.params.id,
-    { name, email, phone, role, isActive },
+    updateData,
     { new: true, runValidators: true }
   ).select('-password');
 
@@ -1187,10 +1500,110 @@ const updateUser = asyncHandler(async (req, res) => {
     });
   }
 
+  // Log admin activity
+  try {
+    if (req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: 'user_updated',
+            details: `Updated user: ${user.firstName} ${user.lastName} (${user.email})`,
+            timestamp: new Date()
+          }
+        }
+      });
+    }
+  } catch (logError) {
+    console.error('Failed to log admin activity:', logError);
+  }
+
   res.status(200).json({
     success: true,
-    user,
+    user: {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt
+    },
     message: 'User updated successfully'
+  });
+});
+
+// @desc    Update user status
+// @route   PUT /api/admin/dashboard/users/:id/status
+// @access  Private (Admin)
+const updateUserStatus = asyncHandler(async (req, res) => {
+  const { isActive } = req.body;
+
+  if (typeof isActive !== 'boolean') {
+    return res.status(400).json({
+      success: false,
+      message: 'isActive must be a boolean value'
+    });
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { isActive },
+    { new: true, runValidators: true, upsert: false }
+  ).select('-password');
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found'
+    });
+  }
+
+  // Debug: Log the user object to see what fields are available
+  console.log('🔍 User object after update:', {
+    id: user._id,
+    isActive: user.isActive,
+    firstName: user.firstName,
+    allFields: Object.keys(user.toObject())
+  });
+
+  // Ensure isActive field exists and has the correct value
+  if (user.isActive === undefined) {
+    console.log('⚠️ isActive is undefined, setting it manually');
+    user.isActive = isActive;
+    await user.save();
+  }
+
+  // Log admin activity
+  try {
+    if (req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: 'user_status_updated',
+            details: `${isActive ? 'Activated' : 'Deactivated'} user: ${user.firstName} ${user.lastName} (${user.email})`,
+            timestamp: new Date()
+          }
+        }
+      });
+    }
+  } catch (logError) {
+    console.error('Failed to log admin activity:', logError);
+  }
+
+  res.status(200).json({
+    success: true,
+    user: {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt
+    },
+    message: `User ${isActive ? 'activated' : 'deactivated'} successfully`
   });
 });
 
@@ -1207,7 +1620,32 @@ const deleteUser = asyncHandler(async (req, res) => {
     });
   }
 
-  await user.deleteOne();
+  // Store user info for logging before deletion
+  const userInfo = {
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email
+  };
+
+  // Delete the user from database
+  await User.findByIdAndDelete(req.params.id);
+
+  // Log admin activity
+  try {
+    if (req.admin.id !== 'hardcoded-admin-id') {
+      await AdminUser.findByIdAndUpdate(req.admin.id, {
+        $push: {
+          activityLog: {
+            action: 'user_deleted',
+            details: `Deleted user: ${userInfo.firstName} ${userInfo.lastName} (${userInfo.email})`,
+            timestamp: new Date()
+          }
+        }
+      });
+    }
+  } catch (logError) {
+    console.error('Failed to log admin activity:', logError);
+  }
 
   res.status(200).json({
     success: true,
@@ -1913,9 +2351,11 @@ module.exports = {
   bulkUpdateMerchantStatus,
   createMerchant,
   updateMerchantStatus,
+  deleteMerchant,
   getUsers,
   createUser,
   updateUser,
+  updateUserStatus,
   deleteUser,
   getProducts,
   createProduct,

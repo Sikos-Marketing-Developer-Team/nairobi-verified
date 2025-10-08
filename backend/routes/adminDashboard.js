@@ -8,9 +8,11 @@ const {
   bulkVerifyMerchants,
   createMerchant,
   updateMerchantStatus,
+  deleteMerchant,
   getUsers,
   createUser,
   updateUser,
+  updateUserStatus,
   deleteUser,
   getProducts,
   createProduct,
@@ -45,6 +47,7 @@ router.get('/merchants', checkPermission('merchants.read'), getMerchants);
 router.post('/merchants', checkPermission('merchants.write'), createMerchant);
 router.put('/merchants/:id/status', checkPermission('merchants.approve'), updateMerchantStatus);
 router.put('/merchants/bulk-status', checkPermission('merchants.approve'), bulkUpdateMerchantStatus);
+router.delete('/merchants/:id', checkPermission('merchants.delete'), deleteMerchant);
 
 // Document management routes
 router.get('/merchants/:id/documents', checkPermission('merchants.read'), getMerchantDocuments);
@@ -55,6 +58,7 @@ router.post('/merchants/bulk-verify', checkPermission('merchants.approve'), bulk
 router.get('/users', checkPermission('users.read'), getUsers);
 router.post('/users', checkPermission('users.write'), createUser);
 router.put('/users/:id', checkPermission('users.write'), updateUser);
+router.put('/users/:id/status', checkPermission('users.write'), updateUserStatus);
 router.delete('/users/:id', checkPermission('users.delete'), deleteUser);
 
 // Product management routes

@@ -35,6 +35,19 @@ exports.register = async (req, res) => {
       password
     });
 
+    // Send welcome email (don't block registration if email fails)
+    try {
+      await emailService.sendUserWelcome({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
+      });
+      console.log(`Welcome email sent to: ${user.email}`);
+    } catch (emailError) {
+      console.error('Welcome email failed:', emailError);
+      // Don't fail registration if email fails
+    }
+
     req.login(user, (err) => {
       if (err) {
         console.error('Login error after registration:', err);
@@ -558,37 +571,41 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // CRITICAL FIX: Get current time for consistent comparison
+    // Get current time for consistent comparison
     const currentTime = Date.now();
-    console.log('Current time:', new Date(currentTime).toISOString());
+    console.log('Password reset attempt at:', new Date(currentTime).toISOString());
 
-    // Find user with valid reset token that hasn't expired
-    let user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpire: { $gt: currentTime }
-    });
-    
+    // Find user with the matching reset token (regardless of expiry first)
+    let user = await User.findOne({ resetPasswordToken: resetPasswordToken }) || 
+               await Merchant.findOne({ resetPasswordToken: resetPasswordToken });
+
     if (!user) {
-      user = await Merchant.findOne({
-        resetPasswordToken,
-        resetPasswordExpire: { $gt: currentTime }
+      console.log('🔐 SECURITY: Attempted use of invalid token:', {
+        clientIP: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      });
+
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Invalid or expired reset token. Please request a new password reset.'
       });
     }
 
-    if (!user) {
-      // Additional logging to help debug
-      const expiredUser = await User.findOne({ resetPasswordToken }) || 
-                         await Merchant.findOne({ resetPasswordToken });
-      
-      if (expiredUser) {
-        console.log('Token found but expired:', {
-          tokenExpiry: new Date(expiredUser.resetPasswordExpire).toISOString(),
-          currentTime: new Date(currentTime).toISOString(),
-          expired: expiredUser.resetPasswordExpire <= currentTime
-        });
-      } else {
-        console.log('No user found with this reset token');
-      }
+    // Check if the token has expired
+    if (user.resetPasswordExpire <= currentTime) {
+      const timeSinceExpiry = Math.floor((currentTime - user.resetPasswordExpire) / 1000);
+      console.log('🔐 SECURITY: Attempted use of expired token:', {
+        userEmail: user.email,
+        tokenExpiry: new Date(user.resetPasswordExpire).toISOString(),
+        currentTime: new Date(currentTime).toISOString(),
+        expiredBySeconds: timeSinceExpiry,
+        clientIP: req.ip || req.connection.remoteAddress
+      });
+
+      // Clean up this expired token
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
 
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
@@ -625,7 +642,13 @@ exports.resetPassword = async (req, res) => {
     
     await user.save();
 
-    console.log(`Password reset successful for user: ${user.email}`);
+    // Log successful password reset for security monitoring
+    console.log('🔐 SECURITY: Password reset completed successfully:', {
+      userEmail: user.email,
+      userType: user.businessName ? 'merchant' : 'user',
+      resetTime: new Date().toISOString(),
+      clientIP: req.ip || req.connection.remoteAddress
+    });
 
     res.status(HTTP_STATUS.OK).json({
       success: true,

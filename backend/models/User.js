@@ -61,12 +61,25 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   favorites: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Merchant'
   }],
   resetPasswordToken: String,
   resetPasswordExpire: Date,
+  tempPasswordExpiry: Date,
+  createdByAdmin: {
+    type: Boolean,
+    default: false
+  },
+  createdByAdminId: {
+    type: String,
+    required: false
+  },
   createdAt: {
     type: Date,
     default: Date.now

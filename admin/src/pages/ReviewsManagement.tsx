@@ -14,17 +14,20 @@ import { toast } from 'sonner';
 interface Review {
   _id: string;
   rating: number;
-  comment: string;
+  comment?: string;
+  content?: string;
   user: {
-    name: string;
-    email: string;
-  };
+    name?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  } | null;
   merchant: {
     businessName: string;
-  };
+  } | null;
   createdAt: string;
-  isReported: boolean;
-  status: 'active' | 'hidden' | 'flagged';
+  isReported?: boolean;
+  status?: 'active' | 'hidden' | 'flagged';
 }
 
 const ReviewsManagement: React.FC = () => {
@@ -43,6 +46,23 @@ const ReviewsManagement: React.FC = () => {
     filterReviews();
   }, [reviews, searchTerm, ratingFilter, statusFilter]);
 
+  const getUserName = (user: Review['user']): string => {
+    if (!user) return 'Anonymous';
+    if (user.name) return user.name;
+    if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
+    if (user.firstName) return user.firstName;
+    if (user.email) return user.email;
+    return 'Anonymous';
+  };
+
+  const getReviewText = (review: Review): string => {
+    return review.comment || review.content || 'No comment provided';
+  };
+
+  const getMerchantName = (merchant: Review['merchant']): string => {
+    return merchant?.businessName || 'Unknown Merchant';
+  };
+
   const loadReviews = async () => {
     try {
       setIsLoading(true);
@@ -53,39 +73,7 @@ const ReviewsManagement: React.FC = () => {
     } catch (error) {
       console.error('Failed to load reviews:', error);
       toast.error('Failed to load reviews');
-      // Mock data for demonstration
-      setReviews([
-        {
-          _id: '1',
-          rating: 5,
-          comment: 'Excellent service and fresh products!',
-          user: { name: 'John Doe', email: 'john@example.com' },
-          merchant: { businessName: 'Green Valley Grocers' },
-          createdAt: '2024-01-15T10:30:00Z',
-          isReported: false,
-          status: 'active'
-        },
-        {
-          _id: '2',
-          rating: 1,
-          comment: 'Terrible experience, food was cold and late.',
-          user: { name: 'Jane Smith', email: 'jane@example.com' },
-          merchant: { businessName: 'Urban Eats' },
-          createdAt: '2024-01-18T09:15:00Z',
-          isReported: true,
-          status: 'flagged'
-        },
-        {
-          _id: '3',
-          rating: 4,
-          comment: 'Good quality products, fast delivery.',
-          user: { name: 'Mike Johnson', email: 'mike@example.com' },
-          merchant: { businessName: 'Tech Solutions Kenya' },
-          createdAt: '2024-01-20T14:20:00Z',
-          isReported: false,
-          status: 'active'
-        }
-      ]);
+      setReviews([]);
     } finally {
       setIsLoading(false);
     }
@@ -95,11 +83,16 @@ const ReviewsManagement: React.FC = () => {
     let filtered = reviews;
 
     if (searchTerm) {
-      filtered = filtered.filter(review =>
-        review.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.merchant.businessName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter(review => {
+        const reviewText = getReviewText(review).toLowerCase();
+        const userName = getUserName(review.user).toLowerCase();
+        const merchantName = getMerchantName(review.merchant).toLowerCase();
+        const search = searchTerm.toLowerCase();
+        
+        return reviewText.includes(search) || 
+               userName.includes(search) || 
+               merchantName.includes(search);
+      });
     }
 
     if (ratingFilter !== 'all') {
@@ -137,7 +130,7 @@ const ReviewsManagement: React.FC = () => {
     ));
   };
 
-  const getStatusBadge = (status: string, isReported: boolean) => {
+  const getStatusBadge = (status?: string, isReported?: boolean) => {
     if (isReported) {
       return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Reported</span>;
     }
@@ -150,7 +143,7 @@ const ReviewsManagement: React.FC = () => {
       case 'flagged':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Flagged</span>;
       default:
-        return null;
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Published</span>;
     }
   };
 
@@ -232,7 +225,11 @@ const ReviewsManagement: React.FC = () => {
           <div className="p-8 text-center">
             <MessageSquare className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No reviews found</h3>
-            <p className="text-gray-600">No reviews match your current filters.</p>
+            <p className="text-gray-600">
+              {reviews.length === 0 
+                ? 'No reviews have been submitted yet.' 
+                : 'No reviews match your current filters.'}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -246,16 +243,16 @@ const ReviewsManagement: React.FC = () => {
                       {getStatusBadge(review.status, review.isReported)}
                     </div>
                     
-                    <p className="text-gray-900 mb-3">{review.comment}</p>
+                    <p className="text-gray-900 mb-3">{getReviewText(review)}</p>
                     
                     <div className="flex items-center space-x-4 text-sm text-gray-600">
                       <div className="flex items-center">
                         <User className="h-4 w-4 mr-1" />
-                        {review.user.name}
+                        {getUserName(review.user)}
                       </div>
                       <div className="flex items-center">
                         <Store className="h-4 w-4 mr-1" />
-                        {review.merchant.businessName}
+                        {getMerchantName(review.merchant)}
                       </div>
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
