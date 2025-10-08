@@ -16,7 +16,8 @@ import {
   Instagram,
   Keyboard,
   LayoutDashboard,
-  LogOut
+  LogOut,
+  Store
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
@@ -293,7 +294,14 @@ const Navbar = () => {
           className="hover:text-gray-700 transition-colors font-semibold opacity-90"
           title="Find Verified Vendors and Merchants"
         >
-          Find Vendors
+       <span style={{ 
+  display: 'inline-flex', 
+  alignItems: 'center', 
+  gap: '2px' 
+}}>
+  Shops <Store size={16} fill='#fff'  />
+</span>
+
         </Link>
       </li>
       
@@ -449,7 +457,14 @@ const Navbar = () => {
       className="block hover:text-[#EC5C0A] transition-colors"
       title="Find Verified Vendors and Merchants"
     >
-      Find Vendors
+     <span style={{ 
+  display: 'inline-flex', 
+  alignItems: 'center', 
+  gap: '2px' 
+}}>
+  Shops <Store size={15} fill='#fff'  />
+</span>
+
     </Link>
     
     <Link 

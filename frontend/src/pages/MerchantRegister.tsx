@@ -1,9 +1,8 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Upload, Building, User, Clock, FileText, CheckCircle, X, Trash2 } from 'lucide-react';
+import { MapPin, Upload, Building, User, Clock, FileText, CheckCircle, X, Trash2, EyeClosed, Eye } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
@@ -20,6 +19,14 @@ const MerchantRegister = () => {
   const utilityBillRef = useRef<HTMLInputElement>(null);
   const additionalDocsRef = useRef<HTMLInputElement>(null);
   
+  const [showPassword, setShowPassword] = useState({
+    password: false,
+    confirmPassword: false
+  });
+
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [hasInteractedWithPassword, setHasInteractedWithPassword] = useState(false);
+
   const [uploadedFiles, setUploadedFiles] = useState({
     businessRegistration: [],
     idDocument: [],
@@ -55,6 +62,48 @@ const MerchantRegister = () => {
     }
   });
 
+  // Password requirements configuration
+  const passwordRequirements = [
+    { id: 'length', text: 'At least 8 characters', test: (pwd: string) => pwd.length >= 8 },
+    { id: 'uppercase', text: 'One uppercase letter', test: (pwd: string) => /[A-Z]/.test(pwd) },
+    { id: 'lowercase', text: 'One lowercase letter', test: (pwd: string) => /[a-z]/.test(pwd) },
+    { id: 'number', text: 'One number', test: (pwd: string) => /[0-9]/.test(pwd) },
+    { id: 'special', text: 'One special character', test: (pwd: string) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd) }
+  ];
+
+  // Validate password against all requirements
+  const validatePassword = (password: string) => {
+    const errors: string[] = [];
+    passwordRequirements.forEach(req => {
+      if (!req.test(password)) {
+        errors.push(req.text);
+      }
+    });
+    return errors;
+  };
+
+  // Check if password meets all requirements
+  const isPasswordValid = (password: string) => {
+    return passwordRequirements.every(req => req.test(password));
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setFormData(prev => ({ ...prev, password: value }));
+    setHasInteractedWithPassword(true);
+    
+    // Validate password and update errors
+    const errors = validatePassword(value);
+    setPasswordErrors(errors);
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    if (field === 'password') {
+      handlePasswordChange(value);
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
   const steps = [
     { number: 1, title: 'Basic Information', icon: User },
     { number: 2, title: 'Business Details', icon: Building },
@@ -76,10 +125,6 @@ const MerchantRegister = () => {
     ];
     const completed = requiredDocs.filter(files => files.length > 0).length;
     return Math.round((completed / 3) * 100);
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleHoursChange = (day: string, field: string, value: string | boolean) => {
@@ -112,6 +157,14 @@ const MerchantRegister = () => {
         }
         if (!formData.password.trim()) {
           toast('Password is required', { style: { background: 'crimson', color: 'white' } });
+          return false;
+        }
+        // Check if password meets all requirements
+        if (!isPasswordValid(formData.password)) {
+          toast('Password does not meet requirements', { 
+            style: { background: 'crimson', color: 'white' },
+            description: 'Please check the password requirements below'
+          });
           return false;
         }
         if (formData.password !== formData.confirmPassword) {
@@ -235,7 +288,7 @@ const MerchantRegister = () => {
         
         // Submit to API
         const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
-const response = await fetch(`${apiUrl}/merchants`, {
+        const response = await fetch(`${apiUrl}/merchants`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -437,32 +490,153 @@ const response = await fetch(`${apiUrl}/merchants`, {
                       />
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Password *
-                      </label>
-                      <Input
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
-                        placeholder="Create a strong password"
-                        required
-                      />
+
+                  {/* Password Section with Requirements */}
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Password *
+                        </label>
+                        <div className="relative">
+                          <Input
+                            type={showPassword.password ? "text" : "password"}
+                            value={formData.password}
+                            onChange={(e) => handleInputChange('password', e.target.value)}
+                            placeholder="Create a strong password"
+                            required
+                            className={`pr-10 ${
+                              hasInteractedWithPassword && formData.password && !isPasswordValid(formData.password) 
+                                ? 'border-red-500 focus:ring-red-500' 
+                                : ''
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                            onClick={() => setShowPassword(prev => ({
+                              ...prev,
+                              password: !prev.password
+                            }))}
+                          >
+                            {showPassword.password ? (
+                              <EyeClosed className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Confirm Password *
+                        </label>
+                        <div className="relative">
+                          <Input
+                            type={showPassword.confirmPassword ? "text" : "password"}
+                            value={formData.confirmPassword}
+                            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                            placeholder="Confirm your password"
+                            required
+                            className={`pr-10 ${
+                              formData.confirmPassword && formData.password !== formData.confirmPassword 
+                                ? 'border-red-500 focus:ring-red-500' 
+                                : ''
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                            onClick={() => setShowPassword(prev => ({
+                              ...prev,
+                              confirmPassword: !prev.confirmPassword
+                            }))}
+                          >
+                            {showPassword.confirmPassword ? (
+                              <EyeClosed className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
+                        {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                          <p className="text-red-500 text-xs mt-1">Passwords do not match</p>
+                        )}
+                      </div>
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Confirm Password *
-                      </label>
-                      <Input
-                        type="password"
-                        value={formData.confirmPassword}
-                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                        placeholder="Confirm your password"
-                        required
-                      />
+
+                    {/* Password Requirements */}
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                        Password Requirements:
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                        {passwordRequirements.map((req) => {
+                          const isMet = req.test(formData.password);
+                          return (
+                            <div key={req.id} className="flex items-center text-xs">
+                              <div className={`w-4 h-4 rounded-full flex items-center justify-center mr-2 ${
+                                isMet ? 'bg-green-500' : 'bg-gray-300'
+                              }`}>
+                                {isMet && (
+                                  <CheckCircle className="h-3 w-3 text-white" />
+                                )}
+                              </div>
+                              <span className={isMet ? 'text-green-600 font-medium' : 'text-gray-500'}>
+                                {req.text}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Current Errors Display */}
+                      {hasInteractedWithPassword && passwordErrors.length > 0 && (
+                        <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded">
+                          <p className="text-red-700 text-xs font-medium mb-1">
+                            Missing requirements:
+                          </p>
+                          <ul className="text-red-600 text-xs list-disc list-inside">
+                            {passwordErrors.map((error, index) => (
+                              <li key={index}>{error}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {/* Password Strength Indicator */}
+                      {formData.password && (
+                        <div className="mt-3">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs font-medium text-gray-700">Password Strength:</span>
+                            <span className={`text-xs font-bold ${
+                              isPasswordValid(formData.password) 
+                                ? 'text-green-600' 
+                                : passwordErrors.length <= 2 
+                                  ? 'text-yellow-600' 
+                                  : 'text-red-600'
+                            }`}>
+                              {isPasswordValid(formData.password) 
+                                ? 'Strong' 
+                                : passwordErrors.length <= 2 
+                                  ? 'Medium' 
+                                  : 'Weak'}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className={`h-1.5 rounded-full transition-all duration-300 ${
+                                isPasswordValid(formData.password) 
+                                  ? 'bg-green-500 w-full' 
+                                  : passwordErrors.length <= 2 
+                                    ? 'bg-yellow-500 w-2/3' 
+                                    : 'bg-red-500 w-1/3'
+                              }`}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -857,6 +1031,8 @@ const response = await fetch(`${apiUrl}/merchants`, {
                     type="button"
                     onClick={handleNext}
                     className="bg-primary hover:bg-primary-dark"
+                    // Disable next button if password is invalid in step 1
+                    disabled={currentStep === 1 && (!isPasswordValid(formData.password) || formData.password !== formData.confirmPassword)}
                   >
                     Next
                   </Button>
@@ -864,9 +1040,9 @@ const response = await fetch(`${apiUrl}/merchants`, {
                   <Button
                     type="submit"
                     className="bg-primary hover:bg-primary-dark"
-                    disabled={calculateCompletion() < 100}
+                    disabled={calculateCompletion() < 100 || isSubmitting}
                   >
-                    Submit for Verification
+                    {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
                   </Button>
                 )}
               </div>
