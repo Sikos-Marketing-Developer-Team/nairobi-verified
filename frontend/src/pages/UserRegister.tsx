@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, Mail, Lock, User, Phone, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Phone, Loader2, CheckCircle } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -14,8 +14,12 @@ const UserRegister = () => {
   const { register, googleAuth, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [hasInteractedWithPassword, setHasInteractedWithPassword] = useState(false);
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -25,17 +29,57 @@ const UserRegister = () => {
     phone: ''
   });
 
+  // Password requirements configuration
+  const passwordRequirements = [
+    { id: 'length', text: 'At least 8 characters', test: (pwd: string) => pwd.length >= 8 },
+    { id: 'uppercase', text: 'One uppercase letter', test: (pwd: string) => /[A-Z]/.test(pwd) },
+    { id: 'lowercase', text: 'One lowercase letter', test: (pwd: string) => /[a-z]/.test(pwd) },
+    { id: 'number', text: 'One number', test: (pwd: string) => /[0-9]/.test(pwd) },
+    { id: 'special', text: 'One special character', test: (pwd: string) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd) }
+  ];
+
+  // Validate password against all requirements
+  const validatePassword = (password: string) => {
+    const errors: string[] = [];
+    passwordRequirements.forEach(req => {
+      if (!req.test(password)) {
+        errors.push(req.text);
+      }
+    });
+    return errors;
+  };
+
+  // Check if password meets all requirements
+  const isPasswordValid = (password: string) => {
+    return passwordRequirements.every(req => req.test(password));
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setFormData(prev => ({ ...prev, password: value }));
+    setHasInteractedWithPassword(true);
+    
+    // Validate password and update errors
+    const errors = validatePassword(value);
+    setPasswordErrors(errors);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'password') {
+      handlePasswordChange(value);
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
   // Redirect if already authenticated
   if (isAuthenticated) {
     return <Navigate to="/dashboard" />;
   }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +89,16 @@ const UserRegister = () => {
       toast({
         title: "Passwords don't match",
         description: "Please make sure your passwords match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if password meets all requirements
+    if (!isPasswordValid(formData.password)) {
+      toast({
+        title: "Password doesn't meet requirements",
+        description: "Please check the password requirements below",
         variant: "destructive"
       });
       return;
@@ -106,6 +160,19 @@ const UserRegister = () => {
       description: 'Google authentication was cancelled or failed',
       variant: 'destructive',
     });
+  };
+
+  const isFormValid = () => {
+    return (
+      formData.firstName &&
+      formData.lastName &&
+      formData.email &&
+      formData.phone &&
+      formData.password &&
+      formData.confirmPassword &&
+      isPasswordValid(formData.password) &&
+      formData.password === formData.confirmPassword
+    );
   };
 
   return (
@@ -185,37 +252,131 @@ const UserRegister = () => {
                 />
               </div>
 
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="pl-10 pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
+              {/* Password Section */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className={`pl-10 pr-10 ${
+                      hasInteractedWithPassword && formData.password && !isPasswordValid(formData.password) 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : ''
+                    }`}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
 
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  placeholder="Confirm Password"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className="pl-10"
-                  required
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    placeholder="Confirm Password"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    className={`pl-10 pr-10 ${
+                      formData.confirmPassword && formData.password !== formData.confirmPassword 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : ''
+                    }`}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                  <p className="text-red-500 text-xs mt-1">Passwords do not match</p>
+                )}
+
+                {/* Password Requirements */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    Password Requirements:
+                  </h4>
+                  <div className="grid grid-cols-1 gap-1">
+                    {passwordRequirements.map((req) => {
+                      const isMet = req.test(formData.password);
+                      return (
+                        <div key={req.id} className="flex items-center text-xs">
+                          <div className={`w-4 h-4 rounded-full flex items-center justify-center mr-2 ${
+                            isMet ? 'bg-green-500' : 'bg-gray-300'
+                          }`}>
+                            {isMet && (
+                              <CheckCircle className="h-3 w-3 text-white" />
+                            )}
+                          </div>
+                          <span className={isMet ? 'text-green-600 font-medium' : 'text-gray-500'}>
+                            {req.text}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Current Errors Display */}
+                  {hasInteractedWithPassword && passwordErrors.length > 0 && (
+                    <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded">
+                      <p className="text-red-700 text-xs font-medium mb-1">
+                        Missing requirements:
+                      </p>
+                      <ul className="text-red-600 text-xs list-disc list-inside">
+                        {passwordErrors.map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {/* Password Strength Indicator */}
+                  {formData.password && (
+                    <div className="mt-3">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-medium text-gray-700">Password Strength:</span>
+                        <span className={`text-xs font-bold ${
+                          isPasswordValid(formData.password) 
+                            ? 'text-green-600' 
+                            : passwordErrors.length <= 2 
+                              ? 'text-yellow-600' 
+                              : 'text-red-600'
+                        }`}>
+                          {isPasswordValid(formData.password) 
+                            ? 'Strong' 
+                            : passwordErrors.length <= 2 
+                              ? 'Medium' 
+                              : 'Weak'}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div 
+                          className={`h-1.5 rounded-full transition-all duration-300 ${
+                            isPasswordValid(formData.password) 
+                              ? 'bg-green-500 w-full' 
+                              : passwordErrors.length <= 2 
+                                ? 'bg-yellow-500 w-2/3' 
+                                : 'bg-red-500 w-1/3'
+                          }`}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center">
@@ -233,7 +394,7 @@ const UserRegister = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary-dark text-white"
-                disabled={localLoading || isLoading}
+                disabled={localLoading || isLoading || !isFormValid()}
               >
                 {(localLoading || isLoading) ? (
                   <>
