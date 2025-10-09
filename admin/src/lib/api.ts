@@ -36,6 +36,7 @@ api.interceptors.response.use(
 );
 
 // Auth API
+// Auth API - Updated with proper reset password flow
 export const authAPI = {
   register: (userData: any) => api.post('/auth/register', userData),
   registerMerchant: (merchantData: any) => api.post('/auth/register/merchant', merchantData),
@@ -44,10 +45,16 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   logout: () => api.get('/auth/logout'),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token: string, password: string) => api.post(`/auth/reset-password/${token}`, { password }),
+  
+  // Fixed reset password endpoints
+  resetPassword: (token: string, password: string) => 
+    api.post(`/auth/reset-password/${token}`, { password }),
+  
+  validateResetToken: (token: string) => 
+    api.get(`/auth/validate-reset-token/${token}`),
+    
   updateProfile: (userData: any) => api.put('/users/me', userData)
 };
-
 // Users API
 export const usersAPI = {
   getUsers: () => api.get('/users'),
