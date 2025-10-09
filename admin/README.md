@@ -336,7 +336,7 @@ For technical support or questions:
 This project is part of the Nairobi Verified platform.
 
 ---
-
+https://nairobi-verified-admin.onrender.com/merchants
 **Version**: 1.0.0  
 **Last Updated**: January 2024  
 **Maintainer**: Nairobi Verified Team
