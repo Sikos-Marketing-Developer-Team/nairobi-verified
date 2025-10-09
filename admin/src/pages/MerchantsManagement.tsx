@@ -376,7 +376,7 @@ const MerchantsManagement: React.FC = () => {
   // DELETE - Single merchant (FIXED: using correct endpoint)
   const handleDeleteMerchant = async (merchantId: string): Promise<void> => {
     try {
-      const response = await adminAPI.deleteMerchant(merchantId);
+      const response = await adminAPI.deleteMerchant([merchantId]);
       if (response.data.success) {
         setMerchants(prev => prev.filter(merchant => merchant._id !== merchantId));
         toast.success('Merchant deleted successfully!');
@@ -434,10 +434,8 @@ const MerchantsManagement: React.FC = () => {
           toast.success(`${selectedMerchants.length} merchants unfeatured successfully`);
           break;
         case 'delete':
-          // Delete merchants one by one since no bulk delete exists
-          await Promise.all(
-            selectedMerchants.map(id => adminAPI.deleteMerchant(id))
-          );
+          // Delete merchants in bulk using the correct API signature
+          await adminAPI.deleteMerchant(selectedMerchants);
           toast.success(`${selectedMerchants.length} merchants deleted successfully`);
           break;
       }
