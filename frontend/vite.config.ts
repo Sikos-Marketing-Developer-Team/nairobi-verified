@@ -9,10 +9,13 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'https://nairobi-verified-backend-4c1b.onrender.com',
+        target: mode === 'development' 
+          ? 'http://localhost:5000'  // Local backend in development
+          : 'https://nairobi-verified-backend-4c1b.onrender.com', // Production backend
         changeOrigin: true,
         secure: false,
-        withCredentials: true
+        withCredentials: true,
+        rewrite: (path) => path // Keep the /api prefix
       }
     }
   },
@@ -31,11 +34,9 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Keep React and React-DOM together in a single chunk
           'react-vendor': ['react', 'react-dom'],
-          // UI libraries in separate chunks
           'lucide': ['lucide-react'],
-          'radix': ['@radix-ui/react-slot', '@radix-ui/react-dialog', '@radix-ui/react-toast'], // add your specific radix imports
+          'radix': ['@radix-ui/react-slot', '@radix-ui/react-dialog', '@radix-ui/react-toast'],
         },
       },
     },
