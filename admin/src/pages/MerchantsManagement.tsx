@@ -22,7 +22,10 @@ import {
   Activity,
   FileCheck,
   Clock3,
-  RefreshCw
+  RefreshCw,
+  Edit,
+  Save,
+  X
 } from 'lucide-react';
 import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
@@ -128,10 +131,12 @@ const MerchantsManagement: React.FC = () => {
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'status' | 'completeness'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [refreshing, setRefreshing] = useState(false);
-
-  // Add this state for the add merchant modal
+  const [editingMerchant, setEditingMerchant] = useState<Merchant | null>(null);
   const [showAddMerchantModal, setShowAddMerchantModal] = useState<boolean>(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [merchantToDelete, setMerchantToDelete] = useState<string | null>(null);
 
+  // READ - Load merchants
   useEffect(() => {
     loadMerchants();
   }, []);
@@ -235,7 +240,49 @@ const MerchantsManagement: React.FC = () => {
     setFilteredMerchants(filtered);
   }, [merchants, searchTerm, filterStatus, sortBy, sortOrder]);
 
-  // Proper verify merchant function
+  // CREATE - Add new merchant
+  const handleAddMerchant = async (newMerchantData: Omit<Merchant, '_id' | 'createdAt' | 'updatedAt'>): Promise<void> => {
+    try {
+      const response = await adminAPI.createMerchant(newMerchantData);
+      if (response.data.success) {
+        setMerchants(prev => [response.data.merchant, ...prev]);
+        toast.success('Merchant added successfully!');
+        setShowAddMerchantModal(false);
+      }
+    } catch (error) {
+      console.error('Error adding merchant:', error);
+      toast.error('Failed to add merchant. Please try again.');
+    }
+  };
+
+  // UPDATE - Edit merchant
+  const handleEditMerchant = (merchant: Merchant) => {
+    setEditingMerchant({...merchant});
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMerchant) return;
+
+    try {
+      const response = await adminAPI.updateMerchant(editingMerchant._id, editingMerchant);
+      if (response.data.success) {
+        setMerchants(prev => prev.map(merchant => 
+          merchant._id === editingMerchant._id ? response.data.merchant : merchant
+        ));
+        setEditingMerchant(null);
+        toast.success('Merchant updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating merchant:', error);
+      toast.error('Failed to update merchant. Please try again.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMerchant(null);
+  };
+
+  // UPDATE - Verify merchant
   const handleVerifyMerchant = async (merchantId: string): Promise<void> => {
     try {
       // Update local state immediately for better UX
@@ -264,7 +311,7 @@ const MerchantsManagement: React.FC = () => {
     }
   };
 
-  // Update the toggle status function as well
+  // UPDATE - Toggle merchant status
   const handleToggleStatus = async (merchantId: string, currentStatus: boolean): Promise<void> => {
     try {
       const newStatus = !currentStatus;
@@ -295,7 +342,58 @@ const MerchantsManagement: React.FC = () => {
     }
   };
 
-  const handleBulkAction = async (action: 'verify' | 'activate' | 'deactivate' | 'delete') => {
+  // UPDATE - Toggle featured status
+  const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean): Promise<void> => {
+    try {
+      const newFeaturedStatus = !currentFeatured;
+      
+      setMerchants(prev => prev.map(merchant => 
+        merchant._id === merchantId 
+          ? { ...merchant, featured: newFeaturedStatus, updatedAt: new Date().toISOString() }
+          : merchant
+      ));
+
+      const response = await adminAPI.updateMerchant(merchantId, { featured: newFeaturedStatus });
+      if (response.data.success) {
+        toast.success(`Merchant ${newFeaturedStatus ? 'added to' : 'removed from'} featured list`);
+      } else {
+        throw new Error('Failed to update featured status');
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+      
+      setMerchants(prev => prev.map(merchant => 
+        merchant._id === merchantId 
+          ? { ...merchant, featured: currentFeatured }
+          : merchant
+      ));
+      toast.error('Failed to update featured status');
+    }
+  };
+
+  // DELETE - Single merchant
+  const handleDeleteMerchant = async (merchantId: string): Promise<void> => {
+    try {
+      const response = await adminAPI.deleteMerchant([merchantId]); // Your API expects array
+      if (response.data.success) {
+        setMerchants(prev => prev.filter(merchant => merchant._id !== merchantId));
+        toast.success('Merchant deleted successfully!');
+        setShowDeleteConfirm(false);
+        setMerchantToDelete(null);
+      }
+    } catch (error) {
+      console.error('Error deleting merchant:', error);
+      toast.error('Failed to delete merchant. Please try again.');
+    }
+  };
+
+  const confirmDelete = (merchantId: string) => {
+    setMerchantToDelete(merchantId);
+    setShowDeleteConfirm(true);
+  };
+
+  // Bulk Operations - CORRECTED to match your API
+  const handleBulkAction = async (action: 'verify' | 'activate' | 'deactivate' | 'delete' | 'feature' | 'unfeature') => {
     if (selectedMerchants.length === 0) {
       toast.error('Please select merchants first');
       return;
@@ -308,24 +406,43 @@ const MerchantsManagement: React.FC = () => {
           toast.success(`${selectedMerchants.length} merchants verified successfully`);
           break;
         case 'activate':
-          await adminAPI.updateMerchantStatus(selectedMerchants, true); // Updated to handle bulk
+          await adminAPI.updateMerchantStatus(selectedMerchants, true);
           toast.success(`${selectedMerchants.length} merchants activated successfully`);
           break;
         case 'deactivate':
-          await adminAPI.updateMerchantStatus(selectedMerchants, false); // Updated to handle bulk
+          await adminAPI.updateMerchantStatus(selectedMerchants, false);
           toast.success(`${selectedMerchants.length} merchants deactivated successfully`);
           break;
+        case 'feature':
+          // Update each merchant individually for featured status
+          await Promise.all(
+            selectedMerchants.map(id => 
+              adminAPI.updateMerchant(id, { featured: true })
+            )
+          );
+          toast.success(`${selectedMerchants.length} merchants featured successfully`);
+          break;
+        case 'unfeature':
+          // Update each merchant individually for featured status
+          await Promise.all(
+            selectedMerchants.map(id => 
+              adminAPI.updateMerchant(id, { featured: false })
+            )
+          );
+          toast.success(`${selectedMerchants.length} merchants unfeatured successfully`);
+          break;
         case 'delete':
-          await adminAPI.deleteMerchant(selectedMerchants); // Updated to handle bulk
+          await adminAPI.deleteMerchant(selectedMerchants);
           toast.success(`${selectedMerchants.length} merchants deleted successfully`);
           break;
       }
       
       setSelectedMerchants([]);
       setShowBulkActions(false);
-      loadMerchants(true);
+      loadMerchants(true); // Refresh data
     } catch (error: any) {
-      toast.error(`Failed to ${action} merchants`);
+      console.error(`Bulk ${action} error:`, error);
+      toast.error(`Failed to ${action} merchants: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -335,6 +452,14 @@ const MerchantsManagement: React.FC = () => {
     } else {
       setSelectedMerchants(filteredMerchants.map(m => m._id));
     }
+  };
+
+  const handleSelectMerchant = (merchantId: string) => {
+    setSelectedMerchants(prev => 
+      prev.includes(merchantId) 
+        ? prev.filter(id => id !== merchantId)
+        : [...prev, merchantId]
+    );
   };
 
   const getStatusColor = (merchant: Merchant) => {
@@ -358,30 +483,6 @@ const MerchantsManagement: React.FC = () => {
   if (isLoading) {
     return <MerchantsManagementSkeleton />;
   }
-
-  const handleAddMerchant = async (newMerchantData: Omit<Merchant, '_id' | 'createdAt' | 'updatedAt'>): Promise<void> => {
-    try {
-      const merchantToAdd: Merchant = {
-        ...newMerchantData,
-        _id: `merchant-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        verified: newMerchantData.verified ?? false,
-        isActive: newMerchantData.isActive ?? true,
-        profileCompleteness: newMerchantData.profileCompleteness ?? 60,
-        documentsCompleteness: newMerchantData.documentsCompleteness ?? 0,
-      };
-
-      const response = await adminAPI.createMerchant(merchantToAdd); // New API call
-      if (response.data.success) {
-        setMerchants(prev => [response.data.merchant, ...prev]);
-        toast.success('Merchant added successfully!');
-      }
-    } catch (error) {
-      console.error('Error adding merchant:', error);
-      toast.error('Failed to add merchant. Please try again.');
-    }
-  };
 
   const stats = [
     {
@@ -485,6 +586,20 @@ const MerchantsManagement: React.FC = () => {
                     >
                       <XCircle className="w-4 h-4 inline mr-2" />
                       Deactivate Selected
+                    </button>
+                    <button
+                      onClick={() => handleBulkAction('feature')}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Star className="w-4 h-4 inline mr-2" />
+                      Feature Selected
+                    </button>
+                    <button
+                      onClick={() => handleBulkAction('unfeature')}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Star className="w-4 h-4 inline mr-2" />
+                      Unfeature Selected
                     </button>
                     <hr className="my-1" />
                     <button
@@ -665,7 +780,7 @@ const MerchantsManagement: React.FC = () => {
         ))}
       </div>
 
-      {/* Add Merchant Button - NOW WITH FUNCTIONALITY */}
+      {/* Add Merchant Button */}
       <div className="flex justify-end mr-7">
         <button
           onClick={() => setShowAddMerchantModal(true)}
@@ -700,6 +815,16 @@ const MerchantsManagement: React.FC = () => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center flex-1">
+                    {/* Selection Checkbox */}
+                    <div className="flex-shrink-0 mr-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedMerchants.includes(merchant._id)}
+                        onChange={() => handleSelectMerchant(merchant._id)}
+                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                      />
+                    </div>
+                    
                     <div className="flex-shrink-0">
                       <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center transition-all duration-200 hover:from-green-200 hover:to-green-300">
                         <Store className="h-6 w-6 text-green-600" />
@@ -748,6 +873,14 @@ const MerchantsManagement: React.FC = () => {
                             </button>
                             
                             <button
+                              onClick={() => handleEditMerchant(merchant)}
+                              className="p-2 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-all duration-200"
+                              title="Edit Merchant"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            
+                            <button
                               onClick={() => {
                                 setSelectedMerchant(merchant);
                                 setShowDocumentsModal(true);
@@ -757,6 +890,18 @@ const MerchantsManagement: React.FC = () => {
                               title="View Documents"
                             >
                               <FileText className="w-4 h-4" />
+                            </button>
+                            
+                            <button
+                              onClick={() => handleToggleFeatured(merchant._id, merchant.featured || false)}
+                              className={`p-2 rounded-full transition-all duration-200 ${
+                                merchant.featured 
+                                  ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50' 
+                                  : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'
+                              }`}
+                              title={merchant.featured ? 'Remove from Featured' : 'Add to Featured'}
+                            >
+                              <Star className="w-4 h-4" />
                             </button>
                             
                             {!merchant.verified && (
@@ -780,6 +925,14 @@ const MerchantsManagement: React.FC = () => {
                             >
                               <UserCheck className="w-4 h-4" />
                             </button>
+
+                            <button
+                              onClick={() => confirmDelete(merchant._id)}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200"
+                              title="Delete Merchant"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -799,6 +952,28 @@ const MerchantsManagement: React.FC = () => {
         onAddMerchant={handleAddMerchant}
       />
 
+      {/* Edit Merchant Modal */}
+      {editingMerchant && (
+        <EditMerchantModal
+          merchant={editingMerchant}
+          onSave={handleSaveEdit}
+          onCancel={handleCancelEdit}
+          onUpdateField={(field, value) => setEditingMerchant(prev => prev ? {...prev, [field]: value} : null)}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <DeleteConfirmationModal
+          onConfirm={() => merchantToDelete && handleDeleteMerchant(merchantToDelete)}
+          onCancel={() => {
+            setShowDeleteConfirm(false);
+            setMerchantToDelete(null);
+          }}
+          merchantName={merchants.find(m => m._id === merchantToDelete)?.businessName || ''}
+        />
+      )}
+
       {/* Merchant Details Modal */}
       {showMerchantDetails && selectedMerchant && (
         <MerchantDetailsModal
@@ -810,6 +985,9 @@ const MerchantsManagement: React.FC = () => {
           }}
           onVerify={handleVerifyMerchant}
           onToggleStatus={handleToggleStatus}
+          onEdit={handleEditMerchant}
+          onDelete={confirmDelete}
+          onToggleFeatured={handleToggleFeatured}
         />
       )}
 
@@ -828,19 +1006,258 @@ const MerchantsManagement: React.FC = () => {
   );
 };
 
-// Merchant Details Modal Component
+// Edit Merchant Modal Component
+interface EditMerchantModalProps {
+  merchant: Merchant;
+  onSave: () => void;
+  onCancel: () => void;
+  onUpdateField: (field: string, value: any) => void;
+}
+
+const EditMerchantModal: React.FC<EditMerchantModalProps> = ({ 
+  merchant, 
+  onSave, 
+  onCancel, 
+  onUpdateField 
+}) => {
+  useEffect(() => {
+    scrollToTop('smooth');
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">Edit Merchant</h2>
+          <button
+            onClick={onCancel}
+            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+          >
+            <XCircle className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          {/* Basic Info */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Business Name *</label>
+                <input
+                  type="text"
+                  value={merchant.businessName}
+                  onChange={(e) => onUpdateField('businessName', e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Owner Name</label>
+                <input
+                  type="text"
+                  value={merchant.ownerName || ''}
+                  onChange={(e) => onUpdateField('ownerName', e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email *</label>
+                <input
+                  type="email"
+                  value={merchant.email}
+                  onChange={(e) => onUpdateField('email', e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Phone *</label>
+                <input
+                  type="tel"
+                  value={merchant.phone}
+                  onChange={(e) => onUpdateField('phone', e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">Address</label>
+                <input
+                  type="text"
+                  value={merchant.address || ''}
+                  onChange={(e) => onUpdateField('address', e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Business Type</label>
+                <input
+                  type="text"
+                  value={merchant.businessType || ''}
+                  onChange={(e) => onUpdateField('businessType', e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Category</label>
+                <input
+                  type="text"
+                  value={merchant.category || ''}
+                  onChange={(e) => onUpdateField('category', e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Status Settings */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Status Settings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="verified"
+                  checked={merchant.verified}
+                  onChange={(e) => onUpdateField('verified', e.target.checked)}
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                />
+                <label htmlFor="verified" className="ml-2 text-sm text-gray-700">
+                  Verified Merchant
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="active"
+                  checked={merchant.isActive}
+                  onChange={(e) => onUpdateField('isActive', e.target.checked)}
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                />
+                <label htmlFor="active" className="ml-2 text-sm text-gray-700">
+                  Active Account
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="featured"
+                  checked={merchant.featured || false}
+                  onChange={(e) => onUpdateField('featured', e.target.checked)}
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                />
+                <label htmlFor="featured" className="ml-2 text-sm text-gray-700">
+                  Featured Merchant
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-3 pt-6 border-t">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSave}
+            className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200"
+          >
+            <Save className="w-4 h-4 inline mr-2" />
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Delete Confirmation Modal Component
+interface DeleteConfirmationModalProps {
+  onConfirm: () => void;
+  onCancel: () => void;
+  merchantName: string;
+}
+
+const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ 
+  onConfirm, 
+  onCancel, 
+  merchantName 
+}) => {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Confirm Deletion</h2>
+          <button
+            onClick={onCancel}
+            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="text-center">
+          <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Delete {merchantName}?
+          </h3>
+          <p className="text-sm text-gray-500 mb-6">
+            This action cannot be undone. This will permanently delete the merchant account and all associated data.
+          </p>
+        </div>
+
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
+          >
+            <Trash2 className="w-4 h-4 inline mr-2" />
+            Delete Merchant
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Merchant Details Modal Component (Enhanced)
 interface MerchantDetailsModalProps {
   merchant: Merchant;
   onClose: () => void;
   onVerify: (merchantId: string) => void;
   onToggleStatus: (merchantId: string, currentStatus: boolean) => void;
+  onEdit: (merchant: Merchant) => void;
+  onDelete: (merchantId: string) => void;
+  onToggleFeatured: (merchantId: string, currentFeatured: boolean) => void;
 }
 
 const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({ 
   merchant, 
   onClose, 
   onVerify, 
-  onToggleStatus 
+  onToggleStatus,
+  onEdit,
+  onDelete,
+  onToggleFeatured
 }) => {
   useEffect(() => {
     scrollToTop('smooth');
@@ -896,6 +1313,12 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
                   <p className="mt-1 text-sm text-gray-900">{merchant.category}</p>
                 </div>
               )}
+              {merchant.businessType && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Business Type</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.businessType}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -936,9 +1359,36 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
                 </div>
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700">Featured</label>
+                <div className="mt-1 flex items-center">
+                  {merchant.featured ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      <Star className="w-3 h-3 mr-1" />
+                      Featured
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      Not Featured
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700">Member Since</label>
                 <p className="mt-1 text-sm text-gray-900">
                   {new Date(merchant.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Last Updated</label>
+                <p className="mt-1 text-sm text-gray-900">
+                  {merchant.updatedAt ? new Date(merchant.updatedAt).toLocaleDateString() : 'Never'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Profile Completeness</label>
+                <p className="mt-1 text-sm text-gray-900">
+                  {merchant.profileCompleteness || 0}%
                 </p>
               </div>
             </div>
@@ -974,6 +1424,24 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
           >
             Close
           </button>
+          <button
+            onClick={() => onEdit(merchant)}
+            className="px-4 py-2 text-white bg-yellow-600 rounded-md hover:bg-yellow-700 transition-colors duration-200"
+          >
+            <Edit className="w-4 h-4 inline mr-2" />
+            Edit
+          </button>
+          <button
+            onClick={() => onToggleFeatured(merchant._id, merchant.featured || false)}
+            className={`px-4 py-2 text-white rounded-md transition-colors duration-200 ${
+              merchant.featured 
+                ? 'bg-gray-600 hover:bg-gray-700' 
+                : 'bg-purple-600 hover:bg-purple-700'
+            }`}
+          >
+            <Star className="w-4 h-4 inline mr-2" />
+            {merchant.featured ? 'Unfeature' : 'Feature'}
+          </button>
           {!merchant.verified && (
             <button
               onClick={() => {
@@ -997,6 +1465,16 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
             }`}
           >
             {merchant.isActive ? 'Deactivate' : 'Activate'}
+          </button>
+          <button
+            onClick={() => {
+              onDelete(merchant._id);
+              onClose();
+            }}
+            className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
+          >
+            <Trash2 className="w-4 h-4 inline mr-2" />
+            Delete
           </button>
         </div>
       </div>
