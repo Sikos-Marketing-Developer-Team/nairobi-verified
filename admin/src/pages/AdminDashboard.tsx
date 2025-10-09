@@ -25,7 +25,9 @@ interface DashboardStats {
   totalUsers: number;
   totalMerchants: number;
   verifiedMerchants: number;
+  activeMerchants: number;
   pendingVerifications: number;
+  pendingMerchants: number;
   totalProducts: number;
   activeProducts: number;
   totalOrders: number;
@@ -53,12 +55,6 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Navigation functions
-  // const navigateTo = (path: string) => { // Commented out for build optimization
-  //   navigate(path);
-  // };
-
-  // Quick action functions
   const handleQuickAction = async (action: string) => {
     try {
       switch (action) {
@@ -93,7 +89,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Activity action handler
   const handleActivityAction = (activity: RecentActivity) => {
     switch (activity.type) {
       case 'user_signup':
@@ -168,18 +163,29 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, growth, color = "blue" }: {
+  const StatCard = ({ 
+    title, 
+    value, 
+    icon: Icon, 
+    growth, 
+    color = "blue",
+    subtitle 
+  }: {
     title: string;
     value: string | number;
     icon: React.ElementType;
     growth?: number;
     color?: string;
+    subtitle?: string;
   }) => (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-medium text-gray-600">{title}</p>
           <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
+          {subtitle && (
+            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+          )}
           {growth !== undefined && (
             <div className="flex items-center mt-2">
               {growth >= 0 ? (
@@ -237,31 +243,87 @@ const AdminDashboard: React.FC = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
-          title="Total Users"
-          value={formatNumber(stats?.totalUsers || 0)}
-          icon={Users}
-          growth={stats?.userGrowth}
-          color="blue"
-        />
-        <StatCard
           title="Total Merchants"
           value={formatNumber(stats?.totalMerchants || 0)}
           icon={Store}
           growth={stats?.merchantGrowth}
-          color="green"
+          color="blue"
         />
         <StatCard
-          title="Verified Merchants"
+          title="Verified & Active"
           value={formatNumber(stats?.verifiedMerchants || 0)}
           icon={CheckCircle}
-          color="emerald"
+          color="green"
+          subtitle="Verified + Active merchants"
         />
         <StatCard
-          title="Pending Verifications"
-          value={formatNumber(stats?.pendingVerifications || 0)}
+          title="Active Merchants"
+          value={formatNumber(stats?.activeMerchants || 0)}
+          icon={Activity}
+          color="emerald"
+          subtitle="All active (inc. unverified)"
+        />
+        <StatCard
+          title="Needs Attention"
+          value={formatNumber(stats?.pendingMerchants || 0)}
           icon={Clock}
           color="orange"
+          subtitle="Pending verification or inactive"
         />
+      </div>
+
+      {/* More detailed breakdown */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Merchant Status Breakdown</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-2xl font-bold text-green-600">
+              {stats?.verifiedMerchants || 0}
+            </div>
+            <div className="text-sm text-gray-600 mt-1">
+              Verified & Active
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Ready to operate
+            </div>
+          </div>
+          
+          <div className="text-center p-4 bg-yellow-50 rounded-lg">
+            <div className="text-2xl font-bold text-yellow-600">
+              {(stats?.activeMerchants || 0) - (stats?.verifiedMerchants || 0)}
+            </div>
+            <div className="text-sm text-gray-600 mt-1">
+              Active Unverified
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Need verification
+            </div>
+          </div>
+          
+          <div className="text-center p-4 bg-orange-50 rounded-lg">
+            <div className="text-2xl font-bold text-orange-600">
+              {stats?.pendingVerifications || 0}
+            </div>
+            <div className="text-sm text-gray-600 mt-1">
+              Pending Review
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Documents submitted
+            </div>
+          </div>
+          
+          <div className="text-center p-4 bg-red-50 rounded-lg">
+            <div className="text-2xl font-bold text-red-600">
+              {(stats?.totalMerchants || 0) - (stats?.activeMerchants || 0)}
+            </div>
+            <div className="text-sm text-gray-600 mt-1">
+              Inactive
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Suspended or disabled
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Secondary Stats */}
