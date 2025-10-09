@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Star, MapPin, Check, Bookmark, ArrowLeft, Phone, Mail, Shield, Truck, Clock, Users, Image, ChevronLeft, ChevronRight, Store } from 'lucide-react';
 import { FaWhatsapp, FaInstagram, FaTwitter } from 'react-icons/fa';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { merchantsAPI } from '@/lib/api';
+import { Merchant } from '@/types';
 import './product.css'
 
-// Mock products data with complete information including merchantId
+// Mock products data with merchant IDs that match actual merchant data
 const products = [
   {
     id: 1,
@@ -180,12 +182,39 @@ const ProductPage = () => {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [activeTab, setActiveTab] = useState("recently-viewed");
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const product = selectedProduct;
   const galleryRef = useRef(null);
 
   // Use the wishlist hook
   const { isInWishlist, toggleWishlist } = useWishlist();
+
+  // Fetch merchants data from the same API as merchants page
+  useEffect(() => {
+    const fetchMerchants = async () => {
+      try {
+        setLoading(true);
+        const response = await merchantsAPI.getMerchants();
+        setMerchants(response.data.data);
+      } catch (err) {
+        setError('Failed to load merchant data');
+        console.error('Error fetching merchants:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMerchants();
+  }, []);
+
+  // Find the current merchant for the selected product
+  const currentMerchant = merchants.find(merchant => 
+    merchant._id === product.merchantId || 
+    merchant.businessName.toLowerCase().includes(product.merchant.toLowerCase())
+  );
 
   // Minimum swipe distance required
   const minSwipeDistance = 50;
@@ -248,6 +277,33 @@ const ProductPage = () => {
   const handleWishlistClick = () => {
     toggleWishlist(product);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EC5C0A] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading product information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 bg-[#EC5C0A] hover:bg-orange-700"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-white">
@@ -373,8 +429,10 @@ const ProductPage = () => {
             {/* Product Header */}
             <header className="mb-4 md:mb-6">
               <div className="flex items-center flex-wrap gap-2 md:gap-3 mb-3">
-                <h2 className="text-base md:text-lg font-medium text-gray-700">{product.merchant}</h2>
-                {product.verified && (
+                <h2 className="text-base md:text-lg font-medium text-gray-700">
+                  {currentMerchant ? currentMerchant.businessName : product.merchant}
+                </h2>
+                {currentMerchant?.verified && (
                   <div className="flex items-center gap-1 bg-green-100 text-green-700 text-xs px-2 md:px-3 py-1 rounded-full font-medium">
                     <Check className="h-3 w-3" />
                     <span className="hidden sm:inline">Verified Seller</span>
@@ -428,16 +486,16 @@ const ProductPage = () => {
                   Description
                 </h3>
                 <p className="text-xs text-gray-700 leading-relaxed">
-                  {product.description}
+                  {currentMerchant?.description || product.description}
                 </p>
               </div>
 
-              {/* Visit Shop CTA Button - Added below description */}
+              {/* View My Shop CTA Button - Updated to use actual merchant ID */}
               <div className="col-span-2 mt-3">
-                <Link to={`/merchant/${product.merchantId}`}>
+                <Link to={`/merchant/${currentMerchant?._id || product.merchantId}`}>
                   <Button className="w-full bg-[#FDF8E9] hover:bg-[#EC5C0A] text-[#EC5C0A] hover:text-white border-2 border-[#EC5C0A] font-semibold py-3 text-sm transition-all duration-300 transform hover:scale-[1.02] shadow-sm hover:shadow-md">
                     <Store className="h-4 w-4 mr-2" />
-                    Visit Our Shop
+                    View My Shop
                   </Button>
                 </Link>
               </div>
@@ -465,24 +523,23 @@ const ProductPage = () => {
                 </div>
 
                 {/* Wishlist Button */}
-               {/* Wishlist Button */}
-<div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg flex flex-col">
-  <Button 
-    variant="outline" 
-    className={`flex-grow border-2 font-medium py-2 px-3 text-xs sm:text-sm flex items-center justify-center transition-all duration-300 ${
-      isInWishlist(product.id) 
-        ? 'bg-blue-50 border-blue-300 text-green-600 hover:bg-blue-100' 
-        : 'border-blue-200 hover:bg-blue-50 text-green-600 hover:text-green-700'
-    }`}
-    onClick={handleWishlistClick}
-    aria-label={`${isInWishlist(product.id) ? 'Remove from' : 'Add to'} wishlist`}
-  >
-    <Bookmark 
-      className={`h-4 w-4 mr-1 ${isInWishlist(product.id) ? 'fill-green-600' : ''}`} 
-    />
-    {isInWishlist(product.id) ? 'Saved' : 'Wishlist'}
-  </Button>
-</div>
+                <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg flex flex-col">
+                  <Button 
+                    variant="outline" 
+                    className={`flex-grow border-2 font-medium py-2 px-3 text-xs sm:text-sm flex items-center justify-center transition-all duration-300 ${
+                      isInWishlist(product.id) 
+                        ? 'bg-green-50 border-green-300 text-green-600 hover:bg-green-100' 
+                        : 'border-green-200 hover:bg-green-50 text-green-600 hover:text-green-700'
+                    }`}
+                    onClick={handleWishlistClick}
+                    aria-label={`${isInWishlist(product.id) ? 'Remove from' : 'Add to'} wishlist`}
+                  >
+                    <Bookmark 
+                      className={`h-4 w-4 mr-1 ${isInWishlist(product.id) ? 'fill-green-600' : ''}`} 
+                    />
+                    {isInWishlist(product.id) ? 'Saved' : 'Wishlist'}
+                  </Button>
+                </div>
               </div>
 
               {/* Location */}
@@ -492,7 +549,7 @@ const ProductPage = () => {
                   <div>
                     <h3 className="font-semibold text-[#EC5C0A] mb-1 text-sm md:text-base">Location</h3>
                     <p className="text-orange-800 text-xs md:text-sm leading-relaxed">
-                      {product.shopLocation}
+                      {currentMerchant?.location || product.shopLocation}
                     </p>
                   </div>
                 </div>
@@ -550,32 +607,32 @@ const ProductPage = () => {
                   </a>
                 </Button>
 
-                {/* Visit Shop Button in Desktop Sidebar */}
-                <Link to={`/merchant/${product.merchantId}`} className="block mb-3">
+                {/* View My Shop Button in Desktop Sidebar - Updated to use actual merchant ID */}
+                <Link to={`/merchant/${currentMerchant?._id || product.merchantId}`} className="block mb-3">
                   <Button 
                     variant="outline" 
                     className="w-full bg-[#FDF8E9] hover:bg-[#EC5C0A] text-[#EC5C0A] hover:text-white border-2 border-[#EC5C0A] font-semibold py-3 text-sm transition-all duration-300 transform hover:scale-[1.02]"
                   >
                     <Store className="h-4 w-4 mr-2" />
-                    Visit Our Shop
+                    View My Shop
                   </Button>
                 </Link>
 
                 <Button 
-  variant="outline" 
-  className={`w-full border-2 font-medium py-2 md:py-3 text-sm md:text-base transition-all duration-300 ${
-    isInWishlist(product.id) 
-      ? 'bg-green-50 border-green-300 text-green-600 hover:bg-green-100' 
-      : 'border-green-200 hover:bg-green-50 text-green-600 hover:text-green-700'
-  }`}
-  onClick={handleWishlistClick}
-  aria-label={`${isInWishlist(product.id) ? 'Remove from' : 'Add to'} wishlist`}
->
-  <Bookmark 
-    className={`h-4 w-4 mr-2 ${isInWishlist(product.id) ? 'fill-green-600' : ''}`} 
-  />
-  {isInWishlist(product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
-</Button>
+                  variant="outline" 
+                  className={`w-full border-2 font-medium py-2 md:py-3 text-sm md:text-base transition-all duration-300 ${
+                    isInWishlist(product.id) 
+                      ? 'bg-green-50 border-green-300 text-green-600 hover:bg-green-100' 
+                      : 'border-green-200 hover:bg-green-50 text-green-600 hover:text-green-700'
+                  }`}
+                  onClick={handleWishlistClick}
+                  aria-label={`${isInWishlist(product.id) ? 'Remove from' : 'Add to'} wishlist`}
+                >
+                  <Bookmark 
+                    className={`h-4 w-4 mr-2 ${isInWishlist(product.id) ? 'fill-green-600' : ''}`} 
+                  />
+                  {isInWishlist(product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                </Button>
               </section>
 
               {/* Enhanced Seller Contact Card */}

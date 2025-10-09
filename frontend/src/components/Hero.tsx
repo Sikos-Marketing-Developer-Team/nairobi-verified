@@ -56,21 +56,36 @@ const Hero = () => {
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-row gap-3 sm:flex-col sm:gap-4 lg:flex-row lg:gap-4">
-              <Link to="/merchants" className="flex-1 sm:flex-none">
-                <Button size={window.innerWidth < 1024 ? "sm" : "lg"} className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white rounded-[5px] lg:px-6 lg:py-3">
-                  Find Merchants
-                  <ArrowRight className="ml-2 h-4 w-4 lg:h-5 lg:w-5" />
-                </Button>
-              </Link>
-              {!isAuthenticated && (
-                <Link to="/auth" className="flex-1 sm:flex-none">
-                  <Button variant="outline" size={window.innerWidth < 1024 ? "sm" : "lg"} className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-100 rounded-[5px] lg:px-6 lg:py-3">
-                    Create Account
-                  </Button>
-                </Link>
-              )}
-            </div>
+           {/* CTA Buttons */}
+<div className="flex flex-row gap-3 sm:flex-col sm:gap-4 lg:flex-row lg:gap-4">
+  <Link
+    to="/merchants"
+    className={`${
+      isAuthenticated ? "w-full" : "flex-1 sm:flex-none"
+    }`}
+  >
+    <Button
+      size={window.innerWidth < 1024 ? "sm" : "lg"}
+      className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white rounded-[5px] lg:px-6 lg:py-3"
+    >
+      Find Merchants
+      <ArrowRight className="ml-2 h-4 w-4 lg:h-5 lg:w-5" />
+    </Button>
+  </Link>
+
+  {!isAuthenticated && (
+    <Link to="/auth" className="flex-1 sm:flex-none">
+      <Button
+        variant="outline"
+        size={window.innerWidth < 1024 ? "sm" : "lg"}
+        className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-100 rounded-[5px] lg:px-6 lg:py-3"
+      >
+        Create Account
+      </Button>
+    </Link>
+  )}
+</div>
+
           </div>
 
           {/* Search Feature - Modal on mobile, inline on desktop */}

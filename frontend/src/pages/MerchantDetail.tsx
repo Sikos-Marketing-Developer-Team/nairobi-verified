@@ -3,8 +3,7 @@ import { useParams } from 'react-router-dom';
 import { 
   Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, 
   Image, MessageSquare, AlertCircle, Loader2, X, Send, 
-  Facebook, Instagram, Globe, Map, Twitter, Film, Copy, Share2,
-  RefreshCw
+  Facebook, Instagram, Globe, Map, Twitter, Film, Copy, Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -33,24 +32,6 @@ const socialIcons = {
   whatsapp: Send,
 };
 
-// Image fallback utilities
-const getPlaceholderImages = (merchant) => {
-  const businessName = merchant?.businessName || 'Business';
-  const category = merchant?.businessType || 'General';
-  const colors = ['3B82F6', '10B981', '8B5CF6', 'F59E0B', 'EF4444'];
-  const color = colors[Math.floor(Math.random() * colors.length)];
-
-  return {
-    banner: `https://placehold.co/800x400/${color}/FFFFFF?text=${encodeURIComponent(businessName)}+Banner&font=montserrat`,
-    logo: `https://placehold.co/200x200/${color}/FFFFFF?text=${encodeURIComponent(businessName.substring(0, 2))}&font=montserrat&bold=true`,
-    gallery: [
-      `https://placehold.co/600x400/${color}/FFFFFF?text=${encodeURIComponent(category)}+Showcase+1&font=montserrat`,
-      `https://placehold.co/600x400/${color}/FFFFFF?text=${encodeURIComponent(category)}+Showcase+2&font=montserrat`,
-      `https://placehold.co/600x400/${color}/FFFFFF?text=${encodeURIComponent(category)}+Showcase+3&font=montserrat`
-    ]
-  };
-};
-
 const MerchantDetail = () => {
   const { id } = useParams();
   const { toast } = useToast();
@@ -66,55 +47,53 @@ const MerchantDetail = () => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
 
-  // Main data fetching function
-  // CHANGE THIS in your MerchantDetail component:
-const fetchMerchantData = async (showRefresh = false) => {
-  try {
-    if (showRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    
-    setError(null);
-    
-    console.log('🔄 Fetching merchant data for ID:', id);
-    
-    // OLD: const merchantRes = await merchantsAPI.getMerchant(id as string);
-    
-    // NEW: Get all merchants and find the specific one
-    const allMerchantsRes = await merchantsAPI.getMerchants();
-    console.log('📦 All merchants response:', allMerchantsRes);
-    
-    const allMerchants = allMerchantsRes.data?.data || [];
-    const merchantData = allMerchants.find(m => m._id === id);
-    
-    if (merchantData) {
-      console.log('🏪 Found merchant data:', merchantData);
-      console.log('🖼️ Image data:', {
-        banner: merchantData.bannerImage,
-        logo: merchantData.logo,
-        gallery: merchantData.gallery
-      });
-      
-      setMerchant(merchantData);
-      
-      // Rest of your code...
-    } else {
-      throw new Error('Merchant not found');
-    }
-    
-  } catch (error: any) {
-    // Error handling...
-  } finally {
-    setLoading(false);
-    setRefreshing(false);
-  }
-};
-  // Initial load
+  // SEO and Data Fetching
   useEffect(() => {
+    const fetchMerchantData = async () => {
+      try {
+        setLoading(true);
+        const merchantRes = await merchantsAPI.getMerchant(id as string);
+        const merchantData = merchantRes.data.data;
+        setMerchant(merchantData);
+
+        // Update document title and meta tags for SEO
+        document.title = `${merchantData.businessName} - ${merchantData.businessType} in ${merchantData.location} | YourPlatform`;
+        const metaDescription = document.querySelector('meta[name="description"]');
+        if (metaDescription) {
+          metaDescription.setAttribute('content', 
+            `${merchantData.businessName} - ${merchantData.description?.substring(0, 160) || 'Discover this local business'}...`
+          );
+        }
+
+        // Add Open Graph meta tags
+        const ogTags = [
+          { property: 'og:title', content: `${merchantData.businessName} - ${merchantData.businessType}` },
+          { property: 'og:description', content: merchantData.description?.substring(0, 200) || '' },
+          { property: 'og:image', content: merchantData.bannerImage || merchantData.logo },
+          { property: 'og:url', content: window.location.href },
+          { property: 'og:type', content: 'website' },
+        ];
+        ogTags.forEach(tag => {
+          let meta = document.querySelector(`meta[property="${tag.property}"]`);
+          if (!meta) {
+            meta = document.createElement('meta');
+            meta.setAttribute('property', tag.property);
+            document.head.appendChild(meta);
+          }
+          meta.setAttribute('content', tag.content);
+        });
+
+        // Fetch reviews
+        const reviewsRes = await reviewsAPI.getReviews(id as string);
+        setReviews(reviewsRes.data.data);
+        setLoading(false);
+      } catch (error: any) {
+        setError(error.response?.data?.error || 'Failed to load merchant data');
+        setLoading(false);
+      }
+    };
+
     if (id) {
       fetchMerchantData();
     } else {
@@ -123,25 +102,13 @@ const fetchMerchantData = async (showRefresh = false) => {
     }
   }, [id]);
 
-  // Refresh on page focus
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && merchant) {
-        fetchMerchantData(true);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [id]);
-
   // Check favorite status
   useEffect(() => {
     const checkFavorite = async () => {
-      if (isAuthenticated && user && merchant) {
+      if (isAuthenticated && user) {
         try {
           const favoritesRes = await favoritesAPI.getFavorites();
-          const favorites = favoritesRes.data?.data || [];
+          const favorites = favoritesRes.data.data;
           setIsFavorite(favorites.some((fav: any) => 
             fav._id === id || fav.toString() === id
           ));
@@ -152,7 +119,7 @@ const fetchMerchantData = async (showRefresh = false) => {
     };
 
     checkFavorite();
-  }, [id, isAuthenticated, user, merchant]);
+  }, [id, isAuthenticated, user]);
 
   // Handle favorite toggle
   const handleFavoriteToggle = async () => {
@@ -284,17 +251,15 @@ const fetchMerchantData = async (showRefresh = false) => {
   // Format business hours
   const businessHoursFormatted: Record<string, string> = {};
   Object.entries(merchant?.businessHours || {}).forEach(([day, hours]: [string, any]) => {
-    if (hours?.closed) {
+    if (hours.closed) {
       businessHoursFormatted[day] = 'Closed';
-    } else if (hours?.open && hours?.close) {
-      businessHoursFormatted[day] = `${hours.open} - ${hours.close}`;
     } else {
-      businessHoursFormatted[day] = 'Not specified';
+      businessHoursFormatted[day] = `${hours.open} - ${hours.close}`;
     }
   });
 
   const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-  const isOpen = businessHoursFormatted[currentDay] !== 'Closed' && businessHoursFormatted[currentDay] !== 'Not specified';
+  const isOpen = businessHoursFormatted[currentDay] !== 'Closed';
 
   // Social links
   const socialLinks = {
@@ -305,13 +270,6 @@ const fetchMerchantData = async (showRefresh = false) => {
     website: merchant?.website,
     whatsapp: merchant?.whatsapp,
   };
-
-  // Get images with fallbacks
-  const images = merchant ? {
-    banner: merchant.bannerImage || getPlaceholderImages(merchant).banner,
-    logo: merchant.logo || getPlaceholderImages(merchant).logo,
-    gallery: merchant.gallery?.length ? merchant.gallery : getPlaceholderImages(merchant).gallery
-  } : getPlaceholderImages({});
 
   if (loading || isPageLoading) {
     return (
@@ -391,14 +349,8 @@ const fetchMerchantData = async (showRefresh = false) => {
         <main className="flex flex-col items-center justify-center flex-1 p-6">
           <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Merchant</h1>
-          <p className="text-gray-600 mb-4 text-center">{error || 'Merchant not found'}</p>
-          <div className="flex gap-4">
-            <Button onClick={() => window.history.back()}>Go Back</Button>
-            <Button onClick={() => fetchMerchantData()} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Try Again
-            </Button>
-          </div>
+          <p className="text-gray-600 mb-6">{error || 'Merchant not found'}</p>
+          <Button onClick={() => window.history.back()}>Go Back</Button>
         </main>
         <Footer />
       </div>
@@ -439,7 +391,7 @@ const fetchMerchantData = async (showRefresh = false) => {
               "ratingValue": merchant.rating,
               "reviewCount": merchant.reviews,
             },
-            "image": images.gallery[0],
+            "image": merchant.gallery?.[0] || merchant.bannerImage,
             "priceRange": merchant.priceRange,
             "sameAs": Object.values(socialLinks).filter(Boolean),
           })
@@ -447,49 +399,25 @@ const fetchMerchantData = async (showRefresh = false) => {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header with Refresh Button */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Merchant Details</h1>
-            <p className="text-gray-600">Business information and services</p>
-          </div>
-          <Button
-            onClick={() => fetchMerchantData(true)}
-            disabled={refreshing}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh Data'}
-          </Button>
-        </div>
-
         {/* Hero Section with Carousel */}
         <header className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
           <Carousel className="relative h-64 md:h-80">
             <CarouselContent>
               <CarouselItem>
                 <img
-                  src={images.banner}
+                  src={merchant.bannerImage}
                   alt={`${merchant.businessName} - ${merchant.businessType} in ${merchant.location}`}
                   className="w-full h-full object-cover"
                   loading="eager"
-                  onError={(e) => {
-                    e.target.src = getPlaceholderImages(merchant).banner;
-                  }}
                 />
               </CarouselItem>
-              {images.gallery.map((image: string, index: number) => (
+              {merchant.gallery?.map((image: string, index: number) => (
                 <CarouselItem key={index}>
                   <img
                     src={image}
                     alt={`${merchant.businessName} gallery image ${index + 1}`}
                     className="w-full h-full object-cover"
                     loading="lazy"
-                    onError={(e) => {
-                      const placeholders = getPlaceholderImages(merchant).gallery;
-                      e.target.src = placeholders[index % placeholders.length];
-                    }}
                   />
                 </CarouselItem>
               ))}
@@ -500,27 +428,22 @@ const fetchMerchantData = async (showRefresh = false) => {
             <div className="absolute bottom-6 left-6 right-6">
               <div className="flex items-end gap-6">
                 <img
-                  src={images.logo}
+                  src={merchant.logo}
                   alt={`${merchant.businessName} logo`}
                   className="w-24 h-24 rounded-lg border-4 border-white shadow-lg object-cover"
                   loading="eager"
-                  onError={(e) => {
-                    e.target.src = getPlaceholderImages(merchant).logo;
-                  }}
                 />
                 <div className="text-white flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h1 className="text-3xl font-bold">{merchant.businessName}</h1>
-                    {merchant.verified && (
-                      <div className="verified-badge bg-white text-green-600 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                        <Check className="h-3 w-3" />
-                        Verified
-                      </div>
-                    )}
+                    <div className="verified-badge bg-white text-primary px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                      <Check className="h-3 w-3" />
+                      Verified
+                    </div>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="bg-white/20 px-3 py-1 rounded-full">{merchant.businessType}</span>
-                    {merchant.yearEstablished && <span>Est. {merchant.yearEstablished}</span>}
+                    <span>Est. {merchant.yearEstablished}</span>
                     <span>{merchant.location}</span>
                   </div>
                 </div>
@@ -529,7 +452,7 @@ const fetchMerchantData = async (showRefresh = false) => {
                     variant="outline" 
                     className={`${
                       isFavorite 
-                        ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700" 
+                        ? "bg-primary border-primary text-white hover:bg-primary-dark" 
                         : "bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
                     }`}
                     onClick={handleFavoriteToggle}
@@ -574,22 +497,18 @@ const fetchMerchantData = async (showRefresh = false) => {
               </CardHeader>
               <CardContent className="p-6 pt-0">
                 <div className="space-y-4">
-                  {merchant.verified && (
-                    <div className="flex items-center gap-3">
-                      <Check className="h-5 w-5 text-green-500" />
-                      <p className="text-sm">Verified Business{merchant.yearEstablished && ` since ${merchant.yearEstablished}`}</p>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3">
+                    <Check className="h-5 w-5 text-green-500" />
+                    <p className="text-sm">Verified Business since {merchant.yearEstablished}</p>
+                  </div>
                   <div className="flex items-center gap-3">
                     <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                    <p className="text-sm">{merchant.rating || 'No'} rating{merchant.reviews ? ` (${merchant.reviews} reviews)` : ''}</p>
+                    <p className="text-sm">{merchant.rating} ({merchant.reviews} reviews)</p>
                   </div>
-                  {merchant.yearEstablished && (
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-gray-400" />
-                      <p className="text-sm">Serving customers for {new Date().getFullYear() - merchant.yearEstablished} years</p>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-gray-400" />
+                    <p className="text-sm">Serving customers for {new Date().getFullYear() - merchant.yearEstablished} years</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -607,7 +526,7 @@ const fetchMerchantData = async (showRefresh = false) => {
                       <p className="text-sm text-gray-500">Phone</p>
                       <a 
                         href={`tel:${merchant.phone}`} 
-                        className="font-medium text-blue-600 hover:text-blue-800"
+                        className="font-medium text-primary hover:text-primary-dark"
                         aria-label={`Call ${merchant.businessName} at ${merchant.phone}`}
                       >
                         {merchant.phone}
@@ -620,7 +539,7 @@ const fetchMerchantData = async (showRefresh = false) => {
                       <p className="text-sm text-gray-500">Email</p>
                       <a 
                         href={`mailto:${merchant.email}`} 
-                        className="font-medium text-blue-600 hover:text-blue-800"
+                        className="font-medium text-primary hover:text-primary-dark"
                         aria-label={`Email ${merchant.businessName} at ${merchant.email}`}
                       >
                         {merchant.email}
@@ -634,7 +553,7 @@ const fetchMerchantData = async (showRefresh = false) => {
                         <p className="text-sm text-gray-500">WhatsApp</p>
                         <a 
                           href={`https://wa.me/${merchant.whatsapp}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
-                          className="font-medium text-blue-600 hover:text-blue-800"
+                          className="font-medium text-primary hover:text-primary-dark"
                           aria-label={`Message ${merchant.businessName} on WhatsApp`}
                         >
                           Message on WhatsApp
@@ -695,7 +614,7 @@ const fetchMerchantData = async (showRefresh = false) => {
                     <div 
                       key={day} 
                       className={`flex justify-between text-sm ${
-                        day === currentDay ? 'font-medium text-blue-600' : 'text-gray-600'
+                        day === currentDay ? 'font-medium text-primary' : 'text-gray-600'
                       }`}
                     >
                       <span className="capitalize">{day}</span>
@@ -709,7 +628,7 @@ const fetchMerchantData = async (showRefresh = false) => {
             {/* Quick Actions */}
             <nav className="space-y-3" aria-label="Quick actions for merchant">
               <Button 
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-primary hover:bg-primary-dark"
                 onClick={handleContactMerchant}
               >
                 <Phone className="h-4 w-4 mr-2" />
@@ -767,18 +686,16 @@ const fetchMerchantData = async (showRefresh = false) => {
                     <h2 className="text-2xl font-bold text-gray-900">About {merchant.businessName}</h2>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 leading-relaxed">{merchant.description || 'No description provided.'}</p>
+                    <p className="text-gray-600 leading-relaxed">{merchant.description}</p>
                     <div className="mt-6 flex items-center gap-4">
                       <div className="flex items-center">
                         <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                        <span className="text-lg font-semibold ml-1">{merchant.rating || '0'}</span>
+                        <span className="text-lg font-semibold ml-1">{merchant.rating}</span>
                       </div>
-                      <span className="text-gray-500">({merchant.reviews || 0} reviews)</span>
-                      {merchant.verified && (
-                        <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
-                          Verified Business
-                        </span>
-                      )}
+                      <span className="text-gray-500">({merchant.reviews} reviews)</span>
+                      <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
+                        Verified since {new Date(merchant.verifiedDate).toLocaleDateString()}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -819,7 +736,7 @@ const fetchMerchantData = async (showRefresh = false) => {
                   <CardContent>
                     <Carousel className="w-full">
                       <CarouselContent>
-                        {images.gallery.map((image: string, index: number) => (
+                        {merchant.gallery.map((image: string, index: number) => (
                           <CarouselItem key={index}>
                             <figure className="aspect-square overflow-hidden rounded-lg">
                               <img
@@ -827,10 +744,6 @@ const fetchMerchantData = async (showRefresh = false) => {
                                 alt={`${merchant.businessName} gallery image ${index + 1}`}
                                 className="w-full h-full object-cover hover:scale-110 transition-transform duration-300 cursor-pointer"
                                 loading="lazy"
-                                onError={(e) => {
-                                  const placeholders = getPlaceholderImages(merchant).gallery;
-                                  e.target.src = placeholders[index % placeholders.length];
-                                }}
                               />
                             </figure>
                           </CarouselItem>
@@ -865,33 +778,29 @@ const fetchMerchantData = async (showRefresh = false) => {
                 <div className="flex items-start gap-3 mb-4">
                   <MapPin className="h-5 w-5 text-gray-400 mt-1" />
                   <div>
-                    <p className="font-medium text-gray-900">{merchant.address || 'Address not provided'}</p>
+                    <p className="font-medium text-gray-900">{merchant.address}</p>
                     <p className="text-gray-600">{merchant.location}</p>
                   </div>
                 </div>
-                {merchant.address && (
-                  <>
-                    <div className="rounded-lg h-64 overflow-hidden">
-                      <iframe 
-                        title={`Location of ${merchant.businessName} in ${merchant.location}`}
-                        width="100%" 
-                        height="100%" 
-                        frameBorder="0" 
-                        scrolling="no" 
-                        marginHeight={0} 
-                        marginWidth={0} 
-                        src={`https://maps.google.com/maps?q=${encodeURIComponent(merchant.address)},${encodeURIComponent(merchant.location)}&z=16&output=embed`}
-                        loading="lazy"
-                      ></iframe>
-                    </div>
-                    <Button 
-                      className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
-                      onClick={handleGetDirections}
-                    >
-                      Get Directions
-                    </Button>
-                  </>
-                )}
+                <div className="rounded-lg h-64 overflow-hidden">
+                  <iframe 
+                    title={`Location of ${merchant.businessName} in ${merchant.location}`}
+                    width="100%" 
+                    height="100%" 
+                    frameBorder="0" 
+                    scrolling="no" 
+                    marginHeight={0} 
+                    marginWidth={0} 
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(merchant.address)},${encodeURIComponent(merchant.location)}&z=16&output=embed`}
+                    loading="lazy"
+                  ></iframe>
+                </div>
+                <Button 
+                  className="w-full mt-4 bg-primary hover:bg-primary-dark"
+                  onClick={handleGetDirections}
+                >
+                  Get Directions
+                </Button>
               </CardContent>
             </Card>
           </section>
@@ -915,12 +824,12 @@ const fetchMerchantData = async (showRefresh = false) => {
             <div className="space-y-4">
               {merchant.whatsapp && (
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <Send className="h-5 w-5 text-blue-600" />
+                  <Send className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium">WhatsApp</p>
                     <a 
                       href={`https://wa.me/${merchant.whatsapp}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
-                      className="text-blue-600 hover:underline"
+                      className="text-primary hover:underline"
                     >
                       Message on WhatsApp
                     </a>
@@ -928,24 +837,24 @@ const fetchMerchantData = async (showRefresh = false) => {
                 </div>
               )}
               <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                <Phone className="h-5 w-5 text-blue-600" />
+                <Phone className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">Phone</p>
                   <a 
                     href={`tel:${merchant.phone}`}
-                    className="text-blue-600 hover:underline"
+                    className="text-primary hover:underline"
                   >
                     {merchant.phone}
                   </a>
                 </div>
               </div>
               <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                <Mail className="h-5 w-5 text-blue-600" />
+                <Mail className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">Email</p>
                   <a 
                     href={`mailto:${merchant.email}`}
-                    className="text-blue-600 hover:underline"
+                    className="text-primary hover:underline"
                   >
                     {merchant.email}
                   </a>
@@ -984,7 +893,7 @@ const fetchMerchantData = async (showRefresh = false) => {
           onClose={() => setShowReviewModal(false)}
           onReviewSubmitted={() => {
             setShowReviewModal(false);
-            fetchMerchantData(true); // Refresh data after review
+            window.location.reload();
           }}
         />
       )}
@@ -1112,7 +1021,7 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Share your experience with this merchant..."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               rows={4}
             />
           </div>
@@ -1129,7 +1038,7 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
             <Button
               type="submit"
               disabled={isSubmitting || rating === 0}
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              className="flex-1"
             >
               {isSubmitting ? (
                 <>
@@ -1221,7 +1130,7 @@ const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
             <select
               value={reportType}
               onChange={(e) => setReportType(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               <option value="">Select a reason</option>
               {reportTypes.map((type) => (
@@ -1240,7 +1149,7 @@ const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Please provide more details about the issue..."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               rows={4}
               required
             />

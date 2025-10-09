@@ -20,41 +20,55 @@ const ForgotPassword = () => {
   // Check if this is for merchant password reset
   const isMerchantReset = location.pathname.includes('/merchant/');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!email) {
+    toast({
+      title: "Error",
+      description: "Please enter your email address",
+      variant: "destructive",
+    });
+    return;
+  }
+  
+  setIsLoading(true);
+  
+  try {
+    console.log('Sending forgot password request for:', email);
     
-    if (!email) {
-      toast({
-        title: "Error",
-        description: "Please enter your email address",
-        variant: "destructive",
-      });
-      return;
+    // Call the forgot password API endpoint
+    const response = await authAPI.forgotPassword(email);
+    console.log('API response:', response);
+    
+    setIsSubmitted(true);
+    toast({
+      title: "Email Sent",
+      description: "If your email is registered with us, you'll receive a password reset link shortly.",
+    });
+  } catch (error: any) {
+    console.error('Full forgot password error:', error);
+    
+    // More specific error handling
+    let errorMessage = "We couldn't process your request. Please try again later.";
+    
+    if (error?.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    } else if (error?.code === 'NETWORK_ERROR') {
+      errorMessage = "Network error. Please check your internet connection.";
     }
     
-    setIsLoading(true);
-    
-    try {
-      // Call the forgot password API endpoint
-      // CORRECT - using the named export from authAPI
-await authAPI.forgotPassword(email);
-      
-      setIsSubmitted(true);
-      toast({
-        title: "Email Sent",
-        description: "If your email is registered with us, you'll receive a password reset link shortly.",
-      });
-    } catch (error) {
-      console.error('Forgot password error:', error);
-      toast({
-        title: "Request Failed",
-        description: "We couldn't process your request. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    toast({
+      title: "Request Failed",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   if (isPageLoading) {
     return (
