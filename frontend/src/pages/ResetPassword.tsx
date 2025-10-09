@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
+import { Lock, Eye, EyeOff, CheckCircle, XCircle, Check, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { authAPI } from '@/lib/api';
 
@@ -19,6 +19,18 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Password validation rules
+  const passwordValidations = {
+    minLength: password.length >= 6,
+    hasUpperCase: /[A-Z]/.test(password),
+    hasLowerCase: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+  };
+
+  const isPasswordValid = Object.values(passwordValidations).every(Boolean);
+  const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
+
   // Validate token on component mount
   useEffect(() => {
     const validateToken = async () => {
@@ -29,10 +41,8 @@ const ResetPassword = () => {
       }
 
       try {
-        // Try to validate the token - if this endpoint doesn't exist yet,
-        // we'll handle it gracefully
         console.log('Validating token:', token);
-        setIsValidToken(true); // Assume valid for now since we don't have validation endpoint
+        setIsValidToken(true);
       } catch (error) {
         console.error('Token validation error:', error);
         setIsValidToken(false);
@@ -61,19 +71,19 @@ const ResetPassword = () => {
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (!isPasswordValid) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: "Invalid Password",
+        description: "Please ensure your password meets all requirements",
         variant: "destructive",
       });
       return;
     }
 
-    if (password.length < 6) {
+    if (!passwordsMatch) {
       toast({
         title: "Error",
-        description: "Password must be at least 6 characters long",
+        description: "Passwords do not match",
         variant: "destructive",
       });
       return;
@@ -91,9 +101,9 @@ const ResetPassword = () => {
         description: "Your password has been reset successfully. You can now login with your new password.",
       });
       
-      // Redirect to login page after successful reset
+      // Redirect to auth page (login) after successful reset
       setTimeout(() => {
-        navigate('/auth/login');
+        navigate('/auth');
       }, 2000);
       
     } catch (error: any) {
@@ -118,6 +128,19 @@ const ResetPassword = () => {
       setIsLoading(false);
     }
   };
+
+  const ValidationItem = ({ isValid, text }: { isValid: boolean; text: string }) => (
+    <div className="flex items-center gap-2 text-sm">
+      {isValid ? (
+        <Check className="h-4 w-4 text-green-500" />
+      ) : (
+        <X className="h-4 w-4 text-gray-400" />
+      )}
+      <span className={isValid ? 'text-green-600' : 'text-gray-500'}>
+        {text}
+      </span>
+    </div>
+  );
 
   if (isValidating) {
     return (
@@ -196,12 +219,11 @@ const ResetPassword = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter new password (min. 6 characters)"
+                    placeholder="Enter new password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
-                    minLength={6}
                   />
                   <button
                     type="button"
@@ -211,6 +233,43 @@ const ResetPassword = () => {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+
+                {/* Password Strength Indicator */}
+                {password.length > 0 && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">Password Strength</span>
+                      {isPasswordValid ? (
+                        <span className="text-xs text-green-600 font-medium">Strong</span>
+                      ) : (
+                        <span className="text-xs text-amber-600 font-medium">Weak</span>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <ValidationItem 
+                        isValid={passwordValidations.minLength} 
+                        text="At least 6 characters" 
+                      />
+                      <ValidationItem 
+                        isValid={passwordValidations.hasUpperCase} 
+                        text="One uppercase letter" 
+                      />
+                      <ValidationItem 
+                        isValid={passwordValidations.hasLowerCase} 
+                        text="One lowercase letter" 
+                      />
+                      <ValidationItem 
+                        isValid={passwordValidations.hasNumber} 
+                        text="One number" 
+                      />
+                      <ValidationItem 
+                        isValid={passwordValidations.hasSpecialChar} 
+                        text="One special character" 
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -227,7 +286,6 @@ const ResetPassword = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
-                    minLength={6}
                   />
                   <button
                     type="button"
@@ -237,12 +295,29 @@ const ResetPassword = () => {
                     {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                
+                {/* Password Match Indicator */}
+                {confirmPassword.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm mt-1">
+                    {passwordsMatch ? (
+                      <>
+                        <Check className="h-4 w-4 text-green-500" />
+                        <span className="text-green-600">Passwords match</span>
+                      </>
+                    ) : (
+                      <>
+                        <X className="h-4 w-4 text-red-500" />
+                        <span className="text-red-600">Passwords do not match</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <Button 
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary-dark text-white"
-                disabled={isLoading}
+                disabled={isLoading || !isPasswordValid || !passwordsMatch}
               >
                 {isLoading ? (
                   <>
@@ -255,7 +330,7 @@ const ResetPassword = () => {
               </Button>
 
               <div className="text-center mt-4">
-                <Link to="/auth/login" className="text-primary hover:text-primary-dark text-sm">
+                <Link to="/auth" className="text-primary hover:text-primary-dark text-sm">
                   Back to Sign In
                 </Link>
               </div>
