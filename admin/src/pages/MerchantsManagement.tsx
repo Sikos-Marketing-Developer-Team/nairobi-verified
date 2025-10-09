@@ -152,7 +152,7 @@ const MerchantsManagement: React.FC = () => {
         setIsLoading(true);
       }
       
-      const response = await adminAPI.getMerchants();
+      const response = await adminAPI.getMerchants({ limit: 100 });
       if (response.data.success) {
         setMerchants(response.data.merchants || []);
       }

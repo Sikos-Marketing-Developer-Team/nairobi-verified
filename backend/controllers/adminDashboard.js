@@ -419,11 +419,11 @@ const getRecentActivity = asyncHandler(async (req, res) => {
 const getMerchants = asyncHandler(async (req, res) => {
   const { 
     page = 1, 
-    limit = 10, 
+    limit = 100, 
     verified, 
     businessType, 
     search,
-    documentStatus
+    documentStatus,
   } = req.query;
 
   const query = {};
