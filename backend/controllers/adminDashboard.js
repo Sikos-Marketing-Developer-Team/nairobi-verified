@@ -23,13 +23,16 @@ const transporter = nodemailer.createTransport({
 // @access  Private (Admin)
 const getDashboardStats = asyncHandler(async (req, res) => {
   try {
-    // Enhanced statistics with document verification tracking
+    console.log('🔍 Fetching dashboard stats...');
+    
+    // FIXED: Consistent merchant counting with proper filters
     const [
       totalMerchants,
       totalUsers,
       totalProducts,
       totalReviews,
       verifiedMerchants,
+      activeMerchants,
       pendingMerchants,
       activeProducts,
       totalOrders,
@@ -37,45 +40,75 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       merchantsPendingDocuments,
       documentsAwaitingReview
     ] = await Promise.all([
-      Merchant.countDocuments(),
+      Merchant.countDocuments(), // All merchants
       User.countDocuments({ role: { $ne: 'admin' } }),
       Product.countDocuments(),
       Review.countDocuments(),
-      Merchant.countDocuments({ verified: true }),
-      Merchant.countDocuments({ verified: false }),
-      Product.countDocuments({ isActive: true }),
-      Promise.resolve(0),
-      Merchant.countDocuments({
+      
+      // CRITICAL FIX: Count verified merchants with proper criteria
+      Merchant.countDocuments({ 
+        verified: true,
+        isActive: true // Also check if active
+      }),
+      
+      // NEW: Separate count for active merchants
+      Merchant.countDocuments({ isActive: true }),
+      
+      // FIXED: Pending = not verified OR not active
+      Merchant.countDocuments({ 
         $or: [
-          { 'documents.businessRegistration': { $exists: true, $ne: '' } },
-          { 'documents.idDocument': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill': { $exists: true, $ne: '' } }
+          { verified: false },
+          { isActive: false }
         ]
       }),
+      
+      Product.countDocuments({ isActive: true }),
+      Promise.resolve(0), // Orders placeholder
+      
+      // Merchants with documents
+      Merchant.countDocuments({
+        $or: [
+          { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
+          { 'documents.idDocument.path': { $exists: true, $ne: '' } },
+          { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
+        ]
+      }),
+      
+      // Merchants pending documents
       Merchant.countDocuments({
         verified: false,
         $and: [
           {
             $or: [
-              { 'documents.businessRegistration': { $exists: false } },
-              { 'documents.businessRegistration': '' },
-              { 'documents.idDocument': { $exists: false } },
-              { 'documents.idDocument': '' },
-              { 'documents.utilityBill': { $exists: false } },
-              { 'documents.utilityBill': '' }
+              { 'documents.businessRegistration.path': { $exists: false } },
+              { 'documents.businessRegistration.path': '' },
+              { 'documents.idDocument.path': { $exists: false } },
+              { 'documents.idDocument.path': '' },
+              { 'documents.utilityBill.path': { $exists: false } },
+              { 'documents.utilityBill.path': '' }
             ]
           }
         ]
       }),
+      
+      // Documents awaiting review (complete docs but not verified)
       Merchant.countDocuments({
         verified: false,
         $and: [
-          { 'documents.businessRegistration': { $exists: true, $ne: '' } },
-          { 'documents.idDocument': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill': { $exists: true, $ne: '' } }
+          { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
+          { 'documents.idDocument.path': { $exists: true, $ne: '' } },
+          { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
         ]
       })
     ]);
+
+    console.log('📊 Merchant counts:', {
+      total: totalMerchants,
+      verified: verifiedMerchants,
+      active: activeMerchants,
+      pending: pendingMerchants,
+      awaitingReview: documentsAwaitingReview
+    });
 
     let activeFlashSales = 0;
     try {
@@ -102,17 +135,20 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       Merchant.find()
         .sort({ createdAt: -1 })
         .limit(5)
-        .select('businessName email verified createdAt businessType documents'),
+        .select('businessName email verified isActive createdAt businessType documents')
+        .lean(),
       User.find({ role: { $ne: 'admin' } })
         .sort({ createdAt: -1 })
         .limit(5)
-        .select('firstName lastName email createdAt'),
+        .select('firstName lastName email createdAt')
+        .lean(),
       Review.find()
         .sort({ createdAt: -1 })
         .limit(5)
         .populate('user', 'firstName lastName')
         .populate('merchant', 'businessName')
-        .select('rating content createdAt'),
+        .select('rating content createdAt')
+        .lean(),
       Merchant.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
       User.countDocuments({ 
         role: { $ne: 'admin' },
@@ -122,25 +158,23 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       Merchant.find({
         verified: false,
         $and: [
-          { 'documents.businessRegistration': { $exists: true, $ne: '' } },
-          { 'documents.idDocument': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill': { $exists: true, $ne: '' } }
+          { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
+          { 'documents.idDocument.path': { $exists: true, $ne: '' } },
+          { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
         ]
       })
-        .sort({ createdAt: -1 })
+        .sort({ 'documents.documentsSubmittedAt': -1 })
         .limit(10)
         .select('businessName email createdAt documents businessType')
+        .lean()
     ]);
 
+    // Calculate growth percentages
     const previousPeriodStart = new Date();
     previousPeriodStart.setDate(previousPeriodStart.getDate() - 60);
     previousPeriodStart.setDate(previousPeriodStart.getDate() + 30);
 
-    const [
-      previousMerchants,
-      previousUsers,
-      previousReviews
-    ] = await Promise.all([
+    const [previousMerchants, previousUsers, previousReviews] = await Promise.all([
       Merchant.countDocuments({ 
         createdAt: { 
           $gte: previousPeriodStart, 
@@ -189,67 +223,74 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       nodeVersion: process.version
     };
 
+    const responseData = {
+      // FIXED: Return consistent counts
+      totalMerchants,
+      totalUsers,
+      totalProducts,
+      totalReviews,
+      verifiedMerchants, // Now includes isActive check
+      activeMerchants, // NEW: Separate active count
+      pendingMerchants, // FIXED: Proper pending logic
+      pendingVerifications: documentsAwaitingReview, // Clearer naming
+      activeProducts,
+      activeFlashSales,
+      totalOrders,
+      verification: {
+        merchantsWithDocuments,
+        merchantsPendingDocuments,
+        documentsAwaitingReview,
+        documentCompletionRate: parseFloat(documentCompletionRate),
+        merchantsNeedingVerification
+      },
+      growth: {
+        merchantsThisMonth,
+        usersThisMonth,
+        reviewsThisMonth,
+        merchantGrowth: parseFloat(merchantGrowth),
+        userGrowth: parseFloat(userGrowth),
+        reviewGrowth: parseFloat(reviewGrowth)
+      },
+      metrics: {
+        verificationRate: parseFloat(verificationRate),
+        documentCompletionRate: parseFloat(documentCompletionRate),
+        averageRating: totalReviews > 0 ? 4.5 : 0,
+        productUploadRate: totalProducts > 0 ? (totalProducts / totalMerchants).toFixed(1) : 0
+      },
+      recentActivity: {
+        recentMerchants: recentMerchants.map(merchant => ({
+          ...merchant,
+          hasDocuments: !!(
+            merchant.documents?.businessRegistration?.path ||
+            merchant.documents?.idDocument?.path ||
+            merchant.documents?.utilityBill?.path
+          )
+        })),
+        recentUsers: recentUsers.map(user => ({
+          ...user,
+          name: `${user.firstName} ${user.lastName}`
+        })),
+        recentReviews: recentReviews.map(review => ({
+          ...review,
+          user: review.user ? {
+            _id: review.user._id,
+            name: `${review.user.firstName} ${review.user.lastName}`,
+            firstName: review.user.firstName,
+            lastName: review.user.lastName
+          } : null
+        }))
+      },
+      systemHealth
+    };
+
+    console.log('✅ Dashboard stats generated successfully');
+    
     res.status(200).json({
       success: true,
-      data: {
-        totalMerchants,
-        totalUsers,
-        totalProducts,
-        totalReviews,
-        verifiedMerchants,
-        pendingMerchants,
-        activeProducts,
-        activeFlashSales,
-        totalOrders,
-        verification: {
-          merchantsWithDocuments,
-          merchantsPendingDocuments,
-          documentsAwaitingReview,
-          documentCompletionRate: parseFloat(documentCompletionRate),
-          merchantsNeedingVerification
-        },
-        growth: {
-          merchantsThisMonth,
-          usersThisMonth,
-          reviewsThisMonth,
-          merchantGrowth: parseFloat(merchantGrowth),
-          userGrowth: parseFloat(userGrowth),
-          reviewGrowth: parseFloat(reviewGrowth)
-        },
-        metrics: {
-          verificationRate: parseFloat(verificationRate),
-          documentCompletionRate: parseFloat(documentCompletionRate),
-          averageRating: totalReviews > 0 ? 4.5 : 0,
-          productUploadRate: totalProducts > 0 ? (totalProducts / totalMerchants).toFixed(1) : 0
-        },
-        recentActivity: {
-          recentMerchants: recentMerchants.map(merchant => ({
-            ...merchant.toObject(),
-            hasDocuments: !!(
-              merchant.documents?.businessRegistration ||
-              merchant.documents?.idDocument ||
-              merchant.documents?.utilityBill
-            )
-          })),
-          recentUsers: recentUsers.map(user => ({
-            ...user.toObject(),
-            name: `${user.firstName} ${user.lastName}`
-          })),
-          recentReviews: recentReviews.map(review => ({
-            ...review.toObject(),
-            user: review.user ? {
-              _id: review.user._id,
-              name: `${review.user.firstName} ${review.user.lastName}`,
-              firstName: review.user.firstName,
-              lastName: review.user.lastName
-            } : null
-          }))
-        },
-        systemHealth
-      }
+      data: responseData
     });
   } catch (error) {
-    console.error('Get dashboard stats error:', error);
+    console.error('❌ Get dashboard stats error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch dashboard statistics',
@@ -257,6 +298,8 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     });
   }
 });
+
+module.exports = { getDashboardStats };
 
 // @desc    Get recent activity
 // @route   GET /api/admin/dashboard/recent-activity
