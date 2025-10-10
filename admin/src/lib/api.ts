@@ -202,11 +202,11 @@ export const adminAPI = {
   
   // Merchant management
   getMerchants: (params?: any) => api.get('/admin/dashboard/merchants', { params }),
-  getMerchant: (merchantId: string) => api.get(`/admin/merchants/${merchantId}`),
-  updateMerchant: (merchantId: string, merchantData: any) => api.put(`/admin/merchants/${merchantId}`, merchantData),
+  getMerchant: (merchantId: string) => api.get(`/admin/dashboard/merchants/${merchantId}`),
+  updateMerchant: (merchantId: string, merchantData: any) => api.put(`/admin/dashboard/merchants/${merchantId}`, merchantData),
   deleteMerchant: (merchantId: string[]) => api.delete(`/admin/dashboard/merchants/${merchantId}`),
-  verifyMerchant: (merchantId: string) => api.put(`/admin/merchants/${merchantId}/verify`),
-  rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason }),
+  verifyMerchant: (merchantId: string) => api.put(`/admin/dashboard/merchants/${merchantId}/verify`),
+  rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/dashboard/merchants/${merchantId}/reject`, { reason }),
   updateMerchantStatus: (merchantIdOrIds: string | string[], isActive: boolean) => {
     const endpoint = Array.isArray(merchantIdOrIds) 
       ? '/admin/dashboard/merchants/bulk-status' 
