@@ -1189,6 +1189,172 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
   }
 });
 
+
+/**
+ * @desc    Verify single merchant
+ * @route   PUT /api/admin/dashboard/merchants/:id/verify
+ * @access  Private/Admin
+ */
+const verifyMerchant = asyncHandler(async (req, res) => {
+  try {
+    const merchantId = req.params.id;
+    
+    console.log('🔍 Verifying merchant:', merchantId);
+
+    // Find the merchant
+    const merchant = await Merchant.findById(merchantId);
+    
+    if (!merchant) {
+      console.log('❌ Merchant not found:', merchantId);
+      return res.status(404).json({
+        success: false,
+        message: 'Merchant not found'
+      });
+    }
+
+    // Check if merchant has required documents
+    const hasRequiredDocs = 
+      merchant.documents?.businessRegistration?.path &&
+      merchant.documents?.idDocument?.path &&
+      merchant.documents?.utilityBill?.path;
+
+    if (!hasRequiredDocs) {
+      console.log('⚠️ Cannot verify - missing documents:', {
+        businessRegistration: !!merchant.documents?.businessRegistration?.path,
+        idDocument: !!merchant.documents?.idDocument?.path,
+        utilityBill: !!merchant.documents?.utilityBill?.path
+      });
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot verify merchant: Required documents are missing',
+        requiredDocuments: {
+          businessRegistration: !!merchant.documents?.businessRegistration?.path,
+          idDocument: !!merchant.documents?.idDocument?.path,
+          utilityBill: !!merchant.documents?.utilityBill?.path
+        }
+      });
+    }
+
+    // Update merchant verification status
+    merchant.verified = true;
+    merchant.verifiedDate = new Date();
+    merchant.isActive = true; // Also activate when verifying
+    merchant.activatedDate = new Date();
+    
+    // Update onboarding status if it exists
+    if (merchant.onboardingStatus) {
+      merchant.onboardingStatus = 'completed';
+    }
+
+    // Save the merchant
+    await merchant.save();
+
+    console.log('✅ Merchant verified successfully:', {
+      id: merchant._id,
+      businessName: merchant.businessName,
+      verified: merchant.verified,
+      isActive: merchant.isActive
+    });
+
+    // Log admin activity
+    if (req.admin && req.admin.id && req.admin.id !== 'hardcoded-admin-id') {
+      try {
+        await AdminUser.findByIdAndUpdate(req.admin.id, {
+          $push: {
+            activityLog: {
+              action: 'merchant_verified',
+              details: `Verified merchant: ${merchant.businessName} (${merchant.email})`,
+              timestamp: new Date()
+            }
+          }
+        });
+      } catch (logError) {
+        console.error('⚠️ Failed to log admin activity:', logError.message);
+      }
+    }
+
+    // Send verification email notification
+    try {
+      const { emailService } = require('../utils/emailService');
+      
+      const emailContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: #4caf50; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Congratulations!</h1>
+            <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Your business has been verified</p>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+            <h2 style="color: #333; margin-top: 0;">Hello ${merchant.businessName}!</h2>
+            <p style="color: #666; line-height: 1.6;">
+              Great news! Your business has been successfully verified and is now live on Nairobi Verified.
+            </p>
+            <p style="color: #666; line-height: 1.6;">
+              You can now enjoy all the benefits of being a verified business, including:
+            </p>
+            <ul style="color: #666; line-height: 1.8;">
+              <li>✅ Verified badge on your profile</li>
+              <li>📈 Increased visibility in search results</li>
+              <li>🎯 Access to premium features</li>
+              <li>💬 Customer reviews and ratings</li>
+              <li>📊 Business analytics dashboard</li>
+            </ul>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/merchant/dashboard" 
+               style="background: #4caf50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+              Visit Your Dashboard
+            </a>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #999; font-size: 12px;">
+              Nairobi CBD Business Directory Team
+            </p>
+          </div>
+        </div>
+      `;
+
+      await emailService.sendEmail({
+        to: merchant.email,
+        subject: '🎉 Your Business Has Been Verified - Nairobi Verified',
+        html: emailContent
+      });
+      
+      console.log('📧 Verification email sent to:', merchant.email);
+      
+    } catch (emailError) {
+      console.error('⚠️ Email sending failed:', emailError.message);
+      // Don't fail the request if email fails
+    }
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: 'Merchant verified successfully',
+      data: {
+        id: merchant._id,
+        businessName: merchant.businessName,
+        email: merchant.email,
+        verified: merchant.verified,
+        verifiedDate: merchant.verifiedDate,
+        isActive: merchant.isActive,
+        activatedDate: merchant.activatedDate
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Verify merchant error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify merchant',
+      error: error.message
+    });
+  }
+});
+
 /**
  * @desc    Delete single merchant
  * @route   DELETE /api/admin/dashboard/merchants/:merchantId
@@ -2419,5 +2585,6 @@ module.exports = {
   getSettings,
   updateSettings,
   deleteMerchant,
-  bulkDeleteMerchants
+  bulkDeleteMerchants,
+  verifyMerchant,
 };
