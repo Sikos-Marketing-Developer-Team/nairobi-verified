@@ -19,6 +19,7 @@ import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-ske
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFavorites } from '../contexts/FavoritesContext';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { isBusinessCurrentlyOpen, formatBusinessHours } from '@/utils/businessHours';
 
 // Social media icon mapping
 const socialIcons = {
@@ -248,18 +249,9 @@ const MerchantDetail = () => {
     setShowReportModal(true);
   };
 
-  // Format business hours
-  const businessHoursFormatted: Record<string, string> = {};
-  Object.entries(merchant?.businessHours || {}).forEach(([day, hours]: [string, any]) => {
-    if (hours.closed) {
-      businessHoursFormatted[day] = 'Closed';
-    } else {
-      businessHoursFormatted[day] = `${hours.open} - ${hours.close}`;
-    }
-  });
-
-  const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-  const isOpen = businessHoursFormatted[currentDay] !== 'Closed';
+  // Format business hours using utility functions
+  const businessHoursFormatted = formatBusinessHours(merchant?.businessHours || {});
+  const isOpen = isBusinessCurrentlyOpen(merchant?.businessHours || {});
 
   // Social links
   const socialLinks = {
@@ -436,10 +428,12 @@ const MerchantDetail = () => {
                 <div className="text-white flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h1 className="text-3xl font-bold">{merchant.businessName}</h1>
-                    <div className="verified-badge bg-white text-primary px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                      <Check className="h-3 w-3" />
-                      Verified
-                    </div>
+                    {merchant.verified && (
+                      <div className="verified-badge bg-white text-primary px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                        <Check className="h-3 w-3" />
+                        Verified
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="bg-white/20 px-3 py-1 rounded-full">{merchant.businessType}</span>
@@ -497,10 +491,12 @@ const MerchantDetail = () => {
               </CardHeader>
               <CardContent className="p-6 pt-0">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-green-500" />
-                    <p className="text-sm">Verified Business since {merchant.yearEstablished}</p>
-                  </div>
+                  {merchant.verified && (
+                    <div className="flex items-center gap-3">
+                      <Check className="h-5 w-5 text-green-500" />
+                      <p className="text-sm">Verified Business since {merchant.yearEstablished}</p>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <Star className="h-5 w-5 text-yellow-400 fill-current" />
                     <p className="text-sm">{merchant.rating} ({merchant.reviews} reviews)</p>
@@ -693,9 +689,11 @@ const MerchantDetail = () => {
                         <span className="text-lg font-semibold ml-1">{merchant.rating}</span>
                       </div>
                       <span className="text-gray-500">({merchant.reviews} reviews)</span>
-                      <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
-                        Verified since {new Date(merchant.verifiedDate).toLocaleDateString()}
-                      </span>
+                      {merchant.verified && merchant.verifiedDate && (
+                        <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
+                          Verified since {new Date(merchant.verifiedDate).toLocaleDateString()}
+                        </span>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
