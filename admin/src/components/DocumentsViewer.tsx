@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Loader2,
   Calendar,
-  User,
   Building
 } from 'lucide-react';
 import { adminAPI } from '@/lib/api';
@@ -105,7 +104,6 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
       toast({
         title: 'Error',
         description: 'Failed to fetch merchant documents',
-        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -137,7 +135,6 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
       toast({
         title: 'Error',
         description: 'Failed to load document preview',
-        variant: 'destructive',
       });
     } finally {
       setPreviewLoading(false);
@@ -171,7 +168,6 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
       toast({
         title: 'Error',
         description: 'Failed to download document',
-        variant: 'destructive',
       });
     }
   };
