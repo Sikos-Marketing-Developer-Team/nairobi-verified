@@ -1161,120 +1161,48 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Delete merchant
-// @route   DELETE /api/admin/dashboard/merchants/:id
-// @access  Private (Admin)
-const deleteMerchant = asyncHandler(async (req, res) => {
-  const merchant = await Merchant.findById(req.params.id);
-
-  if (!merchant) {
-    return res.status(404).json({
-      success: false,
-      message: 'Merchant not found'
-    });
-  }
-
-  // Store merchant info for logging before deletion
-  const merchantInfo = {
-    businessName: merchant.businessName,
-    email: merchant.email,
-    businessType: merchant.businessType
-  };
-
-  // Delete all products associated with this merchant
+/**
+ * @desc    Delete single merchant
+ * @route   DELETE /api/admin/dashboard/merchants/:merchantId
+ * @access  Private/Admin
+ */
+const deleteMerchant = async (req, res) => {
   try {
-    const deletedProducts = await Product.deleteMany({ merchant: req.params.id });
-    console.log(`Deleted ${deletedProducts.deletedCount} products for merchant ${merchantInfo.businessName}`);
-  } catch (error) {
-    console.error('Error deleting merchant products:', error);
-  }
+    const { merchantId } = req.params;
 
-  // Delete all reviews associated with this merchant
-  try {
-    const deletedReviews = await Review.deleteMany({ merchant: req.params.id });
-    console.log(`Deleted ${deletedReviews.deletedCount} reviews for merchant ${merchantInfo.businessName}`);
-  } catch (error) {
-    console.error('Error deleting merchant reviews:', error);
-  }
-
-  // Delete the merchant from database
-  await Merchant.findByIdAndDelete(req.params.id);
-
-  // Log admin activity
-  try {
-    if (req.admin.id !== 'hardcoded-admin-id') {
-      await AdminUser.findByIdAndUpdate(req.admin.id, {
-        $push: {
-          activityLog: {
-            action: 'merchant_deleted',
-            details: `Deleted merchant: ${merchantInfo.businessName} (${merchantInfo.email}) - ${merchantInfo.businessType}`,
-            timestamp: new Date()
-          }
-        }
+    // Find merchant
+    const merchant = await Merchant.findById(merchantId);
+    
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Merchant not found'
       });
     }
-  } catch (logError) {
-    console.error('Failed to log admin activity:', logError);
-  }
 
-  // Send notification email to the merchant
-  try {
-    const { emailService } = require('../utils/emailService');
-    
-    const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #f44336; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">Account Deletion Notice</h1>
-        </div>
-        
-        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
-          <h2 style="color: #333; margin-top: 0;">Dear ${merchantInfo.businessName},</h2>
-          <p style="color: #666; line-height: 1.6;">
-            We regret to inform you that your merchant account with Nairobi Verified has been deleted by our administration team.
-          </p>
-          <p style="color: #666; line-height: 1.6;">
-            This action has resulted in the removal of:
-          </p>
-          <ul style="color: #666; line-height: 1.6;">
-            <li>Your business profile</li>
-            <li>All uploaded products and services</li>
-            <li>Customer reviews and ratings</li>
-            <li>Verification documents</li>
-          </ul>
-        </div>
+    // Delete associated data
+    await Promise.all([
+      Review.deleteMany({ merchant: merchantId }),
+      Product.deleteMany({ merchant: merchantId })
+    ]);
 
-        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p style="color: #ef6c00; margin: 0; font-size: 14px;">
-            <strong>Need Help?</strong> If you believe this deletion was made in error or if you have questions about this action, please contact our support team immediately.
-          </p>
-        </div>
+    // Delete merchant
+    await merchant.deleteOne();
 
-        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-          <p style="color: #999; font-size: 12px;">
-            Nairobi CBD Business Directory Team<br>
-            Email: support@nairobiverified.com
-          </p>
-        </div>
-      </div>
-    `;
-
-    await emailService.sendEmail({
-      to: merchantInfo.email,
-      subject: '⚠️ Account Deletion Notice - Nairobi Verified',
-      html: emailContent
+    res.status(200).json({
+      success: true,
+      message: `Merchant ${merchant.businessName} deleted successfully`,
+      data: {}
     });
-    
-    console.log(`✅ Deletion notification email sent to: ${merchantInfo.email}`);
-    
-  } catch (emailError) {
-    console.error('❌ Email sending failed:', emailError);
+  } catch (error) {
+    console.error('Delete merchant error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete merchant',
+      error: error.message
+    });
   }
-
-  res.status(200).json({
-    success: true,
-    message: 'Merchant and all associated data deleted successfully'
-  });
-});
+};
 
 // @desc    Get all users with pagination and filtering
 // @route   GET /api/admin/dashboard/users
@@ -2369,70 +2297,12 @@ const getAnalytics = asyncHandler(async (req, res) => {
   }
 });
 
-// Helper function to format time ago
-const formatTimeAgo = (date) => {
-  const now = new Date();
-  const diffInMs = now - new Date(date);
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-  if (diffInMinutes < 1) return 'Just now';
-  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
-  if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-  if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
-  return new Date(date).toLocaleDateString();
-};
-
-/**
- * @desc    Delete single merchant
- * @route   DELETE /api/admin/dashboard/merchants/:merchantId
- * @access  Private/Admin
- */
-exports.deleteMerchant = async (req, res) => {
-  try {
-    const { merchantId } = req.params;
-
-    // Find merchant
-    const merchant = await Merchant.findById(merchantId);
-    
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        message: 'Merchant not found'
-      });
-    }
-
-    // Delete associated data
-    await Promise.all([
-      Review.deleteMany({ merchant: merchantId }),
-      Product.deleteMany({ merchant: merchantId })
-    ]);
-
-    // Delete merchant
-    await merchant.deleteOne();
-
-    res.status(200).json({
-      success: true,
-      message: `Merchant ${merchant.businessName} deleted successfully`,
-      data: {}
-    });
-  } catch (error) {
-    console.error('Delete merchant error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete merchant',
-      error: error.message
-    });
-  }
-};
-
 /**
  * @desc    Bulk delete merchants
  * @route   DELETE /api/admin/dashboard/merchants/bulk-delete
  * @access  Private/Admin
  */
-exports.bulkDeleteMerchants = async (req, res) => {
+const bulkDeleteMerchants = async (req, res) => {
   try {
     const { merchantIds } = req.body;
 
@@ -2480,6 +2350,22 @@ exports.bulkDeleteMerchants = async (req, res) => {
   }
 };
 
+// Helper function to format time ago
+const formatTimeAgo = (date) => {
+  const now = new Date();
+  const diffInMs = now - new Date(date);
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInMinutes < 1) return 'Just now';
+  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+  if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+  if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  return new Date(date).toLocaleDateString();
+};
+
+
 module.exports = {
   getDashboardStats,
   getRecentActivity,
@@ -2490,7 +2376,6 @@ module.exports = {
   bulkUpdateMerchantStatus,
   createMerchant,
   updateMerchantStatus,
-  deleteMerchant,
   getUsers,
   createUser,
   updateUser,
@@ -2504,5 +2389,7 @@ module.exports = {
   getSystemStatus,
   exportData,
   getSettings,
-  updateSettings
+  updateSettings,
+  deleteMerchant,
+  bulkDeleteMerchants
 };
