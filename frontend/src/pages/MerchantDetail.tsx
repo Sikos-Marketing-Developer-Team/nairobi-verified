@@ -491,10 +491,12 @@ const MerchantDetail = () => {
               </CardHeader>
               <CardContent className="p-6 pt-0">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-green-500" />
-                    <p className="text-sm">Verified Business since {merchant.yearEstablished}</p>
-                  </div>
+                  {merchant.verified && (
+                    <div className="flex items-center gap-3">
+                      <Check className="h-5 w-5 text-green-500" />
+                      <p className="text-sm">Verified Business since {merchant.yearEstablished}</p>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <Star className="h-5 w-5 text-yellow-400 fill-current" />
                     <p className="text-sm">{merchant.rating} ({merchant.reviews} reviews)</p>
