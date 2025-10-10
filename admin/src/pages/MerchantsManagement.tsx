@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { scrollToTop } from '../hooks/useScrollToTop';
 import { MerchantsManagementSkeleton } from '../components/ui/loading-skeletons';
 import AddMerchantModal from '@/components/modals/addMerchantModal';
+import DocumentsViewer from '@/components/DocumentsViewer';
 
 interface Merchant {
   _id: string;
