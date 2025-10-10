@@ -1055,12 +1055,18 @@ const createMerchant = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const updateMerchantStatus = asyncHandler(async (req, res) => {
   try {
-    const { verified, active } = req.body;
+    // Accept both 'active' and 'isActive' for backward compatibility
+    const { verified, active, isActive } = req.body;
+    
+    // Use isActive if provided, otherwise fall back to active
+    const activeStatus = isActive !== undefined ? isActive : active;
 
     console.log('Update merchant status request:', {
       merchantId: req.params.id,
       verified,
       active,
+      isActive,
+      activeStatus,
       body: req.body
     });
 
@@ -1071,9 +1077,10 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
       updateData.verifiedDate = verified ? new Date() : null;
     }
 
-    if (active !== undefined) {
-      updateData.isActive = active;
-      if (active) {
+    // FIXED: Now handles both 'active' and 'isActive' parameters
+    if (activeStatus !== undefined) {
+      updateData.isActive = Boolean(activeStatus);
+      if (activeStatus) {
         updateData.activatedDate = new Date();
       } else {
         updateData.deactivatedDate = new Date();
@@ -1082,10 +1089,16 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
 
     console.log('Update data:', updateData);
 
+    // Use findByIdAndUpdate with runValidators and new: true
     const merchant = await Merchant.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true }
+      { 
+        new: true, 
+        runValidators: true,
+        // IMPORTANT: This ensures the update is saved before returning
+        lean: false
+      }
     ).select('-password');
 
     if (!merchant) {
@@ -1096,15 +1109,23 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
       });
     }
 
-    console.log('Merchant updated successfully:', merchant);
+    // CRITICAL FIX: Save the merchant to ensure changes persist
+    await merchant.save();
 
+    console.log('Merchant updated successfully:', {
+      id: merchant._id,
+      isActive: merchant.isActive,
+      verified: merchant.verified
+    });
+
+    // Log admin activity
     if (req.admin && req.admin.id !== 'hardcoded-admin-id') {
       try {
         await AdminUser.findByIdAndUpdate(req.admin.id, {
           $push: {
             activityLog: {
               action: 'merchant_status_updated',
-              details: `${verified ? 'Verified' : 'Unverified'} merchant ${merchant.businessName}${active !== undefined ? ` and ${active ? 'activated' : 'deactivated'}` : ''}`,
+              details: `${verified ? 'Verified' : 'Unverified'} merchant ${merchant.businessName}${activeStatus !== undefined ? ` and ${activeStatus ? 'activated' : 'deactivated'}` : ''}`,
               timestamp: new Date()
             }
           }
@@ -1114,10 +1135,13 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
       }
     }
 
+    // Send email notification
     try {
       const statusMessage = verified 
         ? 'Your merchant account has been verified and activated!' 
-        : 'Your merchant account status has been updated.';
+        : activeStatus 
+          ? 'Your merchant account has been activated.'
+          : 'Your merchant account status has been updated.';
       
       const emailContent = `
         <h2>Account Status Update</h2>
