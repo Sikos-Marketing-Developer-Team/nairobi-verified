@@ -24,6 +24,8 @@ const {
   getSettings,
   updateSettings,
   bulkUpdateMerchantStatus,
+  deleteMerchant,
+  bulkDeleteMerchants,
   
 } = require('../controllers/adminDashboard');
 const { protectAdmin, checkPermission } = require('../middleware/adminAuth');
@@ -47,7 +49,8 @@ router.get('/merchants', checkPermission('merchants.read'), getMerchants);
 router.post('/merchants', checkPermission('merchants.write'), createMerchant);
 router.put('/merchants/:id/status', checkPermission('merchants.approve'), updateMerchantStatus);
 router.put('/merchants/bulk-status', checkPermission('merchants.approve'), bulkUpdateMerchantStatus);
-router.delete('/merchants/:id', checkPermission('merchants.delete'), deleteMerchant);
+router.delete('/merchants/:merchantId', protectAdmin, checkPermission('merchants.delete'), deleteMerchant);
+router.delete('/merchants/bulk-delete', protectAdmin, checkPermission('merchants.delete'), bulkDeleteMerchants);
 
 // Document management routes
 router.get('/merchants/:id/documents', checkPermission('merchants.read'), getMerchantDocuments);
