@@ -248,18 +248,9 @@ const MerchantDetail = () => {
     setShowReportModal(true);
   };
 
-  // Format business hours
-  const businessHoursFormatted: Record<string, string> = {};
-  Object.entries(merchant?.businessHours || {}).forEach(([day, hours]: [string, any]) => {
-    if (hours.closed) {
-      businessHoursFormatted[day] = 'Closed';
-    } else {
-      businessHoursFormatted[day] = `${hours.open} - ${hours.close}`;
-    }
-  });
-
-  const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-  const isOpen = businessHoursFormatted[currentDay] !== 'Closed';
+  // Format business hours using utility functions
+  const businessHoursFormatted = formatBusinessHours(merchant?.businessHours || {});
+  const isOpen = isBusinessCurrentlyOpen(merchant?.businessHours || {});
 
   // Social links
   const socialLinks = {
