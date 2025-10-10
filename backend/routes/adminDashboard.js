@@ -28,6 +28,7 @@ const {
   
 } = require('../controllers/adminDashboard');
 const { protectAdmin, checkPermission } = require('../middleware/adminAuth');
+const { verifyMerchant } = require('../controllers/merchants');
 
 const router = express.Router();
 
@@ -46,6 +47,7 @@ router.get('/export/:type', exportData);
 // Merchant management routes
 router.get('/merchants', checkPermission('merchants.read'), getMerchants);
 router.post('/merchants', checkPermission('merchants.write'), createMerchant);
+router.put('/merchants/:id/verify', checkPermission('merchants.approve'), verifyMerchant);
 router.put('/merchants/:id/status', checkPermission('merchants.approve'), updateMerchantStatus);
 router.put('/merchants/bulk-status', checkPermission('merchants.approve'), bulkUpdateMerchantStatus);
 router.delete('/merchants/:merchantId', protectAdmin, checkPermission('merchants.delete'), deleteMerchant);
