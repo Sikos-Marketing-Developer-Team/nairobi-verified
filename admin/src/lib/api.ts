@@ -198,7 +198,7 @@ export const adminAPI = {
   createUser: (userData: any) => api.post('/admin/dashboard/users', userData),
   updateUser: (userId: string, userData: any) => api.put(`/admin/users/${userId}`, userData),
   updateUserStatus: (userId: string, isActive: boolean) => api.put(`/admin/users/${userId}/status`, { isActive }),
-  deleteUser: (userId: string) => api.delete(`/admin/users/${userId}`),
+  deleteUser: (userId: string) => api.delete(`/admin/dashboard/users/${userId}`),
   
   // Merchant management
   getMerchants: (params?: any) => api.get('/admin/dashboard/merchants', { params }),
