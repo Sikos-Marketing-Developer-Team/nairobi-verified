@@ -25,10 +25,14 @@ const DocumentsSchema = new mongoose.Schema({
     path: { type: String, default: '' },
     uploadedAt: Date
   },
-  additionalDocs: {
-    type: [String],
-    default: []
-  },
+  additionalDocs: [{
+    path: { type: String, required: true },
+    uploadedAt: { type: Date, default: Date.now },
+    originalName: String,
+    fileSize: Number,
+    mimeType: String,
+    description: String
+  }],
   documentsSubmittedAt: Date,
   documentReviewStatus: {
     type: String,
