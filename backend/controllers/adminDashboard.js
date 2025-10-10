@@ -1191,7 +1191,7 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
 
 
 /**
- * @desc    Verify single merchant
+ * @desc    Verify single merchant (FIXED: Documents now optional)
  * @route   PUT /api/admin/dashboard/merchants/:id/verify
  * @access  Private/Admin
  */
@@ -1212,28 +1212,22 @@ const verifyMerchant = asyncHandler(async (req, res) => {
       });
     }
 
-    // Check if merchant has required documents
+    // FIXED: Check if merchant has documents (now optional, just for logging)
     const hasRequiredDocs = 
       merchant.documents?.businessRegistration?.path &&
       merchant.documents?.idDocument?.path &&
       merchant.documents?.utilityBill?.path;
 
+    // Log document status but DON'T block verification
     if (!hasRequiredDocs) {
-      console.log('⚠️ Cannot verify - missing documents:', {
+      console.log('⚠️ Verifying merchant without complete documents:', {
+        businessName: merchant.businessName,
         businessRegistration: !!merchant.documents?.businessRegistration?.path,
         idDocument: !!merchant.documents?.idDocument?.path,
         utilityBill: !!merchant.documents?.utilityBill?.path
       });
-      
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot verify merchant: Required documents are missing',
-        requiredDocuments: {
-          businessRegistration: !!merchant.documents?.businessRegistration?.path,
-          idDocument: !!merchant.documents?.idDocument?.path,
-          utilityBill: !!merchant.documents?.utilityBill?.path
-        }
-      });
+    } else {
+      console.log('✅ Merchant has complete documents');
     }
 
     // Update merchant verification status
@@ -1247,6 +1241,19 @@ const verifyMerchant = asyncHandler(async (req, res) => {
       merchant.onboardingStatus = 'completed';
     }
 
+    // Update document review status if documents exist
+    if (merchant.documents) {
+      if (hasRequiredDocs) {
+        merchant.documents.documentReviewStatus = 'approved';
+        merchant.documents.documentsReviewedAt = new Date();
+      } else {
+        // Mark as approved even without documents (admin override)
+        merchant.documents.documentReviewStatus = 'approved';
+        merchant.documents.documentsReviewedAt = new Date();
+        merchant.documents.verificationNotes = 'Verified by admin without complete documentation';
+      }
+    }
+
     // Save the merchant
     await merchant.save();
 
@@ -1254,17 +1261,22 @@ const verifyMerchant = asyncHandler(async (req, res) => {
       id: merchant._id,
       businessName: merchant.businessName,
       verified: merchant.verified,
-      isActive: merchant.isActive
+      isActive: merchant.isActive,
+      hasDocuments: hasRequiredDocs
     });
 
     // Log admin activity
     if (req.admin && req.admin.id && req.admin.id !== 'hardcoded-admin-id') {
       try {
+        const verificationNote = hasRequiredDocs 
+          ? 'with complete documents' 
+          : 'without complete documents (admin override)';
+        
         await AdminUser.findByIdAndUpdate(req.admin.id, {
           $push: {
             activityLog: {
               action: 'merchant_verified',
-              details: `Verified merchant: ${merchant.businessName} (${merchant.email})`,
+              details: `Verified merchant: ${merchant.businessName} (${merchant.email}) ${verificationNote}`,
               timestamp: new Date()
             }
           }
@@ -1274,9 +1286,31 @@ const verifyMerchant = asyncHandler(async (req, res) => {
       }
     }
 
+    // Add verification history entry
+    if (merchant.verificationHistory) {
+      merchant.verificationHistory.push({
+        action: 'approved',
+        performedBy: req.admin?.id,
+        performedAt: new Date(),
+        notes: hasRequiredDocs 
+          ? 'Verified with complete documentation' 
+          : 'Verified by admin without complete documentation',
+        documentsInvolved: [
+          merchant.documents?.businessRegistration?.path ? 'businessRegistration' : null,
+          merchant.documents?.idDocument?.path ? 'idDocument' : null,
+          merchant.documents?.utilityBill?.path ? 'utilityBill' : null
+        ].filter(Boolean)
+      });
+      await merchant.save();
+    }
+
     // Send verification email notification
     try {
       const { emailService } = require('../utils/emailService');
+      
+      const documentNote = hasRequiredDocs 
+        ? 'with all required documents' 
+        : 'You can upload your verification documents later from your dashboard.';
       
       const emailContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -1288,7 +1322,7 @@ const verifyMerchant = asyncHandler(async (req, res) => {
           <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
             <h2 style="color: #333; margin-top: 0;">Hello ${merchant.businessName}!</h2>
             <p style="color: #666; line-height: 1.6;">
-              Great news! Your business has been successfully verified and is now live on Nairobi Verified.
+              Great news! Your business has been successfully verified and is now live on Nairobi Verified ${documentNote}
             </p>
             <p style="color: #666; line-height: 1.6;">
               You can now enjoy all the benefits of being a verified business, including:
@@ -1301,6 +1335,14 @@ const verifyMerchant = asyncHandler(async (req, res) => {
               <li>📊 Business analytics dashboard</li>
             </ul>
           </div>
+
+          ${!hasRequiredDocs ? `
+          <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="color: #ef6c00; margin: 0; font-size: 14px;">
+              <strong>📋 Next Steps:</strong> While your account is now verified, we recommend uploading your verification documents (Business Registration, ID Document, and Utility Bill) from your dashboard to maintain full verification status.
+            </p>
+          </div>
+          ` : ''}
 
           <div style="text-align: center; margin: 30px 0;">
             <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/merchant/dashboard" 
@@ -1333,7 +1375,9 @@ const verifyMerchant = asyncHandler(async (req, res) => {
     // Return success response
     res.status(200).json({
       success: true,
-      message: 'Merchant verified successfully',
+      message: hasRequiredDocs 
+        ? 'Merchant verified successfully with complete documentation' 
+        : 'Merchant verified successfully (documents can be uploaded later)',
       data: {
         id: merchant._id,
         businessName: merchant.businessName,
@@ -1341,7 +1385,13 @@ const verifyMerchant = asyncHandler(async (req, res) => {
         verified: merchant.verified,
         verifiedDate: merchant.verifiedDate,
         isActive: merchant.isActive,
-        activatedDate: merchant.activatedDate
+        activatedDate: merchant.activatedDate,
+        hasCompleteDocuments: hasRequiredDocs,
+        documentStatus: {
+          businessRegistration: !!merchant.documents?.businessRegistration?.path,
+          idDocument: !!merchant.documents?.idDocument?.path,
+          utilityBill: !!merchant.documents?.utilityBill?.path
+        }
       }
     });
 
