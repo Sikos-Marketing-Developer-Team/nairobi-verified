@@ -7,8 +7,19 @@ const { HTTP_STATUS } = require('../config/constants');
 // @access Protected
 exports.protect = async (req, res, next) => {
   try {
+    // Debug authentication
+    console.log('🔐 Auth Debug:', {
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!req.user,
+      sessionID: req.sessionID,
+      userEmail: req.user?.email,
+      method: req.method,
+      url: req.url
+    });
+
     // Check if user is authenticated via session
     if (!req.isAuthenticated() || !req.user) {
+      console.log('❌ Authentication failed - no session or user');
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         error: 'Not authorized to access this route. Please sign in.',
