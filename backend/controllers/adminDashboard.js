@@ -2384,6 +2384,102 @@ const formatTimeAgo = (date) => {
   return new Date(date).toLocaleDateString();
 };
 
+/**
+ * @desc    Delete single merchant
+ * @route   DELETE /api/admin/dashboard/merchants/:merchantId
+ * @access  Private/Admin
+ */
+exports.deleteMerchant = async (req, res) => {
+  try {
+    const { merchantId } = req.params;
+
+    // Find merchant
+    const merchant = await Merchant.findById(merchantId);
+    
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Merchant not found'
+      });
+    }
+
+    // Delete associated data
+    await Promise.all([
+      Review.deleteMany({ merchant: merchantId }),
+      Product.deleteMany({ merchant: merchantId })
+    ]);
+
+    // Delete merchant
+    await merchant.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: `Merchant ${merchant.businessName} deleted successfully`,
+      data: {}
+    });
+  } catch (error) {
+    console.error('Delete merchant error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete merchant',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Bulk delete merchants
+ * @route   DELETE /api/admin/dashboard/merchants/bulk-delete
+ * @access  Private/Admin
+ */
+exports.bulkDeleteMerchants = async (req, res) => {
+  try {
+    const { merchantIds } = req.body;
+
+    if (!merchantIds || !Array.isArray(merchantIds) || merchantIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an array of merchant IDs'
+      });
+    }
+
+    // Validate all merchant IDs exist
+    const merchants = await Merchant.find({ _id: { $in: merchantIds } });
+    
+    if (merchants.length !== merchantIds.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Some merchants not found'
+      });
+    }
+
+    // Delete associated data for all merchants
+    await Promise.all([
+      Review.deleteMany({ merchant: { $in: merchantIds } }),
+      Product.deleteMany({ merchant: { $in: merchantIds } })
+    ]);
+
+    // Delete all merchants
+    const result = await Merchant.deleteMany({ _id: { $in: merchantIds } });
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully deleted ${result.deletedCount} merchant(s)`,
+      data: {
+        deletedCount: result.deletedCount,
+        merchantIds
+      }
+    });
+  } catch (error) {
+    console.error('Bulk delete merchants error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete merchants',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getRecentActivity,
