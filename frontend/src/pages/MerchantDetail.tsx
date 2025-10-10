@@ -689,9 +689,11 @@ const MerchantDetail = () => {
                         <span className="text-lg font-semibold ml-1">{merchant.rating}</span>
                       </div>
                       <span className="text-gray-500">({merchant.reviews} reviews)</span>
-                      <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
-                        Verified since {new Date(merchant.verifiedDate).toLocaleDateString()}
-                      </span>
+                      {merchant.verified && merchant.verifiedDate && (
+                        <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
+                          Verified since {new Date(merchant.verifiedDate).toLocaleDateString()}
+                        </span>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
