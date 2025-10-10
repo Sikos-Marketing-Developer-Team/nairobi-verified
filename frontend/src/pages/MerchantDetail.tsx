@@ -19,6 +19,7 @@ import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-ske
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFavorites } from '../contexts/FavoritesContext';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { isBusinessCurrentlyOpen, formatBusinessHours } from '@/utils/businessHours';
 
 // Social media icon mapping
 const socialIcons = {
