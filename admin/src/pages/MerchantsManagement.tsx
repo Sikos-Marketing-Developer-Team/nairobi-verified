@@ -997,8 +997,9 @@ const MerchantsManagement: React.FC = () => {
 
       {/* Documents Modal */}
       {showDocumentsModal && selectedMerchant && (
-        <DocumentsModal
-          merchant={selectedMerchant}
+        <DocumentsViewer
+          merchantId={selectedMerchant._id}
+          merchantName={selectedMerchant.businessName}
           onClose={() => {
             setShowDocumentsModal(false);
             setSelectedMerchant(null);
@@ -1435,84 +1436,6 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
           >
             <Trash2 className="w-4 h-4 inline mr-2" />
             Delete
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Documents Modal Component
-interface DocumentsModalProps {
-  merchant: Merchant;
-  onClose: () => void;
-}
-
-const DocumentsModal: React.FC<DocumentsModalProps> = ({ merchant, onClose }) => {
-  useEffect(() => {
-    scrollToTop('smooth');
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
-      <div className="bg-white rounded-lg p-6 w-full max-w-lg transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Merchant Documents</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
-          >
-            <XCircle className="h-6 w-6" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div className="text-center">
-            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">{merchant.businessName}</h3>
-            <p className="mt-1 text-sm text-gray-500">Document verification for {merchant.ownerName}</p>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <FileText className="h-5 w-5 text-blue-400" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">Document Management</h3>
-                <div className="mt-2 text-sm text-blue-700">
-                  <p>Document verification and management features are being developed.</p>
-                  <ul className="mt-2 list-disc list-inside space-y-1">
-                    <li>Business License Verification</li>
-                    <li>ID Document Verification</li>
-                    <li>Tax Certificate Review</li>
-                    <li>Address Proof Validation</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end space-x-3 pt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
-          >
-            Close
-          </button>
-          <button
-            onClick={() => {
-              toast.info('Document management feature coming soon');
-              onClose();
-            }}
-            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors duration-200"
-          >
-            Manage Documents
           </button>
         </div>
       </div>
