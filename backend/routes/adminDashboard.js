@@ -24,7 +24,6 @@ const {
   getSettings,
   updateSettings,
   bulkUpdateMerchantStatus,
-  deleteMerchant,
   bulkDeleteMerchants,
   
 } = require('../controllers/adminDashboard');
