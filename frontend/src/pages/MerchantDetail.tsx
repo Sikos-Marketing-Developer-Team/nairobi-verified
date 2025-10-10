@@ -252,6 +252,9 @@ const MerchantDetail = () => {
   // Format business hours using utility functions
   const businessHoursFormatted = formatBusinessHours(merchant?.businessHours || {});
   const isOpen = isBusinessCurrentlyOpen(merchant?.businessHours || {});
+  
+  // Get current day for highlighting
+  const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
 
   // Social links
   const socialLinks = {
