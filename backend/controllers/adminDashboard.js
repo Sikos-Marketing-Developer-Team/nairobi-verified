@@ -1061,81 +1061,80 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
     // Use isActive if provided, otherwise fall back to active
     const activeStatus = isActive !== undefined ? isActive : active;
 
-    console.log('Update merchant status request:', {
+    console.log('📝 Update merchant status request:', {
       merchantId: req.params.id,
       verified,
       active,
       isActive,
-      activeStatus,
-      body: req.body
+      activeStatus
     });
 
+    // Build update object
     const updateData = {};
     
     if (verified !== undefined) {
-      updateData.verified = verified;
+      updateData.verified = Boolean(verified);
       updateData.verifiedDate = verified ? new Date() : null;
     }
 
-    // FIXED: Now handles both 'active' and 'isActive' parameters
     if (activeStatus !== undefined) {
       updateData.isActive = Boolean(activeStatus);
-      if (activeStatus) {
-        updateData.activatedDate = new Date();
-      } else {
-        updateData.deactivatedDate = new Date();
-      }
+      updateData.activatedDate = activeStatus ? new Date() : null;
+      updateData.deactivatedDate = !activeStatus ? new Date() : null;
     }
 
-    console.log('Update data:', updateData);
+    console.log('📊 Update data being applied:', updateData);
 
-    // Use findByIdAndUpdate with runValidators and new: true
-    const merchant = await Merchant.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { 
-        new: true, 
-        runValidators: true,
-        // IMPORTANT: This ensures the update is saved before returning
-        lean: false
-      }
-    ).select('-password');
-
-    if (!merchant) {
-      console.log('Merchant not found:', req.params.id);
+    // First, verify merchant exists
+    const existingMerchant = await Merchant.findById(req.params.id);
+    if (!existingMerchant) {
+      console.log('❌ Merchant not found:', req.params.id);
       return res.status(404).json({
         success: false,
         message: 'Merchant not found'
       });
     }
 
-    // CRITICAL FIX: Save the merchant to ensure changes persist
-    await merchant.save();
+    // Apply updates directly to the merchant object
+    Object.assign(existingMerchant, updateData);
+    
+    // Save the merchant (this triggers pre-save hooks and validations)
+    await existingMerchant.save();
 
-    console.log('Merchant updated successfully:', {
-      id: merchant._id,
-      isActive: merchant.isActive,
-      verified: merchant.verified
+    console.log('✅ Merchant updated successfully:', {
+      id: existingMerchant._id,
+      businessName: existingMerchant.businessName,
+      isActive: existingMerchant.isActive,
+      verified: existingMerchant.verified
     });
 
-    // Log admin activity
-    if (req.admin && req.admin.id !== 'hardcoded-admin-id') {
+    // Log admin activity (if admin is authenticated)
+    if (req.admin && req.admin.id && req.admin.id !== 'hardcoded-admin-id') {
       try {
+        const statusChanges = [];
+        if (verified !== undefined) {
+          statusChanges.push(verified ? 'Verified' : 'Unverified');
+        }
+        if (activeStatus !== undefined) {
+          statusChanges.push(activeStatus ? 'Activated' : 'Deactivated');
+        }
+
         await AdminUser.findByIdAndUpdate(req.admin.id, {
           $push: {
             activityLog: {
               action: 'merchant_status_updated',
-              details: `${verified ? 'Verified' : 'Unverified'} merchant ${merchant.businessName}${activeStatus !== undefined ? ` and ${activeStatus ? 'activated' : 'deactivated'}` : ''}`,
+              details: `${statusChanges.join(' and ')} merchant ${existingMerchant.businessName}`,
               timestamp: new Date()
             }
           }
         });
       } catch (logError) {
-        console.error('Failed to log admin activity:', logError);
+        console.error('⚠️ Failed to log admin activity:', logError.message);
+        // Don't fail the request if logging fails
       }
     }
 
-    // Send email notification
+    // Send email notification (non-blocking)
     try {
       const statusMessage = verified 
         ? 'Your merchant account has been verified and activated!' 
@@ -1145,7 +1144,7 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
       
       const emailContent = `
         <h2>Account Status Update</h2>
-        <p>Hello ${merchant.businessName},</p>
+        <p>Hello ${existingMerchant.businessName},</p>
         <p>${statusMessage}</p>
         ${verified ? '<p>You can now start adding products and services to your merchant dashboard.</p>' : ''}
         <p>Login to your dashboard: ${process.env.FRONTEND_URL}/merchant/login</p>
@@ -1153,34 +1152,39 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
 
       await transporter.sendMail({
         from: process.env.FROM_EMAIL,
-        to: merchant.email,
+        to: existingMerchant.email,
         subject: 'Nairobi Verified - Account Status Update',
         html: emailContent
       });
+      console.log('📧 Email notification sent to:', existingMerchant.email);
     } catch (emailError) {
-      console.error('Email notification failed:', emailError);
+      console.error('⚠️ Email notification failed:', emailError.message);
+      // Don't fail the request if email fails
     }
 
+    // Return success response
     res.status(200).json({
       success: true,
       message: 'Merchant status updated successfully',
       merchant: {
-        id: merchant._id,
-        businessName: merchant.businessName,
-        email: merchant.email,
-        verified: merchant.verified,
-        verifiedDate: merchant.verifiedDate,
-        isActive: merchant.isActive,
-        activatedDate: merchant.activatedDate,
-        updatedAt: merchant.updatedAt
+        id: existingMerchant._id,
+        businessName: existingMerchant.businessName,
+        email: existingMerchant.email,
+        verified: existingMerchant.verified,
+        verifiedDate: existingMerchant.verifiedDate,
+        isActive: existingMerchant.isActive,
+        activatedDate: existingMerchant.activatedDate,
+        deactivatedDate: existingMerchant.deactivatedDate,
+        updatedAt: existingMerchant.updatedAt
       }
     });
   } catch (error) {
-    console.error('Update merchant status error:', error);
+    console.error('❌ Update merchant status error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update merchant status',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
