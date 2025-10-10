@@ -428,10 +428,12 @@ const MerchantDetail = () => {
                 <div className="text-white flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h1 className="text-3xl font-bold">{merchant.businessName}</h1>
-                    <div className="verified-badge bg-white text-primary px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                      <Check className="h-3 w-3" />
-                      Verified
-                    </div>
+                    {merchant.verified && (
+                      <div className="verified-badge bg-white text-primary px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                        <Check className="h-3 w-3" />
+                        Verified
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="bg-white/20 px-3 py-1 rounded-full">{merchant.businessType}</span>
