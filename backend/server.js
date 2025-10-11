@@ -8,7 +8,7 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
-const { testConnection } = require('./config/postgres');
+const { testConnection, sequelize } = require('./config/postgres');
 const rateLimit = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
 const { client, webVitalsLCP, webVitalsCLS, webVitalsFID } = require('./utils/metrics');
@@ -18,13 +18,17 @@ const merchantDashboardRoutes = require('./routes/merchantDashboard');
 // Load environment variables
 dotenv.config();
 
-// Connect to database
+// Connect to databases
 if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
   console.log('Using mock database for development');
 } else {
-  connectDB();
-  // Also test PostgreSQL connection
+  // Primary database: PostgreSQL
   testConnection();
+  
+  // Secondary database: MongoDB (for legacy data during transition)
+  connectDB();
+  
+  console.log('🚀 Server configured to use PostgreSQL as primary database');
 }
 
 // Passport config
