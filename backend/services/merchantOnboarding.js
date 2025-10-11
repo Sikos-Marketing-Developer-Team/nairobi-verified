@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const Merchant = require('../models/Merchant');
+const { MerchantPG } = require('../models/indexPG');
 const { sendEmail } = require('../utils/emailService');
 
 /**
@@ -60,7 +60,7 @@ class MerchantOnboardingService {
       };
 
       // Create merchant with admin-set verification status
-      const merchant = await Merchant.create({
+      const merchant = await MerchantPG.create({
         businessName: merchantData.businessName,
         email: merchantData.email,
         phone: merchantData.phone,
@@ -135,7 +135,7 @@ class MerchantOnboardingService {
       };
 
       // Create merchant
-      const merchant = await Merchant.create({
+      const merchant = await MerchantPG.create({
         businessName: merchantData.businessName,
         email: merchantData.email,
         phone: merchantData.phone,

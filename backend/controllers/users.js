@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const { UserPG } = require('../models/indexPG');
 
 // @desc    Get all users
 // @route   GET /api/users

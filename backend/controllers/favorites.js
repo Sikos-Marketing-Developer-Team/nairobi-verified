@@ -1,5 +1,4 @@
-const User = require('../models/User');
-const Merchant = require('../models/Merchant');
+const { UserPG, MerchantPG } = require('../models/indexPG');
 
 // @desc    Get user favorites
 // @route   GET /api/favorites

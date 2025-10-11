@@ -1,5 +1,4 @@
-const User = require('../models/User');
-const Merchant = require('../models/Merchant');
+const { UserPG, MerchantPG } = require('../models/indexPG');
 const { HTTP_STATUS } = require('../config/constants');
 
 // @desc Protect routes with authentication

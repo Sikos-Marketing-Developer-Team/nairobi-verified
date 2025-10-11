@@ -1,4 +1,4 @@
-const AdminUser = require('../models/AdminUser');
+const { AdminUserPG } = require('../models/indexPG');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const asyncHandler = require('express-async-handler');

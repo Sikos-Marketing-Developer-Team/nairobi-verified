@@ -1,8 +1,4 @@
-const AdminUser = require('../models/AdminUser');
-const Merchant = require('../models/Merchant');
-const User = require('../models/User');
-const Product = require('../models/Product');
-const Review = require('../models/Review');
+const { AdminUserPG, MerchantPG, UserPG, ProductPG } = require('../models/indexPG');
 const FlashSale = require('../models/FlashSale');
 const asyncHandler = require('express-async-handler');
 const crypto = require('crypto');
@@ -2061,8 +2057,8 @@ const deleteReview = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const getSystemStatus = asyncHandler(async (req, res) => {
   try {
-    const mongoose = require('mongoose');
-    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const { sequelize } = require('../models/indexPG');
+    const dbStatus = sequelize.authenticate() ? 'connected' : 'disconnected';
     
     const memUsage = process.memoryUsage();
     const memUsageFormatted = {

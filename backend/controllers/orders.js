@@ -1,5 +1,4 @@
-const Order = require('../models/Order');
-const Product = require('../models/Product');
+const { OrderPG, ProductPG } = require('../models/indexPG');
 
 // @desc    Get user orders
 // @route   GET /api/orders
@@ -70,9 +69,15 @@ const getSingleOrder = async (req, res) => {
 };
 
 // @desc    Create new order
-// @route   POST /api/orders
+// @route   POST /api/orders  
 // @access  Private
 const createOrder = async (req, res) => {
+  // TODO: Convert MongoDB transactions to PostgreSQL/Sequelize
+  res.status(501).json({
+    success: false,
+    message: 'Order creation temporarily disabled - needs PostgreSQL conversion'
+  });
+  /*
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -153,6 +158,7 @@ const createOrder = async (req, res) => {
   } finally {
     session.endSession();
   }
+  */
 };
 
 // @desc    Update order status
@@ -201,6 +207,12 @@ const updateOrderStatus = async (req, res) => {
 // @route   DELETE /api/orders/:id
 // @access  Private
 const cancelOrder = async (req, res) => {
+  // TODO: Convert MongoDB transactions to PostgreSQL/Sequelize
+  res.status(501).json({
+    success: false,
+    message: 'Order cancellation temporarily disabled - needs PostgreSQL conversion'
+  });
+  /*
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -256,6 +268,7 @@ const cancelOrder = async (req, res) => {
   } finally {
     session.endSession();
   }
+  */
 };
 
 module.exports = {

@@ -31,6 +31,9 @@ router.route('/')
   .get(getMerchants)
   .post(createMerchant);
 
+// Registration route
+router.post('/register', createMerchant);
+
 router.route('/:id')
   .get(getMerchant)
   .put(protect, isMerchant, updateMerchant)

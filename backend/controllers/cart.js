@@ -1,6 +1,4 @@
-const Cart = require('../models/Cart');
-const Product = require('../models/Product');
-const Merchant = require('../models/Merchant');
+const { ProductPG, MerchantPG } = require('../models/indexPG');
 const { HTTP_STATUS } = require('../config/constants');
 
 // Error handling utility

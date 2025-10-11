@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const AdminUser = require('../models/AdminUser');
+const { AdminUserPG } = require('../models/indexPG');
 const asyncHandler = require('express-async-handler');
 
 // Protect admin routes

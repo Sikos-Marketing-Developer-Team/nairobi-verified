@@ -68,26 +68,26 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes - ESSENTIAL for frontend functionality
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
+// app.use('/api/users', require('./routes/users'));
 app.use('/api/merchants', require('./routes/merchants'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/orders', require('./routes/orders'));
-app.use('/api/cart', require('./routes/cart'));
-app.use('/api/favorites', require('./routes/favorites'));
-app.use('/api/reviews', require('./routes/reviews'));
-app.use('/api/flash-sales', require('./routes/flashSales'));
-app.use('/api/addresses', require('./routes/addresses'));
-app.use('/api/settings', require('./routes/settings'));
-app.use('/api/uploads', require('./routes/uploads'));
-app.use('/api', require('./routes/documents'));
+// app.use('/api/products', require('./routes/products'));
+// app.use('/api/orders', require('./routes/orders'));
+// app.use('/api/cart', require('./routes/cart'));
+// app.use('/api/favorites', require('./routes/favorites'));
+// app.use('/api/reviews', require('./routes/reviews'));
+// app.use('/api/flash-sales', require('./routes/flashSales'));
+// app.use('/api/addresses', require('./routes/addresses'));
+// app.use('/api/settings', require('./routes/settings'));
+// app.use('/api/uploads', require('./routes/uploads'));
+// app.use('/api', require('./routes/documents'));
 
 // Admin routes
-app.use('/api/auth/admin', require('./routes/adminAuth'));
-app.use('/api/admin/dashboard', require('./routes/adminDashboard'));
-app.use('/api/admin/dashboard', require('./routes/adminDocuments'));
+// app.use('/api/auth/admin', require('./routes/adminAuth'));
+// app.use('/api/admin/dashboard', require('./routes/adminDashboard'));
+// app.use('/api/admin/dashboard', require('./routes/adminDocuments'));
 
 // Test route
-app.use('/api/test', require('./routes/test'));
+// app.use('/api/test', require('./routes/test'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

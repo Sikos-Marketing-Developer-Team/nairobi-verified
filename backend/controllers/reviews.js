@@ -1,7 +1,5 @@
 // controllers/reviews.js
-const Review = require('../models/Review');
-const Merchant = require('../models/Merchant');
-const mongoose = require('mongoose');
+const { ProductPG, MerchantPG, UserPG } = require('../models/indexPG');
 const { HTTP_STATUS } = require('../config/constants');
 
 // Error handling utility
@@ -30,16 +28,8 @@ exports.getReviews = async (req, res) => {
       });
     }
 
-    // Check if merchantId is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(merchantId)) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        error: 'Invalid merchant ID format'
-      });
-    }
-
     // Check if merchant exists
-    const merchant = await Merchant.findById(merchantId);
+    const merchant = await MerchantPG.findByPk(merchantId);
     if (!merchant) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
