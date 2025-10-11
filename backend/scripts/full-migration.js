@@ -4,11 +4,11 @@ const { sequelize, UserPG, MerchantPG, ProductPG, OrderPG, AdminUserPG, Document
 const { testConnection } = require('../config/postgres');
 
 // Import MongoDB models
-const User = require('./models/User');
-const Merchant = require('./models/Merchant');
-const Product = require('./models/Product');
-const Order = require('./models/Order');
-const AdminUser = require('./models/AdminUser');
+const User = require('../models/User');
+const Merchant = require('../models/Merchant');
+const Product = require('../models/Product');
+const Order = require('../models/Order');
+const AdminUser = require('../models/AdminUser');
 
 async function fullMigration() {
   try {
