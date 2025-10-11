@@ -1,5 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
+const { v4: uuidv4 } = require('uuid');
 const { sequelize, UserPG, MerchantPG, ProductPG, OrderPG, AdminUserPG, DocumentPG } = require('../models/indexPG');
 const { testConnection } = require('../config/postgres');
 
@@ -33,6 +34,15 @@ async function fullMigration() {
     // Reset sequences if using auto-increment (PostgreSQL UUIDs don't need this)
     console.log('✅ PostgreSQL tables cleared');
 
+    // Create ID mapping to maintain relationships
+    const idMapping = {
+      users: new Map(),
+      merchants: new Map(),
+      products: new Map(),
+      orders: new Map(),
+      adminUsers: new Map()
+    };
+
     // Start migrations with progress tracking
     let successCount = 0;
     let errorCount = 0;
@@ -44,8 +54,11 @@ async function fullMigration() {
     
     for (const admin of mongoAdmins) {
       try {
+        const newId = uuidv4();
+        idMapping.adminUsers.set(admin._id.toString(), newId);
+
         const adminData = {
-          id: admin._id.toString(),
+          id: newId,
           username: admin.username || admin.email?.split('@')[0] || 'admin',
           email: admin.email,
           password: admin.password || '$2a$10$defaulthashedpassword', // Keep hashed password
@@ -71,8 +84,11 @@ async function fullMigration() {
     
     for (const user of mongoUsers) {
       try {
+        const newId = uuidv4();
+        idMapping.users.set(user._id.toString(), newId);
+
         const userData = {
-          id: user._id.toString(),
+          id: newId,
           name: user.firstName && user.lastName 
             ? `${user.firstName} ${user.lastName}` 
             : user.name || user.firstName || user.lastName || 'Unknown User',
@@ -109,8 +125,11 @@ async function fullMigration() {
     
     for (const merchant of mongoMerchants) {
       try {
+        const newId = uuidv4();
+        idMapping.merchants.set(merchant._id.toString(), newId);
+
         const merchantData = {
-          id: merchant._id.toString(),
+          id: newId,
           businessName: merchant.businessName || 'Unknown Business',
           ownerName: merchant.ownerName || merchant.contactPerson || 'Unknown Owner',
           email: merchant.email,
@@ -167,7 +186,7 @@ async function fullMigration() {
           if (merchant[docType.field]) {
             try {
               await DocumentPG.create({
-                merchantId: merchant._id.toString(),
+                merchantId: newId,
                 documentType: docType.type,
                 documentName: docType.name,
                 originalFilename: `${docType.type}.pdf`,
@@ -176,7 +195,7 @@ async function fullMigration() {
                 mimeType: 'application/pdf',
                 fileData: null, // File content not available
                 status: merchant.verificationStatus === 'approved' ? 'approved' : 'pending',
-                uploadedBy: merchant._id.toString(),
+                uploadedBy: newId,
                 isActive: true,
                 metadata: {
                   migratedFrom: 'mongodb',
@@ -203,8 +222,14 @@ async function fullMigration() {
     
     for (const product of mongoProducts) {
       try {
+        const newId = uuidv4();
+        idMapping.products.set(product._id.toString(), newId);
+
+        // Get the mapped merchant ID
+        const merchantId = product.merchant ? idMapping.merchants.get(product.merchant.toString()) : null;
+
         const productData = {
-          id: product._id.toString(),
+          id: newId,
           name: product.name,
           description: product.description,
           price: parseFloat(product.price),
@@ -222,7 +247,7 @@ async function fullMigration() {
           tags: product.tags || [],
           images: product.images || [],
           thumbnail: product.thumbnail,
-          merchantId: product.merchant?.toString() || product.merchantId?.toString(),
+          merchantId: merchantId,
           status: product.status || 'active',
           isFeatured: product.isFeatured || product.featured || false,
           isDigital: product.isDigital || false,
@@ -255,11 +280,18 @@ async function fullMigration() {
     
     for (const order of mongoOrders) {
       try {
+        const newId = uuidv4();
+        idMapping.orders.set(order._id.toString(), newId);
+
+        // Get mapped user and merchant IDs
+        const userId = order.user ? idMapping.users.get(order.user.toString()) : null;
+        const merchantId = order.merchant ? idMapping.merchants.get(order.merchant.toString()) : null;
+
         const orderData = {
-          id: order._id.toString(),
+          id: newId,
           orderNumber: order.orderNumber || `ORD-${order._id.toString().substr(-8).toUpperCase()}`,
-          userId: order.user?.toString() || order.userId?.toString() || order.customer?.toString(),
-          merchantId: order.merchant?.toString() || order.merchantId?.toString(),
+          userId: userId,
+          merchantId: merchantId,
           status: order.status || 'pending',
           paymentStatus: order.paymentStatus || 'pending',
           fulfillmentStatus: order.fulfillmentStatus || 'unfulfilled',
