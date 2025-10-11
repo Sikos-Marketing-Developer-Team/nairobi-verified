@@ -1,7 +1,4 @@
-const Merchant = require('../models/Merchant');
-const Review = require('../models/Review');
-const Product = require('../models/Product');
-const Order = require('../models/Order');
+const { MerchantPG, ProductPG, OrderPG } = require('../models/indexPG');
 const { HTTP_STATUS } = require('../config/constants');
 
 /**
@@ -66,7 +63,7 @@ exports.getDashboardOverview = async (req, res) => {
       success: true,
       data: {
         merchant: {
-          id: merchant._id,
+          id: merchant.id,
           businessName: merchant.businessName,
           email: merchant.email,
           phone: merchant.phone,
