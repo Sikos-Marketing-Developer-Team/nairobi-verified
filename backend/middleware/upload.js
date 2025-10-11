@@ -1,31 +1,39 @@
 const multer = require('multer');
 const path = require('path');
-const { 
-  productImageUpload, 
-  merchantImageUpload, 
-  documentUpload 
-} = require('../services/cloudinaryService');
+const fs = require('fs');
 
-// Legacy local storage (keeping for backward compatibility)
+// Ensure upload directories exist
+const uploadsDir = path.join(__dirname, '../uploads');
+const imagesDir = path.join(uploadsDir, 'images');
+const documentsDir = path.join(uploadsDir, 'documents');
+
+[uploadsDir, imagesDir, documentsDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
+
+// Image storage configuration
 const imageStorage = multer.diskStorage({
   destination: function(req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads/images'));
+    cb(null, imagesDir);
   },
   filename: function(req, file, cb) {
     cb(null, `${Date.now()}-${file.originalname}`);
   }
 });
 
+// Document storage configuration
 const documentStorage = multer.diskStorage({
   destination: function(req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads/documents'));
+    cb(null, documentsDir);
   },
   filename: function(req, file, cb) {
     cb(null, `${Date.now()}-${file.originalname}`);
   }
 });
 
-// Check file type
+// File type filter
 const fileFilter = (req, file, cb) => {
   const imageFileTypes = /jpeg|jpg|png|gif|webp/;
   const documentFileTypes = /pdf|doc|docx|txt/;
@@ -42,7 +50,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Legacy local uploads (keeping for backward compatibility)
+// Upload configurations
 const uploadImage = multer({
   storage: imageStorage,
   limits: { fileSize: 5000000 }, // 5MB
@@ -55,18 +63,11 @@ const uploadDocument = multer({
   fileFilter: fileFilter
 });
 
-// Cloudinary uploads (new preferred method)
-const uploadProductImages = productImageUpload;
-const uploadMerchantImages = merchantImageUpload;
-const uploadDocuments = documentUpload;
-
 module.exports = {
-  // Legacy uploads
   uploadImage,
   uploadDocument,
-  
-  // New Cloudinary uploads
-  uploadProductImages,
-  uploadMerchantImages,
-  uploadDocuments
+  // Aliases for consistency
+  uploadProductImages: uploadImage,
+  uploadMerchantImages: uploadImage,
+  uploadDocuments: uploadDocument
 };

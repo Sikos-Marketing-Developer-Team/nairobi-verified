@@ -1,13 +1,13 @@
-const express = require('express');
-const dotenv = require('dotenv');
+const express = require  // Connect to PostgreSQL
+  testConnection();
+  console.log('🚀 Server configured to use PostgreSQL database'); dotenv = require('dotenv');
 const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 const passport = require('passport');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const cookieParser = require('cookie-parser');
-const connectDB = require('./config/db');
 const { testConnection, sequelize } = require('./config/postgres');
 const rateLimit = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
@@ -93,27 +93,16 @@ app.use(cors({
 }));
 
 
-// Session configuration
-const mongoStore = MongoStore.create({
-  mongoUrl: process.env.MONGODB_URI,
-  collectionName: 'sessions',
-  ttl: 7 * 24 * 60 * 60,
-  autoRemove: 'native',
-  touchAfter: 24 * 3600,
-  stringify: false,
-  writeOperationOptions: {
-    upsert: true,
-    retryWrites: false
-  }
+// Session configuration with PostgreSQL store
+const sessionStore = new SequelizeStore({
+  db: sequelize,
+  table: 'sessions',
+  checkExpirationInterval: 15 * 60 * 1000, // 15 minutes
+  expiration: 7 * 24 * 60 * 60 * 1000 // 7 days
 });
 
-mongoStore.on('error', (error) => {
-  console.error('Session store error:', error);
-});
-
-mongoStore.on('connected', () => {
-  console.log('Session store connected to MongoDB');
-});
+// Sync the session store table
+sessionStore.sync();
 
 app.use(session({
   name: 'nairobi_verified_session',
@@ -121,7 +110,7 @@ app.use(session({
   secret: process.env.JWT_SECRET || 'your-session-secret',
   resave: false,
   saveUninitialized: false,
-  store: mongoStore,
+  store: sessionStore,
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

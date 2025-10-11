@@ -35,21 +35,10 @@ const dbQueryDuration = new client.Histogram({
   buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
 }); // New for query performance
 
-const cloudinaryUploadCounter = new client.Counter({
-  name: 'cloudinary_uploads_total',
-  help: 'Total number of uploads to Cloudinary',
+const fileUploadCounter = new client.Counter({
+  name: 'file_uploads_total',
+  help: 'Total number of file uploads',
   labelNames: ['type']
-});
-
-const cloudinaryDeleteCounter = new client.Counter({
-  name: 'cloudinary_deletes_total',
-  help: 'Total number of deletes from Cloudinary'
-});
-
-const cloudinaryOperationDuration = new client.Histogram({
-  name: 'cloudinary_operation_duration_seconds',
-  help: 'Duration of Cloudinary operations in seconds',
-  buckets: [0.1, 0.5, 1, 2, 5]
 });
 
 const httpErrorsCounter = new client.Counter({
@@ -87,9 +76,7 @@ module.exports = {
   emailSendDuration,
   dbConnectionGauge,
   dbQueryDuration,
-  cloudinaryUploadCounter,
-  cloudinaryDeleteCounter,
-  cloudinaryOperationDuration,
+  fileUploadCounter,
   httpErrorsCounter,
   webVitalsLCP,
   webVitalsCLS,
