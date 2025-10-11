@@ -172,6 +172,7 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/merchants/dashboard', merchantDashboardRoutes);
 app.use('/api', require('./routes/documents'));
+app.use('/api/test', require('./routes/test'));
 
 
 // 404 handler
