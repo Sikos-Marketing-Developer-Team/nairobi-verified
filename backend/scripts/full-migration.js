@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { sequelize, UserPG, MerchantPG, ProductPG, OrderPG, AdminUserPG, DocumentPG } = require('./models/indexPG');
-const { testConnection } = require('./config/postgres');
+const { sequelize, UserPG, MerchantPG, ProductPG, OrderPG, AdminUserPG, DocumentPG } = require('../models/indexPG');
+const { testConnection } = require('../config/postgres');
 
 // Import MongoDB models
 const User = require('./models/User');
