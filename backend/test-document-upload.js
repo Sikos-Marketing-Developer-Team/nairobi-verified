@@ -24,7 +24,7 @@ async function testDocumentUpload() {
     console.log('Database status:', response.data);
 
     // Get merchant ID from database
-    const { sequelize, MerchantPG } = require('../models/indexPG');
+    const { sequelize, MerchantPG } = require('./models/indexPG');
     const merchant = await MerchantPG.findOne();
     
     if (!merchant) {
