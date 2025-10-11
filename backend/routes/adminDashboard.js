@@ -25,10 +25,10 @@ const {
   updateSettings,
   bulkUpdateMerchantStatus,
   bulkDeleteMerchants,
+  verifyMerchant,
   
 } = require('../controllers/adminDashboard');
 const { protectAdmin, checkPermission } = require('../middleware/adminAuth');
-const { verifyMerchant } = require('../controllers/merchants');
 
 const router = express.Router();
 
