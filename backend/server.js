@@ -173,6 +173,7 @@ app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/merchants/dashboard', merchantDashboardRoutes);
 app.use('/api', require('./routes/documents'));
 app.use('/api/test', require('./routes/test'));
+app.use('/api/admin/dashboard', require('./routes/adminDocuments'));
 
 
 // 404 handler
