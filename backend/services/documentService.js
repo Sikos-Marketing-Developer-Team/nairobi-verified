@@ -87,7 +87,7 @@ class DocumentService {
           merchantId,
           isActive: true
         },
-        order: [['createdAt', 'DESC']],
+        order: [['created_at', 'DESC']],
         include: [
           {
             model: MerchantPG,
@@ -124,7 +124,7 @@ class DocumentService {
 
       const documents = await DocumentPG.findAll({
         where,
-        order: [['createdAt', 'DESC']],
+        order: [['created_at', 'DESC']],
         include: [
           {
             model: MerchantPG,
