@@ -1,7 +1,6 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const User = require('../models/User');
-const Merchant = require('../models/Merchant');
+const { UserPG, MerchantPG } = require('../models/indexPG');
 const crypto = require('crypto');
 
 // Validate environment variables
@@ -21,10 +20,10 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         // Check for existing merchant
-        const merchant = await Merchant.findOne({ email: profile.emails[0].value });
+        const merchant = await MerchantPG.findOne({ where: { email: profile.emails[0].value } });
         if (merchant) {
           if (!merchant.verified) {
-            console.log('Unverified merchant attempted Google Sign-In:', merchant._id);
+            console.log('Unverified merchant attempted Google Sign-In:', merchant.id);
             return done(null, false, { message: 'Merchant account is not verified. Please complete registration.' });
           }
           // Verified merchant: update googleId and avatar if needed
@@ -32,15 +31,15 @@ passport.use(
             merchant.googleId = profile.id;
             merchant.logo = merchant.logo || profile.photos[0]?.value || '';
             await merchant.save();
-            console.log('Updated verified merchant with Google ID:', merchant._id);
+            console.log('Updated verified merchant with Google ID:', merchant.id);
           }
           return done(null, merchant);
         }
 
         // Check for existing user or create new user
-        let user = await User.findOne({ email: profile.emails[0].value });
+        let user = await UserPG.findOne({ where: { email: profile.emails[0].value } });
         if (!user) {
-          user = await User.create({
+          user = await UserPG.create({
             firstName: profile.name.givenName || profile.displayName.split(' ')[0],
             lastName: profile.name.familyName || profile.displayName.split(' ').slice(1).join(' ') || '',
             email: profile.emails[0].value,
@@ -49,13 +48,13 @@ passport.use(
             profilePicture: profile.photos[0]?.value || '',
             googleId: profile.id
           });
-          console.log('Created new user from Google OAuth:', user._id);
+          console.log('Created new user from Google OAuth:', user.id);
         } else if (!user.googleId) {
           // Existing user: update googleId and avatar
           user.googleId = profile.id;
           user.profilePicture = user.profilePicture || profile.photos[0]?.value || '';
           await user.save();
-          console.log('Updated existing user with Google ID:', user._id);
+          console.log('Updated existing user with Google ID:', user.id);
         }
 
         return done(null, user);
@@ -67,9 +66,9 @@ passport.use(
   )
 );
 
-// CRITICAL FIX: Serialize user into the session - use _id instead of id
+// Serialize user into the session - use id for PostgreSQL
 passport.serializeUser((user, done) => {
-  const userId = user._id || user.id; // MongoDB uses _id
+  const userId = user.id; // PostgreSQL uses id
   const isMerchant = !!user.businessName; // Merchants have businessName field
   
   console.log('🔐 Serializing user:', {
@@ -81,18 +80,22 @@ passport.serializeUser((user, done) => {
   done(null, { id: String(userId), isMerchant });
 });
 
-// CRITICAL FIX: Deserialize user from the session
+// Deserialize user from the session
 passport.deserializeUser(async (obj, done) => {
   try {
     console.log('🔓 Deserializing user:', obj);
     
     let user;
     if (obj.isMerchant) {
-      user = await Merchant.findById(obj.id).select('-password');
-      console.log('📦 Found merchant:', user ? user._id : 'NOT FOUND');
+      user = await MerchantPG.findByPk(obj.id, {
+        attributes: { exclude: ['password'] }
+      });
+      console.log('📦 Found merchant:', user ? user.id : 'NOT FOUND');
     } else {
-      user = await User.findById(obj.id).select('-password');
-      console.log('👤 Found user:', user ? user._id : 'NOT FOUND');
+      user = await UserPG.findByPk(obj.id, {
+        attributes: { exclude: ['password'] }
+      });
+      console.log('👤 Found user:', user ? user.id : 'NOT FOUND');
     }
 
     if (!user) {
@@ -101,7 +104,7 @@ passport.deserializeUser(async (obj, done) => {
     }
 
     console.log('✅ Successfully deserialized:', {
-      id: user._id,
+      id: user.id,
       email: user.email,
       isMerchant: obj.isMerchant
     });

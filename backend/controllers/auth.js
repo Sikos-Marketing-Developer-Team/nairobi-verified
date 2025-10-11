@@ -1,5 +1,4 @@
-const User = require('../models/User');
-const Merchant = require('../models/Merchant');
+const { UserPG, MerchantPG } = require('../models/indexPG');
 const passport = require('passport');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
@@ -18,7 +17,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    const userExists = await User.findOne({ email });
+    const userExists = await UserPG.findOne({ where: { email } });
 
     if (userExists) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -27,7 +26,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    const user = await User.create({
+    const user = await UserPG.create({
       firstName,
       lastName,
       email,
