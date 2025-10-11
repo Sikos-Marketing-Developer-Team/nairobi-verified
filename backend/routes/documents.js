@@ -50,4 +50,45 @@ router.get('/admin/documents', getAllDocuments);
 router.put('/admin/documents/:id/review', reviewDocument);
 router.get('/admin/documents/stats', getDocumentStats);
 
+// Test route to verify document system (for development)
+router.get('/test/stats', async (req, res) => {
+  try {
+    const { DocumentPG } = require('../models/indexPG');
+    
+    const stats = await DocumentPG.findAll({
+      attributes: [
+        'status',
+        'document_type',
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
+      ],
+      group: ['status', 'document_type'],
+      raw: true
+    });
+
+    const totalCount = await DocumentPG.count();
+
+    res.json({
+      success: true,
+      message: 'PostgreSQL Document System Test',
+      data: {
+        totalDocuments: totalCount,
+        breakdown: stats,
+        supportedFormats: ['PDF', 'JPEG', 'PNG', 'GIF', 'DOC', 'DOCX'],
+        features: [
+          'Binary storage in PostgreSQL (BYTEA)',
+          'File system backup',
+          'Admin review workflow',
+          'Document metadata tracking',
+          'Image and PDF support'
+        ]
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

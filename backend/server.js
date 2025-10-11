@@ -22,13 +22,24 @@ dotenv.config();
 if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
   console.log('Using mock database for development');
 } else {
-  // Primary database: PostgreSQL
-  testConnection();
+  // Determine primary database from environment
+  const primaryDb = process.env.PRIMARY_DATABASE || 'postgresql';
   
-  // Secondary database: MongoDB (for legacy data during transition)
-  connectDB();
-  
-  console.log('🚀 Server configured to use PostgreSQL as primary database');
+  if (primaryDb === 'postgresql') {
+    // Primary database: PostgreSQL
+    testConnection();
+    console.log('🚀 Server configured to use PostgreSQL as primary database');
+    
+    // Secondary database: MongoDB (for legacy data during transition)
+    connectDB();
+  } else {
+    // Fallback to MongoDB as primary
+    connectDB();
+    console.log('� Server using MongoDB as primary database');
+    
+    // Also test PostgreSQL connection if available
+    testConnection();
+  }
 }
 
 // Passport config
