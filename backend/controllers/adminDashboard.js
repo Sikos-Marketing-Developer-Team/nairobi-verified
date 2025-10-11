@@ -1287,21 +1287,33 @@ const verifyMerchant = asyncHandler(async (req, res) => {
     }
 
     // Add verification history entry
-    if (merchant.verificationHistory) {
-      merchant.verificationHistory.push({
-        action: 'approved',
-        performedBy: req.admin?.id,
-        performedAt: new Date(),
-        notes: hasRequiredDocs 
-          ? 'Verified with complete documentation' 
-          : 'Verified by admin without complete documentation',
-        documentsInvolved: [
-          merchant.documents?.businessRegistration?.path ? 'businessRegistration' : null,
-          merchant.documents?.idDocument?.path ? 'idDocument' : null,
-          merchant.documents?.utilityBill?.path ? 'utilityBill' : null
-        ].filter(Boolean)
-      });
-      await merchant.save();
+    try {
+      if (merchant.verificationHistory) {
+        // Only add performedBy if it's a valid ObjectId (not the hardcoded-admin-id)
+        const historyEntry = {
+          action: 'approved',
+          performedAt: new Date(),
+          notes: hasRequiredDocs 
+            ? 'Verified with complete documentation' 
+            : 'Verified by admin without complete documentation',
+          documentsInvolved: [
+            merchant.documents?.businessRegistration?.path ? 'businessRegistration' : null,
+            merchant.documents?.idDocument?.path ? 'idDocument' : null,
+            merchant.documents?.utilityBill?.path ? 'utilityBill' : null
+          ].filter(Boolean)
+        };
+
+        // Only add performedBy if we have a valid admin ID (not the hardcoded one)
+        if (req.admin?.id && req.admin.id !== 'hardcoded-admin-id') {
+          historyEntry.performedBy = req.admin.id;
+        }
+
+        merchant.verificationHistory.push(historyEntry);
+        await merchant.save();
+      }
+    } catch (historyError) {
+      console.error('⚠️ Failed to add verification history:', historyError.message);
+      // Don't fail the entire verification if history fails
     }
 
     // Send verification email notification
