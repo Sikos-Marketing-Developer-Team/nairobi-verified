@@ -44,23 +44,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Session configuration with PostgreSQL store
-const sessionStore = new SequelizeStore({
-  db: sequelize,
-  table: 'sessions',
-  checkExpirationInterval: 15 * 60 * 1000,
-  expiration: 7 * 24 * 60 * 60 * 1000
-});
-
-sessionStore.sync();
-
+// Session configuration - using memory store for simplicity
 app.use(session({
   name: 'nairobi_verified_session',
   genid: () => uuidv4(),
   secret: process.env.JWT_SECRET || 'your-session-secret',
   resave: false,
   saveUninitialized: false,
-  store: sessionStore,
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

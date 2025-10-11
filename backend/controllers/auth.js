@@ -59,7 +59,7 @@ exports.register = async (req, res) => {
       return res.status(HTTP_STATUS.CREATED).json({
         success: true,
         user: {
-          id: user._id,
+          id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
@@ -102,7 +102,7 @@ exports.registerMerchant = async (req, res) => {
       });
     }
 
-    const merchantExists = await Merchant.findOne({ email });
+    const merchantExists = await MerchantPG.findOne({ where: { email } });
 
     if (merchantExists) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -111,7 +111,7 @@ exports.registerMerchant = async (req, res) => {
       });
     }
 
-    const merchant = await Merchant.create({
+    const merchant = await MerchantPG.create({
       businessName,
       email,
       phone,
