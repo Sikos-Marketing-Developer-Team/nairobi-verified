@@ -23,6 +23,8 @@ if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
   console.log('Using mock database for development');
 } else {
   connectDB();
+  // Also test PostgreSQL connection
+  testConnection();
 }
 
 // Passport config
@@ -169,6 +171,7 @@ app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/merchants/dashboard', merchantDashboardRoutes);
+app.use('/api', require('./routes/documents'));
 
 
 // 404 handler
