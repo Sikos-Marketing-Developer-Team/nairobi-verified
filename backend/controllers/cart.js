@@ -1,4 +1,4 @@
-const { ProductPG, MerchantPG } = require('../models/indexPG');
+const { ProductPG, MerchantPG, CartPG } = require('../models/indexPG');
 const { HTTP_STATUS } = require('../config/constants');
 
 // Error handling utility
