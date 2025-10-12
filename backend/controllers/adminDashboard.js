@@ -359,7 +359,7 @@ const getRecentActivity = asyncHandler(async (req, res) => {
         : user.firstName || user.email || 'Unknown User';
       
       recentActivities.push({
-        id: `user_${user._id}`,
+        id: `user_${user.id}`,
         type: 'user_signup',
         description: `New ${user.role || 'user'} "${userName}" registered`,
         timestamp: user.createdAt,
@@ -370,7 +370,7 @@ const getRecentActivity = asyncHandler(async (req, res) => {
 
     recentMerchants.forEach(merchant => {
       recentActivities.push({
-        id: `merchant_${merchant._id}`,
+        id: `merchant_${merchant.id}`,
         type: merchant.verified ? 'merchant_verified' : 'merchant_registration',
         description: merchant.verified 
           ? `Merchant "${merchant.businessName}" was verified`
