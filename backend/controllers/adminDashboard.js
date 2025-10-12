@@ -301,32 +301,32 @@ const getRecentActivity = asyncHandler(async (req, res) => {
     const { limit = 10 } = req.query;
     const recentActivities = [];
 
-    const recentUsers = await User.find({ role: { $ne: 'admin' } })
-      .select('firstName lastName email createdAt role')
-      .sort({ createdAt: -1 })
-      .limit(Math.floor(limit / 4))
-      .lean();
+    const recentUsers = await UserPG.findAll({
+      where: { role: { [Op.ne]: 'admin' } },
+      attributes: ['firstName', 'lastName', 'email', 'createdAt', 'role'],
+      order: [['createdAt', 'DESC']],
+      limit: Math.floor(limit / 4)
+    });
 
-    const recentMerchants = await Merchant.find()
-      .select('businessName email createdAt verified')
-      .sort({ createdAt: -1 })
-      .limit(Math.floor(limit / 4))
-      .lean();
+    const recentMerchants = await MerchantPG.findAll({
+      attributes: ['businessName', 'email', 'createdAt', 'verified'],
+      order: [['createdAt', 'DESC']],
+      limit: Math.floor(limit / 4)
+    });
 
-    const recentProducts = await Product.find()
-      .select('name price merchant createdAt')
-      .populate('merchant', 'businessName')
-      .sort({ createdAt: -1 })
-      .limit(Math.floor(limit / 4))
-      .lean();
+    const recentProducts = await ProductPG.findAll({
+      attributes: ['name', 'price', 'merchantId', 'createdAt'],
+      include: [{
+        model: MerchantPG,
+        as: 'merchant',
+        attributes: ['businessName']
+      }],
+      order: [['createdAt', 'DESC']],
+      limit: Math.floor(limit / 4)
+    });
 
-    const recentReviews = await Review.find()
-      .select('rating content user merchant createdAt')
-      .populate('user', 'firstName lastName')
-      .populate('merchant', 'businessName')
-      .sort({ createdAt: -1 })
-      .limit(Math.floor(limit / 4))
-      .lean();
+    // TODO: Add ReviewPG model and convert this query
+    const recentReviews = [];
 
     recentUsers.forEach(user => {
       const userName = user.firstName && user.lastName 
@@ -465,12 +465,31 @@ const getMerchants = asyncHandler(async (req, res) => {
     }
   }
 
-  const merchants = await Merchant.find(query)
-    .sort({ createdAt: -1 })
-    .limit(limit * 1)
-    .skip((page - 1) * limit)
-    .select('-password')
-    .lean();
+  // Convert MongoDB query to Sequelize where clause
+  const whereClause = {};
+  
+  // Convert search term
+  if (search) {
+    whereClause[Op.or] = [
+      { businessName: { [Op.iLike]: `%${search}%` } },
+      { email: { [Op.iLike]: `%${search}%` } }
+    ];
+  }
+  
+  // Convert status filter
+  if (status) {
+    whereClause.verified = status === 'verified';
+  }
+  
+  // Note: Document status filtering simplified - needs proper implementation when DocumentPG model is ready
+  
+  const merchants = await MerchantPG.findAll({
+    where: whereClause,
+    order: [['createdAt', 'DESC']],
+    limit: limit * 1,
+    offset: (page - 1) * limit,
+    attributes: { exclude: ['password'] }
+  });
 
   const enhancedMerchants = merchants.map(merchant => {
     const documentStatus = {
@@ -559,8 +578,9 @@ const getMerchants = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const getMerchantDocuments = asyncHandler(async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.params.id)
-      .select('businessName email documents verified verifiedDate createdAt');
+    const merchant = await MerchantPG.findByPk(req.params.id, {
+      attributes: ['businessName', 'email', 'documents', 'verified', 'verifiedDate', 'createdAt']
+    });
 
     if (!merchant) {
       return res.status(404).json({
@@ -878,7 +898,7 @@ const createMerchant = asyncHandler(async (req, res) => {
   }
 
   // Check if merchant already exists
-  const existingMerchant = await Merchant.findOne({ email });
+  const existingMerchant = await MerchantPG.findOne({ where: { email } });
   if (existingMerchant) {
     return res.status(400).json({
       success: false,
