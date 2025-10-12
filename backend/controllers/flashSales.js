@@ -1,6 +1,7 @@
-const FlashSale = require('../models/FlashSale');
+const { FlashSalePG, ProductPG, MerchantPG, AdminUserPG } = require('../models/indexPG');
 const { validationResult } = require('express-validator');
 const { HTTP_STATUS, TIME } = require('../config/constants');
+const { Op } = require('sequelize');
 
 // Error handling utility
 const handleError = (res, error, message) => {
@@ -17,9 +18,10 @@ const handleError = (res, error, message) => {
   });
 };
 
-// Validate MongoDB ObjectId
-const isValidObjectId = (id) => {
-  return id && id.match(/^[0-9a-fA-F]{24}$/);
+// Validate UUID
+const isValidUUID = (id) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return id && uuidRegex.test(id);
 };
 
 // Calculate time remaining for a flash sale
@@ -48,21 +50,29 @@ const getActiveFlashSales = async (req, res) => {
     const now = new Date();
     
     // Find active flash sales that are currently running or will start soon
-    const flashSales = await FlashSale.find({
-      isActive: true,
-      endDate: { $gt: now } // Only get sales that haven't ended yet
-    })
-      .populate('createdBy', 'name email')
-      .sort({ createdAt: -1 })
-      .lean();
+    const flashSales = await FlashSalePG.findAll({
+      where: {
+        isActive: true,
+        endDate: { [Op.gt]: now } // Only get sales that haven't ended yet
+      },
+      include: [
+        {
+          model: AdminUserPG,
+          as: 'creator',
+          attributes: ['name', 'email']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
 
     // Enhance flash sales with time remaining and current status
     const enhancedFlashSales = flashSales.map((sale) => {
-      const timeRemaining = calculateTimeRemaining(sale.endDate, sale.startDate);
-      const isCurrentlyActive = !timeRemaining.expired && new Date(sale.startDate) <= now;
+      const saleData = sale.toJSON();
+      const timeRemaining = calculateTimeRemaining(saleData.endDate, saleData.startDate);
+      const isCurrentlyActive = !timeRemaining.expired && new Date(saleData.startDate) <= now;
       
       return {
-        ...sale,
+        ...saleData,
         timeRemaining,
         isCurrentlyActive
       };
@@ -83,17 +93,23 @@ const getActiveFlashSales = async (req, res) => {
 // @access  Public
 const getFlashSale = async (req, res) => {
   try {
-    // Validate ObjectId format
-    if (!isValidObjectId(req.params.id)) {
+    // Validate UUID format
+    if (!isValidUUID(req.params.id)) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'Invalid flash sale ID format',
       });
     }
 
-    const flashSale = await FlashSale.findById(req.params.id)
-      .populate('createdBy', 'name email')
-      .lean();
+    const flashSale = await FlashSalePG.findByPk(req.params.id, {
+      include: [
+        {
+          model: AdminUserPG,
+          as: 'creator',
+          attributes: ['name', 'email']
+        }
+      ]
+    });
 
     if (!flashSale) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({

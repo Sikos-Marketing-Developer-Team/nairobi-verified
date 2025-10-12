@@ -9,6 +9,7 @@ const CartPG = require('./CartPG');
 const AddressPG = require('./AddressPG');
 const SettingsPG = require('./SettingsPG');
 const ReviewPG = require('./ReviewPG');
+const FlashSalePG = require('./FlashSalePG');
 
 // Define associations
 // Merchant has many Products
@@ -138,6 +139,17 @@ ReviewPG.belongsTo(OrderPG, {
   as: 'order'
 });
 
+// FlashSale associations
+// AdminUser creates FlashSales
+AdminUserPG.hasMany(FlashSalePG, {
+  foreignKey: 'createdBy',
+  as: 'flashSales'
+});
+FlashSalePG.belongsTo(AdminUserPG, {
+  foreignKey: 'createdBy',
+  as: 'creator'
+});
+
 // Export all models and sequelize instance
 module.exports = {
   sequelize,
@@ -150,5 +162,6 @@ module.exports = {
   CartPG,
   AddressPG,
   SettingsPG,
-  ReviewPG
+  ReviewPG,
+  FlashSalePG
 };
