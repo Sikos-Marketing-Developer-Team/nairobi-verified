@@ -228,7 +228,9 @@ exports.updateCartItem = async (req, res) => {
       });
     }
 
-    const cart = await Cart.findOne({ user: req.user._id });
+    const cart = await CartPG.findOne({ 
+      where: { userId: req.user.id }
+    });
     if (!cart) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
@@ -236,8 +238,9 @@ exports.updateCartItem = async (req, res) => {
       });
     }
 
-    const itemIndex = cart.items.findIndex(
-      item => item._id.toString() === req.params.itemId
+    const currentItems = cart.items || [];
+    const itemIndex = currentItems.findIndex(
+      item => item.productId === req.params.itemId
     );
 
     if (itemIndex === -1) {
