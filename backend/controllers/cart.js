@@ -441,7 +441,9 @@ exports.getCartSummary = async (req, res) => {
 // @access  Private
 exports.moveToWishlist = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user._id });
+    const cart = await CartPG.findOne({ 
+      where: { userId: req.user.id }
+    });
     if (!cart) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
@@ -449,8 +451,9 @@ exports.moveToWishlist = async (req, res) => {
       });
     }
 
-    const itemIndex = cart.items.findIndex(
-      item => item._id.toString() === req.params.itemId
+    const currentItems = cart.items || [];
+    const itemIndex = currentItems.findIndex(
+      item => item.productId === req.params.itemId
     );
 
     if (itemIndex === -1) {
@@ -460,14 +463,21 @@ exports.moveToWishlist = async (req, res) => {
       });
     }
 
-    const item = cart.items[itemIndex];
+    const item = currentItems[itemIndex];
     
     // TODO: Add to wishlist logic here when wishlist is fully implemented
-    // await addToWishlist(req.user._id, item.product);
+    // await addToWishlist(req.user.id, item.productId);
 
     // Remove from cart
-    cart.items.splice(itemIndex, 1);
-    await cart.save();
+    const updatedItems = currentItems.filter((_, index) => index !== itemIndex);
+    const totalAmount = updatedItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+
+    await cart.update({
+      items: updatedItems,
+      totalAmount
+    });
 
     res.json({
       success: true,
@@ -484,10 +494,11 @@ exports.moveToWishlist = async (req, res) => {
 // @access  Private
 exports.validateCart = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user._id })
-      .populate('items.product', 'name price stockQuantity soldQuantity isActive');
+    const cart = await CartPG.findOne({ 
+      where: { userId: req.user.id }
+    });
 
-    if (!cart || cart.items.length === 0) {
+    if (!cart || !cart.items || cart.items.length === 0) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'Cart is empty'
@@ -498,33 +509,37 @@ exports.validateCart = async (req, res) => {
     const validItems = [];
 
     for (let item of cart.items) {
-      if (!item.product || !item.product.isActive) {
+      const product = await ProductPG.findByPk(item.productId, {
+        attributes: ['name', 'price', 'stockQuantity', 'soldQuantity', 'isActive']
+      });
+
+      if (!product || !product.isActive) {
         issues.push({
-          itemId: item._id,
+          itemId: item.productId,
           productName: item.productName,
           issue: 'Product is no longer available'
         });
         continue;
       }
 
-      const availableStock = item.product.stockQuantity - item.product.soldQuantity;
+      const availableStock = product.stockQuantity - product.soldQuantity;
       if (item.quantity > availableStock) {
         issues.push({
-          itemId: item._id,
+          itemId: item.productId,
           productName: item.productName,
           issue: `Only ${availableStock} items available, but ${item.quantity} requested`
         });
         continue;
       }
 
-      if (item.price !== item.product.price) {
+      if (item.price !== product.price) {
         issues.push({
-          itemId: item._id,
+          itemId: item.productId,
           productName: item.productName,
-          issue: `Price changed from ${item.price} to ${item.product.price}`,
+          issue: `Price changed from ${item.price} to ${product.price}`,
           priceChange: {
             old: item.price,
-            new: item.product.price
+            new: product.price
           }
         });
       }
