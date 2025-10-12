@@ -772,22 +772,24 @@ const bulkVerifyMerchants = asyncHandler(async (req, res) => {
       ? { verified: true, verifiedDate: new Date() }
       : { verified: false, verifiedDate: null };
 
-    const result = await Merchant.updateMany(
-      { _id: { $in: merchantIds } },
-      updateData
-    );
+    const [updatedCount] = await MerchantPG.update(updateData, {
+      where: { id: merchantIds }
+    });
 
-    const updatedMerchants = await Merchant.find({ _id: { $in: merchantIds } })
-      .select('businessName email verified verifiedDate');
+    const updatedMerchants = await MerchantPG.findAll({
+      where: { id: merchantIds },
+      attributes: ['businessName', 'email', 'verified', 'verifiedDate']
+    });
 
     if (req.admin && req.admin.id !== 'hardcoded-admin-id') {
-      await AdminUser.findByIdAndUpdate(req.admin.id, {
-        $push: {
-          activityLog: {
-            action: `bulk_merchant_${action}`,
-            details: `${action === 'verify' ? 'Verified' : 'Rejected'} ${result.modifiedCount} merchants`,
-            timestamp: new Date()
-          }
+      await AdminUserPG.update({
+        activityLog: sequelize.fn('array_append', sequelize.col('activityLog'), {
+          action: `bulk_merchant_${action}`,
+          details: `${action === 'verify' ? 'Verified' : 'Rejected'} ${updatedCount} merchants`,
+          timestamp: new Date()
+        })
+      }, {
+        where: { id: req.admin.id }
         }
       });
     }
