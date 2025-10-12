@@ -97,6 +97,47 @@ SettingsPG.belongsTo(UserPG, {
   as: 'user'
 });
 
+// Review associations
+// User has many Reviews
+UserPG.hasMany(ReviewPG, {
+  foreignKey: 'userId',
+  as: 'reviews'
+});
+ReviewPG.belongsTo(UserPG, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
+// Product has many Reviews
+ProductPG.hasMany(ReviewPG, {
+  foreignKey: 'productId',
+  as: 'reviews'
+});
+ReviewPG.belongsTo(ProductPG, {
+  foreignKey: 'productId',
+  as: 'product'
+});
+
+// Merchant has many Reviews
+MerchantPG.hasMany(ReviewPG, {
+  foreignKey: 'merchantId',
+  as: 'reviews'
+});
+ReviewPG.belongsTo(MerchantPG, {
+  foreignKey: 'merchantId',
+  as: 'merchant'
+});
+
+// Order has many Reviews
+OrderPG.hasMany(ReviewPG, {
+  foreignKey: 'orderId',
+  as: 'reviews'
+});
+ReviewPG.belongsTo(OrderPG, {
+  foreignKey: 'orderId',
+  as: 'order'
+});
+
 // Export all models and sequelize instance
 module.exports = {
   sequelize,
@@ -108,5 +149,6 @@ module.exports = {
   DocumentPG,
   CartPG,
   AddressPG,
-  SettingsPG
+  SettingsPG,
+  ReviewPG
 };
