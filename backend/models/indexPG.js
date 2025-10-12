@@ -76,6 +76,26 @@ CartPG.belongsTo(UserPG, {
   as: 'user'
 });
 
+// User has many Addresses
+UserPG.hasMany(AddressPG, {
+  foreignKey: 'userId',
+  as: 'addresses'
+});
+AddressPG.belongsTo(UserPG, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
+// User has one Settings
+UserPG.hasOne(SettingsPG, {
+  foreignKey: 'userId',
+  as: 'settings'
+});
+SettingsPG.belongsTo(UserPG, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 // Export all models and sequelize instance
 module.exports = {
   sequelize,
@@ -85,5 +105,7 @@ module.exports = {
   OrderPG,
   AdminUserPG,
   DocumentPG,
-  CartPG
+  CartPG,
+  AddressPG,
+  SettingsPG
 };
