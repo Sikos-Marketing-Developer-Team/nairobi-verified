@@ -1,4 +1,4 @@
-const { AdminUserPG, MerchantPG, UserPG, ProductPG, OrderPG, ReviewPG, DocumentPG, FlashSalePG } = require('../models/indexPG');
+const { AdminUserPG, MerchantPG, UserPG, ProductPG, OrderPG, ReviewPG, DocumentPG, FlashSalePG, sequelize } = require('../models/indexPG');
 const { Op } = require('sequelize');
 const asyncHandler = require('express-async-handler');
 const crypto = require('crypto');
