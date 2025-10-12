@@ -648,11 +648,12 @@ exports.resetPassword = async (req, res) => {
     }
 
     // Set new password and clear reset fields
-    user.password = req.body.password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
-    
-    await user.save();
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    await user.update({
+      password: hashedPassword,
+      resetPasswordToken: null,
+      resetPasswordExpire: null
+    });
 
     // Log successful password reset for security monitoring
     console.log('🔐 SECURITY: Password reset completed successfully:', {
