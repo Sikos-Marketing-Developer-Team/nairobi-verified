@@ -203,8 +203,8 @@ const getFeaturedProducts = async (req, res) => {
         attributes: ['businessName', 'address']
       }],
       order: [['rating', 'DESC'], ['reviewCount', 'DESC']],
-      .limit(Number(limit))
-      .lean();
+      limit: Number(limit)
+    });
 
     res.json({
       success: true,
