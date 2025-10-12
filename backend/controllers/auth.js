@@ -167,7 +167,10 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await UserPG.findOne({ 
+      where: { email },
+      raw: false // Need instance methods
+    });
 
     if (!user) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
@@ -226,7 +229,10 @@ exports.loginMerchant = async (req, res) => {
       });
     }
 
-    const merchant = await Merchant.findOne({ email }).select('+password');
+    const merchant = await MerchantPG.findOne({ 
+      where: { email },
+      raw: false // Need instance methods
+    });
 
     if (!merchant) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
