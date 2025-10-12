@@ -139,8 +139,24 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         limit: 5,
         attributes: ['firstName', 'lastName', 'email', 'createdAt']
       }),
-      // TODO: Add ReviewPG model and convert this query
-      [], // Placeholder for reviews
+      // Recent reviews using ReviewPG
+      ReviewPG.findAll({
+        include: [
+          {
+            model: UserPG,
+            as: 'user',
+            attributes: ['firstName', 'lastName']
+          },
+          {
+            model: ProductPG,
+            as: 'product',
+            attributes: ['name']
+          }
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: 5,
+        attributes: ['rating', 'comment', 'createdAt']
+      }),
       MerchantPG.count({ where: { createdAt: { [Op.gte]: thirtyDaysAgo } } }),
       UserPG.count({ 
         where: {
@@ -148,7 +164,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
           createdAt: { [Op.gte]: thirtyDaysAgo }
         }
       }),
-      0, // TODO: Add ReviewPG count
+      ReviewPG.count({ where: { createdAt: { [Op.gte]: thirtyDaysAgo } } }),
       MerchantPG.findAll({
         where: {
           verified: false,
