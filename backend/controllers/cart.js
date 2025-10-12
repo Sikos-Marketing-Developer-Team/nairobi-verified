@@ -251,7 +251,7 @@ exports.updateCartItem = async (req, res) => {
     }
 
     // Check product availability
-    const product = await Product.findById(cart.items[itemIndex].product);
+    const product = await ProductPG.findByPk(currentItems[itemIndex].productId);
     if (!product || !product.isActive) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
@@ -267,16 +267,45 @@ exports.updateCartItem = async (req, res) => {
       });
     }
 
-    cart.items[itemIndex].quantity = quantity;
-    cart.items[itemIndex].price = product.price; // Update price in case it changed
-    await cart.save();
+    // Update item quantity
+    const updatedItems = [...currentItems];
+    updatedItems[itemIndex].quantity = quantity;
+    updatedItems[itemIndex].price = product.price; // Update price in case it changed
+    
+    // Calculate new total
+    const totalAmount = updatedItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
 
-    await cart.populate('items.product', 'name price originalPrice images primaryImage stockQuantity soldQuantity isActive');
-    await cart.populate('items.merchant', 'businessName address verified');
+    await cart.update({
+      items: updatedItems,
+      totalAmount
+    });
+
+    // Fetch updated cart with enriched items
+    const updatedCart = await CartPG.findByPk(cart.id);
+    const enrichedItems = [];
+    for (const item of updatedItems) {
+      const productData = await ProductPG.findByPk(item.productId, {
+        attributes: ['name', 'price', 'originalPrice', 'images', 'primaryImage', 'stockQuantity', 'soldQuantity', 'isActive'],
+        include: [{
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName', 'address', 'verified']
+        }]
+      });
+      enrichedItems.push({
+        ...item,
+        product: productData
+      });
+    }
 
     res.json({
       success: true,
-      data: cart,
+      data: {
+        ...updatedCart.dataValues,
+        items: enrichedItems
+      },
       message: 'Cart item updated successfully'
     });
   } catch (error) {
