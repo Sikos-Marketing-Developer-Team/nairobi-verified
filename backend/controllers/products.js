@@ -1,4 +1,5 @@
 const { ProductPG, MerchantPG } = require('../models/indexPG');
+const { Op } = require('sequelize');
 const { HTTP_STATUS } = require('../config/constants');
 
 // Error handling utility
