@@ -646,41 +646,57 @@ const viewMerchantDocument = asyncHandler(async (req, res) => {
   try {
     const { id: merchantId, docType } = req.params;
 
+    console.log('📄 Document view request:', {
+      merchantId,
+      docType,
+      timestamp: new Date().toISOString()
+    });
+
     const merchant = await Merchant.findById(merchantId)
       .select('businessName documents');
 
     if (!merchant) {
+      console.error('❌ Merchant not found:', merchantId);
       return res.status(404).json({
         success: false,
         message: 'Merchant not found'
       });
     }
 
+    console.log('✅ Merchant found:', merchant.businessName);
+
     let documentInfo = null;
     let isAdditionalDoc = false;
     let additionalDocIndex = null;
     
+    // Determine which document is being requested
     switch (docType) {
       case 'businessRegistration':
         documentInfo = merchant.documents?.businessRegistration;
+        console.log('📋 Requesting Business Registration');
         break;
       case 'idDocument':
         documentInfo = merchant.documents?.idDocument;
+        console.log('🆔 Requesting ID Document');
         break;
       case 'utilityBill':
         documentInfo = merchant.documents?.utilityBill;
+        console.log('💡 Requesting Utility Bill');
         break;
       default:
+        // Handle additional documents (format: additionalDocs[0], additionalDocs[1], etc.)
         const additionalMatch = docType.match(/additionalDocs\[(\d+)\]/);
         if (additionalMatch && merchant.documents?.additionalDocs) {
           additionalDocIndex = parseInt(additionalMatch[1]);
           if (additionalDocIndex < merchant.documents.additionalDocs.length) {
             documentInfo = merchant.documents.additionalDocs[additionalDocIndex];
             isAdditionalDoc = true;
+            console.log('📎 Requesting Additional Document', additionalDocIndex);
           }
         }
         
         if (!documentInfo) {
+          console.error('❌ Invalid document type:', docType);
           return res.status(400).json({
             success: false,
             message: 'Invalid document type'
@@ -689,51 +705,109 @@ const viewMerchantDocument = asyncHandler(async (req, res) => {
         break;
     }
 
+    // Check if document exists
     if (!documentInfo || !documentInfo.path) {
+      console.error('❌ Document not uploaded:', docType);
       return res.status(404).json({
         success: false,
         message: 'Document not found or not uploaded'
       });
     }
 
+    console.log('📂 Document info:', {
+      path: documentInfo.path,
+      originalName: documentInfo.originalName,
+      mimeType: documentInfo.mimeType,
+      fileSize: documentInfo.fileSize
+    });
+
+    // Check if it's a Cloudinary URL (starts with http/https)
+    if (documentInfo.path.startsWith('http://') || documentInfo.path.startsWith('https://')) {
+      console.log('🌐 Cloudinary URL detected, redirecting to:', documentInfo.path);
+      return res.redirect(documentInfo.path);
+    }
+    
+    // Handle local file storage
+    // Documents are stored as "documents/filename.pdf"
+    // We need to construct the full path: backend/uploads/documents/filename.pdf
     const uploadsDir = path.join(__dirname, '..', 'uploads');
     const filePath = path.join(uploadsDir, documentInfo.path);
 
+    console.log('🔍 Constructed file path:', filePath);
+
+    // Check if file exists
     if (!fs.existsSync(filePath)) {
+      console.error('❌ File not found at path:', filePath);
+      console.error('   Stored path was:', documentInfo.path);
+      console.error('   Uploads directory:', uploadsDir);
+      
       return res.status(404).json({
         success: false,
-        message: 'Document file not found on server'
+        message: 'Document file not found on server',
+        debug: process.env.NODE_ENV === 'development' ? {
+          storedPath: documentInfo.path,
+          searchedPath: filePath,
+          uploadsDir: uploadsDir
+        } : undefined
       });
     }
 
+    console.log('✅ File found, preparing to stream...');
+
+    // Get file stats
     const stats = fs.statSync(filePath);
     const fileSize = stats.size;
     
-    res.setHeader('Content-Type', documentInfo.mimeType || 'application/octet-stream');
+    console.log('📊 File stats:', {
+      size: `${(fileSize / 1024).toFixed(2)} KB`,
+      modified: stats.mtime
+    });
+
+    // Set response headers
+    res.setHeader('Content-Type', documentInfo.mimeType || 'application/pdf');
     res.setHeader('Content-Length', fileSize);
-    res.setHeader('Content-Disposition', `inline; filename="${documentInfo.originalName || docType}"`);
+    res.setHeader('Content-Disposition', `inline; filename="${documentInfo.originalName || docType}.pdf"`);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Cache-Control', 'private, max-age=3600'); // Cache for 1 hour
     
+    console.log('📤 Streaming file to client...');
+
+    // Create read stream and pipe to response
     const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
+    
+    fileStream.on('open', () => {
+      console.log('✅ File stream opened successfully');
+    });
 
     fileStream.on('error', (error) => {
-      console.error('File stream error:', error);
+      console.error('❌ File stream error:', error);
       if (!res.headersSent) {
         res.status(500).json({
           success: false,
-          message: 'Error reading document file'
+          message: 'Error reading document file',
+          error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
       }
     });
 
-  } catch (error) {
-    console.error('View merchant document error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve document'
+    fileStream.on('end', () => {
+      console.log('✅ File stream completed');
     });
+
+    fileStream.pipe(res);
+
+  } catch (error) {
+    console.error('❌ View merchant document error:', error);
+    console.error('Stack trace:', error.stack);
+    
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve document',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
   }
 });
 
