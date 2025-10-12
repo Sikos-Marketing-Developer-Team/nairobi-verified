@@ -28,9 +28,10 @@ passport.use(
           }
           // Verified merchant: update googleId and avatar if needed
           if (!merchant.googleId) {
-            merchant.googleId = profile.id;
-            merchant.logo = merchant.logo || profile.photos[0]?.value || '';
-            await merchant.save();
+            await merchant.update({
+              googleId: profile.id,
+              logo: merchant.logo || profile.photos[0]?.value || ''
+            });
             console.log('Updated verified merchant with Google ID:', merchant.id);
           }
           return done(null, merchant);
