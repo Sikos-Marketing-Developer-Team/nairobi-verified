@@ -181,9 +181,13 @@ const getFeaturedProducts = async (req, res) => {
 // Get product by ID
 const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id)
-      .populate('merchant', 'businessName address')
-      .lean();
+        const product = await ProductPG.findByPk(req.params.id, {
+      include: [{
+        model: MerchantPG,
+        as: 'merchant',
+        attributes: ['businessName', 'address', 'phone', 'email']
+      }]
+    });
 
     if (!product) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -251,7 +255,7 @@ const createProduct = async (req, res) => {
 
     let merchantId;
     if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ owner: req.user.id });
+      const merchant = await MerchantPG.findOne({ where: { owner: req.user.id } });
       if (!merchant) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
           success: false,
