@@ -206,7 +206,9 @@ const updateProfile = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/auth/activity
 // @access  Private (Admin)
 const getAdminActivityLog = asyncHandler(async (req, res) => {
-  const admin = await AdminUser.findById(req.admin.id).select('activityLog');
+  const admin = await AdminUserPG.findByPk(req.admin.id, {
+    attributes: ['activityLog']
+  });
 
   res.status(200).json({
     success: true,
@@ -218,7 +220,7 @@ const getAdminActivityLog = asyncHandler(async (req, res) => {
 // @route   PUT /api/admin/auth/settings
 // @access  Private (Admin)
 const updateAdminSettings = asyncHandler(async (req, res) => {
-  const admin = await AdminUser.findById(req.admin.id);
+  const admin = await AdminUserPG.findByPk(req.admin.id);
 
   if (req.body.theme) {
     admin.settings.theme = req.body.theme;
