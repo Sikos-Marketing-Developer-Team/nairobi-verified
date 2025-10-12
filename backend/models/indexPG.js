@@ -64,6 +64,16 @@ DocumentPG.belongsTo(MerchantPG, {
   as: 'uploader'
 });
 
+// User has many Carts
+UserPG.hasMany(CartPG, {
+  foreignKey: 'userId',
+  as: 'carts'
+});
+CartPG.belongsTo(UserPG, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 // Export all models and sequelize instance
 module.exports = {
   sequelize,
@@ -72,5 +82,6 @@ module.exports = {
   ProductPG,
   OrderPG,
   AdminUserPG,
-  DocumentPG
+  DocumentPG,
+  CartPG
 };
