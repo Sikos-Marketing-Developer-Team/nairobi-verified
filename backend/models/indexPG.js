@@ -8,6 +8,7 @@ const DocumentPG = require('./DocumentPG');
 const CartPG = require('./CartPG');
 const AddressPG = require('./AddressPG');
 const SettingsPG = require('./SettingsPG');
+const ReviewPG = require('./ReviewPG');
 
 // Define associations
 // Merchant has many Products
