@@ -125,7 +125,9 @@ exports.updatePassword = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.params.id).select('+password');
+    const user = await UserPG.findByPk(req.params.id, {
+      attributes: { include: ['password'] }
+    });
 
     if (!user) {
       return res.status(404).json({
