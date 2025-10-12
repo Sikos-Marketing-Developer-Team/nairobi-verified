@@ -234,9 +234,6 @@ const updateOrderStatus = async (req, res) => {
     }
 
     await order.update({ status });
-        error: 'Order not found'
-      });
-    }
 
     res.json({
       success: true,
