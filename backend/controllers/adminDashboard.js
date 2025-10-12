@@ -128,16 +128,17 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       reviewsThisMonth,
       merchantsNeedingVerification
     ] = await Promise.all([
-      Merchant.find()
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select('businessName email verified isActive createdAt businessType documents')
-        .lean(),
-      User.find({ role: { $ne: 'admin' } })
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select('firstName lastName email createdAt')
-        .lean(),
+      MerchantPG.findAll({
+        order: [['createdAt', 'DESC']],
+        limit: 5,
+        attributes: ['businessName', 'email', 'verified', 'isActive', 'createdAt', 'businessType', 'documents']
+      }),
+      UserPG.findAll({
+        where: { role: { [Op.ne]: 'admin' } },
+        order: [['createdAt', 'DESC']],
+        limit: 5,
+        attributes: ['firstName', 'lastName', 'email', 'createdAt']
+      }),
       Review.find()
         .sort({ createdAt: -1 })
         .limit(5)
