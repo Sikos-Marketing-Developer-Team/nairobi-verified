@@ -123,7 +123,7 @@ const getCurrentAdmin = asyncHandler(async (req, res) => {
     });
   }
 
-  const admin = await AdminUser.findById(req.admin.id);
+  const admin = await AdminUserPG.findByPk(req.admin.id);
 
   res.status(200).json({
     success: true,

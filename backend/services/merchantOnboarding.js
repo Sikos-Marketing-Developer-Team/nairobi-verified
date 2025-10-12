@@ -365,9 +365,11 @@ class MerchantOnboardingService {
       const setupTokenHash = crypto.createHash('sha256').update(setupToken).digest('hex');
 
       // Find merchant with valid setup token
-      const merchant = await Merchant.findOne({
-        accountSetupToken: setupTokenHash,
-        accountSetupExpire: { $gt: Date.now() }
+      const merchant = await MerchantPG.findOne({
+        where: {
+          accountSetupToken: setupTokenHash,
+          accountSetupExpire: { [Op.gt]: Date.now() }
+        }
       });
 
       if (!merchant) {
