@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 const { MerchantPG } = require('../models/indexPG');
 const { sendEmail } = require('../utils/emailService');
 
