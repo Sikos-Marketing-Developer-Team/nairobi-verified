@@ -167,12 +167,16 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       ReviewPG.count({ where: { createdAt: { [Op.gte]: thirtyDaysAgo } } }),
       MerchantPG.findAll({
         where: {
-          verified: false,
-          // TODO: Convert document path conditions when DocumentPG model is ready
+          verified: false
         },
+        include: [{
+          model: DocumentPG,
+          as: 'documents',
+          required: false
+        }],
         order: [['createdAt', 'DESC']],
         limit: 10,
-        attributes: ['businessName', 'email', 'createdAt', 'documents', 'businessType']
+        attributes: ['businessName', 'email', 'createdAt', 'businessType']
       })
     ]);
 
