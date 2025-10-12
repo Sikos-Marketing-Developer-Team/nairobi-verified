@@ -55,9 +55,13 @@ exports.getCart = async (req, res) => {
       where: { id: cart.id }
     });
 
+    // Fetch updated cart
+    const updatedCart = await CartPG.findByPk(cart.id);
+    updatedCart.items = enrichedItems; // Add enriched items for response
+
     res.json({
       success: true,
-      data: cart
+      data: updatedCart
     });
   } catch (error) {
     handleError(res, error, 'Failed to fetch cart');
