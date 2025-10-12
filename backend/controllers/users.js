@@ -5,7 +5,7 @@ const { UserPG } = require('../models/indexPG');
 // @access  Private/Admin
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find();
+    const users = await UserPG.findAll();
 
     res.status(200).json({
       success: true,
@@ -25,7 +25,7 @@ exports.getUsers = async (req, res) => {
 // @access  Private/Admin
 exports.getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await UserPG.findByPk(req.params.id);
 
     if (!user) {
       return res.status(404).json({

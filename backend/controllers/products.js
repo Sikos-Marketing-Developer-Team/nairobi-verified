@@ -294,7 +294,7 @@ const createProduct = async (req, res) => {
 // Update product
 const updateProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await ProductPG.findByPk(req.params.id);
 
     if (!product) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
