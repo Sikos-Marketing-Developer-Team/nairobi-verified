@@ -286,7 +286,7 @@ const getFlashSalesAnalytics = async (req, res) => {
   }
 };
 
-// @desc    Create flash sale
+// @desc    Create new flash sale
 // @route   POST /api/flash-sales
 // @access  Private/Admin
 const createFlashSale = async (req, res) => {
@@ -303,23 +303,14 @@ const createFlashSale = async (req, res) => {
 
     const { title, description, startDate, endDate, products } = req.body;
 
-    // Validate required fields
-    if (!title || !description || !startDate || !endDate || !products || products.length === 0) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        error: 'Please provide all required fields: title, description, startDate, endDate, and products',
-      });
-    }
-
-    // Parse and validate dates
+    // Validate date inputs
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const now = new Date();
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'Invalid date format. Please use ISO date format (YYYY-MM-DDTHH:mm:ss.sssZ)',
+        error: 'Invalid date format',
       });
     }
 
@@ -330,14 +321,24 @@ const createFlashSale = async (req, res) => {
       });
     }
 
-    if (end <= now) {
+    // Validate start date is not in the past
+    const now = new Date();
+    if (start < now) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'End date must be in the future',
+        error: 'Start date cannot be in the past',
       });
     }
 
-    // Validate and process products
+    // Validate products array
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'At least one product is required for flash sale',
+      });
+    }
+
+    // Process and validate products
     const processedProducts = products.map((product, index) => {
       // Validate required product fields
       if (!product.name || !product.originalPrice || !product.salePrice || !product.image) {
@@ -347,6 +348,53 @@ const createFlashSale = async (req, res) => {
       // Validate price logic
       if (product.salePrice >= product.originalPrice) {
         throw new Error(`Product "${product.name}" sale price must be less than original price`);
+      }
+
+      if (product.originalPrice <= 0 || product.salePrice <= 0) {
+        throw new Error(`Product "${product.name}" prices must be greater than 0`);
+      }
+
+      // Calculate discount percentage
+      const discountPercentage = Math.round(
+        ((product.originalPrice - product.salePrice) / product.originalPrice) * 100
+      );
+
+      return {
+        ...product,
+        discountPercentage,
+        stockQuantity: product.stockQuantity || 100,
+        soldQuantity: product.soldQuantity || 0,
+        maxQuantityPerUser: product.maxQuantityPerUser || 5,
+      };
+    });
+
+    const flashSale = await FlashSalePG.create({
+      title: title.trim(),
+      description: description.trim(),
+      startDate: start,
+      endDate: end,
+      products: processedProducts, // JSONB storage for flexible product data
+      createdBy: req.user.id, // PostgreSQL uses id instead of _id
+      isActive: true,
+    });
+
+    // Include the creating admin user
+    const flashSaleWithAdmin = await FlashSalePG.findByPk(flashSale.id, {
+      include: [{
+        model: AdminUserPG,
+        as: 'admin',
+        attributes: ['id', 'name', 'email']
+      }]
+    });
+
+    res.status(HTTP_STATUS.CREATED).json({
+      success: true,
+      data: flashSaleWithAdmin,
+    });
+  } catch (error) {
+    handleError(res, error, 'Failed to create flash sale');
+  }
+}; "${product.name}" sale price must be less than original price`);
       }
 
       if (product.originalPrice <= 0 || product.salePrice <= 0) {
