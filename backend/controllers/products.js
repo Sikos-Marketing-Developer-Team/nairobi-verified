@@ -159,14 +159,19 @@ const searchProducts = async (req, res) => {
       ]
     };
 
-    const products = await Product.find(searchFilter)
-      .populate('merchant', 'businessName address')
-      .sort({ rating: -1, reviewCount: -1, createdAt: -1 }) // Sort by relevance
-      .skip(skip)
-      .limit(Number(limit))
-      .lean();
+    const products = await ProductPG.findAll({
+      where: searchFilter,
+      include: [{
+        model: MerchantPG,
+        as: 'merchant',
+        attributes: ['businessName', 'address']
+      }],
+      order: [['rating', 'DESC'], ['reviewCount', 'DESC'], ['createdAt', 'DESC']], // Sort by relevance
+      offset: offset,
+      limit: Number(limit)
+    });
 
-    const total = await Product.countDocuments(searchFilter);
+    const total = await ProductPG.count({ where: searchFilter });
 
     res.json({
       success: true,
