@@ -150,18 +150,15 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         }
       }),
       0, // TODO: Add ReviewPG count
-      Merchant.find({
-        verified: false,
-        $and: [
-          { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
-          { 'documents.idDocument.path': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
-        ]
+      MerchantPG.findAll({
+        where: {
+          verified: false,
+          // TODO: Convert document path conditions when DocumentPG model is ready
+        },
+        order: [['createdAt', 'DESC']],
+        limit: 10,
+        attributes: ['businessName', 'email', 'createdAt', 'documents', 'businessType']
       })
-        .sort({ 'documents.documentsSubmittedAt': -1 })
-        .limit(10)
-        .select('businessName email createdAt documents businessType')
-        .lean()
     ]);
 
     // Calculate growth percentages
