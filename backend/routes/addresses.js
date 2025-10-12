@@ -1,15 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
-const Address = require('../models/Address');
+const { AddressPG } = require('../models/indexPG');
+const { Op } = require('sequelize');
 
 // @desc    Get user addresses
 // @route   GET /api/addresses
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const addresses = await Address.find({ user: req.user._id })
-      .sort({ isDefault: -1, createdAt: -1 });
+    const addresses = await AddressPG.findAll({ 
+      where: { userId: req.user.id },
+      order: [['isDefault', 'DESC'], ['createdAt', 'DESC']]
+    });
 
     res.json({
       success: true,
