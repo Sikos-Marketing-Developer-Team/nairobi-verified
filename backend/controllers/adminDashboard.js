@@ -140,19 +140,16 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         limit: 5,
         attributes: ['firstName', 'lastName', 'email', 'createdAt']
       }),
-      Review.find()
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .populate('user', 'firstName lastName')
-        .populate('merchant', 'businessName')
-        .select('rating content createdAt')
-        .lean(),
-      Merchant.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
-      User.countDocuments({ 
-        role: { $ne: 'admin' },
-        createdAt: { $gte: thirtyDaysAgo } 
+      // TODO: Add ReviewPG model and convert this query
+      [], // Placeholder for reviews
+      MerchantPG.count({ where: { createdAt: { [Op.gte]: thirtyDaysAgo } } }),
+      UserPG.count({ 
+        where: {
+          role: { [Op.ne]: 'admin' },
+          createdAt: { [Op.gte]: thirtyDaysAgo }
+        }
       }),
-      Review.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      0, // TODO: Add ReviewPG count
       Merchant.find({
         verified: false,
         $and: [
