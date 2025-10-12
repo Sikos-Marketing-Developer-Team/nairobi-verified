@@ -268,12 +268,15 @@ const createProduct = async (req, res) => {
       merchant: merchantId,
     };
 
-    const product = new Product(productData);
-    await product.save();
+    const product = await ProductPG.create(productData);
 
-    const populatedProduct = await Product.findById(product._id)
-      .populate('merchant', 'businessName address')
-      .lean();
+    const populatedProduct = await ProductPG.findByPk(product.id, {
+      include: [{
+        model: MerchantPG,
+        as: 'merchant',
+        attributes: ['businessName', 'address']
+      }]
+    });
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
