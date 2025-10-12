@@ -357,11 +357,13 @@ exports.googleAuth = async (req, res) => {
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, given_name: firstName, family_name: lastName, picture } = payload;
 
-    let user = await User.findOne({ 
-      $or: [
-        { email: email },
-        { googleId: googleId }
-      ]
+    let user = await UserPG.findOne({ 
+      where: {
+        [require('sequelize').Op.or]: [
+          { email: email },
+          { googleId: googleId }
+        ]
+      }
     });
 
     if (user) {
