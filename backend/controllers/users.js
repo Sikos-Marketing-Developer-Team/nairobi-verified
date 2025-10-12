@@ -142,8 +142,11 @@ exports.updatePassword = async (req, res) => {
       });
     }
 
-    user.password = req.body.newPassword;
-    await user.save();
+    await UserPG.update({
+      password: req.body.newPassword
+    }, {
+      where: { id: user.id }
+    });
 
     res.status(200).json({
       success: true,
