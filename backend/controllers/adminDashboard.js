@@ -383,7 +383,7 @@ const getRecentActivity = asyncHandler(async (req, res) => {
 
     recentProducts.forEach(product => {
       recentActivities.push({
-        id: `product_${product._id}`,
+        id: `product_${product.id}`,
         type: 'product_added',
         description: `New product "${product.name}" added by ${product.merchant?.businessName || 'Unknown'}`,
         timestamp: product.createdAt,
@@ -398,7 +398,7 @@ const getRecentActivity = asyncHandler(async (req, res) => {
         : review.user?.firstName || 'Anonymous';
       
       recentActivities.push({
-        id: `review_${review._id}`,
+        id: `review_${review.id}`,
         type: 'review_posted',
         description: `${reviewerName} left a ${review.rating}★ review for ${review.merchant?.businessName || 'Unknown'}`,
         timestamp: review.createdAt,
