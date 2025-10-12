@@ -454,28 +454,19 @@ const getSearchSuggestions = async (req, res) => {
 
     const searchTerm = q.trim();
     
-    // Get suggestions from product names, brands, and categories
-    const suggestions = await Product.aggregate([
-      {
-        $match: {
-          isActive: true,
-          $or: [
-            { name: { $regex: searchTerm, $options: 'i' } },
-            { brand: { $regex: searchTerm, $options: 'i' } },
-            { category: { $regex: searchTerm, $options: 'i' } }
-          ]
-        }
+    // Get suggestions from product names, brands, and categories using PostgreSQL
+    const suggestions = await ProductPG.findAll({
+      where: {
+        isActive: true,
+        [Op.or]: [
+          { name: { [Op.iLike]: `%${searchTerm}%` } },
+          { brand: { [Op.iLike]: `%${searchTerm}%` } },
+          { category: { [Op.iLike]: `%${searchTerm}%` } }
+        ]
       },
-      {
-        $project: {
-          name: 1,
-          brand: 1,
-          category: 1,
-          primaryImage: 1
-        }
-      },
-      { $limit: 8 }
-    ]);
+      attributes: ['name', 'brand', 'category', 'primaryImage'],
+      limit: 8
+    });
 
     res.json({
       success: true,
