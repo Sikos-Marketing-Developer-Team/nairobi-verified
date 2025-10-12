@@ -534,9 +534,10 @@ exports.forgotPassword = async (req, res) => {
       console.error('Email sending error:', emailError);
       
       // Reset the user fields if email fails
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpire = undefined;
-      await user.save();
+      await user.update({
+        resetPasswordToken: null,
+        resetPasswordExpire: null
+      });
       
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
