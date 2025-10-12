@@ -90,37 +90,46 @@ exports.getAllReviews = async (req, res) => {
   try {
     const { page = 1, limit = 10, merchant, rating, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
     
-    const filter = {};
-    if (merchant) filter.merchant = merchant;
-    if (rating) filter.rating = Number(rating);
+    const where = { isApproved: true };
+    if (merchant) where.merchantId = merchant;
+    if (rating) where.rating = Number(rating);
     
-    const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
-    const skip = (page - 1) * limit;
+    const orderDirection = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const offset = (page - 1) * limit;
 
-    const reviews = await Review.find(filter)
-      .populate({
-        path: 'user',
-        select: 'firstName lastName avatar'
-      })
-      .populate({
-        path: 'merchant',
-        select: 'businessName'
-      })
-      .sort(sort)
-      .skip(skip)
-      .limit(Number(limit));
-
-    const total = await Review.countDocuments(filter);
+    const reviews = await ReviewPG.findAndCountAll({
+      where,
+      include: [
+        {
+          model: UserPG,
+          as: 'user',
+          attributes: ['firstName', 'lastName', 'avatar']
+        },
+        {
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName']
+        },
+        {
+          model: ProductPG,
+          as: 'product',
+          attributes: ['name', 'primaryImage']
+        }
+      ],
+      order: [[sortBy, orderDirection]],
+      limit: Number(limit),
+      offset: offset
+    });
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      count: reviews.length,
-      data: reviews,
+      count: reviews.rows.length,
+      data: reviews.rows,
       pagination: {
         page: Number(page),
         limit: Number(limit),
-        total,
-        pages: Math.ceil(total / limit)
+        total: reviews.count,
+        pages: Math.ceil(reviews.count / limit)
       }
     });
   } catch (error) {
