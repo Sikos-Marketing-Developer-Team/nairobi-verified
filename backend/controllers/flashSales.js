@@ -394,47 +394,6 @@ const createFlashSale = async (req, res) => {
   } catch (error) {
     handleError(res, error, 'Failed to create flash sale');
   }
-}; "${product.name}" sale price must be less than original price`);
-      }
-
-      if (product.originalPrice <= 0 || product.salePrice <= 0) {
-        throw new Error(`Product "${product.name}" prices must be greater than 0`);
-      }
-
-      // Calculate discount percentage
-      const discountPercentage = Math.round(
-        ((product.originalPrice - product.salePrice) / product.originalPrice) * 100
-      );
-
-      return {
-        ...product,
-        discountPercentage,
-        stockQuantity: product.stockQuantity || 100,
-        soldQuantity: product.soldQuantity || 0,
-        maxQuantityPerUser: product.maxQuantityPerUser || 5,
-      };
-    });
-
-    const flashSale = await FlashSale.create({
-      title: title.trim(),
-      description: description.trim(),
-      startDate: start,
-      endDate: end,
-      products: processedProducts,
-      createdBy: req.user._id,
-      isActive: true,
-    });
-
-    // Populate the created flash sale
-    await flashSale.populate('createdBy', 'name email');
-
-    res.status(HTTP_STATUS.CREATED).json({
-      success: true,
-      data: flashSale,
-    });
-  } catch (error) {
-    handleError(res, error, 'Failed to create flash sale');
-  }
 };
 
 // @desc    Update flash sale
@@ -442,8 +401,8 @@ const createFlashSale = async (req, res) => {
 // @access  Private/Admin
 const updateFlashSale = async (req, res) => {
   try {
-    // Validate ObjectId format
-    if (!isValidObjectId(req.params.id)) {
+    // Validate UUID format instead of ObjectId
+    if (!isValidUUID(req.params.id)) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'Invalid flash sale ID format',
@@ -460,7 +419,7 @@ const updateFlashSale = async (req, res) => {
       });
     }
 
-    let flashSale = await FlashSale.findById(req.params.id);
+    let flashSale = await FlashSalePG.findByPk(req.params.id);
 
     if (!flashSale) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -514,9 +473,7 @@ const updateFlashSale = async (req, res) => {
     }
 
     // Build update object with only provided fields
-    const updateData = {
-      updatedAt: new Date(),
-    };
+    const updateData = {};
 
     if (title) updateData.title = title.trim();
     if (description) updateData.description = description.trim();
@@ -525,20 +482,23 @@ const updateFlashSale = async (req, res) => {
     if (processedProducts) updateData.products = processedProducts;
     if (typeof isActive === 'boolean') updateData.isActive = isActive;
 
-    flashSale = await FlashSale.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { 
-        new: true, 
-        runValidators: true 
-      }
-    )
-      .populate('createdBy', 'name email')
-      .lean();
+    // Always update the updatedAt timestamp
+    updateData.updatedAt = new Date();
+
+    await flashSale.update(updateData);
+
+    // Get updated flash sale with admin info
+    const updatedFlashSale = await FlashSalePG.findByPk(req.params.id, {
+      include: [{
+        model: AdminUserPG,
+        as: 'admin',
+        attributes: ['id', 'name', 'email']
+      }]
+    });
 
     res.json({
       success: true,
-      data: flashSale,
+      data: updatedFlashSale,
     });
   } catch (error) {
     handleError(res, error, 'Failed to update flash sale');
@@ -550,15 +510,15 @@ const updateFlashSale = async (req, res) => {
 // @access  Private/Admin
 const deleteFlashSale = async (req, res) => {
   try {
-    // Validate ObjectId format
-    if (!isValidObjectId(req.params.id)) {
+    // Validate UUID format instead of ObjectId
+    if (!isValidUUID(req.params.id)) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'Invalid flash sale ID format',
       });
     }
 
-    const flashSale = await FlashSale.findById(req.params.id);
+    const flashSale = await FlashSalePG.findByPk(req.params.id);
 
     if (!flashSale) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -580,7 +540,7 @@ const deleteFlashSale = async (req, res) => {
       });
     }
 
-    await FlashSale.findByIdAndDelete(req.params.id);
+    await flashSale.destroy();
 
     res.json({
       success: true,
@@ -596,14 +556,14 @@ const deleteFlashSale = async (req, res) => {
 // @access  Private/Admin
 const toggleFlashSaleStatus = async (req, res) => {
   try {
-    if (!isValidObjectId(req.params.id)) {
+    if (!isValidUUID(req.params.id)) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'Invalid flash sale ID format',
       });
     }
 
-    const flashSale = await FlashSale.findById(req.params.id);
+    const flashSale = await FlashSalePG.findByPk(req.params.id);
 
     if (!flashSale) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -612,14 +572,19 @@ const toggleFlashSaleStatus = async (req, res) => {
       });
     }
 
-    const updatedFlashSale = await FlashSale.findByIdAndUpdate(
-      req.params.id,
-      { 
-        isActive: !flashSale.isActive,
-        updatedAt: new Date()
-      },
-      { new: true, runValidators: true }
-    ).populate('createdBy', 'name email');
+    await flashSale.update({
+      isActive: !flashSale.isActive,
+      updatedAt: new Date()
+    });
+
+    // Get updated flash sale with admin info
+    const updatedFlashSale = await FlashSalePG.findByPk(req.params.id, {
+      include: [{
+        model: AdminUserPG,
+        as: 'admin',
+        attributes: ['id', 'name', 'email']
+      }]
+    });
 
     res.json({
       success: true,
