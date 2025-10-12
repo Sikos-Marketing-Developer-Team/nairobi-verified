@@ -52,9 +52,12 @@ passport.use(
           console.log('Created new user from Google OAuth:', user.id);
         } else if (!user.googleId) {
           // Existing user: update googleId and avatar
-          user.googleId = profile.id;
-          user.profilePicture = user.profilePicture || profile.photos[0]?.value || '';
-          await user.save();
+          await UserPG.update({
+            googleId: profile.id,
+            profilePicture: user.profilePicture || profile.photos[0]?.value || ''
+          }, {
+            where: { id: user.id }
+          });
           console.log('Updated existing user with Google ID:', user.id);
         }
 

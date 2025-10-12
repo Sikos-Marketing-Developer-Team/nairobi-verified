@@ -86,9 +86,12 @@ class MerchantOnboardingService {
       const setupToken = crypto.randomBytes(32).toString('hex');
       const setupTokenHash = crypto.createHash('sha256').update(setupToken).digest('hex');
       
-      merchant.accountSetupToken = setupTokenHash;
-      merchant.accountSetupExpire = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
-      await merchant.save();
+      await MerchantPG.update({
+        accountSetupToken: setupTokenHash,
+        accountSetupExpire: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+      }, {
+        where: { id: merchant.id }
+      });
 
       // Send welcome email with credentials
       await this.sendWelcomeEmail(merchant, tempPassword, setupToken, adminUser);
