@@ -306,7 +306,7 @@ const createProduct = async (req, res) => {
           error: 'Merchant profile not found',
         });
       }
-      merchantId = merchant._id;
+      merchantId = merchant.id;
     } else {
       merchantId = req.body.merchant;
     }
@@ -338,7 +338,12 @@ const createProduct = async (req, res) => {
 // Update product
 const updateProduct = async (req, res) => {
   try {
-    const product = await ProductPG.findByPk(req.params.id);
+    const product = await ProductPG.findByPk(req.params.id, {
+      include: [{
+        model: MerchantPG,
+        as: 'merchant'
+      }]
+    });
 
     if (!product) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -348,8 +353,8 @@ const updateProduct = async (req, res) => {
     }
 
     if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ owner: req.user.id });
-      if (!merchant || !product.merchant.equals(merchant._id) ) {
+      const merchant = await MerchantPG.findOne({ where: { owner: req.user.id } });
+      if (!merchant || product.merchant.id !== merchant.id) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
           error: 'Not authorized to update this product',
@@ -362,13 +367,15 @@ const updateProduct = async (req, res) => {
       });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    )
-      .populate('merchant', 'businessName address')
-      .lean();
+    await product.update(req.body);
+
+    const updatedProduct = await ProductPG.findByPk(req.params.id, {
+      include: [{
+        model: MerchantPG,
+        as: 'merchant',
+        attributes: ['businessName', 'address']
+      }]
+    });
 
     res.json({
       success: true,
@@ -382,7 +389,12 @@ const updateProduct = async (req, res) => {
 // Delete product
 const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await ProductPG.findByPk(req.params.id, {
+      include: [{
+        model: MerchantPG,
+        as: 'merchant'
+      }]
+    });
 
     if (!product) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -392,8 +404,8 @@ const deleteProduct = async (req, res) => {
     }
 
     if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ owner: req.user.id });
-      if (!merchant || !product.merchant.equals(merchant._id)) {
+      const merchant = await MerchantPG.findOne({ where: { owner: req.user.id } });
+      if (!merchant || product.merchant.id !== merchant.id) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
           error: 'Not authorized to delete this product',
@@ -406,7 +418,7 @@ const deleteProduct = async (req, res) => {
       });
     }
 
-    await Product.findByIdAndDelete(req.params.id);
+    await product.destroy();
 
     res.json({
       success: true,
