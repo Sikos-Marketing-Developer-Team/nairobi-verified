@@ -142,15 +142,25 @@ exports.getAllReviews = async (req, res) => {
 // @access  Public
 exports.getReview = async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id)
-      .populate({
-        path: 'user',
-        select: 'firstName lastName avatar'
-      })
-      .populate({
-        path: 'merchant',
-        select: 'businessName'
-      });
+    const review = await ReviewPG.findByPk(req.params.id, {
+      include: [
+        {
+          model: UserPG,
+          as: 'user',
+          attributes: ['firstName', 'lastName', 'avatar']
+        },
+        {
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName']
+        },
+        {
+          model: ProductPG,
+          as: 'product',
+          attributes: ['name', 'primaryImage']
+        }
+      ]
+    });
 
     if (!review) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
