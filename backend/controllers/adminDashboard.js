@@ -546,26 +546,6 @@ const getMerchants = asyncHandler(async (req, res) => {
     withIdDoc: enhancedMerchants.filter(m => m.documentStatus?.idDocument?.status === 'uploaded').length,
     withUtilityBill: enhancedMerchants.filter(m => m.documentStatus?.utilityBill?.status === 'uploaded').length
   };
-              { $and: [
-                { $ne: ['$documents.idDocument', null] },
-                { $ne: ['$documents.idDocument', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        withUtilityBill: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.utilityBill', null] },
-                { $ne: ['$documents.utilityBill', ''] }
-              ]}, 1, 0
-            ]
-          }
-        }
-      }
-    }
-  ]);
 
   res.status(200).json({
     success: true,
@@ -576,7 +556,7 @@ const getMerchants = asyncHandler(async (req, res) => {
       total,
       pages: Math.ceil(total / limit)
     },
-    queryStats: queryStats[0] || {
+    queryStats: queryStats || {
       totalMerchants: 0,
       verifiedMerchants: 0,
       withBusinessReg: 0,
@@ -671,8 +651,13 @@ const viewMerchantDocument = asyncHandler(async (req, res) => {
   try {
     const { id: merchantId, docType } = req.params;
 
-    const merchant = await Merchant.findById(merchantId)
-      .select('businessName documents');
+    const merchant = await MerchantPG.findByPk(merchantId, {
+      attributes: ['businessName'],
+      include: [{
+        model: DocumentPG,
+        as: 'documents'
+      }]
+    });
 
     if (!merchant) {
       return res.status(404).json({
