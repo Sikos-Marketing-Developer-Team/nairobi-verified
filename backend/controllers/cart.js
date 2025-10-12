@@ -15,21 +15,45 @@ const handleError = (res, error, message) => {
 // @access  Private
 exports.getCart = async (req, res) => {
   try {
-    let cart = await Cart.findOne({ user: req.user._id })
-      .populate('items.product', 'name price originalPrice images primaryImage stockQuantity soldQuantity isActive')
-      .populate('items.merchant', 'businessName address verified');
-
-    if (!cart) {
-      cart = await Cart.create({ user: req.user._id, items: [] });
-    }
-
-    // Filter out inactive products or out of stock items
-    cart.items = cart.items.filter(item => {
-      return item.product && item.product.isActive && item.product.stockQuantity > item.product.soldQuantity;
+    let cart = await CartPG.findOne({ 
+      where: { userId: req.user.id }
     });
 
-    // Recalculate totals after filtering
-    await cart.save();
+    if (!cart) {
+      cart = await CartPG.create({ userId: req.user.id, items: [] });
+    }
+
+    // Enrich cart items with product and merchant details
+    const enrichedItems = [];
+    for (const item of cart.items) {
+      const product = await ProductPG.findByPk(item.productId, {
+        attributes: ['name', 'price', 'originalPrice', 'images', 'primaryImage', 'stockQuantity', 'soldQuantity', 'isActive'],
+        include: [{
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName', 'address', 'verified']
+        }]
+      });
+
+      if (product && product.isActive && product.stockQuantity > product.soldQuantity) {
+        enrichedItems.push({
+          ...item,
+          product
+        });
+      }
+    }
+
+    // Update cart with filtered items and recalculate total
+    const totalAmount = enrichedItems.reduce((total, item) => {
+      return total + (item.product.price * item.quantity);
+    }, 0);
+
+    await CartPG.update({
+      items: enrichedItems,
+      totalAmount
+    }, {
+      where: { id: cart.id }
+    });
 
     res.json({
       success: true,
