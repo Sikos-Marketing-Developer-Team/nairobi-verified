@@ -61,11 +61,12 @@ exports.updateUser = async (req, res) => {
 
     const { firstName, lastName, email, phone } = req.body;
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
+    await UserPG.update(
       { firstName, lastName, email, phone },
-      { new: true, runValidators: true }
+      { where: { id: req.params.id } }
     );
+    
+    const user = await UserPG.findByPk(req.params.id);
 
     if (!user) {
       return res.status(404).json({
