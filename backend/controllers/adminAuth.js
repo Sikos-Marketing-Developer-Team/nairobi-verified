@@ -164,8 +164,11 @@ const updatePassword = asyncHandler(async (req, res) => {
     });
   }
 
-  admin.password = req.body.newPassword;
-  await admin.save();
+  await AdminUserPG.update({
+    password: req.body.newPassword
+  }, {
+    where: { id: admin.id }
+  });
 
   const token = admin.getSignedJwtToken();
 
