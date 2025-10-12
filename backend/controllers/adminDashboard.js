@@ -186,24 +186,30 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     previousPeriodStart.setDate(previousPeriodStart.getDate() + 30);
 
     const [previousMerchants, previousUsers, previousReviews] = await Promise.all([
-      Merchant.countDocuments({ 
-        createdAt: { 
-          $gte: previousPeriodStart, 
-          $lt: thirtyDaysAgo 
-        } 
+      MerchantPG.count({ 
+        where: {
+          createdAt: { 
+            [Op.gte]: previousPeriodStart, 
+            [Op.lt]: thirtyDaysAgo 
+          }
+        }
       }),
-      User.countDocuments({ 
-        role: { $ne: 'admin' },
-        createdAt: { 
-          $gte: previousPeriodStart, 
-          $lt: thirtyDaysAgo 
-        } 
+      UserPG.count({ 
+        where: {
+          role: { [Op.ne]: 'admin' },
+          createdAt: { 
+            [Op.gte]: previousPeriodStart, 
+            [Op.lt]: thirtyDaysAgo 
+          }
+        }
       }),
-      Review.countDocuments({ 
-        createdAt: { 
-          $gte: previousPeriodStart, 
-          $lt: thirtyDaysAgo 
-        } 
+      ReviewPG.count({ 
+        where: {
+          createdAt: { 
+            [Op.gte]: previousPeriodStart, 
+            [Op.lt]: thirtyDaysAgo 
+          }
+        }
       })
     ]);
 
