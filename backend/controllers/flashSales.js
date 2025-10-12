@@ -119,19 +119,18 @@ const getFlashSale = async (req, res) => {
     }
 
     // Increment view count atomically to avoid race conditions
-    await FlashSale.findByIdAndUpdate(
-      req.params.id, 
-      { $inc: { totalViews: 1 } },
-      { new: false } // Don't return the updated document for performance
-    );
+    await FlashSalePG.increment('usageCount', {
+      where: { id: req.params.id }
+    });
 
-    const timeRemaining = calculateTimeRemaining(flashSale.endDate, flashSale.startDate);
+    const flashSaleData = flashSale.toJSON();
+    const timeRemaining = calculateTimeRemaining(flashSaleData.endDate, flashSaleData.startDate);
     const isCurrentlyActive = !timeRemaining.expired && 
-                             new Date(flashSale.startDate) <= new Date() && 
-                             flashSale.isActive;
+                             new Date(flashSaleData.startDate) <= new Date() && 
+                             flashSaleData.isActive;
 
     const enhancedFlashSale = {
-      ...flashSale,
+      ...flashSaleData,
       timeRemaining,
       isCurrentlyActive,
     };
@@ -152,37 +151,41 @@ const getAllFlashSales = async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    // Get total count and flash sales in parallel
-    const [flashSales, total] = await Promise.all([
-      FlashSale.find()
-        .populate('createdBy', 'name email')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      FlashSale.countDocuments()
-    ]);
+    // Get flash sales with count
+    const { rows: flashSales, count: total } = await FlashSalePG.findAndCountAll({
+      include: [
+        {
+          model: AdminUserPG,
+          as: 'creator',
+          attributes: ['name', 'email']
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: limit,
+      offset: offset
+    });
 
     // Enhance flash sales with status information
     const enhancedFlashSales = flashSales.map((sale) => {
+      const saleData = sale.toJSON();
       const now = new Date();
-      const startDate = new Date(sale.startDate);
-      const endDate = new Date(sale.endDate);
+      const startDate = new Date(saleData.startDate);
+      const endDate = new Date(saleData.endDate);
       const timeRemaining = calculateTimeRemaining(endDate, startDate);
       
       let status = 'Scheduled';
-      if (now >= startDate && now <= endDate && sale.isActive) {
+      if (now >= startDate && now <= endDate && saleData.isActive) {
         status = 'Active';
       } else if (now > endDate) {
         status = 'Expired';
-      } else if (!sale.isActive) {
+      } else if (!saleData.isActive) {
         status = 'Inactive';
       }
 
       return {
-        ...sale,
+        ...saleData,
         status,
         timeRemaining,
         isCurrentlyActive: status === 'Active',
@@ -190,11 +193,16 @@ const getAllFlashSales = async (req, res) => {
     });
 
     // Pagination info
-    const pagination = {};
-    if (skip + limit < total) {
+    const pagination = {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit)
+    };
+    if (offset + limit < total) {
       pagination.next = { page: page + 1, limit };
     }
-    if (skip > 0) {
+    if (offset > 0) {
       pagination.prev = { page: page - 1, limit };
     }
 
