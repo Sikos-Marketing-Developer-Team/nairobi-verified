@@ -60,20 +60,46 @@ const getProducts = async (req, res) => {
 
     console.log('Search query received:', { search, category, merchant });
 
-    const productFilter = buildProductFilter({ category, merchant, featured, minPrice, maxPrice, search });
-    const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
-    const skip = (page - 1) * limit;
+    // Build Sequelize where clause
+    const whereClause = {};
+    
+    if (category) whereClause.category = category;
+    if (merchant) whereClause.merchantId = merchant;
+    if (featured !== undefined) whereClause.featured = featured;
+    
+    // Price range filter
+    if (minPrice || maxPrice) {
+      whereClause.price = {};
+      if (minPrice) whereClause.price[Op.gte] = Number(minPrice);
+      if (maxPrice) whereClause.price[Op.lte] = Number(maxPrice);
+    }
+    
+    // Search filter
+    if (search) {
+      whereClause[Op.or] = [
+        { name: { [Op.iLike]: `%${search}%` } },
+        { description: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
 
-    console.log('Product filter:', JSON.stringify(productFilter, null, 2));
+    const orderClause = [[sortBy, sortOrder.toUpperCase()]];
+    const offset = (page - 1) * limit;
 
-    const products = await Product.find(productFilter)
-      .populate('merchant', 'businessName address')
-      .sort(sort)
-      .skip(skip)
-      .limit(Number(limit))
-      .lean();
+    console.log('Product filter:', JSON.stringify(whereClause, null, 2));
 
-    const total = await Product.countDocuments(productFilter);
+    const products = await ProductPG.findAll({
+      where: whereClause,
+      include: [{
+        model: MerchantPG,
+        as: 'merchant',
+        attributes: ['businessName', 'address']
+      }],
+      order: orderClause,
+      offset: offset,
+      limit: Number(limit)
+    });
+
+    const total = await ProductPG.count({ where: whereClause });
 
     console.log(`Found ${products.length} products out of ${total} total matching filter`);
 
