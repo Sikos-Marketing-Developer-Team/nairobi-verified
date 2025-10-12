@@ -536,28 +536,16 @@ const getMerchants = asyncHandler(async (req, res) => {
     };
   });
 
-  const total = await Merchant.countDocuments(query);
+  const total = await MerchantPG.count({ where: whereClause });
 
-  const queryStats = await Merchant.aggregate([
-    { $match: query },
-    {
-      $group: {
-        _id: null,
-        totalMerchants: { $sum: 1 },
-        verifiedMerchants: { $sum: { $cond: [{ $eq: ['$verified', true] }, 1, 0] } },
-        withBusinessReg: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.businessRegistration', null] },
-                { $ne: ['$documents.businessRegistration', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        withIdDoc: {
-          $sum: {
-            $cond: [
+  // Simplified stats for now - can be enhanced with proper PostgreSQL aggregations
+  const queryStats = {
+    totalMerchants: enhancedMerchants.length,
+    verifiedMerchants: enhancedMerchants.filter(m => m.verified).length,
+    withBusinessReg: enhancedMerchants.filter(m => m.documentStatus?.businessRegistration?.status === 'uploaded').length,
+    withIdDoc: enhancedMerchants.filter(m => m.documentStatus?.idDocument?.status === 'uploaded').length,
+    withUtilityBill: enhancedMerchants.filter(m => m.documentStatus?.utilityBill?.status === 'uploaded').length
+  };
               { $and: [
                 { $ne: ['$documents.idDocument', null] },
                 { $ne: ['$documents.idDocument', ''] }
