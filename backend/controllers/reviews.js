@@ -1,6 +1,7 @@
 // controllers/reviews.js
-const { ProductPG, MerchantPG, UserPG } = require('../models/indexPG');
+const { ProductPG, MerchantPG, UserPG, ReviewPG } = require('../models/indexPG');
 const { HTTP_STATUS } = require('../config/constants');
+const { Op } = require('sequelize');
 
 // Error handling utility
 const handleError = (res, error, message, statusCode = 500) => {
@@ -37,16 +38,30 @@ exports.getReviews = async (req, res) => {
       });
     }
 
-    const reviews = await Review.find({ merchant: merchantId })
-      .populate({
-        path: 'user',
-        select: 'firstName lastName avatar'
-      })
-      .populate({
-        path: 'merchant',
-        select: 'businessName'
-      })
-      .sort({ createdAt: -1 });
+    const reviews = await ReviewPG.findAll({
+      where: { 
+        merchantId: merchantId,
+        isApproved: true
+      },
+      include: [
+        {
+          model: UserPG,
+          as: 'user',
+          attributes: ['firstName', 'lastName', 'avatar']
+        },
+        {
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName']
+        },
+        {
+          model: ProductPG,
+          as: 'product',
+          attributes: ['name', 'primaryImage']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
 
     console.log('Reviews found:', reviews.length);
 
