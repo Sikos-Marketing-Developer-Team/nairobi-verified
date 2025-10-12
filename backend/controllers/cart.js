@@ -90,7 +90,13 @@ exports.addToCart = async (req, res) => {
     }
 
     // Verify product exists and is available
-    const product = await Product.findById(productId).populate('merchant', 'businessName');
+    const product = await ProductPG.findByPk(productId, {
+      include: [{
+        model: MerchantPG,
+        as: 'merchant',
+        attributes: ['businessName']
+      }]
+    });
     if (!product) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
@@ -114,23 +120,30 @@ exports.addToCart = async (req, res) => {
       });
     }
 
-    let cart = await Cart.findOne({ user: req.user._id });
+    let cart = await CartPG.findOne({ 
+      where: { userId: req.user.id }
+    });
     if (!cart) {
-      cart = await Cart.create({ user: req.user._id, items: [] });
+      cart = await CartPG.create({ userId: req.user.id, items: [] });
     }
 
+    // Get current items array
+    const currentItems = cart.items || [];
+
     // Check if item already exists in cart
-    const existingItemIndex = cart.items.findIndex(
-      item => item.product.toString() === productId
+    const existingItemIndex = currentItems.findIndex(
+      item => item.productId === productId
     );
+
+    let updatedItems = [...currentItems];
 
     if (existingItemIndex > -1) {
       // Check total quantity after addition
-      const newQuantity = cart.items[existingItemIndex].quantity + quantity;
+      const newQuantity = updatedItems[existingItemIndex].quantity + quantity;
       if (newQuantity > availableStock) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
-          error: `Cannot add ${quantity} more items. Only ${availableStock - cart.items[existingItemIndex].quantity} more available`
+          error: `Cannot add ${quantity} more items. Only ${availableStock - updatedItems[existingItemIndex].quantity} more available`
         });
       }
       
@@ -142,30 +155,58 @@ exports.addToCart = async (req, res) => {
       }
 
       // Update quantity
-      cart.items[existingItemIndex].quantity = newQuantity;
-      cart.items[existingItemIndex].price = product.price; // Update price in case it changed
+      updatedItems[existingItemIndex].quantity = newQuantity;
+      updatedItems[existingItemIndex].price = product.price; // Update price in case it changed
     } else {
       // Add new item
-      cart.items.push({
-        product: productId,
+      updatedItems.push({
+        productId: productId,
         productName: product.name,
         quantity,
         price: product.price,
         image: product.primaryImage || product.images[0],
-        merchant: product.merchant._id,
+        merchantId: product.merchant.id,
         merchantName: product.merchant.businessName
       });
     }
 
-    await cart.save();
+    // Calculate total amount
+    const totalAmount = updatedItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+
+    // Update cart
+    await cart.update({
+      items: updatedItems,
+      totalAmount
+    });
     
-    // Populate the cart before sending response
-    await cart.populate('items.product', 'name price originalPrice images primaryImage stockQuantity soldQuantity isActive');
-    await cart.populate('items.merchant', 'businessName address verified');
+    // Fetch updated cart with enriched items for response
+    const updatedCart = await CartPG.findByPk(cart.id);
+    
+    // Enrich items with current product data
+    const enrichedItems = [];
+    for (const item of updatedItems) {
+      const productData = await ProductPG.findByPk(item.productId, {
+        attributes: ['name', 'price', 'originalPrice', 'images', 'primaryImage', 'stockQuantity', 'soldQuantity', 'isActive'],
+        include: [{
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName', 'address', 'verified']
+        }]
+      });
+      enrichedItems.push({
+        ...item,
+        product: productData
+      });
+    }
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      data: cart,
+      data: {
+        ...updatedCart.dataValues,
+        items: enrichedItems
+      },
       message: 'Item added to cart successfully'
     });
   } catch (error) {
