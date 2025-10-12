@@ -50,53 +50,49 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       }),
       
       // NEW: Separate count for active merchants
-      Merchant.countDocuments({ isActive: true }),
+      MerchantPG.count({ where: { isActive: true } }),
       
       // FIXED: Pending = not verified OR not active
-      Merchant.countDocuments({ 
-        $or: [
-          { verified: false },
-          { isActive: false }
-        ]
+      MerchantPG.count({ 
+        where: {
+          [Op.or]: [
+            { verified: false },
+            { isActive: false }
+          ]
+        }
       }),
       
-      Product.countDocuments({ isActive: true }),
-      Promise.resolve(0), // Orders placeholder
+      ProductPG.count({ where: { isActive: true } }),
+      OrderPG.count(), // Orders count
       
-      // Merchants with documents
-      Merchant.countDocuments({
-        $or: [
-          { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
-          { 'documents.idDocument.path': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
-        ]
+      // Merchants with documents - using DocumentPG table
+      MerchantPG.count({
+        include: [{
+          model: DocumentPG,
+          as: 'documents',
+          where: {
+            status: { [Op.in]: ['uploaded', 'approved', 'rejected'] }
+          },
+          required: true
+        }]
       }),
       
-      // Merchants pending documents
-      Merchant.countDocuments({
-        verified: false,
-        $and: [
-          {
-            $or: [
-              { 'documents.businessRegistration.path': { $exists: false } },
-              { 'documents.businessRegistration.path': '' },
-              { 'documents.idDocument.path': { $exists: false } },
-              { 'documents.idDocument.path': '' },
-              { 'documents.utilityBill.path': { $exists: false } },
-              { 'documents.utilityBill.path': '' }
-            ]
-          }
-        ]
+      // Merchants pending documents - merchants without any documents
+      MerchantPG.count({
+        where: { verified: false },
+        include: [{
+          model: DocumentPG,
+          as: 'documents',
+          required: false
+        }],
+        having: 'COUNT("documents"."id") = 0'
       }),
       
-      // Documents awaiting review (complete docs but not verified)
-      Merchant.countDocuments({
-        verified: false,
-        $and: [
-          { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
-          { 'documents.idDocument.path': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
-        ]
+      // Documents awaiting review
+      DocumentPG.count({
+        where: { 
+          status: 'uploaded'
+        }
       })
     ]);
 
