@@ -614,9 +614,10 @@ exports.resetPassword = async (req, res) => {
       });
 
       // Clean up this expired token
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpire = undefined;
-      await user.save();
+      await user.update({
+        resetPasswordToken: null,
+        resetPasswordExpire: null
+      });
 
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
