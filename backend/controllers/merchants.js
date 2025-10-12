@@ -483,62 +483,115 @@ exports.uploadGallery = async (req, res) => {
   }
 };
 
-// @desc    Upload merchant verification documents (ENHANCED)
+// @desc    Upload merchant verification documents (FIXED)
 // @route   PUT /api/merchants/:id/documents
 // @access  Private/Merchant
 exports.uploadDocuments = async (req, res) => {
   try {
     const requesterId = getUserIdFromReq(req);
     if (!requesterId || String(req.params.id) !== requesterId) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({ success: false, error: 'Not authorized to update this merchant' });
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ 
+        success: false, 
+        error: 'Not authorized to update this merchant' 
+      });
     }
 
     if (!req.files) {
-      return res.status(400).json({ success: false, error: 'Please upload required documents' });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Please upload required documents' 
+      });
     }
 
     const merchant = await Merchant.findById(req.params.id);
-    if (!merchant) return res.status(404).json({ success: false, error: 'Merchant not found' });
+    if (!merchant) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Merchant not found' 
+      });
+    }
 
-    const documents = merchant.documents || { additionalDocs: [] };
+    if (!merchant.documents) {
+      merchant.documents = {
+        businessRegistration: { path: '', uploadedAt: null },
+        idDocument: { path: '', uploadedAt: null },
+        utilityBill: { path: '', uploadedAt: null },
+        additionalDocs: [],
+        documentReviewStatus: 'pending'
+      };
+    }
+
     const updatedDocuments = [];
 
-    if (req.files.businessRegistration) {
-      documents.businessRegistration = {
-        path: `/uploads/documents/${req.files.businessRegistration[0].filename}`,
-        uploadedAt: Date.now()
+    if (req.files.businessRegistration && req.files.businessRegistration[0]) {
+      const file = req.files.businessRegistration[0];
+      merchant.documents.businessRegistration = {
+        path: file.path || `/uploads/documents/${file.filename}`,
+        uploadedAt: new Date(),
+        originalName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        cloudinaryUrl: file.path,
+        publicId: file.filename
       };
       updatedDocuments.push('Business Registration');
     }
 
-    if (req.files.idDocument) {
-      documents.idDocument = {
-        path: `/uploads/documents/${req.files.idDocument[0].filename}`,
-        uploadedAt: Date.now()
+    if (req.files.idDocument && req.files.idDocument[0]) {
+      const file = req.files.idDocument[0];
+      merchant.documents.idDocument = {
+        path: file.path || `/uploads/documents/${file.filename}`,
+        uploadedAt: new Date(),
+        originalName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        cloudinaryUrl: file.path,
+        publicId: file.filename
       };
       updatedDocuments.push('ID Document');
     }
 
-    if (req.files.utilityBill) {
-      documents.utilityBill = {
-        path: `/uploads/documents/${req.files.utilityBill[0].filename}`,
-        uploadedAt: Date.now()
+    if (req.files.utilityBill && req.files.utilityBill[0]) {
+      const file = req.files.utilityBill[0];
+      merchant.documents.utilityBill = {
+        path: file.path || `/uploads/documents/${file.filename}`,
+        uploadedAt: new Date(),
+        originalName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        cloudinaryUrl: file.path,
+        publicId: file.filename
       };
       updatedDocuments.push('Utility Bill');
     }
 
-    if (req.files.additionalDocs) {
-      const additional = req.files.additionalDocs.map(file => `/uploads/documents/${file.filename}`);
-      documents.additionalDocs = [...(documents.additionalDocs || []), ...additional];
-      updatedDocuments.push('Additional Documents');
+    if (req.files.additionalDocs && req.files.additionalDocs.length > 0) {
+      const additionalDocs = req.files.additionalDocs.map(file => ({
+        path: file.path || `/uploads/documents/${file.filename}`,
+        uploadedAt: new Date(),
+        originalName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        cloudinaryUrl: file.path,
+        publicId: file.filename,
+        description: 'Additional Document'
+      }));
+      
+      merchant.documents.additionalDocs = [
+        ...(merchant.documents.additionalDocs || []), 
+        ...additionalDocs
+      ];
+      updatedDocuments.push(`${additionalDocs.length} Additional Document(s)`);
     }
 
-    documents.documentsSubmittedAt = Date.now();
-    documents.documentReviewStatus = 'pending';
-    merchant.documents = documents;
+    merchant.documents.documentsSubmittedAt = new Date();
+    merchant.documents.documentReviewStatus = 'pending';
 
-    // Update onboarding status if required docs now exist
-    const hasRequiredDocs = documents.businessRegistration?.path && documents.idDocument?.path && documents.utilityBill?.path;
+    const hasRequiredDocs = 
+      merchant.documents.businessRegistration?.path && 
+      merchant.documents.idDocument?.path && 
+      merchant.documents.utilityBill?.path;
+
     if (hasRequiredDocs && merchant.onboardingStatus === 'credentials_sent') {
       merchant.onboardingStatus = 'documents_submitted';
     }
@@ -546,10 +599,10 @@ exports.uploadDocuments = async (req, res) => {
     await merchant.save();
 
     const documentAnalysis = {
-      businessRegistration: !!documents.businessRegistration?.path,
-      idDocument: !!documents.idDocument?.path,
-      utilityBill: !!documents.utilityBill?.path,
-      additionalDocs: !!(documents.additionalDocs?.length > 0)
+      businessRegistration: !!merchant.documents.businessRegistration?.path,
+      idDocument: !!merchant.documents.idDocument?.path,
+      utilityBill: !!merchant.documents.utilityBill?.path,
+      additionalDocs: !!(merchant.documents.additionalDocs?.length > 0)
     };
 
     const requiredDocsCount = [
@@ -558,26 +611,30 @@ exports.uploadDocuments = async (req, res) => {
       documentAnalysis.utilityBill
     ].filter(Boolean).length;
 
-    const responseData = {
-      ...merchant.toObject(),
+    res.status(200).json({
+      success: true,
+      data: {
+        id: merchant._id,
+        businessName: merchant.businessName,
+        documents: merchant.documents
+      },
       documentStatus: {
         ...documentAnalysis,
         completionPercentage: Math.round((requiredDocsCount / 3) * 100),
         canBeVerified: requiredDocsCount === 3 && !merchant.verified,
         requiresDocuments: requiredDocsCount < 3,
         recentlyUpdated: updatedDocuments
-      }
-    };
-
-    res.status(200).json({
-      success: true,
-      data: responseData,
+      },
       message: `Successfully uploaded: ${updatedDocuments.join(', ')}`,
-      documentStatus: hasRequiredDocs ? 'complete' : 'incomplete'
+      isComplete: hasRequiredDocs
     });
+
   } catch (error) {
-    console.error('uploadDocuments error:', error);
-    res.status(400).json({ success: false, error: error.message });
+    console.error('❌ uploadDocuments error:', error);
+    res.status(400).json({ 
+      success: false, 
+      error: error.message
+    });
   }
 };
 
