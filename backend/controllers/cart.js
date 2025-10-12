@@ -318,7 +318,9 @@ exports.updateCartItem = async (req, res) => {
 // @access  Private
 exports.removeFromCart = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user._id });
+    const cart = await CartPG.findOne({ 
+      where: { userId: req.user.id }
+    });
     if (!cart) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
@@ -326,26 +328,53 @@ exports.removeFromCart = async (req, res) => {
       });
     }
 
-    const initialLength = cart.items.length;
-    cart.items = cart.items.filter(
-      item => item._id.toString() !== req.params.itemId
+    const currentItems = cart.items || [];
+    const initialLength = currentItems.length;
+    const updatedItems = currentItems.filter(
+      item => item.productId !== req.params.itemId
     );
 
-    if (cart.items.length === initialLength) {
+    if (updatedItems.length === initialLength) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         error: 'Item not found in cart'
       });
     }
 
-    await cart.save();
+    // Calculate new total
+    const totalAmount = updatedItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
 
-    await cart.populate('items.product', 'name price originalPrice images primaryImage stockQuantity soldQuantity isActive');
-    await cart.populate('items.merchant', 'businessName address verified');
+    await cart.update({
+      items: updatedItems,
+      totalAmount
+    });
+
+    // Fetch updated cart with enriched items
+    const updatedCart = await CartPG.findByPk(cart.id);
+    const enrichedItems = [];
+    for (const item of updatedItems) {
+      const productData = await ProductPG.findByPk(item.productId, {
+        attributes: ['name', 'price', 'originalPrice', 'images', 'primaryImage', 'stockQuantity', 'soldQuantity', 'isActive'],
+        include: [{
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName', 'address', 'verified']
+        }]
+      });
+      enrichedItems.push({
+        ...item,
+        product: productData
+      });
+    }
 
     res.json({
       success: true,
-      data: cart,
+      data: {
+        ...updatedCart.dataValues,
+        items: enrichedItems
+      },
       message: 'Item removed from cart successfully'
     });
   } catch (error) {
@@ -358,7 +387,9 @@ exports.removeFromCart = async (req, res) => {
 // @access  Private
 exports.clearCart = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user._id });
+    const cart = await CartPG.findOne({ 
+      where: { userId: req.user.id }
+    });
     if (!cart) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
@@ -366,8 +397,10 @@ exports.clearCart = async (req, res) => {
       });
     }
 
-    cart.items = [];
-    await cart.save();
+    await cart.update({
+      items: [],
+      totalAmount: 0
+    });
 
     res.json({
       success: true,
@@ -384,12 +417,14 @@ exports.clearCart = async (req, res) => {
 // @access  Private
 exports.getCartSummary = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user._id });
+    const cart = await CartPG.findOne({ 
+      where: { userId: req.user.id }
+    });
     
     const summary = {
-      itemCount: cart ? cart.totalItems : 0,
+      itemCount: cart ? (cart.items ? cart.items.length : 0) : 0,
       totalAmount: cart ? cart.totalAmount : 0,
-      isEmpty: !cart || cart.items.length === 0
+      isEmpty: !cart || !cart.items || cart.items.length === 0
     };
 
     res.json({
