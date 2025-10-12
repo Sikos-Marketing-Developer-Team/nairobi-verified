@@ -1,5 +1,6 @@
 const { ProductPG, MerchantPG } = require('../models/indexPG');
-const { Op } = require('sequelize');
+const { Op, literal } = require('sequelize');
+const { sequelize } = require('../models/indexPG');
 const { HTTP_STATUS } = require('../config/constants');
 
 // Error handling utility
@@ -235,7 +236,7 @@ const getProductById = async (req, res) => {
 
     // Increment view count
     await ProductPG.update(
-      { views: sequelize.literal('views + 1') },
+      { views: literal('views + 1') },
       { where: { id: req.params.id } }
     );
 
@@ -252,20 +253,23 @@ const getProductById = async (req, res) => {
 const getProductsByMerchant = async (req, res) => {
   try {
     const { page = 1, limit = 12 } = req.query;
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    const products = await Product.find({
-      merchant: req.params.merchantId,
-      isActive: true,
-    })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(Number(limit))
-      .lean();
+    const products = await ProductPG.findAll({
+      where: {
+        merchantId: req.params.merchantId,
+        isActive: true,
+      },
+      order: [['createdAt', 'DESC']],
+      offset: offset,
+      limit: Number(limit)
+    });
 
-    const total = await Product.countDocuments({
-      merchant: req.params.merchantId,
-      isActive: true,
+    const total = await ProductPG.count({
+      where: {
+        merchantId: req.params.merchantId,
+        isActive: true,
+      }
     });
 
     res.json({
