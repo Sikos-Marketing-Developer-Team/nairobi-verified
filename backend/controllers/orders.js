@@ -52,13 +52,24 @@ const getUserOrders = async (req, res) => {
 // @access  Private
 const getSingleOrder = async (req, res) => {
   try {
-    const order = await Order.findOne({ 
-      _id: req.params.id, 
-      user: req.user._id 
-    })
-    .populate('items.product', 'name price image')
-    .populate('items.merchant', 'name')
-    .lean();
+    const order = await OrderPG.findOne({ 
+      where: {
+        id: req.params.id, 
+        userId: req.user.id 
+      },
+      include: [
+        {
+          model: ProductPG,
+          as: 'products',
+          attributes: ['name', 'price', 'image']
+        },
+        {
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName']
+        }
+      ]
+    });
 
     if (!order) {
       return res.status(404).json({
@@ -84,14 +95,8 @@ const getSingleOrder = async (req, res) => {
 // @route   POST /api/orders  
 // @access  Private
 const createOrder = async (req, res) => {
-  // TODO: Convert MongoDB transactions to PostgreSQL/Sequelize
-  res.status(501).json({
-    success: false,
-    message: 'Order creation temporarily disabled - needs PostgreSQL conversion'
-  });
-  /*
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const { sequelize } = require('../models/indexPG');
+  const transaction = await sequelize.transaction();
 
   try {
     const {
@@ -103,7 +108,7 @@ const createOrder = async (req, res) => {
 
     // Validate required fields
     if (!items || items.length === 0) {
-      await session.abortTransaction();
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         error: 'Order items are required'
@@ -111,7 +116,7 @@ const createOrder = async (req, res) => {
     }
 
     if (!shippingAddress) {
-      await session.abortTransaction();
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         error: 'Shipping address is required'
@@ -119,7 +124,7 @@ const createOrder = async (req, res) => {
     }
 
     if (!paymentMethod) {
-      await session.abortTransaction();
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         error: 'Payment method is required'
@@ -131,46 +136,71 @@ const createOrder = async (req, res) => {
       return total + (item.price * item.quantity);
     }, 0);
 
-    const order = new Order({
-      user: req.user._id,
+    // Create order
+    const order = await OrderPG.create({
+      userId: req.user.id,
       items,
       totalAmount,
       shippingAddress,
       paymentMethod,
       notes
-    });
+    }, { transaction });
 
     // Update product stock
     for (const item of items) {
-      await Product.updateOne(
-        { _id: item.product, stockQuantity: { $gte: item.quantity } },
-        { $inc: { stockQuantity: -item.quantity, soldQuantity: item.quantity } },
-        { session }
+      const [updatedRows] = await ProductPG.update(
+        { 
+          stockQuantity: sequelize.literal(`stockQuantity - ${item.quantity}`),
+          soldQuantity: sequelize.literal(`soldQuantity + ${item.quantity}`)
+        },
+        { 
+          where: { 
+            id: item.product, 
+            stockQuantity: { [Op.gte]: item.quantity } 
+          },
+          transaction 
+        }
       );
+
+      if (updatedRows === 0) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          error: `Insufficient stock for product ${item.product}`
+        });
+      }
     }
 
-    await order.save({ session });
+    await transaction.commit();
 
-    await session.commitTransaction();
-
-    await order.populate('items.product', 'name price image');
-    await order.populate('items.merchant', 'name');
+    // Fetch the created order with associations
+    const createdOrder = await OrderPG.findByPk(order.id, {
+      include: [
+        {
+          model: ProductPG,
+          as: 'products',
+          attributes: ['name', 'price', 'image']
+        },
+        {
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName']
+        }
+      ]
+    });
 
     res.status(201).json({
       success: true,
-      data: order
+      data: createdOrder
     });
   } catch (error) {
-    await session.abortTransaction();
+    await transaction.rollback();
     console.error('Error creating order:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to create order. Please try again later.'
     });
-  } finally {
-    session.endSession();
   }
-  */
 };
 
 // @desc    Update order status
