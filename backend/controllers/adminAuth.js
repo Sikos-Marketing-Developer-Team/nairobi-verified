@@ -128,7 +128,7 @@ const getCurrentAdmin = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     admin: {
-      id: admin._id,
+      id: admin.id,
       firstName: admin.firstName,
       lastName: admin.lastName,
       name: getAdminFullName(admin),
@@ -155,7 +155,9 @@ const logoutAdmin = asyncHandler(async (req, res) => {
 // @route   PUT /api/admin/auth/updatepassword
 // @access  Private (Admin)
 const updatePassword = asyncHandler(async (req, res) => {
-  const admin = await AdminUser.findById(req.admin.id).select('+password');
+  const admin = await AdminUserPG.findByPk(req.admin.id, {
+    attributes: { include: ['password'] }
+  });
 
   if (!(await admin.matchPassword(req.body.currentPassword))) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
