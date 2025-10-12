@@ -247,25 +247,24 @@ const updateOrderStatus = async (req, res) => {
 
 // @desc    Cancel order
 // @route   DELETE /api/orders/:id
+// @desc    Cancel order
+// @route   PUT /api/orders/:id/cancel
 // @access  Private
 const cancelOrder = async (req, res) => {
-  // TODO: Convert MongoDB transactions to PostgreSQL/Sequelize
-  res.status(501).json({
-    success: false,
-    message: 'Order cancellation temporarily disabled - needs PostgreSQL conversion'
-  });
-  /*
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const { sequelize } = require('../models/indexPG');
+  const transaction = await sequelize.transaction();
 
   try {
-    const order = await Order.findOne({ 
-      _id: req.params.id, 
-      user: req.user._id 
+    const order = await OrderPG.findOne({ 
+      where: {
+        id: req.params.id, 
+        userId: req.user.id 
+      },
+      transaction
     });
 
     if (!order) {
-      await session.abortTransaction();
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
         error: 'Order not found'
@@ -274,43 +273,53 @@ const cancelOrder = async (req, res) => {
 
     // Only allow cancellation if order is pending or confirmed
     if (!['pending', 'confirmed'].includes(order.status)) {
-      await session.abortTransaction();
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         error: 'Cannot cancel order in current status'
       });
     }
 
-    order.status = 'cancelled';
+    // Update order status
+    await OrderPG.update(
+      { status: 'cancelled' },
+      { 
+        where: { id: order.id },
+        transaction 
+      }
+    );
 
-    // Restore stock
+    // Restore stock for each item
     for (const item of order.items) {
-      await Product.updateOne(
-        { _id: item.product },
-        { $inc: { stockQuantity: item.quantity, soldQuantity: -item.quantity } },
-        { session }
+      await ProductPG.update(
+        { 
+          stockQuantity: sequelize.literal(`stockQuantity + ${item.quantity}`),
+          soldQuantity: sequelize.literal(`soldQuantity - ${item.quantity}`)
+        },
+        { 
+          where: { id: item.product },
+          transaction 
+        }
       );
     }
 
-    await order.save({ session });
+    await transaction.commit();
 
-    await session.commitTransaction();
+    // Fetch updated order
+    const updatedOrder = await OrderPG.findByPk(order.id);
 
     res.json({
       success: true,
-      data: order
+      data: updatedOrder
     });
   } catch (error) {
-    await session.abortTransaction();
+    await transaction.rollback();
     console.error('Error cancelling order:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to cancel order. Please try again later.'
     });
-  } finally {
-    session.endSession();
   }
-  */
 };
 
 module.exports = {
