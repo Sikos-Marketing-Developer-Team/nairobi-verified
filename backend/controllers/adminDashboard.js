@@ -290,7 +290,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         recentReviews: recentReviews.map(review => ({
           ...review,
           user: review.user ? {
-            _id: review.user._id,
+            id: review.user.id,
             name: `${review.user.firstName} ${review.user.lastName}`,
             firstName: review.user.firstName,
             lastName: review.user.lastName
