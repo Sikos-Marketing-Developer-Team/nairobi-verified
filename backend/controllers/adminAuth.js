@@ -77,8 +77,11 @@ const loginAdmin = asyncHandler(async (req, res) => {
   }
 
   await admin.resetFailedLoginAttempts();
-  admin.lastLogin = new Date();
-  await admin.save();
+  await AdminUserPG.update({
+    lastLogin: new Date()
+  }, {
+    where: { id: admin.id }
+  });
 
   const token = admin.getSignedJwtToken();
 

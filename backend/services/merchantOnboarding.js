@@ -163,9 +163,12 @@ class MerchantOnboardingService {
       const setupToken = crypto.randomBytes(32).toString('hex');
       const setupTokenHash = crypto.createHash('sha256').update(setupToken).digest('hex');
       
-      merchant.accountSetupToken = setupTokenHash;
-      merchant.accountSetupExpire = Date.now() + 14 * 24 * 60 * 60 * 1000; // 14 days
-      await merchant.save();
+      await MerchantPG.update({
+        accountSetupToken: setupTokenHash,
+        accountSetupExpire: Date.now() + 14 * 24 * 60 * 60 * 1000 // 14 days
+      }, {
+        where: { id: merchant.id }
+      });
 
       // Send welcome email
       await this.sendWelcomeEmailProgrammatic(merchant, tempPassword, setupToken, options);
@@ -371,19 +374,23 @@ class MerchantOnboardingService {
         throw new Error('Invalid or expired setup token');
       }
 
-      // Update password and clear setup token
-      merchant.password = newPassword;
-      merchant.accountSetupToken = undefined;
-      merchant.accountSetupExpire = undefined;
-      merchant.onboardingStatus = 'completed';
-      merchant.accountSetupDate = new Date();
+      // Prepare update data
+      const updateData = {
+        password: newPassword,
+        accountSetupToken: null,
+        accountSetupExpire: null,
+        onboardingStatus: 'completed',
+        accountSetupDate: new Date()
+      };
 
       // Update additional profile data if provided
-      if (additionalData.businessHours) merchant.businessHours = additionalData.businessHours;
-      if (additionalData.description) merchant.description = additionalData.description;
-      if (additionalData.website) merchant.website = additionalData.website;
+      if (additionalData.businessHours) updateData.businessHours = additionalData.businessHours;
+      if (additionalData.description) updateData.description = additionalData.description;
+      if (additionalData.website) updateData.website = additionalData.website;
 
-      await merchant.save();
+      await MerchantPG.update(updateData, {
+        where: { id: merchant.id }
+      });
 
       // Send confirmation email
       await this.sendSetupCompleteEmail(merchant);
