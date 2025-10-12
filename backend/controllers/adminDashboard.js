@@ -616,7 +616,7 @@ const getMerchantDocuments = asyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       merchant: {
-        id: merchant._id,
+        id: merchant.id,
         businessName: merchant.businessName,
         email: merchant.email,
         verified: merchant.verified,
