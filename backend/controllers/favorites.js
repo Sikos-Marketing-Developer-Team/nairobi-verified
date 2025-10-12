@@ -5,7 +5,13 @@ const { UserPG, MerchantPG } = require('../models/indexPG');
 // @access  Private
 exports.getFavorites = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate('favorites');
+    const user = await UserPG.findByPk(req.user.id, {
+      include: [{
+        model: MerchantPG,
+        as: 'favoriteMerchants',
+        through: { attributes: [] }
+      }]
+    });
 
     res.status(200).json({
       success: true,
