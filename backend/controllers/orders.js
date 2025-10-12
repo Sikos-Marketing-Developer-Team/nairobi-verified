@@ -1,15 +1,27 @@
-const { OrderPG, ProductPG } = require('../models/indexPG');
+const { OrderPG, ProductPG, MerchantPG, UserPG } = require('../models/indexPG');
+const { Op } = require('sequelize');
 
 // @desc    Get user orders
 // @route   GET /api/orders
 // @access  Private
 const getUserOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user._id })
-      .populate('items.product', 'name price image')
-      .populate('items.merchant', 'name')
-      .sort({ createdAt: -1 })
-      .lean(); // Added lean() for performance
+    const orders = await OrderPG.findAll({
+      where: { userId: req.user.id },
+      include: [
+        {
+          model: ProductPG,
+          as: 'products',
+          attributes: ['name', 'price', 'image']
+        },
+        {
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
 
     // Handle empty orders gracefully for new users
     if (orders.length === 0) {
