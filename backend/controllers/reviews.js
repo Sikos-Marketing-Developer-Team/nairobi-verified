@@ -272,7 +272,7 @@ exports.addReview = async (req, res) => {
 // @access  Private
 exports.updateReview = async (req, res) => {
   try {
-    let review = await Review.findById(req.params.id);
+    let review = await ReviewPG.findByPk(req.params.id);
 
     if (!review) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -282,27 +282,39 @@ exports.updateReview = async (req, res) => {
     }
 
     // Make sure review belongs to user
-    if (review.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (review.userId !== req.user.id && req.user.role !== 'admin') {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         error: 'Not authorized to update this review'
       });
     }
 
-    review = await Review.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    }).populate({
-      path: 'user',
-      select: 'firstName lastName avatar'
-    }).populate({
-      path: 'merchant',
-      select: 'businessName'
+    await review.update(req.body);
+
+    // Fetch updated review with associations
+    const updatedReview = await ReviewPG.findByPk(review.id, {
+      include: [
+        {
+          model: UserPG,
+          as: 'user',
+          attributes: ['firstName', 'lastName', 'avatar']
+        },
+        {
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName']
+        },
+        {
+          model: ProductPG,
+          as: 'product',
+          attributes: ['name', 'primaryImage']
+        }
+      ]
     });
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: review
+      data: updatedReview
     });
   } catch (error) {
     handleError(res, error, 'Failed to update review', HTTP_STATUS.INTERNAL_SERVER_ERROR);
@@ -314,7 +326,7 @@ exports.updateReview = async (req, res) => {
 // @access  Private
 exports.deleteReview = async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
+    const review = await ReviewPG.findByPk(req.params.id);
 
     if (!review) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -324,15 +336,14 @@ exports.deleteReview = async (req, res) => {
     }
 
     // Make sure review belongs to user or user is admin
-    if (review.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (review.userId !== req.user.id && req.user.role !== 'admin') {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         error: 'Not authorized to delete this review'
       });
     }
 
-    // Use deleteOne instead of deprecated remove()
-    await Review.findByIdAndDelete(req.params.id);
+    await review.destroy();
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -349,7 +360,7 @@ exports.deleteReview = async (req, res) => {
 // @access  Private/Merchant
 exports.addReply = async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
+    const review = await ReviewPG.findByPk(req.params.id);
 
     if (!review) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -360,7 +371,12 @@ exports.addReply = async (req, res) => {
 
     // Check if user is admin or merchant owner
     if (req.user.role !== 'admin') {
-      const merchant = await Merchant.findOne({ _id: review.merchant, owner: req.user.id });
+      const merchant = await MerchantPG.findOne({ 
+        where: { 
+          id: review.merchantId, 
+          ownerId: req.user.id 
+        }
+      });
       if (!merchant) {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
@@ -369,24 +385,31 @@ exports.addReply = async (req, res) => {
       }
     }
 
-    // Add reply
-    review.reply = {
-      author: 'Business Owner',
-      content: req.body.content,
-      date: new Date()
-    };
+    // Update review with merchant response
+    await review.update({
+      merchantResponse: req.body.content,
+      merchantResponseDate: new Date()
+    });
 
-    await review.save();
-
-    const updatedReview = await Review.findById(review._id)
-      .populate({
-        path: 'user',
-        select: 'firstName lastName avatar'
-      })
-      .populate({
-        path: 'merchant',
-        select: 'businessName'
-      });
+    const updatedReview = await ReviewPG.findByPk(review.id, {
+      include: [
+        {
+          model: UserPG,
+          as: 'user',
+          attributes: ['firstName', 'lastName', 'avatar']
+        },
+        {
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName']
+        },
+        {
+          model: ProductPG,
+          as: 'product',
+          attributes: ['name', 'primaryImage']
+        }
+      ]
+    });
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -402,7 +425,7 @@ exports.addReply = async (req, res) => {
 // @access  Private
 exports.markHelpful = async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
+    const review = await ReviewPG.findByPk(req.params.id);
 
     if (!review) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -411,37 +434,44 @@ exports.markHelpful = async (req, res) => {
       });
     }
 
-    // Check if user already marked this review as helpful
-    const alreadyMarked = review.helpfulBy.includes(req.user.id);
-
-    if (alreadyMarked) {
-      // Remove user from helpfulBy array
-      review.helpfulBy = review.helpfulBy.filter(
-        id => id.toString() !== req.user.id
-      );
-      review.helpful = Math.max(0, review.helpful - 1);
-    } else {
-      // Add user to helpfulBy array
-      review.helpfulBy.push(req.user.id);
-      review.helpful += 1;
+    // For PostgreSQL, we'll increment/decrement the helpful count
+    // In a production system, you might want a separate table to track who marked what as helpful
+    const action = req.body.action || 'helpful'; // 'helpful' or 'unhelpful'
+    
+    if (action === 'helpful') {
+      await review.update({
+        isHelpful: review.isHelpful + 1
+      });
+    } else if (action === 'unhelpful') {
+      await review.update({
+        isHelpful: Math.max(0, review.isHelpful - 1)
+      });
     }
 
-    await review.save();
-
-    const updatedReview = await Review.findById(review._id)
-      .populate({
-        path: 'user',
-        select: 'firstName lastName avatar'
-      })
-      .populate({
-        path: 'merchant',
-        select: 'businessName'
-      });
+    const updatedReview = await ReviewPG.findByPk(review.id, {
+      include: [
+        {
+          model: UserPG,
+          as: 'user',
+          attributes: ['firstName', 'lastName', 'avatar']
+        },
+        {
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName']
+        },
+        {
+          model: ProductPG,
+          as: 'product',
+          attributes: ['name', 'primaryImage']
+        }
+      ]
+    });
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: updatedReview,
-      message: alreadyMarked ? 'Removed helpful mark' : 'Marked as helpful'
+      message: action === 'helpful' ? 'Marked as helpful' : 'Removed helpful mark'
     });
   } catch (error) {
     handleError(res, error, 'Failed to update helpful status', HTTP_STATUS.INTERNAL_SERVER_ERROR);
