@@ -195,9 +195,14 @@ const getFeaturedProducts = async (req, res) => {
   try {
     const { limit = 8 } = req.query;
 
-    const products = await Product.find({ featured: true, isActive: true })
-      .populate('merchant', 'businessName address')
-      .sort({ rating: -1, reviewCount: -1 })
+    const products = await ProductPG.findAll({
+      where: { featured: true, isActive: true },
+      include: [{
+        model: MerchantPG,
+        as: 'merchant',
+        attributes: ['businessName', 'address']
+      }],
+      order: [['rating', 'DESC'], ['reviewCount', 'DESC']],
       .limit(Number(limit))
       .lean();
 
