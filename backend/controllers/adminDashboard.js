@@ -790,14 +790,13 @@ const bulkVerifyMerchants = asyncHandler(async (req, res) => {
         })
       }, {
         where: { id: req.admin.id }
-        }
       });
     }
 
     res.status(200).json({
       success: true,
-      message: `Successfully ${action === 'verify' ? 'verified' : 'rejected'} ${result.modifiedCount} merchants`,
-      modifiedCount: result.modifiedCount,
+      message: `Successfully ${action === 'verify' ? 'verified' : 'rejected'} ${updatedCount} merchants`,
+      modifiedCount: updatedCount,
       merchants: updatedMerchants
     });
   } catch (error) {
