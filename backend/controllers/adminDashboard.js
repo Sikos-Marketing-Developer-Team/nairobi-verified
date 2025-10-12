@@ -835,31 +835,31 @@ const bulkUpdateMerchantStatus = asyncHandler(async (req, res) => {
       deactivatedDate: !isActive ? new Date() : null
     };
 
-    const result = await Merchant.updateMany(
-      { _id: { $in: merchantIds } },
-      updateData,
-      { runValidators: true }
-    );
+    const [updatedCount] = await MerchantPG.update(updateData, {
+      where: { id: merchantIds }
+    });
 
-    const updatedMerchants = await Merchant.find({ _id: { $in: merchantIds } })
-      .select('businessName email isActive activatedDate deactivatedDate');
+    const updatedMerchants = await MerchantPG.findAll({
+      where: { id: merchantIds },
+      attributes: ['businessName', 'email', 'isActive', 'activatedDate', 'deactivatedDate']
+    });
 
     if (req.admin && req.admin.id !== 'hardcoded-admin-id') {
-      await AdminUser.findByIdAndUpdate(req.admin.id, {
-        $push: {
-          activityLog: {
-            action: `bulk_merchant_${isActive ? 'activate' : 'deactivate'}`,
-            details: `${isActive ? 'Activated' : 'Deactivated'} ${result.modifiedCount} merchants`,
-            timestamp: new Date()
-          }
-        }
+      await AdminUserPG.update({
+        activityLog: sequelize.fn('array_append', sequelize.col('activityLog'), {
+          action: `bulk_merchant_${isActive ? 'activate' : 'deactivate'}`,
+          details: `${isActive ? 'Activated' : 'Deactivated'} ${updatedCount} merchants`,
+          timestamp: new Date()
+        })
+      }, {
+        where: { id: req.admin.id }
       });
     }
 
     res.status(200).json({
       success: true,
-      message: `Successfully ${isActive ? 'activated' : 'deactivated'} ${result.modifiedCount} merchants`,
-      modifiedCount: result.modifiedCount,
+      message: `Successfully ${isActive ? 'activated' : 'deactivated'} ${updatedCount} merchants`,
+      modifiedCount: updatedCount,
       merchants: updatedMerchants
     });
   } catch (error) {
@@ -1030,14 +1030,14 @@ const createMerchant = asyncHandler(async (req, res) => {
   // Log admin activity
   try {
     if (req.admin.id !== 'hardcoded-admin-id') {
-      await AdminUser.findByIdAndUpdate(req.admin.id, {
-        $push: {
-          activityLog: {
-            action: 'merchant_created',
-            details: `Created merchant account for ${businessName}${autoVerify ? ' (auto-verified)' : ''}`,
-            timestamp: new Date()
-          }
-        }
+      await AdminUserPG.update({
+        activityLog: sequelize.fn('array_append', sequelize.col('activityLog'), {
+          action: 'merchant_created',
+          details: `Created merchant account for ${businessName}${autoVerify ? ' (auto-verified)' : ''}`,
+          timestamp: new Date()
+        })
+      }, {
+        where: { id: req.admin.id }
       });
     }
   } catch (logError) {
