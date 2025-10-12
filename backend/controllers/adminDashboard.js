@@ -1047,7 +1047,7 @@ const createMerchant = asyncHandler(async (req, res) => {
   res.status(201).json({
     success: true,
     merchant: {
-      id: merchant._id,
+      id: merchant.id,
       businessName: merchant.businessName,
       email: merchant.email,
       phone: merchant.phone,
@@ -1097,7 +1097,7 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
     console.log('📊 Update data being applied:', updateData);
 
     // First, verify merchant exists
-    const existingMerchant = await Merchant.findById(req.params.id);
+    const existingMerchant = await MerchantPG.findByPk(req.params.id);
     if (!existingMerchant) {
       console.log('❌ Merchant not found:', req.params.id);
       return res.status(404).json({
@@ -1106,14 +1106,11 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
       });
     }
 
-    // Apply updates directly to the merchant object
-    Object.assign(existingMerchant, updateData);
-    
-    // Save the merchant (this triggers pre-save hooks and validations)
-    await existingMerchant.save();
+    // Apply updates using Sequelize
+    await existingMerchant.update(updateData);
 
     console.log('✅ Merchant updated successfully:', {
-      id: existingMerchant._id,
+      id: existingMerchant.id,
       businessName: existingMerchant.businessName,
       isActive: existingMerchant.isActive,
       verified: existingMerchant.verified

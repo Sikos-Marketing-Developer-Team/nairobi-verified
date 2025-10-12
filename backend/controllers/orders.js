@@ -219,15 +219,21 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    const order = await Order.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
-      { status },
-      { new: true }
-    );
+    const order = await OrderPG.findOne({
+      where: { 
+        id: req.params.id, 
+        user: req.user.id 
+      }
+    });
 
     if (!order) {
       return res.status(404).json({
         success: false,
+        error: 'Order not found'
+      });
+    }
+
+    await order.update({ status });
         error: 'Order not found'
       });
     }
