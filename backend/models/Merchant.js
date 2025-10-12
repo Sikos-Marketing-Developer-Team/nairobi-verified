@@ -15,15 +15,30 @@ const BusinessHoursSchema = new mongoose.Schema({
 const DocumentsSchema = new mongoose.Schema({
   businessRegistration: {
     path: { type: String, default: '' },
-    uploadedAt: Date
+    uploadedAt: { type: Date },
+    originalName: { type: String },
+    fileSize: { type: Number },
+    mimeType: { type: String },
+    cloudinaryUrl: { type: String },
+    publicId: { type: String }
   },
   idDocument: {
     path: { type: String, default: '' },
-    uploadedAt: Date
+    uploadedAt: { type: Date },
+    originalName: { type: String },
+    fileSize: { type: Number },
+    mimeType: { type: String },
+    cloudinaryUrl: { type: String },
+    publicId: { type: String }
   },
   utilityBill: {
     path: { type: String, default: '' },
-    uploadedAt: Date
+    uploadedAt: { type: Date },
+    originalName: { type: String },
+    fileSize: { type: Number },
+    mimeType: { type: String },
+    cloudinaryUrl: { type: String },
+    publicId: { type: String }
   },
   additionalDocs: [{
     path: { type: String, required: true },
@@ -31,14 +46,18 @@ const DocumentsSchema = new mongoose.Schema({
     originalName: String,
     fileSize: Number,
     mimeType: String,
+    cloudinaryUrl: String,
+    publicId: String,
     description: String
   }],
-  documentsSubmittedAt: Date,
+  documentsSubmittedAt: { type: Date },
+  documentsReviewedAt: { type: Date },
   documentReviewStatus: {
     type: String,
     enum: ['pending', 'under_review', 'approved', 'rejected'],
     default: 'pending'
-  }
+  },
+  verificationNotes: { type: String }
 }, { _id: false });
 
 const MerchantSchema = new mongoose.Schema({
