@@ -551,9 +551,10 @@ exports.forgotPassword = async (req, res) => {
     // Clean up user fields if error occurs
     if (user) {
       try {
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpire = undefined;
-        await user.save();
+        await user.update({
+          resetPasswordToken: null,
+          resetPasswordExpire: null
+        });
       } catch (saveError) {
         console.error('Error cleaning up user fields:', saveError);
       }
