@@ -234,7 +234,10 @@ const getProductById = async (req, res) => {
     }
 
     // Increment view count
-    await Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+    await ProductPG.update(
+      { views: sequelize.literal('views + 1') },
+      { where: { id: req.params.id } }
+    );
 
     res.json({
       success: true,
