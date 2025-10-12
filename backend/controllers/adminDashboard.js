@@ -106,9 +106,11 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 
     let activeFlashSales = 0;
     try {
-      activeFlashSales = await FlashSale.countDocuments({ 
-        isActive: true, 
-        endDate: { $gt: new Date() } 
+      activeFlashSales = await FlashSalePG.count({ 
+        where: {
+          isActive: true, 
+          endDate: { [Op.gt]: new Date() } 
+        }
       });
     } catch (error) {
       console.log('Flash sales model not available yet');
