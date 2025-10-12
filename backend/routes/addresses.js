@@ -33,9 +33,11 @@ router.get('/', protect, async (req, res) => {
 // @access  Private
 router.get('/:id', protect, async (req, res) => {
   try {
-    const address = await Address.findOne({ 
-      _id: req.params.id, 
-      user: req.user._id 
+    const address = await AddressPG.findOne({ 
+      where: { 
+        id: req.params.id, 
+        userId: req.user.id 
+      }
     });
 
     if (!address) {
@@ -83,8 +85,8 @@ router.post('/', protect, async (req, res) => {
       });
     }
 
-    const newAddress = await Address.create({
-      user: req.user._id,
+    const newAddress = await AddressPG.create({
+      userId: req.user.id,
       fullName,
       phone,
       address,
@@ -114,9 +116,11 @@ router.post('/', protect, async (req, res) => {
 // @access  Private
 router.put('/:id', protect, async (req, res) => {
   try {
-    const address = await Address.findOne({ 
-      _id: req.params.id, 
-      user: req.user._id 
+    const address = await AddressPG.findOne({ 
+      where: { 
+        id: req.params.id, 
+        userId: req.user.id 
+      }
     });
 
     if (!address) {
@@ -138,18 +142,19 @@ router.put('/:id', protect, async (req, res) => {
       label
     } = req.body;
 
-    // Update fields
-    if (fullName) address.fullName = fullName;
-    if (phone) address.phone = phone;
-    if (addressLine) address.address = addressLine;
-    if (city) address.city = city;
-    if (county) address.county = county;
-    if (postalCode) address.postalCode = postalCode;
-    if (typeof isDefault === 'boolean') address.isDefault = isDefault;
-    if (type) address.type = type;
-    if (label) address.label = label;
+    // Update fields using Sequelize update
+    const updateData = {};
+    if (fullName) updateData.fullName = fullName;
+    if (phone) updateData.phone = phone;
+    if (addressLine) updateData.address = addressLine;
+    if (city) updateData.city = city;
+    if (county) updateData.county = county;
+    if (postalCode) updateData.postalCode = postalCode;
+    if (typeof isDefault === 'boolean') updateData.isDefault = isDefault;
+    if (type) updateData.type = type;
+    if (label) updateData.label = label;
 
-    await address.save();
+    await address.update(updateData);
 
     res.json({
       success: true,
@@ -169,9 +174,11 @@ router.put('/:id', protect, async (req, res) => {
 // @access  Private
 router.delete('/:id', protect, async (req, res) => {
   try {
-    const address = await Address.findOne({ 
-      _id: req.params.id, 
-      user: req.user._id 
+    const address = await AddressPG.findOne({ 
+      where: { 
+        id: req.params.id, 
+        userId: req.user.id 
+      }
     });
 
     if (!address) {
@@ -181,7 +188,7 @@ router.delete('/:id', protect, async (req, res) => {
       });
     }
 
-    await Address.findByIdAndDelete(req.params.id);
+    await address.destroy();
 
     res.json({
       success: true,
@@ -201,9 +208,11 @@ router.delete('/:id', protect, async (req, res) => {
 // @access  Private
 router.put('/:id/default', protect, async (req, res) => {
   try {
-    const address = await Address.findOne({ 
-      _id: req.params.id, 
-      user: req.user._id 
+    const address = await AddressPG.findOne({ 
+      where: { 
+        id: req.params.id, 
+        userId: req.user.id 
+      }
     });
 
     if (!address) {
@@ -214,14 +223,18 @@ router.put('/:id/default', protect, async (req, res) => {
     }
 
     // Remove default from all other addresses
-    await Address.updateMany(
-      { user: req.user._id, _id: { $ne: req.params.id } },
-      { isDefault: false }
+    await AddressPG.update(
+      { isDefault: false },
+      { 
+        where: { 
+          userId: req.user.id, 
+          id: { [Op.ne]: req.params.id } 
+        } 
+      }
     );
 
     // Set this address as default
-    address.isDefault = true;
-    await address.save();
+    await address.update({ isDefault: true });
 
     res.json({
       success: true,
