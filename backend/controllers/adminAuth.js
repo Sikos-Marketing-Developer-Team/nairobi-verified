@@ -191,10 +191,11 @@ const updateProfile = asyncHandler(async (req, res) => {
     email: req.body.email,
   };
 
-  const admin = await AdminUser.findByIdAndUpdate(req.admin.id, fieldsToUpdate, {
-    new: true,
-    runValidators: true,
+  await AdminUserPG.update(fieldsToUpdate, {
+    where: { id: req.admin.id }
   });
+  
+  const admin = await AdminUserPG.findByPk(req.admin.id);
 
   res.status(200).json({
     success: true,
