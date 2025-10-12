@@ -222,19 +222,34 @@ const updateAdminSettings = asyncHandler(async (req, res) => {
     admin.settings.theme = req.body.theme;
   }
 
+  // Prepare update object for settings
+  const updateData = {};
+  
   if (req.body.language) {
-    admin.settings.language = req.body.language;
+    updateData.settings = { ...admin.settings, language: req.body.language };
   }
 
   if (req.body.notifications) {
-    admin.settings.notifications = { ...admin.settings.notifications, ...req.body.notifications };
+    updateData.settings = { 
+      ...admin.settings, 
+      ...updateData.settings,
+      notifications: { ...admin.settings.notifications, ...req.body.notifications }
+    };
   }
 
   if (req.body.dashboard) {
-    admin.settings.dashboard = { ...admin.settings.dashboard, ...req.body.dashboard };
+    updateData.settings = { 
+      ...admin.settings, 
+      ...updateData.settings,
+      dashboard: { ...admin.settings.dashboard, ...req.body.dashboard }
+    };
   }
 
-  await admin.save();
+  if (Object.keys(updateData).length > 0) {
+    await AdminUserPG.update(updateData, {
+      where: { id: admin.id }
+    });
+  }
 
   res.status(200).json({
     success: true,

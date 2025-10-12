@@ -45,8 +45,11 @@ exports.addFavorite = async (req, res) => {
     }
 
     // Add to favorites
-    user.favorites.push(req.params.merchantId);
-    await user.save();
+    await UserPG.update({
+      favorites: [...user.favorites, req.params.merchantId]
+    }, {
+      where: { id: user.id }
+    });
 
     res.status(200).json({
       success: true,
@@ -76,10 +79,15 @@ exports.removeFavorite = async (req, res) => {
     }
 
     // Remove from favorites
-    user.favorites = user.favorites.filter(
+    const updatedFavorites = user.favorites.filter(
       id => id.toString() !== req.params.merchantId
     );
-    await user.save();
+    
+    await UserPG.update({
+      favorites: updatedFavorites
+    }, {
+      where: { id: user.id }
+    });
 
     res.status(200).json({
       success: true,
