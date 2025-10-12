@@ -500,9 +500,10 @@ exports.forgotPassword = async (req, res) => {
       .digest('hex');
     
     // Set expire time (10 minutes)
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
-    
-    await user.save();
+    await user.update({
+      resetPasswordToken,
+      resetPasswordExpire: Date.now() + 10 * 60 * 1000
+    });
 
     // Determine the correct frontend URL based on environment
     let frontendUrl;
