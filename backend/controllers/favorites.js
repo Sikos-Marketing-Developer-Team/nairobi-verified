@@ -31,7 +31,7 @@ exports.getFavorites = async (req, res) => {
 // @access  Private
 exports.addFavorite = async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.params.merchantId);
+    const merchant = await MerchantPG.findByPk(req.params.merchantId);
 
     if (!merchant) {
       return res.status(404).json({
@@ -40,9 +40,7 @@ exports.addFavorite = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.user.id);
-
-    // Check if merchant is already in favorites
+    const user = await UserPG.findByPk(req.user.id);
     if (user.favorites.includes(req.params.merchantId)) {
       return res.status(400).json({
         success: false,
@@ -74,7 +72,7 @@ exports.addFavorite = async (req, res) => {
 // @access  Private
 exports.removeFavorite = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await UserPG.findByPk(req.user.id);
 
     // Check if merchant is in favorites
     if (!user.favorites.includes(req.params.merchantId)) {
