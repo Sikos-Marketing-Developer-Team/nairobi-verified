@@ -196,7 +196,7 @@ exports.addReview = async (req, res) => {
     req.body.merchant = merchantId;
     req.body.user = req.user.id;
 
-    const merchant = await Merchant.findById(merchantId);
+    const merchant = await MerchantPG.findByPk(merchantId);
 
     if (!merchant) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -206,9 +206,11 @@ exports.addReview = async (req, res) => {
     }
 
     // Check if user already reviewed this merchant
-    const existingReview = await Review.findOne({
-      user: req.user.id,
-      merchant: merchantId
+    const existingReview = await ReviewPG.findOne({
+      where: {
+        userId: req.user.id,
+        merchantId: merchantId
+      }
     });
 
     if (existingReview) {
@@ -218,18 +220,39 @@ exports.addReview = async (req, res) => {
       });
     }
 
-    const review = await Review.create(req.body);
+    const reviewData = {
+      userId: req.user.id,
+      merchantId: merchantId,
+      productId: req.body.productId,
+      rating: req.body.rating,
+      title: req.body.title,
+      comment: req.body.comment,
+      images: req.body.images || [],
+      orderId: req.body.orderId || null
+    };
+
+    const review = await ReviewPG.create(reviewData);
 
     // Populate the created review
-    const populatedReview = await Review.findById(review._id)
-      .populate({
-        path: 'user',
-        select: 'firstName lastName avatar'
-      })
-      .populate({
-        path: 'merchant',
-        select: 'businessName'
-      });
+    const populatedReview = await ReviewPG.findByPk(review.id, {
+      include: [
+        {
+          model: UserPG,
+          as: 'user',
+          attributes: ['firstName', 'lastName', 'avatar']
+        },
+        {
+          model: MerchantPG,
+          as: 'merchant',
+          attributes: ['businessName']
+        },
+        {
+          model: ProductPG,
+          as: 'product',
+          attributes: ['name', 'primaryImage']
+        }
+      ]
+    });
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
