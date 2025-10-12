@@ -143,19 +143,19 @@ const searchProducts = async (req, res) => {
     }
 
     const searchTerm = q.trim();
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    // Advanced search with scoring
+    // Advanced search with PostgreSQL ILIKE
     const searchFilter = {
       isActive: true,
-      $or: [
-        { name: { $regex: searchTerm, $options: 'i' } },
-        { description: { $regex: searchTerm, $options: 'i' } },
-        { tags: { $in: [new RegExp(searchTerm, 'i')] } },
-        { brand: { $regex: searchTerm, $options: 'i' } },
-        { model: { $regex: searchTerm, $options: 'i' } },
-        { category: { $regex: searchTerm, $options: 'i' } },
-        { subcategory: { $regex: searchTerm, $options: 'i' } }
+      [Op.or]: [
+        { name: { [Op.iLike]: `%${searchTerm}%` } },
+        { description: { [Op.iLike]: `%${searchTerm}%` } },
+        { brand: { [Op.iLike]: `%${searchTerm}%` } },
+        { model: { [Op.iLike]: `%${searchTerm}%` } },
+        { category: { [Op.iLike]: `%${searchTerm}%` } },
+        { subcategory: { [Op.iLike]: `%${searchTerm}%` } }
+        // Note: tags search needs to be implemented based on how tags are stored in PostgreSQL
       ]
     };
 
