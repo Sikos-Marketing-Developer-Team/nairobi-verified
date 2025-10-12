@@ -36,15 +36,17 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       merchantsPendingDocuments,
       documentsAwaitingReview
     ] = await Promise.all([
-      Merchant.countDocuments(), // All merchants
-      User.countDocuments({ role: { $ne: 'admin' } }),
-      Product.countDocuments(),
-      Review.countDocuments(),
+      MerchantPG.count(), // All merchants
+      UserPG.count({ where: { role: { [Op.ne]: 'admin' } } }),
+      ProductPG.count(),
+      ReviewPG.count(),
       
       // CRITICAL FIX: Count verified merchants with proper criteria
-      Merchant.countDocuments({ 
-        verified: true,
-        isActive: true // Also check if active
+      MerchantPG.count({ 
+        where: {
+          verified: true,
+          isActive: true // Also check if active
+        }
       }),
       
       // NEW: Separate count for active merchants
