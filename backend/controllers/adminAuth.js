@@ -49,7 +49,10 @@ const loginAdmin = asyncHandler(async (req, res) => {
   }
 
   // Fallback to normal DB check
-  const admin = await AdminUser.findOne({ email }).select('+password');
+  const admin = await AdminUserPG.findOne({ 
+    where: { email },
+    raw: false // Need instance methods
+  });
   if (!admin) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       success: false,

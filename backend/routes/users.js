@@ -53,7 +53,13 @@ router.put('/me', protect, async (req, res) => {
     
     // Check if email is already taken by another user
     if (email && email !== req.user.email) {
-      const existingUser = await User.findOne({ email, _id: { $ne: req.user.id } });
+      const { Op } = require('sequelize');
+      const existingUser = await UserPG.findOne({ 
+        where: { 
+          email, 
+          id: { [Op.ne]: req.user.id } 
+        } 
+      });
       if (existingUser) {
         return res.status(400).json({
           success: false,

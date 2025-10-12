@@ -1564,7 +1564,7 @@ const createUser = asyncHandler(async (req, res) => {
     });
   }
 
-  const existingUser = await User.findOne({ email });
+  const existingUser = await UserPG.findOne({ where: { email } });
   if (existingUser) {
     return res.status(400).json({
       success: false,

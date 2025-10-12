@@ -368,9 +368,10 @@ exports.googleAuth = async (req, res) => {
 
     if (user) {
       if (!user.googleId) {
-        user.googleId = googleId;
-        user.profilePicture = picture;
-        await user.save();
+        await user.update({
+          googleId: googleId,
+          profilePicture: picture
+        });
       }
     } else {
       user = await User.create({
@@ -473,11 +474,11 @@ exports.forgotPassword = async (req, res) => {
     }
 
     // Find user in either User or Merchant collection
-    user = await User.findOne({ email });
+    user = await UserPG.findOne({ where: { email } });
     let userType = 'user';
     
     if (!user) {
-      user = await Merchant.findOne({ email });
+      user = await MerchantPG.findOne({ where: { email } });
       userType = 'merchant';
     }
 
@@ -583,8 +584,8 @@ exports.resetPassword = async (req, res) => {
     console.log('Password reset attempt at:', new Date(currentTime).toISOString());
 
     // Find user with the matching reset token (regardless of expiry first)
-    let user = await User.findOne({ resetPasswordToken: resetPasswordToken }) || 
-               await Merchant.findOne({ resetPasswordToken: resetPasswordToken });
+    let user = await UserPG.findOne({ where: { resetPasswordToken: resetPasswordToken } }) || 
+               await MerchantPG.findOne({ where: { resetPasswordToken: resetPasswordToken } });
 
     if (!user) {
       console.log('🔐 SECURITY: Attempted use of invalid token:', {
