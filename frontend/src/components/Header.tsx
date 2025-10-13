@@ -156,7 +156,7 @@ const Navbar = () => {
         return (
           <li key={item.label} className="relative group">
             <button 
-              className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90"
+              className="hover:text-orange-600 transition-colors font-semibold flex items-center gap-1 text-gray-900"
               title={`Browse ${item.label}`}
             >
               {item.label} <ChevronDown className="w-4 h-4" />
@@ -166,7 +166,7 @@ const Navbar = () => {
                 <li key={dropdownItem.label}>
                   <Link 
                     to={dropdownItem.path}
-                    className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors"
+                    className="block px-4 py-2.5 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                     title={dropdownItem.label}
                   >
                     {dropdownItem.label}
@@ -182,12 +182,12 @@ const Navbar = () => {
         <li key={item.path}>
           <Link 
             to={item.path}
-            className={`hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 ${
-              item.highlight ? 'text-[#EC5C0A]' : ''
+            className={`hover:text-orange-600 transition-colors font-semibold flex items-center gap-1 text-gray-900 ${
+              item.highlight ? 'text-orange-600' : ''
             }`}
             title={item.label}
           >
-            {item.icon && <item.icon className={`w-4 h-4 ${item.highlight ? 'text-[#EC5C0A]' : ''}`} />}
+            {item.icon && <item.icon className={`w-4 h-4 ${item.highlight ? 'text-orange-600' : 'text-gray-900'}`} />}
             {item.label}
           </Link>
         </li>
@@ -210,7 +210,7 @@ const Navbar = () => {
                   <Link 
                     to={dropdownItem.path}
                     onClick={() => setIsMenuOpen(false)}
-                    className="block pl-4 py-1.5 hover:text-[#EC5C0A] transition-colors"
+                    className="block pl-4 py-1.5 hover:text-orange-600 transition-colors text-gray-800"
                     title={dropdownItem.label}
                   >
                     {dropdownItem.label}
@@ -227,8 +227,8 @@ const Navbar = () => {
           key={item.path}
           to={item.path}
           onClick={() => setIsMenuOpen(false)}
-          className={`block hover:text-[#EC5C0A] transition-colors ${
-            item.highlight ? 'text-[#EC5C0A]' : ''
+          className={`block hover:text-orange-600 transition-colors text-gray-800 ${
+            item.highlight ? 'text-orange-600' : ''
           }`}
           title={item.label}
         >
@@ -253,7 +253,7 @@ const Navbar = () => {
   return (
     <nav 
       ref={navbarRef}
-      className={`fixed w-full top-0 z-50 transition-all duration-300 max-h-[150px] text-[15px] bg-[white] ${
+      className={`fixed w-full top-0 z-50 transition-all duration-300 max-h-[150px] text-[15px] bg-white ${
         scrolled ? 'shadow-lg bg-opacity-95 backdrop-blur-sm' : 'shadow-md'
       } ${showMerchantNav ? 'merchant-nav border-b-2 border-blue-500' : 'user-nav'}`}
       aria-label="Main navigation"
@@ -273,14 +273,14 @@ const Navbar = () => {
           />
           {showMerchantNav && (
             <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">
-              Merchant Portal
+              Merchant 
             </span>
           )}
         </Link>
 
         {/* Search Bar (Desktop) - Only show for users */}
         {!showMerchantNav && (
-          <div className="hidden md:flex items-center bg-white rounded-[16px] px-4 py-2 w-1/2 max-w-lg shadow-sm hover:shadow-md transition-shadow relative border border-[#F97316]"
+          <div className="hidden md:flex items-center bg-white rounded-[16px] px-4 py-2 w-1/2 max-w-lg shadow-sm hover:shadow-md transition-shadow relative border border-orange-500"
             style={{ minWidth: "300px" }}
           >
             <Search className="text-gray-500 w-4 h-4" />
@@ -288,7 +288,7 @@ const Navbar = () => {
               ref={searchInputRef}
               type="text"
               placeholder="Search items, products, shops ... (Ctrl+K)"
-              className="ml-2 flex-grow outline-none text-gray-700 placeholder-gray-500"
+              className="ml-2 flex-grow outline-none text-gray-800 placeholder-gray-500"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
@@ -300,7 +300,7 @@ const Navbar = () => {
             <button 
               type="button"
               onClick={handleSearch}
-              className="bg-[#EC5C0A] text-white px-4 py-1 rounded-[16px] hover:bg-[#fb923c] transition-colors"
+              className="bg-orange-600 text-white px-4 py-1 rounded-[16px] hover:bg-orange-700 transition-colors"
               aria-label="Submit search"
               title="Search"
             >
@@ -316,33 +316,26 @@ const Navbar = () => {
         )}
 
         {/* Show placeholder when in merchant mode */}
-        {showMerchantNav && (
-          <div className="hidden md:flex items-center justify-center w-1/2 max-w-lg"
-            style={{ minWidth: "300px" }}
-          >
-            <span className="text-blue-600 text-sm font-medium">Business Management Portal</span>
-          </div>
-        )}
-
+    
         {/* User Options */}
         <div className="flex items-center space-x-2 sm:space-x-4">
           {isAuthenticated ? (
             <>
               {/* User Dropdown */}
               <div className="relative group">
-                <button className="hidden sm:flex items-center space-x-2 text-grey hover:text-[#EC5C0A] transition-colors p-2 rounded-[14px] hover:bg-[#FEEED5]">
-                  <div className={`p-1 rounded-full ${showMerchantNav ? 'bg-blue-100' : 'bg-[#FEEED5]'} text-gray`}>
+                <button className="hidden sm:flex items-center space-x-2 text-gray-700 hover:text-orange-600 transition-colors p-2 rounded-[14px] hover:bg-orange-50">
+                  <div className={`p-1 rounded-full ${showMerchantNav ? 'bg-blue-100' : 'bg-orange-50'} text-gray-700`}>
                     <User className="h-4 w-4" />
                   </div>
-                  <span className="text-sm text-gray">Hello, {getUserDisplayName()}</span>
-                  <ChevronDown className="w-5 h-5 text-[#EC5C0A]" />
+                  <span className="text-sm text-gray-800">Hello, {getUserDisplayName()}</span>
+                  <ChevronDown className="w-5 h-5 text-orange-600" />
                 </button>
                 
                 {/* Dropdown Menu */}
                 <div className="absolute right-0 mt-2 w-48 rounded-[16px] bg-white shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-100">
                   <button 
                     onClick={handleDashboardNavigation}
-                    className="block w-full text-left px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
+                    className="block w-full text-left px-4 py-3 hover:bg-orange-50 hover:text-orange-600 transition-colors border-b border-gray-100 text-gray-800"
                     title="My Dashboard"
                   >
                     <div className="flex items-center gap-2">
@@ -355,7 +348,7 @@ const Navbar = () => {
                   {(isMerchant || isAdmin) ? (
                     <Link 
                       to="/merchant/profile/edit"
-                      className="block px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
+                      className="block px-4 py-3 hover:bg-orange-50 hover:text-orange-600 transition-colors border-b border-gray-100 text-gray-800"
                       title="Merchant Profile"
                     >
                       <div className="flex items-center gap-2">
@@ -366,7 +359,7 @@ const Navbar = () => {
                   ) : (
                     <Link 
                       to="/profile"
-                      className="block px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
+                      className="block px-4 py-3 hover:bg-orange-50 hover:text-orange-600 transition-colors border-b border-gray-100 text-gray-800"
                       title="My Profile"
                     >
                       <div className="flex items-center gap-2">
@@ -378,7 +371,7 @@ const Navbar = () => {
                   
                   <button 
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors"
+                    className="w-full text-left px-4 py-3 hover:bg-orange-50 hover:text-orange-600 transition-colors text-gray-800"
                     title="Logout"
                   >
                     <div className="flex items-center gap-2">
@@ -392,7 +385,7 @@ const Navbar = () => {
           ) : (
             <Link 
               to="/auth" 
-              className="hidden sm:flex items-center gap-1 bg-[#EC5C0A] hover:bg-[#fb923c] transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px]"
+              className="hidden sm:flex items-center gap-1 bg-orange-600 hover:bg-orange-700 transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px]"
               title="Sign In to Nairobi Verified"
             >
               <LogIn className="w-4 h-4" />
@@ -404,11 +397,11 @@ const Navbar = () => {
           {isAuthenticated && !showMerchantNav && isRegularUser && (
             <Link 
               to="/favorites" 
-              className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
+              className="hover:scale-110 transition-transform duration-200 text-gray-700 text-xl bg-orange-50 p-2 rounded-[16px] relative"
               title="My Favorite Shops"
             >
               <Heart className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-orange-600 text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">
                 {favoritesCount}
               </span>
             </Link>
@@ -418,11 +411,11 @@ const Navbar = () => {
           {!showMerchantNav && isRegularUser && (
             <Link 
               to="/cart" 
-              className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
+              className="hover:scale-110 transition-transform duration-200 text-gray-700 text-xl bg-orange-50 p-2 rounded-[16px] relative"
               title="Shopping Cart"
             >
               <ShoppingCart className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
+              <span className="absolute -top-1 -right-1 bg-orange-600 text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
             </Link>
           )}
         </div>
@@ -430,7 +423,7 @@ const Navbar = () => {
 
       {/* Desktop Navigation Links */}
       <div className={`hidden md:flex items-center justify-between px-6 py-2 border-t text-base ${
-        showMerchantNav ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-gray-200 text-gray bg-white'
+        showMerchantNav ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-gray-200 text-gray-800 bg-white'
       }`}>
         <ul className="flex space-x-6 p-2">
           {renderDesktopNavItems()}
@@ -440,12 +433,12 @@ const Navbar = () => {
           <li>
             <Link 
               to="/contact" 
-              className={`hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 ${
-                showMerchantNav ? 'text-blue-700 hover:text-blue-900' : 'text-[#EC5C0A]'
+              className={`hover:text-orange-600 transition-colors font-semibold flex items-center gap-1 text-gray-900 ${
+                showMerchantNav ? 'text-blue-700 hover:text-blue-900' : 'text-orange-600'
               }`}
               title="Contact Us"
             >
-              <Phone className={`w-4 h-4 ${showMerchantNav ? 'text-blue-600' : 'text-[#EC5C0A]'}`} /> 
+              <Phone className={`w-4 h-4 ${showMerchantNav ? 'text-blue-600' : 'text-orange-600'}`} /> 
               Contact Us
             </Link>
           </li>
@@ -457,28 +450,28 @@ const Navbar = () => {
                 href="https://facebook.com" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90"
+                className="hover:scale-110 transition-transform duration-200 text-gray-700 bg-orange-50 p-1.5 rounded-[16px]"
                 title="Follow us on Facebook"
               >
-                <Facebook className="w-4 h-4 text-[#EC5C0A]" />
+                <Facebook className="w-4 h-4 text-orange-600" />
               </a>
               <a 
                 href="https://twitter.com" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90"
+                className="hover:scale-110 transition-transform duration-200 text-gray-700 bg-orange-50 p-1.5 rounded-[16px]"
                 title="Follow us on Twitter"
               >
-                <Twitter className="w-4 h-4 text-[#EC5C0A]" />
+                <Twitter className="w-4 h-4 text-orange-600" />
               </a>
               <a 
                 href="https://instagram.com" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90"
+                className="hover:scale-110 transition-transform duration-200 text-gray-700 bg-orange-50 p-1.5 rounded-[16px]"
                 title="Follow us on Instagram"
               >
-                <Instagram className="w-4 h-4 text-[#EC5C0A]" />
+                <Instagram className="w-4 h-4 text-orange-600" />
               </a>
             </li>
           )}
@@ -488,7 +481,7 @@ const Navbar = () => {
             <li>
               <Link 
                 to="/"
-                className="bg-[#EC5C0A] hover:bg-[#fb923c] transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px] text-sm"
+                className="bg-orange-600 hover:bg-orange-700 transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px] text-sm"
                 title="Switch to Shopping View"
               >
                 Shop Products
@@ -501,7 +494,7 @@ const Navbar = () => {
             <li>
               <Link 
                 to="/auth/register/merchant"
-                className="bg-[#EC5C0A] hover:bg-[#fb923c] transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px] text-sm"
+                className="bg-orange-600 hover:bg-orange-700 transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px] text-sm"
                 title="Become a Seller"
               >
                 Sell on Nairobi Verified
@@ -512,13 +505,13 @@ const Navbar = () => {
       </div>
 
       {/* Mobile Menu Toggle & Search */}
-      <div className={`flex md:hidden justify-between items-center px-4 py-2 border-t text-gray ${
+      <div className={`flex md:hidden justify-between items-center px-4 py-2 border-t text-gray-800 ${
         showMerchantNav ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-white'
       }`}>
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className={`text-gray focus:outline-none text-xl p-2 rounded-[16px] ${
-            showMerchantNav ? 'bg-blue-100 text-blue-700' : 'bg-[#FEEED5]'
+          className={`text-gray-800 focus:outline-none text-xl p-2 rounded-[16px] ${
+            showMerchantNav ? 'bg-blue-100 text-blue-700' : 'bg-orange-50'
           }`}
           aria-expanded={isMenuOpen}
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
@@ -534,7 +527,7 @@ const Navbar = () => {
               <input
                 type="text"
                 placeholder="Search..."
-                className="w-full py-2 px-4 pl-10 rounded-[16px] text-gray-700 bg-white border border-[#F97316]"
+                className="w-full py-2 px-4 pl-10 rounded-[16px] text-gray-800 bg-white border border-orange-500"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -567,17 +560,17 @@ const Navbar = () => {
         <Link 
           to="/contact" 
           onClick={() => setIsMenuOpen(false)}
-          className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1 text-[#EC5C0A]"
+          className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-orange-600"
           title="Contact Us"
         >
-          <Phone className="w-4 h-4 text-[#EC5C0A]" /> Contact Us
+          <Phone className="w-4 h-4 text-orange-600" /> Contact Us
         </Link>
         
         {/* Dashboard Link for Authenticated Users in Mobile Menu */}
         {isAuthenticated && (
           <button 
             onClick={handleDashboardNavigation}
-            className="w-full text-left hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
+            className="w-full text-left hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
             title="My Dashboard"
           >
             <LayoutDashboard className="w-4 h-4" /> 
@@ -590,7 +583,7 @@ const Navbar = () => {
           <Link 
             to={(isMerchant || isAdmin) ? "/merchant/profile/edit" : "/profile"}
             onClick={() => setIsMenuOpen(false)}
-            className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
+            className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
             title="My Profile"
           >
             <User className="w-4 h-4" /> 
@@ -603,7 +596,7 @@ const Navbar = () => {
           <Link 
             to="/favorites" 
             onClick={() => setIsMenuOpen(false)}
-            className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
+            className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
             title="My Wishlist"
           >
             <Heart className="w-4 h-4" /> My Wishlist
@@ -615,7 +608,7 @@ const Navbar = () => {
           <Link 
             to="/cart" 
             onClick={() => setIsMenuOpen(false)}
-            className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
+            className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
             title="Shopping Cart"
           >
             <ShoppingCart className="w-4 h-4" /> Shopping Cart
@@ -627,7 +620,7 @@ const Navbar = () => {
           <Link 
             to="/"
             onClick={() => setIsMenuOpen(false)}
-            className="block bg-[#EC5C0A] text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-[#fb923c] transition-colors"
+            className="block bg-orange-600 text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-orange-700 transition-colors"
             title="Switch to Shopping View"
           >
             Shop Products
@@ -636,7 +629,7 @@ const Navbar = () => {
           <Link 
             to="/auth/register/merchant" 
             onClick={() => setIsMenuOpen(false)}
-            className="block bg-[#EC5C0A] text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-[#fb923c] transition-colors"
+            className="block bg-orange-600 text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-orange-700 transition-colors"
             title="Become a Seller on Nairobi Verified"
           >
             Sell on Nairobi Verified
@@ -654,7 +647,7 @@ const Navbar = () => {
                 <li>
                   <button 
                     onClick={handleLogout}
-                    className="w-full text-left hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
+                    className="w-full text-left hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
                     title="Logout from Nairobi Verified"
                   >
                     <LogOut className="w-4 h-4" /> Logout
@@ -666,7 +659,7 @@ const Navbar = () => {
                 <Link 
                   to="/auth" 
                   onClick={() => setIsMenuOpen(false)}
-                  className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
+                  className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
                   title="Sign In to Nairobi Verified"
                 >
                   <LogIn className="w-4 h-4" /> Sign In
