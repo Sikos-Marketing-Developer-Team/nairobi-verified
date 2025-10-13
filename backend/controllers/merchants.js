@@ -488,8 +488,15 @@ exports.uploadGallery = async (req, res) => {
 // @access  Private/Merchant
 exports.uploadDocuments = async (req, res) => {
   try {
+    console.log('=== uploadDocuments Start ==='); // DEBUG: Start of request
+    console.log('Request Headers:', JSON.stringify(req.headers, null, 2)); // DEBUG: Log headers (check Content-Type)
+    console.log('Request Body:', JSON.stringify(req.body, null, 2)); // DEBUG: Log any text fields
+    console.log('Request Files:', JSON.stringify(req.files, null, 2)); // DEBUG: Log file details
+
     const requesterId = getUserIdFromReq(req);
+    console.log('Requester ID:', requesterId, 'Merchant ID:', req.params.id); // DEBUG: Auth check
     if (!requesterId || String(req.params.id) !== requesterId) {
+      console.log('Authorization failed: Requester ID does not match merchant ID'); // DEBUG
       return res.status(HTTP_STATUS.FORBIDDEN).json({ 
         success: false, 
         error: 'Not authorized to update this merchant' 
@@ -497,21 +504,26 @@ exports.uploadDocuments = async (req, res) => {
     }
 
     if (!req.files) {
+      console.log('No files received in req.files'); // DEBUG: Critical check
       return res.status(400).json({ 
         success: false, 
         error: 'Please upload required documents' 
       });
     }
 
+    console.log('Fetching merchant from DB'); // DEBUG
     const merchant = await Merchant.findById(req.params.id);
     if (!merchant) {
+      console.log('Merchant not found for ID:', req.params.id); // DEBUG
       return res.status(404).json({ 
         success: false, 
         error: 'Merchant not found' 
       });
     }
 
+    console.log('Merchant found:', merchant.businessName, merchant._id); // DEBUG
     if (!merchant.documents) {
+      console.log('Initializing empty documents object'); // DEBUG
       merchant.documents = {
         businessRegistration: { path: '', uploadedAt: null },
         idDocument: { path: '', uploadedAt: null },
@@ -525,6 +537,7 @@ exports.uploadDocuments = async (req, res) => {
 
     if (req.files.businessRegistration && req.files.businessRegistration[0]) {
       const file = req.files.businessRegistration[0];
+      console.log('Processing businessRegistration:', file.originalname); // DEBUG
       merchant.documents.businessRegistration = {
         path: file.path || `/uploads/documents/${file.filename}`,
         uploadedAt: new Date(),
@@ -535,10 +548,12 @@ exports.uploadDocuments = async (req, res) => {
         publicId: file.filename
       };
       updatedDocuments.push('Business Registration');
+      console.log('Set businessRegistration:', merchant.documents.businessRegistration); // DEBUG
     }
 
     if (req.files.idDocument && req.files.idDocument[0]) {
       const file = req.files.idDocument[0];
+      console.log('Processing idDocument:', file.originalname); // DEBUG
       merchant.documents.idDocument = {
         path: file.path || `/uploads/documents/${file.filename}`,
         uploadedAt: new Date(),
@@ -549,10 +564,12 @@ exports.uploadDocuments = async (req, res) => {
         publicId: file.filename
       };
       updatedDocuments.push('ID Document');
+      console.log('Set idDocument:', merchant.documents.idDocument); // DEBUG
     }
 
     if (req.files.utilityBill && req.files.utilityBill[0]) {
       const file = req.files.utilityBill[0];
+      console.log('Processing utilityBill:', file.originalname); // DEBUG
       merchant.documents.utilityBill = {
         path: file.path || `/uploads/documents/${file.filename}`,
         uploadedAt: new Date(),
@@ -563,9 +580,11 @@ exports.uploadDocuments = async (req, res) => {
         publicId: file.filename
       };
       updatedDocuments.push('Utility Bill');
+      console.log('Set utilityBill:', merchant.documents.utilityBill); // DEBUG
     }
 
     if (req.files.additionalDocs && req.files.additionalDocs.length > 0) {
+      console.log('Processing additionalDocs, count:', req.files.additionalDocs.length); // DEBUG
       const additionalDocs = req.files.additionalDocs.map(file => ({
         path: file.path || `/uploads/documents/${file.filename}`,
         uploadedAt: new Date(),
@@ -582,21 +601,27 @@ exports.uploadDocuments = async (req, res) => {
         ...additionalDocs
       ];
       updatedDocuments.push(`${additionalDocs.length} Additional Document(s)`);
+      console.log('Set additionalDocs:', merchant.documents.additionalDocs); // DEBUG
     }
 
     merchant.documents.documentsSubmittedAt = new Date();
     merchant.documents.documentReviewStatus = 'pending';
+    console.log('Updated submission timestamp and status:', merchant.documents.documentsSubmittedAt, merchant.documents.documentReviewStatus); // DEBUG
 
     const hasRequiredDocs = 
       merchant.documents.businessRegistration?.path && 
       merchant.documents.idDocument?.path && 
       merchant.documents.utilityBill?.path;
+    console.log('Required docs check:', hasRequiredDocs); // DEBUG
 
     if (hasRequiredDocs && merchant.onboardingStatus === 'credentials_sent') {
       merchant.onboardingStatus = 'documents_submitted';
+      console.log('Updated onboardingStatus to documents_submitted'); // DEBUG
     }
 
+    console.log('Saving merchant to DB'); // DEBUG
     await merchant.save();
+    console.log('Merchant saved successfully, documents:', merchant.documents); // DEBUG
 
     const documentAnalysis = {
       businessRegistration: !!merchant.documents.businessRegistration?.path,
@@ -610,6 +635,8 @@ exports.uploadDocuments = async (req, res) => {
       documentAnalysis.idDocument,
       documentAnalysis.utilityBill
     ].filter(Boolean).length;
+
+    console.log('Document analysis:', documentAnalysis, 'Required count:', requiredDocsCount); // DEBUG
 
     res.status(200).json({
       success: true,
@@ -628,9 +655,10 @@ exports.uploadDocuments = async (req, res) => {
       message: `Successfully uploaded: ${updatedDocuments.join(', ')}`,
       isComplete: hasRequiredDocs
     });
+    console.log('=== uploadDocuments End ==='); // DEBUG: End of request
 
   } catch (error) {
-    console.error('❌ uploadDocuments error:', error);
+    console.error('❌ uploadDocuments error:', error.stack); // DEBUG: Full stack trace
     res.status(400).json({ 
       success: false, 
       error: error.message
