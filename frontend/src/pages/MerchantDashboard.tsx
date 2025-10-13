@@ -103,6 +103,19 @@ interface QuickAction {
 
 const MerchantDashboard = () => {
   const { user, isAuthenticated } = useAuth();
+  useEffect(() => {
+    console.log('🔍 MERCHANT DASHBOARD DEBUG:', {
+      user: Users,
+      isAuthenticated: isAuthenticated,
+      userRole: user?.role,
+      userEmail: user?.email,
+      userId: user?.id,
+      isMerchant: user?.isMerchant,
+      businessName: user?.businessName,
+      // Check if user has merchant properties
+      hasMerchantProps: user && (user.businessName || user.isMerchant)
+    });
+  }, [user, isAuthenticated]);
   const { toast } = useToast();
   const [timeRange, setTimeRange] = useState<'7' | '30' | '90'>('30');
   const [overview, setOverview] = useState<MerchantOverview | null>(null);
