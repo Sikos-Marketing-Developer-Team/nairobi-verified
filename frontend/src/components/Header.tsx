@@ -37,19 +37,14 @@ const Navbar = () => {
   // Get auth state from context
   const { user, isAuthenticated, logout } = useAuth();
 
-  // FIXED: Simple and clear logic for merchant vs user view
+  // FIXED: Better route detection and user role handling
   const isMerchantRoute = location.pathname.startsWith('/merchant');
-  const isMerchantUser = user?.role === 'merchant' || user?.role === 'admin';
-  const showMerchantNav = isMerchantUser && isMerchantRoute;
-
-  console.log('🔄 Navbar Debug:', {
-    userRole: user?.role,
-    isAuthenticated,
-    isMerchantRoute,
-    isMerchantUser,
-    showMerchantNav,
-    currentPath: location.pathname
-  });
+  const isAdmin = user?.role === 'admin';
+  const isMerchant = user?.role === 'merchant';
+  const isRegularUser = isAuthenticated && !isMerchant && !isAdmin;
+  
+  // FIXED: Show merchant navbar only for merchants/admins on merchant routes
+  const showMerchantNav = (isMerchant || isAdmin) && isMerchantRoute;
 
   // Handle scroll effect
   useEffect(() => {
@@ -91,18 +86,44 @@ const Navbar = () => {
     navigate('/');
   };
 
+  // FIXED: Better user display name
   const getUserDisplayName = () => {
-    return user?.firstName || user?.businessName || user?.email?.split('@')[0] || 'User';
+    if (user?.firstName) {
+      return user.lastName ? `${user.firstName} ${user.lastName}` : user.firstName;
+    }
+    return user?.businessName || user?.email?.split('@')[0] || 'User';
   };
 
-  // Merchant navigation items
+  // FIXED: Better dashboard URL logic
+  const getDashboardUrl = () => {
+    if (!isAuthenticated || !user) {
+      return '/auth';
+    }
+    
+    // Merchant users go to merchant dashboard
+    if (isMerchant || isAdmin) {
+      return '/merchant/dashboard';
+    }
+    
+    // Regular users go to user dashboard
+    return '/dashboard';
+  };
+
+  // Function to handle dashboard navigation
+  const handleDashboardNavigation = () => {
+    const dashboardUrl = getDashboardUrl();
+    navigate(dashboardUrl);
+    setIsMenuOpen(false);
+  };
+
+  // FIXED: Merchant-specific navigation items - ONLY for merchant view
   const merchantNavItems = [
     { path: '/merchant/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/merchant/profile/edit', label: 'Profile', icon: User },
     { path: '/merchant/verification', label: 'Verification', icon: Shield },
   ];
 
-  // User navigation items
+  // FIXED: User navigation items - ONLY for regular user view
   const userNavItems = [
     { path: '/products', label: 'Hot Deals', icon: Zap, highlight: true },
     { 
@@ -121,7 +142,7 @@ const Navbar = () => {
     { path: '/about', label: 'About' },
   ];
 
-  // Get current navigation items
+  // FIXED: Get current navigation items based on context
   const getNavItems = () => {
     return showMerchantNav ? merchantNavItems : userNavItems;
   };
@@ -217,6 +238,18 @@ const Navbar = () => {
     });
   };
 
+  // FIXED: Debug info to see what's happening
+  console.log('🔍 Navbar Debug:', {
+    userRole: user?.role,
+    isAuthenticated,
+    isMerchantRoute,
+    showMerchantNav,
+    isMerchant,
+    isAdmin,
+    isRegularUser,
+    path: location.pathname
+  });
+
   return (
     <nav 
       ref={navbarRef}
@@ -240,7 +273,7 @@ const Navbar = () => {
           />
           {showMerchantNav && (
             <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">
-              Merchant
+              Merchant Portal
             </span>
           )}
         </Link>
@@ -287,7 +320,7 @@ const Navbar = () => {
           <div className="hidden md:flex items-center justify-center w-1/2 max-w-lg"
             style={{ minWidth: "300px" }}
           >
-            <span className="text-blue-600 text-sm font-medium">Business Portal</span>
+            <span className="text-blue-600 text-sm font-medium">Business Management Portal</span>
           </div>
         )}
 
@@ -307,27 +340,41 @@ const Navbar = () => {
                 
                 {/* Dropdown Menu */}
                 <div className="absolute right-0 mt-2 w-48 rounded-[16px] bg-white shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-100">
-                  <Link 
-                    to={showMerchantNav ? "/merchant/dashboard" : "/dashboard"}
-                    className="block px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
-                    title="Dashboard"
+                  <button 
+                    onClick={handleDashboardNavigation}
+                    className="block w-full text-left px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
+                    title="My Dashboard"
                   >
                     <div className="flex items-center gap-2">
                       <LayoutDashboard className="w-4 h-4" />
-                      {showMerchantNav ? 'Merchant Dashboard' : 'My Dashboard'}
+                      {(isMerchant || isAdmin) ? 'Merchant Dashboard' : 'My Dashboard'}
                     </div>
-                  </Link>
+                  </button>
                   
-                  <Link 
-                    to={showMerchantNav ? "/merchant/profile/edit" : "/profile"}
-                    className="block px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
-                    title="Profile"
-                  >
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      {showMerchantNav ? 'Merchant Profile' : 'My Profile'}
-                    </div>
-                  </Link>
+                  {/* Show different profile links based on user type */}
+                  {(isMerchant || isAdmin) ? (
+                    <Link 
+                      to="/merchant/profile/edit"
+                      className="block px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
+                      title="Merchant Profile"
+                    >
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Merchant Profile
+                      </div>
+                    </Link>
+                  ) : (
+                    <Link 
+                      to="/profile"
+                      className="block px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
+                      title="My Profile"
+                    >
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        My Profile
+                      </div>
+                    </Link>
+                  )}
                   
                   <button 
                     onClick={handleLogout}
@@ -353,8 +400,8 @@ const Navbar = () => {
             </Link>
           )}
           
-          {/* Wishlist - Only show for users */}
-          {!showMerchantNav && (
+          {/* Conditionally render wishlist only when authenticated AND not merchant view */}
+          {isAuthenticated && !showMerchantNav && isRegularUser && (
             <Link 
               to="/favorites" 
               className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
@@ -367,8 +414,8 @@ const Navbar = () => {
             </Link>
           )}
           
-          {/* Shopping Cart - Only show for users */}
-          {!showMerchantNav && (
+          {/* Shopping Cart - Only show for regular users */}
+          {!showMerchantNav && isRegularUser && (
             <Link 
               to="/cart" 
               className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
@@ -436,8 +483,8 @@ const Navbar = () => {
             </li>
           )}
           
-          {/* Show appropriate CTA button */}
-          {showMerchantNav ? (
+          {/* Show "Switch to User View" for merchants on merchant routes */}
+          {showMerchantNav && (
             <li>
               <Link 
                 to="/"
@@ -447,7 +494,10 @@ const Navbar = () => {
                 Shop Products
               </Link>
             </li>
-          ) : (
+          )}
+          
+          {/* Show "Become a Seller" for regular users */}
+          {!showMerchantNav && isRegularUser && (
             <li>
               <Link 
                 to="/auth/register/merchant"
@@ -523,34 +573,33 @@ const Navbar = () => {
           <Phone className="w-4 h-4 text-[#EC5C0A]" /> Contact Us
         </Link>
         
-        {/* Dashboard Link */}
+        {/* Dashboard Link for Authenticated Users in Mobile Menu */}
         {isAuthenticated && (
-          <Link 
-            to={showMerchantNav ? "/merchant/dashboard" : "/dashboard"}
-            onClick={() => setIsMenuOpen(false)}
-            className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
-            title="Dashboard"
+          <button 
+            onClick={handleDashboardNavigation}
+            className="w-full text-left hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
+            title="My Dashboard"
           >
             <LayoutDashboard className="w-4 h-4" /> 
-            {showMerchantNav ? 'Merchant Dashboard' : 'My Dashboard'}
-          </Link>
+            {(isMerchant || isAdmin) ? 'Merchant Dashboard' : 'My Dashboard'}
+          </button>
         )}
         
-        {/* Profile Link */}
+        {/* Profile Link for Authenticated Users in Mobile Menu */}
         {isAuthenticated && (
           <Link 
-            to={showMerchantNav ? "/merchant/profile/edit" : "/profile"}
+            to={(isMerchant || isAdmin) ? "/merchant/profile/edit" : "/profile"}
             onClick={() => setIsMenuOpen(false)}
             className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
-            title="Profile"
+            title="My Profile"
           >
             <User className="w-4 h-4" /> 
-            {showMerchantNav ? 'Merchant Profile' : 'My Profile'}
+            {(isMerchant || isAdmin) ? 'Merchant Profile' : 'My Profile'}
           </Link>
         )}
         
-        {/* Wishlist for users */}
-        {!showMerchantNav && (
+        {/* Conditionally render wishlist in mobile menu only when authenticated AND not merchant */}
+        {isAuthenticated && !showMerchantNav && isRegularUser && (
           <Link 
             to="/favorites" 
             onClick={() => setIsMenuOpen(false)}
@@ -561,8 +610,8 @@ const Navbar = () => {
           </Link>
         )}
         
-        {/* Shopping Cart for users */}
-        {!showMerchantNav && (
+        {/* Shopping Cart for regular users */}
+        {!showMerchantNav && isRegularUser && (
           <Link 
             to="/cart" 
             onClick={() => setIsMenuOpen(false)}
@@ -573,7 +622,7 @@ const Navbar = () => {
           </Link>
         )}
         
-        {/* CTA Button */}
+        {/* Show appropriate CTA button */}
         {showMerchantNav ? (
           <Link 
             to="/"
@@ -583,7 +632,7 @@ const Navbar = () => {
           >
             Shop Products
           </Link>
-        ) : (
+        ) : isRegularUser ? (
           <Link 
             to="/auth/register/merchant" 
             onClick={() => setIsMenuOpen(false)}
@@ -592,7 +641,7 @@ const Navbar = () => {
           >
             Sell on Nairobi Verified
           </Link>
-        )}
+        ) : null}
         
         <div className="pt-2 border-t border-gray-200 mt-2">
           <ul className="space-y-1">
