@@ -18,7 +18,7 @@ const imageStorage = multer.diskStorage({
 
 const documentStorage = multer.diskStorage({
   destination: function(req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads/documents'));
+    cb(null, path.join(__dirname, '../Uploads/documents'));
   },
   filename: function(req, file, cb) {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -58,7 +58,7 @@ const uploadDocument = multer({
 // Cloudinary uploads (new preferred method)
 const uploadProductImages = productImageUpload;
 const uploadMerchantImages = merchantImageUpload;
-const uploadDocuments = documentUpload;
+const uploadDocs = documentUpload; // Renamed to avoid conflict
 
 module.exports = {
   // Legacy uploads
@@ -68,5 +68,5 @@ module.exports = {
   // New Cloudinary uploads
   uploadProductImages,
   uploadMerchantImages,
-  uploadDocuments
+  uploadDocs
 };
