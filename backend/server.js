@@ -116,10 +116,8 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Logging middleware in development
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+// Logging middleware
+app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
