@@ -17,7 +17,7 @@ const {
   setFeatured
 } = require('../controllers/merchants');
 const { protect, authorize, isMerchant } = require('../middleware/auth');
-const { uploadImage, uploadDocument } = require('../middleware/upload');
+const { uploadImage, uploadDocuments } = require('../middleware/upload');
 
 // Include other resource routers
 const reviewRouter = require('./reviews');
@@ -40,7 +40,7 @@ router.put('/:id/logo', protect, isMerchant, uploadImage.single('logo'), uploadL
 router.put('/:id/banner', protect, isMerchant, uploadImage.single('banner'), uploadBanner);
 router.put('/:id/gallery', protect, isMerchant, uploadImage.array('gallery', 10), uploadGallery);
 
-router.put('/:id/documents', protect, isMerchant, uploadDocument.fields([
+router.put('/:id/documents', protect, isMerchant, uploadDocuments.fields([
   { name: 'businessRegistration', maxCount: 1 },
   { name: 'idDocument', maxCount: 1 },
   { name: 'utilityBill', maxCount: 1 },
