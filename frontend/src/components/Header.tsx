@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Menu, 
   X, 
@@ -17,7 +17,13 @@ import {
   Keyboard,
   LayoutDashboard,
   LogOut,
-  Store
+  Store,
+  BarChart3,
+  Package,
+  CreditCard,
+  Users,
+  Settings,
+  Bell
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
@@ -29,11 +35,18 @@ const Navbar = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const navbarRef = useRef(null);
   const searchInputRef = useRef(null);
-  const { favoritesCount } = useFavorites(); // Get favorites count from context
-  const navigate = useNavigate(); // Add useNavigate hook
+  const { favoritesCount } = useFavorites();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Get auth state from context
   const { user, isAuthenticated, logout } = useAuth();
+
+  // Check if we're on merchant routes
+  const isMerchantRoute = location.pathname.startsWith('/merchant');
+  const showMerchantNav = isAuthenticated && 
+    (user?.role === 'merchant' || user?.role === 'admin') && 
+    isMerchantRoute;
 
   // Handle scroll effect
   useEffect(() => {
@@ -81,15 +94,13 @@ const Navbar = () => {
   // Enhanced function to determine dashboard URL based on user role
   const getDashboardUrl = () => {
     if (!isAuthenticated || !user) {
-      return '/auth'; // Redirect to auth if not authenticated
+      return '/auth';
     }
     
-    // Check user role and return appropriate dashboard URL
     if (user.role === 'merchant' || user.role === 'admin') {
       return '/merchant/dashboard';
     }
     
-    // Default to user dashboard for 'user' role or any other role
     return '/dashboard';
   };
 
@@ -97,7 +108,131 @@ const Navbar = () => {
   const handleDashboardNavigation = () => {
     const dashboardUrl = getDashboardUrl();
     navigate(dashboardUrl);
-    setIsMenuOpen(false); // Close mobile menu if open
+    setIsMenuOpen(false);
+  };
+
+  // Merchant-specific navigation items
+  const merchantNavItems = [
+    { path: '/merchant/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/merchant/products', label: 'Products', icon: Package },
+    { path: '/merchant/orders', label: 'Orders', icon: CreditCard },
+    { path: '/merchant/analytics', label: 'Analytics', icon: BarChart3 },
+    { path: '/merchant/customers', label: 'Customers', icon: Users },
+  ];
+
+  // User navigation items (your original items)
+  const userNavItems = [
+    { path: '/products', label: 'Hot Deals', icon: Zap, highlight: true },
+    { 
+      path: '#', 
+      label: 'Categories', 
+      icon: ChevronDown, 
+      hasDropdown: true,
+      dropdownItems: [
+        { path: '/products?category=electronics', label: 'Electronics' },
+        { path: '/products?category=fashion', label: 'Fashion' },
+        { path: '/products?category=home', label: 'Home & Kitchen' },
+        { path: '/products?category=beauty', label: 'Beauty' },
+      ]
+    },
+    { path: '/merchants', label: 'Shops', icon: Store },
+    { path: '/about', label: 'About' },
+  ];
+
+  // Get current navigation items based on context
+  const getNavItems = () => {
+    return showMerchantNav ? merchantNavItems : userNavItems;
+  };
+
+  // Render navigation items for desktop
+  const renderDesktopNavItems = () => {
+    const items = getNavItems();
+    
+    return items.map((item) => {
+      if (item.hasDropdown && !showMerchantNav) {
+        return (
+          <li key={item.label} className="relative group">
+            <button 
+              className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90"
+              title={`Browse ${item.label}`}
+            >
+              {item.label} <ChevronDown className="w-4 h-4" />
+            </button>
+            <ul className="absolute left-0 mt-2 w-48 rounded-[16px] bg-white text-gray-800 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-100 text-base">
+              {item.dropdownItems.map((dropdownItem) => (
+                <li key={dropdownItem.label}>
+                  <Link 
+                    to={dropdownItem.path}
+                    className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors"
+                    title={dropdownItem.label}
+                  >
+                    {dropdownItem.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </li>
+        );
+      }
+
+      return (
+        <li key={item.path}>
+          <Link 
+            to={item.path}
+            className={`hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 ${
+              item.highlight ? 'text-[#EC5C0A]' : ''
+            }`}
+            title={item.label}
+          >
+            {item.icon && <item.icon className={`w-4 h-4 ${item.highlight ? 'text-[#EC5C0A]' : ''}`} />}
+            {item.label}
+          </Link>
+        </li>
+      );
+    });
+  };
+
+  // Render mobile navigation items
+  const renderMobileNavItems = () => {
+    const items = getNavItems();
+    
+    return items.map((item) => {
+      if (item.hasDropdown && !showMerchantNav) {
+        return (
+          <div key={item.label}>
+            <span className="font-bold block mb-2 text-gray-900">{item.label}</span>
+            <ul className="space-y-1">
+              {item.dropdownItems.map((dropdownItem) => (
+                <li key={dropdownItem.label}>
+                  <Link 
+                    to={dropdownItem.path}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block pl-4 py-1.5 hover:text-[#EC5C0A] transition-colors"
+                    title={dropdownItem.label}
+                  >
+                    {dropdownItem.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
+
+      return (
+        <Link
+          key={item.path}
+          to={item.path}
+          onClick={() => setIsMenuOpen(false)}
+          className={`block hover:text-[#EC5C0A] transition-colors ${
+            item.highlight ? 'text-[#EC5C0A]' : ''
+          }`}
+          title={item.label}
+        >
+          {item.label}
+        </Link>
+      );
+    });
   };
 
   return (
@@ -105,58 +240,65 @@ const Navbar = () => {
       ref={navbarRef}
       className={`fixed w-full top-0 z-50 transition-all duration-300 max-h-[150px] text-[15px] bg-[white] ${
         scrolled ? 'shadow-lg bg-opacity-95 backdrop-blur-sm' : 'shadow-md'
-      }`}
+      } ${showMerchantNav ? 'merchant-nav' : 'user-nav'}`}
       aria-label="Main navigation"
     >
       {/* Top Row - Logo, Search, Icons */}
       <div className="flex items-center justify-between px-4 sm:px-6 py-3 max-h-[90px]">
         {/* Logo */}
         <Link 
-          to="/" 
+          to={showMerchantNav ? "/merchant/dashboard" : "/"} 
           className="flex items-center space-x-3 group"
-          title="Nairobi Verified - Home"
+          title={showMerchantNav ? "Merchant Dashboard - Home" : "Nairobi Verified - Home"}
         >
           <img
             src="/Nairobi Verified Logo.png"
             alt="Nairobi Verified Logo"
             className="w-22 h-12 object-contain rounded-[16px] shadow-sm transition-transform group-hover:scale-105"
           />
+          {showMerchantNav && (
+            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">
+              Merchant
+            </span>
+          )}
         </Link>
 
-        {/* Search Bar (Desktop) */}
-        <div className="hidden md:flex items-center bg-white rounded-[16px] px-4 py-2 w-1/2 max-w-lg shadow-sm hover:shadow-md transition-shadow relative border border-[#F97316]"
-          style={{ minWidth: "300px" }}
-        >
-          <Search className="text-gray-500 w-4 h-4" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Search items, products, shops ... (Ctrl+K)"
-            className="ml-2 flex-grow outline-none text-gray-700 placeholder-gray-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            aria-label="Search"
-            title="Search products and vendors"
-          />
-          <button 
-            type="button"
-            onClick={handleSearch}
-            className="bg-[#EC5C0A] text-white px-4 py-1 rounded-[16px] hover:bg-[#fb923c] transition-colors"
-            aria-label="Submit search"
-            title="Search"
+        {/* Search Bar (Desktop) - Only show for users */}
+        {!showMerchantNav && (
+          <div className="hidden md:flex items-center bg-white rounded-[16px] px-4 py-2 w-1/2 max-w-lg shadow-sm hover:shadow-md transition-shadow relative border border-[#F97316]"
+            style={{ minWidth: "300px" }}
           >
-            Search
-          </button>
-          {isSearchFocused && (
-            <div className="absolute right-4 top-4 items-center text-xs text-gray-500 hidden md:flex">
-              <Keyboard className="mr-1 w-3 h-3" />
-              <span>Esc to cancel</span>
-            </div>
-          )}
-        </div>
+            <Search className="text-gray-500 w-4 h-4" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search items, products, shops ... (Ctrl+K)"
+              className="ml-2 flex-grow outline-none text-gray-700 placeholder-gray-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              aria-label="Search"
+              title="Search products and vendors"
+            />
+            <button 
+              type="button"
+              onClick={handleSearch}
+              className="bg-[#EC5C0A] text-white px-4 py-1 rounded-[16px] hover:bg-[#fb923c] transition-colors"
+              aria-label="Submit search"
+              title="Search"
+            >
+              Search
+            </button>
+            {isSearchFocused && (
+              <div className="absolute right-4 top-4 items-center text-xs text-gray-500 hidden md:flex">
+                <Keyboard className="mr-1 w-3 h-3" />
+                <span>Esc to cancel</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* User Options */}
         <div className="flex items-center space-x-2 sm:space-x-4">
@@ -181,7 +323,7 @@ const Navbar = () => {
                   >
                     <div className="flex items-center gap-2">
                       <LayoutDashboard className="w-4 h-4" />
-                      {user?.role === 'merchant' ? 'Merchant Dashboard' : 'My Dashboard'}
+                      {showMerchantNav ? 'Merchant Dashboard' : 'My Dashboard'}
                     </div>
                   </Link>
                   <Link 
@@ -218,8 +360,8 @@ const Navbar = () => {
             </Link>
           )}
           
-          {/* Conditionally render wishlist only when authenticated */}
-          {isAuthenticated && (
+          {/* Conditionally render wishlist only when authenticated AND not merchant view */}
+          {isAuthenticated && !showMerchantNav && (
             <Link 
               to="/favorites" 
               className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
@@ -232,102 +374,45 @@ const Navbar = () => {
             </Link>
           )}
           
-          <Link 
-            to="/cart" 
-            className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
-            title="Shopping Cart"
-          >
-            <ShoppingCart className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
-          </Link>
+          {/* Shopping Cart - Only show for users */}
+          {!showMerchantNav && (
+            <Link 
+              to="/cart" 
+              className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-[#FEEED5] p-2 rounded-[16px] relative"
+              title="Shopping Cart"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
+            </Link>
+          )}
+
+          {/* Merchant-specific icons */}
+          {showMerchantNav && (
+            <>
+              <Link 
+                to="/merchant/notifications" 
+                className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-blue-50 p-2 rounded-[16px] relative"
+                title="Notifications"
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 bg-blue-500 text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">3</span>
+              </Link>
+              <Link 
+                to="/merchant/settings" 
+                className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-blue-50 p-2 rounded-[16px]"
+                title="Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
       {/* Desktop Navigation Links */}
       <div className="hidden md:flex items-center justify-between px-6 py-2 border-t border-gray-200 text-gray text-base">
         <ul className="flex space-x-6 p-2">
-          <li>
-            <Link 
-              to="/products" 
-              className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 text-[#EC5C0A]"
-              title="Hot Deals and Special Offers"
-            >
-              Hot Deals <Zap className="text-[#EC5C0A] w-4 h-4" />
-            </Link>
-          </li>
-          
-          <li className="relative group">
-            <button 
-              className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90"
-              title="Browse Product Categories"
-            >
-              Categories <ChevronDown className="w-4 h-4" />
-            </button>
-            <ul className="absolute left-0 mt-2 w-48 rounded-[16px] bg-white text-gray-800 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-100 text-base">
-              <li>
-                <Link 
-                  to="/products?category=electronics" 
-                  className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors"
-                  title="Electronics Products"
-                >
-                  Electronics
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/products?category=fashion" 
-                  className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors"
-                  title="Fashion and Clothing"
-                >
-                  Fashion
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/products?category=home" 
-                  className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors"
-                  title="Home and Kitchen Products"
-                >
-                  Home & Kitchen
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/products?category=beauty" 
-                  className="block px-4 py-2.5 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors"
-                  title="Beauty and Cosmetics"
-                >
-                  Beauty
-                </Link>
-              </li>
-            </ul>
-          </li>
-          
-          <li>
-            <Link 
-              to="/merchants" 
-              className="hover:text-gray-700 transition-colors font-semibold opacity-90"
-              title="Find Verified Vendors and Merchants"
-            >
-              <span style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '2px' 
-              }}>
-                Shops <Store size={16} fill='#fff'  />
-              </span>
-            </Link>
-          </li>
-          
-          <li>
-            <Link 
-              to="/about" 
-              className="hover:text-gray-700 transition-colors font-semibold opacity-90"
-              title="About Nairobi Verified"
-            >
-              About
-            </Link>
-          </li>
+          {renderDesktopNavItems()}
         </ul>
 
         <ul className="flex items-center space-x-6">
@@ -341,35 +426,38 @@ const Navbar = () => {
             </Link>
           </li>
                       
-          <li className="flex space-x-2">
-            <a 
-              href="https://facebook.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90"
-              title="Follow us on Facebook"
-            >
-              <Facebook className="w-4 h-4 text-[#EC5C0A]" />
-            </a>
-            <a 
-              href="https://twitter.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90"
-              title="Follow us on Twitter"
-            >
-              <Twitter className="w-4 h-4 text-[#EC5C0A]" />
-            </a>
-            <a 
-              href="https://instagram.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90"
-              title="Follow us on Instagram"
-            >
-              <Instagram className="w-4 h-4 text-[#EC5C0A]" />
-            </a>
-          </li>
+          {/* Social Media Links - Only show for users */}
+          {!showMerchantNav && (
+            <li className="flex space-x-2">
+              <a 
+                href="https://facebook.com" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90"
+                title="Follow us on Facebook"
+              >
+                <Facebook className="w-4 h-4 text-[#EC5C0A]" />
+              </a>
+              <a 
+                href="https://twitter.com" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90"
+                title="Follow us on Twitter"
+              >
+                <Twitter className="w-4 h-4 text-[#EC5C0A]" />
+              </a>
+              <a 
+                href="https://instagram.com" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:scale-110 transition-transform duration-200 text-gray bg-[#FEEED5] p-1.5 rounded-[16px] opacity-90"
+                title="Follow us on Instagram"
+              >
+                <Instagram className="w-4 h-4 text-[#EC5C0A]" />
+              </a>
+            </li>
+          )}
         </ul>
       </div>
 
@@ -385,22 +473,24 @@ const Navbar = () => {
           {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
         
-        {/* Mobile Search */}
-        <div className="flex-grow mx-2">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full py-2 px-4 pl-10 rounded-[16px] text-gray-700 bg-white border border-[#F97316]"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              aria-label="Search"
-              title="Search products and vendors"
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+        {/* Mobile Search - Only show for users */}
+        {!showMerchantNav && (
+          <div className="flex-grow mx-2">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-full py-2 px-4 pl-10 rounded-[16px] text-gray-700 bg-white border border-[#F97316]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                aria-label="Search"
+                title="Search products and vendors"
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Mobile Menu */}
@@ -410,83 +500,16 @@ const Navbar = () => {
         }`}
         aria-hidden={!isMenuOpen}
       >
+        {renderMobileNavItems()}
+        
+        {/* Contact Us */}
         <Link 
-          to="/products" 
+          to="/support" 
           onClick={() => setIsMenuOpen(false)}
-          className="hover:text-[#EC5C0A] transition-colors flex items-center gap-1 text-[#EC5C0A]"
-          title="Hot Deals and Special Offers"
+          className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1 text-[#EC5C0A]"
+          title="Contact Support"
         >
-          Hot Deals <Zap className="text-[#EC5C0A] w-4 h-4" />
-        </Link>
-        
-        <div>
-          <span className="font-bold block mb-2 text-gray-900">Categories</span>
-          <ul className="space-y-1">
-            <li>
-              <Link 
-                to="/products?category=electronics" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block pl-4 py-1.5 hover:text-[#EC5C0A] transition-colors"
-                title="Electronics Products"
-              >
-                Electronics
-              </Link>
-            </li>
-            <li>
-              <Link 
-                to="/products?category=fashion" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block pl-4 py-1.5 hover:text-[#EC5C0A] transition-colors"
-                title="Fashion and Clothing"
-              >
-                Fashion
-              </Link>
-            </li>
-            <li>
-              <Link 
-                to="/products?category=home" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block pl-4 py-1.5 hover:text-[#EC5C0A] transition-colors"
-                title="Home and Kitchen Products"
-              >
-                Home & Kitchen
-              </Link>
-            </li>
-            <li>
-              <Link 
-                to="/products?category=beauty" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block pl-4 py-1.5 hover:text-[#EC5C0A] transition-colors"
-                title="Beauty and Cosmetics"
-              >
-                Beauty
-              </Link>
-            </li>
-          </ul>
-        </div>
-        
-        <Link
-          to="/merchants" 
-          onClick={() => setIsMenuOpen(false)}
-          className="block hover:text-[#EC5C0A] transition-colors"
-          title="Find Verified Vendors and Merchants"
-        >
-          <span style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '2px' 
-          }}>
-            Shops <Store size={15} fill='#fff'  />
-          </span>
-        </Link>
-        
-        <Link 
-          to="/about" 
-          onClick={() => setIsMenuOpen(false)}
-          className="block hover:text-[#EC5C0A] transition-colors"
-          title="About Nairobi Verified"
-        >
-          About
+          <Phone className="w-4 h-4 text-[#EC5C0A]" /> Contact Us
         </Link>
         
         {/* Dashboard Link for Authenticated Users in Mobile Menu */}
@@ -498,7 +521,7 @@ const Navbar = () => {
             title="My Dashboard"
           >
             <LayoutDashboard className="w-4 h-4" /> 
-            {user?.role === 'merchant' ? 'Merchant Dashboard' : 'My Dashboard'}
+            {showMerchantNav ? 'Merchant Dashboard' : 'My Dashboard'}
           </Link>
         )}
         
@@ -514,8 +537,8 @@ const Navbar = () => {
           </Link>
         )}
         
-        {/* Conditionally render wishlist in mobile menu only when authenticated */}
-        {isAuthenticated && (
+        {/* Conditionally render wishlist in mobile menu only when authenticated AND not merchant */}
+        {isAuthenticated && !showMerchantNav && (
           <Link 
             to="/favorites" 
             onClick={() => setIsMenuOpen(false)}
@@ -526,14 +549,17 @@ const Navbar = () => {
           </Link>
         )}
         
-        <Link 
-          to="/auth/register/merchant" 
-          onClick={() => setIsMenuOpen(false)}
-          className="block bg-[#EC5C0A] text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-[#fb923c] transition-colors"
-          title="Become a Seller on Nairobi Verified"
-        >
-          Sell on Nairobi Verified
-        </Link>
+        {/* Sell on Nairobi Verified - Only show for users */}
+        {!showMerchantNav && (
+          <Link 
+            to="/auth/register/merchant" 
+            onClick={() => setIsMenuOpen(false)}
+            className="block bg-[#EC5C0A] text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-[#fb923c] transition-colors"
+            title="Become a Seller on Nairobi Verified"
+          >
+            Sell on Nairobi Verified
+          </Link>
+        )}
         
         <div className="pt-2 border-t border-gray-200 mt-2">
           <ul className="space-y-1">
@@ -565,16 +591,6 @@ const Navbar = () => {
                 </Link>
               </li>
             )}
-            <li>
-              <Link 
-                to="/support" 
-                onClick={() => setIsMenuOpen(false)}
-                className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1 text-[#EC5C0A]"
-                title="Contact Support"
-              >
-                <Phone className="w-4 h-4 text-[#EC5C0A]" /> Contact Us
-              </Link>
-            </li>
           </ul>
         </div>
       </div>
