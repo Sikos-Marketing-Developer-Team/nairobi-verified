@@ -23,7 +23,9 @@ import {
   CreditCard,
   Users,
   Settings,
-  Bell
+  Bell,
+  Shield,
+  TrendingUp
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
@@ -42,8 +44,10 @@ const Navbar = () => {
   // Get auth state from context
   const { user, isAuthenticated, logout } = useAuth();
 
-  // Check if we're on merchant routes
-  const isMerchantRoute = location.pathname.startsWith('/merchant');
+  // Smart route detection
+  const isMerchantRoute = location.pathname.startsWith('/merchant/');
+  
+  // Show merchant navbar for merchants on merchant routes
   const showMerchantNav = isAuthenticated && 
     (user?.role === 'merchant' || user?.role === 'admin') && 
     isMerchantRoute;
@@ -85,26 +89,29 @@ const Navbar = () => {
   const handleLogout = () => {
     logout();
     setIsMenuOpen(false);
+    navigate('/');
   };
 
   const getUserDisplayName = () => {
     return user?.name || user?.email?.split('@')[0] || 'User';
   };
 
-  // Enhanced function to determine dashboard URL based on user role
+  // CORRECTED: Smart dashboard URL based on user role
   const getDashboardUrl = () => {
     if (!isAuthenticated || !user) {
       return '/auth';
     }
     
+    // Merchant users go to merchant dashboard
     if (user.role === 'merchant' || user.role === 'admin') {
       return '/merchant/dashboard';
     }
     
+    // Regular users go to user dashboard
     return '/dashboard';
   };
 
-  // Function to handle dashboard navigation with role check
+  // Function to handle dashboard navigation
   const handleDashboardNavigation = () => {
     const dashboardUrl = getDashboardUrl();
     navigate(dashboardUrl);
@@ -120,7 +127,7 @@ const Navbar = () => {
     { path: '/merchant/customers', label: 'Customers', icon: Users },
   ];
 
-  // User navigation items (your original items)
+  // User navigation items
   const userNavItems = [
     { path: '/products', label: 'Hot Deals', icon: Zap, highlight: true },
     { 
@@ -316,16 +323,16 @@ const Navbar = () => {
                 
                 {/* Dropdown Menu */}
                 <div className="absolute right-0 mt-2 w-48 rounded-[16px] bg-white shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-100">
-                  <Link 
-                    to={getDashboardUrl()}
-                    className="block px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
+                  <button 
+                    onClick={handleDashboardNavigation}
+                    className="block w-full text-left px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
                     title="My Dashboard"
                   >
                     <div className="flex items-center gap-2">
                       <LayoutDashboard className="w-4 h-4" />
-                      {showMerchantNav ? 'Merchant Dashboard' : 'My Dashboard'}
+                      {user?.role === 'merchant' || user?.role === 'admin' ? 'Merchant Dashboard' : 'My Dashboard'}
                     </div>
-                  </Link>
+                  </button>
                   <Link 
                     to="/profile"
                     className="block px-4 py-3 hover:bg-[#FEEED5] hover:text-[#EC5C0A] transition-colors border-b border-gray-100"
@@ -514,15 +521,14 @@ const Navbar = () => {
         
         {/* Dashboard Link for Authenticated Users in Mobile Menu */}
         {isAuthenticated && (
-          <Link 
-            to={getDashboardUrl()}
-            onClick={() => setIsMenuOpen(false)}
-            className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
+          <button 
+            onClick={handleDashboardNavigation}
+            className="w-full text-left hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1"
             title="My Dashboard"
           >
             <LayoutDashboard className="w-4 h-4" /> 
-            {showMerchantNav ? 'Merchant Dashboard' : 'My Dashboard'}
-          </Link>
+            {user?.role === 'merchant' || user?.role === 'admin' ? 'Merchant Dashboard' : 'My Dashboard'}
+          </button>
         )}
         
         {/* Profile Link for Authenticated Users in Mobile Menu */}
