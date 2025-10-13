@@ -161,61 +161,78 @@ const MerchantDashboard = () => {
   };
 
   // FIXED: Using your existing merchantsAPI.getMyMerchant() instead of direct fetch
-  const fetchOverview = async () => {
-    try {
-      console.log('🔄 Fetching merchant overview using merchantsAPI.getMyMerchant()...');
-      const response = await merchantsAPI.getMyMerchant();
-      console.log('✅ Merchant API response:', response);
+  // FIXED: Using your existing merchantsAPI.getMyMerchant() with proper error handling
+const fetchOverview = async () => {
+  try {
+    console.log('🔄 Fetching merchant overview using merchantsAPI.getMyMerchant()...');
+    const response = await merchantsAPI.getMyMerchant();
+    console.log('✅ Merchant API response:', response);
+    
+    // Check different possible response structures
+    if (response.data && (response.data.success || response.data.merchant)) {
+      // Handle both response structures
+      const merchantData = response.data.data || response.data.merchant || response.data;
+      console.log('📊 Merchant data received:', merchantData);
       
-      if (response.data.success) {
-        // Transform the API response to match your expected format
-        const merchantData = response.data.data;
-        console.log('📊 Merchant data received:', merchantData);
-        
-        const overviewData: MerchantOverview = {
-          merchant: {
-            id: merchantData.id || merchantData._id,
-            businessName: merchantData.businessName,
-            email: merchantData.email,
-            phone: merchantData.phone || '',
-            rating: merchantData.rating || 0,
-            totalReviews: merchantData.totalReviews || 0,
-            memberSince: merchantData.createdAt || new Date().toISOString()
-          },
-          verificationStatus: {
-            isVerified: merchantData.isVerified || false,
-            isFeatured: merchantData.isFeatured || false,
-            verificationBadge: merchantData.isVerified ? 'Verified Business' : 'Pending Verification',
-            statusMessage: merchantData.isVerified ? 'Your business is verified and active' : 'Complete verification to access all features',
-            verifiedDate: merchantData.verifiedDate || null
-          },
-          profileCompletion: {
-            percentage: calculateProfileCompletion(merchantData),
-            documentsPercentage: merchantData.documentsStatus === 'completed' ? 100 : 0,
-            nextSteps: getNextSteps(merchantData)
-          }
-        };
-        
-        console.log('📊 Setting overview data:', overviewData);
-        setOverview(overviewData);
-        
-        // Verify this is the correct merchant
-        if (merchantData && user) {
-          console.log('👤 Merchant verification:', {
-            dashboardMerchant: merchantData.email,
-            loggedInUser: user.email,
-            match: merchantData.email === user.email
-          });
-        }
-      } else {
-        console.error('❌ Merchant API error:', response.data.error);
-        throw new Error(response.data.error || 'Failed to fetch merchant data');
+      if (!merchantData) {
+        console.error('❌ No merchant data found in response');
+        setOverview(null);
+        return;
       }
-    } catch (error) {
-      console.error('💥 Overview fetch failed:', error);
-      throw error;
+      
+      const overviewData: MerchantOverview = {
+        merchant: {
+          id: merchantData.id || merchantData._id || 'unknown',
+          businessName: merchantData.businessName || merchantData.name || 'Your Business',
+          email: merchantData.email || user?.email || '',
+          phone: merchantData.phone || merchantData.contactNumber || '',
+          rating: merchantData.rating || merchantData.averageRating || 0,
+          totalReviews: merchantData.totalReviews || merchantData.reviewCount || 0,
+          memberSince: merchantData.createdAt || merchantData.joinDate || new Date().toISOString()
+        },
+        verificationStatus: {
+          isVerified: merchantData.isVerified || merchantData.verified || false,
+          isFeatured: merchantData.isFeatured || merchantData.featured || false,
+          verificationBadge: (merchantData.isVerified || merchantData.verified) ? 'Verified Business' : 'Pending Verification',
+          statusMessage: (merchantData.isVerified || merchantData.verified) ? 'Your business is verified and active' : 'Complete verification to access all features',
+          verifiedDate: merchantData.verifiedDate || merchantData.verificationDate || null
+        },
+        profileCompletion: {
+          percentage: calculateProfileCompletion(merchantData),
+          documentsPercentage: (merchantData.documentsStatus === 'completed' || merchantData.documentsUploaded) ? 100 : 0,
+          nextSteps: getNextSteps(merchantData)
+        }
+      };
+      
+      console.log('📊 Setting overview data:', overviewData);
+      setOverview(overviewData);
+      
+    } else {
+      console.error('❌ Merchant API returned unsuccessful response:', response.data);
+      // Check if it's a "no merchant found" scenario
+      if (response.data?.error?.includes('not found') || response.status === 404) {
+        console.log('👤 No merchant account found for user');
+        setOverview(null);
+      } else {
+        throw new Error(response.data?.error || 'Failed to fetch merchant data');
+      }
     }
-  };
+  } catch (error: any) {
+    console.error('💥 Overview fetch failed:', error);
+    
+    // Handle specific error cases
+    if (error.response?.status === 404 || error.message?.includes('not found')) {
+      console.log('👤 No merchant account exists for this user');
+      setOverview(null);
+    } else {
+      toast({
+        title: 'Error',
+        description: 'Failed to load merchant data. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }
+};
 
   // FIXED: Using your existing analyticsAPI instead of direct fetch
   const fetchAnalytics = async () => {
