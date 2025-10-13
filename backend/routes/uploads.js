@@ -1,6 +1,6 @@
 const express = require('express'); 
 const router = express.Router();
-const { uploadProductImages, uploadMerchantImages, uploadDocuments } = require('../middleware/upload');
+const { uploadProductImages, uploadMerchantImages, uploadDocs } = require('../middleware/upload');
 const { protect } = require('../middleware/auth');
 const { protectAdmin } = require('../middleware/adminAuth');
 const asyncHandler = require('express-async-handler');
@@ -169,7 +169,7 @@ const uploadDocument = asyncHandler(async (req, res) => {
 });
 
 // FIXED: Use .fields() instead of .array() for structured document upload
-router.post('/documents', protect, uploadDocuments.fields([
+router.post('/documents', protect, uploadDocs.fields([
   { name: 'businessRegistration', maxCount: 1 },
   { name: 'idDocument', maxCount: 1 },
   { name: 'utilityBill', maxCount: 1 },
@@ -185,7 +185,7 @@ router.post('/merchants', protect, uploadMerchantImages.array('images', 10), upl
 // Admin routes with same structure
 router.post('/admin/products', protectAdmin, uploadProductImages.array('images', 5), uploadProductImage);
 router.post('/admin/merchants', protectAdmin, uploadMerchantImages.array('images', 10), uploadMerchantImage);
-router.post('/admin/documents', protectAdmin, uploadDocuments.fields([
+router.post('/admin/documents', protectAdmin, uploadDocs.fields([
   { name: 'businessRegistration', maxCount: 1 },
   { name: 'idDocument', maxCount: 1 },
   { name: 'utilityBill', maxCount: 1 },
