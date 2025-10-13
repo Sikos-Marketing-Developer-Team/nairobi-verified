@@ -44,14 +44,13 @@ passport.use(
             firstName: profile.name.givenName || profile.displayName.split(' ')[0],
             lastName: profile.name.familyName || profile.displayName.split(' ').slice(1).join(' ') || '',
             email: profile.emails[0].value,
-            password: crypto.randomBytes(16).toString('hex'), // Secure random password
+            password: crypto.randomBytes(16).toString('hex'),
             phone: '',
             profilePicture: profile.photos[0]?.value || '',
             googleId: profile.id
           });
           console.log('Created new user from Google OAuth:', user._id);
         } else if (!user.googleId) {
-          // Existing user: update googleId and avatar
           user.googleId = profile.id;
           user.profilePicture = user.profilePicture || profile.photos[0]?.value || '';
           await user.save();
@@ -67,43 +66,82 @@ passport.use(
   )
 );
 
-// CRITICAL FIX: Serialize user into the session - use _id instead of id
+// CRITICAL FIX: Serialize user - determine type by checking collection/model name
 passport.serializeUser((user, done) => {
-  const userId = user._id || user.id; // MongoDB uses _id
-  const isMerchant = !!user.businessName; // Merchants have businessName field
+  const userId = user._id || user.id;
+  
+  // FIXED: Determine if merchant by checking the model/collection name
+  // Mongoose models have a .constructor.modelName property
+  const isMerchant = user.constructor.modelName === 'Merchant' || 
+                     user.collection?.collectionName === 'merchants' ||
+                     !!user.businessName; // Fallback to businessName check
   
   console.log('🔐 Serializing user:', {
-    id: userId,
+    id: String(userId),
     isMerchant,
-    email: user.email
+    email: user.email,
+    modelName: user.constructor?.modelName,
+    collectionName: user.collection?.collectionName
   });
   
-  done(null, { id: String(userId), isMerchant });
+  // Store both the ID and the type in the session
+  done(null, { 
+    id: String(userId), 
+    isMerchant,
+    email: user.email // Store email for debugging
+  });
 });
 
-// CRITICAL FIX: Deserialize user from the session
-passport.deserializeUser(async (obj, done) => {
+// CRITICAL FIX: Deserialize user - use the stored type to query correct collection
+passport.deserializeUser(async (sessionData, done) => {
   try {
-    console.log('🔓 Deserializing user:', obj);
+    console.log('🔓 Deserializing user:', sessionData);
     
     let user;
-    if (obj.isMerchant) {
-      user = await Merchant.findById(obj.id).select('-password');
-      console.log('📦 Found merchant:', user ? user._id : 'NOT FOUND');
+    
+    // Query the correct collection based on stored flag
+    if (sessionData.isMerchant) {
+      user = await Merchant.findById(sessionData.id).select('-password');
+      if (user) {
+        console.log('📦 Found merchant:', {
+          id: user._id,
+          email: user.email,
+          businessName: user.businessName
+        });
+      } else {
+        console.error('❌ Merchant not found during deserialization:', sessionData.id);
+      }
     } else {
-      user = await User.findById(obj.id).select('-password');
-      console.log('👤 Found user:', user ? user._id : 'NOT FOUND');
+      user = await User.findById(sessionData.id).select('-password');
+      if (user) {
+        console.log('👤 Found user:', {
+          id: user._id,
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`
+        });
+      } else {
+        console.error('❌ User not found during deserialization:', sessionData.id);
+      }
     }
 
     if (!user) {
-      console.error('❌ User not found during deserialization:', obj.id);
+      console.error('❌ CRITICAL: No user/merchant found for session:', sessionData);
+      return done(null, false);
+    }
+
+    // Verify the user matches the session data
+    if (sessionData.email && user.email !== sessionData.email) {
+      console.error('❌ CRITICAL: Email mismatch!', {
+        sessionEmail: sessionData.email,
+        dbEmail: user.email
+      });
       return done(null, false);
     }
 
     console.log('✅ Successfully deserialized:', {
       id: user._id,
       email: user.email,
-      isMerchant: obj.isMerchant
+      isMerchant: sessionData.isMerchant
     });
     
     done(null, user);
