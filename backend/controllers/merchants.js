@@ -151,6 +151,8 @@ exports.getMerchant = async (req, res) => {
 
       responseData.documentAnalysis = {
         ...documentAnalysis,
+        requiredDocsSubmitted: requiredDocsCount,
+        totalRequiredDocs: 3,
         completionPercentage: Math.round((requiredDocsCount / 3) * 100),
         canBeVerified: requiredDocsCount === 3 && !merchant.verified,
         requiresDocuments: requiredDocsCount < 3
@@ -503,7 +505,7 @@ exports.uploadDocuments = async (req, res) => {
       });
     }
 
-    if (!req.files) {
+    if (!req.files || Object.keys(req.files).length === 0) {
       console.log('No files received in req.files'); // DEBUG: Critical check
       return res.status(400).json({ 
         success: false, 
@@ -609,9 +611,9 @@ exports.uploadDocuments = async (req, res) => {
     console.log('Updated submission timestamp and status:', merchant.documents.documentsSubmittedAt, merchant.documents.documentReviewStatus); // DEBUG
 
     const hasRequiredDocs = 
-      merchant.documents.businessRegistration?.path && 
-      merchant.documents.idDocument?.path && 
-      merchant.documents.utilityBill?.path;
+      merchant.documents.businessRegistration?.path && merchant.documents.businessRegistration.path !== '' && 
+      merchant.documents.idDocument?.path && merchant.documents.idDocument.path !== '' && 
+      merchant.documents.utilityBill?.path && merchant.documents.utilityBill.path !== '';
     console.log('Required docs check:', hasRequiredDocs); // DEBUG
 
     if (hasRequiredDocs && merchant.onboardingStatus === 'credentials_sent') {
@@ -624,9 +626,9 @@ exports.uploadDocuments = async (req, res) => {
     console.log('Merchant saved successfully, documents:', merchant.documents); // DEBUG
 
     const documentAnalysis = {
-      businessRegistration: !!merchant.documents.businessRegistration?.path,
-      idDocument: !!merchant.documents.idDocument?.path,
-      utilityBill: !!merchant.documents.utilityBill?.path,
+      businessRegistration: !!merchant.documents.businessRegistration?.path && merchant.documents.businessRegistration.path !== '',
+      idDocument: !!merchant.documents.idDocument?.path && merchant.documents.idDocument.path !== '',
+      utilityBill: !!merchant.documents.utilityBill?.path && merchant.documents.utilityBill.path !== '',
       additionalDocs: !!(merchant.documents.additionalDocs?.length > 0)
     };
 
@@ -655,10 +657,9 @@ exports.uploadDocuments = async (req, res) => {
       message: `Successfully uploaded: ${updatedDocuments.join(', ')}`,
       isComplete: hasRequiredDocs
     });
-    console.log('=== uploadDocuments End ==='); // DEBUG: End of request
 
   } catch (error) {
-    console.error('❌ uploadDocuments error:', error.stack); // DEBUG: Full stack trace
+    console.error('❌ uploadDocuments error:', error);
     res.status(400).json({ 
       success: false, 
       error: error.message
