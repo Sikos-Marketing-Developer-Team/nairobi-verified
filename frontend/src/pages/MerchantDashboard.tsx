@@ -19,9 +19,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { merchantsAPI, analyticsAPI, notificationsAPI } from '@/lib/api'; // IMPORT YOUR EXISTING API
-
-// REMOVED: Direct fetch calls - using your existing API service instead
 
 interface MerchantOverview {
   merchant: {
@@ -133,10 +130,11 @@ const MerchantDashboard = () => {
     }
   }, [isAuthenticated, timeRange]);
 
+  // FIXED: Using your actual API endpoints with proper fetch calls
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      console.log('🚀 Starting to fetch dashboard data for current merchant...');
+      console.log('🚀 Starting to fetch dashboard data from API endpoints...');
       
       await Promise.all([
         fetchOverview(),
@@ -160,98 +158,63 @@ const MerchantDashboard = () => {
     }
   };
 
-  // FIXED: Using your existing merchantsAPI.getMyMerchant() instead of direct fetch
-  // FIXED: Using your existing merchantsAPI.getMyMerchant() with proper error handling
-const fetchOverview = async () => {
-  try {
-    console.log('🔄 Fetching merchant overview using merchantsAPI.getMyMerchant()...');
-    const response = await merchantsAPI.getMyMerchant();
-    console.log('✅ Merchant API response:', response);
-    
-    // Check different possible response structures
-    if (response.data && (response.data.success || response.data.merchant)) {
-      // Handle both response structures
-      const merchantData = response.data.data || response.data.merchant || response.data;
-      console.log('📊 Merchant data received:', merchantData);
+  // FIXED: Using your actual /api/merchants/dashboard/overview endpoint
+  const fetchOverview = async () => {
+    try {
+      console.log('🔄 Fetching overview from /api/merchants/dashboard/overview...');
       
-      if (!merchantData) {
-        console.error('❌ No merchant data found in response');
-        setOverview(null);
-        return;
+      const response = await fetch('/api/merchants/dashboard/overview', {
+        method: 'GET',
+        credentials: 'include' // Important for session cookies
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const result = await response.json();
+      console.log('✅ Overview API response:', result);
+
+      if (result.success && result.data) {
+        setOverview(result.data);
+        console.log('📊 Overview data set:', result.data);
+      } else {
+        throw new Error(result.error || 'Failed to fetch merchant data');
+      }
+    } catch (error: any) {
+      console.error('💥 Overview fetch failed:', error);
       
-      const overviewData: MerchantOverview = {
-        merchant: {
-          id: merchantData.id || merchantData._id || 'unknown',
-          businessName: merchantData.businessName || merchantData.name || 'Your Business',
-          email: merchantData.email || user?.email || '',
-          phone: merchantData.phone || merchantData.contactNumber || '',
-          rating: merchantData.rating || merchantData.averageRating || 0,
-          totalReviews: merchantData.totalReviews || merchantData.reviewCount || 0,
-          memberSince: merchantData.createdAt || merchantData.joinDate || new Date().toISOString()
-        },
-        verificationStatus: {
-          isVerified: merchantData.isVerified || merchantData.verified || false,
-          isFeatured: merchantData.isFeatured || merchantData.featured || false,
-          verificationBadge: (merchantData.isVerified || merchantData.verified) ? 'Verified Business' : 'Pending Verification',
-          statusMessage: (merchantData.isVerified || merchantData.verified) ? 'Your business is verified and active' : 'Complete verification to access all features',
-          verifiedDate: merchantData.verifiedDate || merchantData.verificationDate || null
-        },
-        profileCompletion: {
-          percentage: calculateProfileCompletion(merchantData),
-          documentsPercentage: (merchantData.documentsStatus === 'completed' || merchantData.documentsUploaded) ? 100 : 0,
-          nextSteps: getNextSteps(merchantData)
-        }
-      };
-      
-      console.log('📊 Setting overview data:', overviewData);
-      setOverview(overviewData);
-      
-    } else {
-      console.error('❌ Merchant API returned unsuccessful response:', response.data);
       // Check if it's a "no merchant found" scenario
-      if (response.data?.error?.includes('not found') || response.status === 404) {
+      if (error.message?.includes('not found') || error.message?.includes('404')) {
         console.log('👤 No merchant account found for user');
         setOverview(null);
       } else {
-        throw new Error(response.data?.error || 'Failed to fetch merchant data');
+        throw error;
       }
     }
-  } catch (error: any) {
-    console.error('💥 Overview fetch failed:', error);
-    
-    // Handle specific error cases
-    if (error.response?.status === 404 || error.message?.includes('not found')) {
-      console.log('👤 No merchant account exists for this user');
-      setOverview(null);
-    } else {
-      toast({
-        title: 'Error',
-        description: 'Failed to load merchant data. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  }
-};
+  };
 
-  // FIXED: Using your existing analyticsAPI instead of direct fetch
+  // FIXED: Using your actual /api/merchants/dashboard/analytics endpoint
   const fetchAnalytics = async () => {
     try {
-      console.log('🔄 Fetching analytics using analyticsAPI...');
-      const periodMap = {
-        '7': 'weekly',
-        '30': 'monthly', 
-        '90': 'quarterly'
-      };
+      console.log('🔄 Fetching analytics from /api/merchants/dashboard/analytics...');
       
-      const response = await analyticsAPI.getMerchantOverview(periodMap[timeRange] || 'monthly');
-      console.log('✅ Analytics API response:', response);
-      
-      if (response.data.success) {
-        setAnalytics(response.data.data);
+      const response = await fetch(`/api/merchants/dashboard/analytics?period=${timeRange}`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Analytics API response:', result);
+
+      if (result.success) {
+        setAnalytics(result.data);
       } else {
-        console.error('❌ Analytics API error:', response.data.error);
-        throw new Error(response.data.error || 'Failed to fetch analytics');
+        throw new Error(result.error || 'Failed to fetch analytics');
       }
     } catch (error) {
       console.error('💥 Analytics fetch failed:', error);
@@ -265,39 +228,55 @@ const fetchOverview = async () => {
     }
   };
 
-  // FIXED: Using your existing merchantsAPI for activity
+  // FIXED: Using your actual /api/merchants/dashboard/activity endpoint
   const fetchActivity = async () => {
     try {
-      console.log('🔄 Fetching activity data...');
-      // For now, create mock activity data - you can replace with actual API calls
-      const mockActivities: ActivityItem[] = [
-        {
-          type: 'review',
-          description: 'New 4-star review from customer',
-          timestamp: '2 hours ago',
-          date: new Date().toISOString(),
-          data: { rating: 4 }
-        }
-      ];
-      setActivities(mockActivities);
+      console.log('🔄 Fetching activity from /api/merchants/dashboard/activity...');
+      
+      const response = await fetch('/api/merchants/dashboard/activity?limit=5', {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Activity API response:', result);
+
+      if (result.success) {
+        setActivities(result.data);
+      } else {
+        throw new Error(result.error || 'Failed to fetch activity');
+      }
     } catch (error) {
       console.error('💥 Activity fetch failed:', error);
       setActivities([]);
     }
   };
 
-  // FIXED: Using your existing notificationsAPI
+  // FIXED: Using your actual /api/merchants/dashboard/notifications endpoint
   const fetchNotifications = async () => {
     try {
-      console.log('🔄 Fetching notifications using notificationsAPI...');
-      const response = await notificationsAPI.getMerchantNotifications();
-      console.log('✅ Notifications API response:', response);
+      console.log('🔄 Fetching notifications from /api/merchants/dashboard/notifications...');
       
-      if (response.data.success) {
-        setNotifications(response.data.data);
+      const response = await fetch('/api/merchants/dashboard/notifications', {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Notifications API response:', result);
+
+      if (result.success) {
+        setNotifications(result.data);
       } else {
-        console.error('❌ Notifications API error:', response.data.error);
-        throw new Error(response.data.error || 'Failed to fetch notifications');
+        throw new Error(result.error || 'Failed to fetch notifications');
       }
     } catch (error) {
       console.error('💥 Notifications fetch failed:', error);
@@ -305,11 +284,32 @@ const fetchOverview = async () => {
     }
   };
 
+  // FIXED: Using your actual /api/merchants/dashboard/quick-actions endpoint
   const fetchQuickActions = async () => {
     try {
-      console.log('🔄 Fetching quick actions...');
-      // Create quick actions based on merchant status
-      const actions: QuickAction[] = [
+      console.log('🔄 Fetching quick actions from /api/merchants/dashboard/quick-actions...');
+      
+      const response = await fetch('/api/merchants/dashboard/quick-actions', {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Quick actions API response:', result);
+
+      if (result.success) {
+        setQuickActions(result.data);
+      } else {
+        throw new Error(result.error || 'Failed to fetch quick actions');
+      }
+    } catch (error) {
+      console.error('💥 Quick actions fetch failed:', error);
+      // Create fallback quick actions
+      const fallbackActions: QuickAction[] = [
         {
           id: 'edit_profile',
           label: 'Edit Profile',
@@ -329,32 +329,8 @@ const fetchOverview = async () => {
           badgeColor: overview?.verificationStatus.isVerified ? 'green' : 'red'
         }
       ];
-      setQuickActions(actions);
-    } catch (error) {
-      console.error('💥 Quick actions fetch failed:', error);
-      setQuickActions([]);
+      setQuickActions(fallbackActions);
     }
-  };
-
-  // Helper functions for profile completion calculation
-  const calculateProfileCompletion = (merchantData: any): number => {
-    let completion = 0;
-    if (merchantData.businessName) completion += 20;
-    if (merchantData.phone) completion += 20;
-    if (merchantData.description) completion += 20;
-    if (merchantData.category) completion += 20;
-    if (merchantData.location) completion += 20;
-    return completion;
-  };
-
-  const getNextSteps = (merchantData: any): string[] => {
-    const steps = [];
-    if (!merchantData.businessName) steps.push('Add business name');
-    if (!merchantData.phone) steps.push('Add phone number');
-    if (!merchantData.description) steps.push('Add business description');
-    if (!merchantData.category) steps.push('Select business category');
-    if (!merchantData.location) steps.push('Add business location');
-    return steps.slice(0, 2); // Return only the next 2 steps
   };
 
   const handleRefresh = () => {
@@ -410,15 +386,38 @@ const fetchOverview = async () => {
       <div className="min-h-screen bg-gray-50">
         <Header />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <div className="text-center max-w-2xl mx-auto">
+            <Store className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-4">No Merchant Account Found</h1>
             <p className="text-gray-600 mb-6">
-              You don't have a merchant account associated with your profile.
+              {user?.role === 'merchant' || user?.role === 'admin' 
+                ? "Your account has merchant privileges but no merchant profile has been created yet."
+                : "You need to create a merchant account to access the dashboard."
+              }
             </p>
-            <Button onClick={() => window.location.href = '/auth/register/merchant'}>
-              Create Merchant Account
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                onClick={() => window.location.href = '/auth/register/merchant'}
+                className="bg-primary hover:bg-primary-dark"
+              >
+                Create Merchant Account
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleRefresh}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Check Again
+              </Button>
+            </div>
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg text-left">
+              <h3 className="font-semibold text-blue-900 mb-2">Troubleshooting Tips:</h3>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• Make sure you're logged in with the correct account</li>
+                <li>• Refresh the page to check for recent account changes</li>
+                <li>• Contact support if you believe this is an error</li>
+              </ul>
+            </div>
           </div>
         </main>
         <Footer />
@@ -453,7 +452,6 @@ const fetchOverview = async () => {
           </div>
         </div>
 
-        {/* ... rest of your JSX remains exactly the same ... */}
         {/* Verification Status */}
         <Card className="mb-8">
           <CardContent className="p-6">
@@ -669,6 +667,7 @@ const fetchOverview = async () => {
                             className={`ml-auto ${
                               action.badgeColor === 'green' ? 'bg-green-100 text-green-800' :
                               action.badgeColor === 'red' ? 'bg-red-100 text-red-800' :
+                              action.badgeColor === 'orange' ? 'bg-orange-100 text-orange-800' :
                               'bg-gray-100 text-gray-800'
                             }`}
                           >
@@ -719,6 +718,32 @@ const fetchOverview = async () => {
             </Card>
           </div>
         </div>
+
+        {/* Debug Info - Remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded-lg text-xs max-w-sm z-50">
+            <h4 className="font-bold mb-2">Dashboard Debug Info:</h4>
+            <p>User Role: {user?.role}</p>
+            <p>Authenticated: {isAuthenticated ? 'Yes' : 'No'}</p>
+            <p>Merchant Data: {overview ? 'Loaded' : 'Not Found'}</p>
+            <p>Analytics: {analytics ? 'Loaded' : 'Not Loaded'}</p>
+            <button 
+              onClick={() => {
+                console.log('Full dashboard debug info:', { 
+                  user, 
+                  overview, 
+                  analytics,
+                  activities,
+                  notifications,
+                  quickActions
+                });
+              }}
+              className="mt-2 bg-blue-500 px-2 py-1 rounded text-xs"
+            >
+              Log Details
+            </button>
+          </div>
+        )}
       </div>
 
       <Footer />
@@ -733,6 +758,7 @@ const getIconComponent = (iconName: string) => {
     case 'edit': return <Edit {...iconProps} />;
     case 'eye': return <Eye {...iconProps} />;
     case 'check-circle': return <CheckCircle {...iconProps} />;
+    case 'clock': return <Clock {...iconProps} />;
     case 'calendar': return <Calendar {...iconProps} />;
     case 'message-square': return <MessageSquare {...iconProps} />;
     case 'package': return <Package {...iconProps} />;
@@ -741,6 +767,11 @@ const getIconComponent = (iconName: string) => {
     case 'bell': return <Bell {...iconProps} />;
     case 'shield': return <Shield {...iconProps} />;
     case 'download': return <Download {...iconProps} />;
+    case 'help-circle': return <AlertCircle {...iconProps} />;
+    case 'alert-circle': return <AlertCircle {...iconProps} />;
+    case 'info': return <AlertCircle {...iconProps} />;
+    case 'star': return <Star {...iconProps} />;
+    case 'file-text': return <Edit {...iconProps} />;
     default: return <Settings {...iconProps} />;
   }
 };
