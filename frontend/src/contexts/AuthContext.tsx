@@ -60,6 +60,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('🎯 Setting user data:', {
         id: userData.id || userData._id,
         email: userData.email,
+        role: userData.role, // ← NOW INCLUDING ROLE
         isMerchant: userData.isMerchant,
         businessName: userData.businessName
       });
@@ -71,8 +72,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      // CRITICAL: Set user state - this is the source of truth
-      setUser(userData);
+      // CRITICAL FIX: Ensure role is included in user state
+      setUser({
+        ...userData,
+        role: userData.role || 'user' // ← DEFAULT TO 'user' IF NOT PROVIDED
+      });
       
       // Don't navigate if already on correct page
       const isMerchant = userData.isMerchant || userData.businessName;
@@ -124,23 +128,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     return handleAuthAction(async () => {
       const response = await authAPI.login(email, password);
-      const { user } = response.data;
+      const { user: userData } = response.data;
       
-      if (user.role === 'admin') {
+      if (userData.role === 'admin') {
         showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
         throw new Error('Admin access restricted');
       }
       
-      console.log('👤 User login successful:', user.email);
+      console.log('👤 User login successful:', userData.email);
       
-      // CRITICAL FIX: Set user state BEFORE navigation
-      setUser(user);
+      // CRITICAL FIX: Set user state WITH role
+      setUser({
+        ...userData,
+        role: userData.role || 'user' // ← ENSURING ROLE IS INCLUDED
+      });
       
       // CRITICAL FIX: Clear session check flag to force re-check on next mount
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       
       // CRITICAL FIX: Wait for state update and then navigate
-      const targetPath = user.isMerchant || user.businessName 
+      const targetPath = userData.isMerchant || userData.businessName 
         ? '/merchant/dashboard' 
         : '/dashboard';
       
@@ -156,21 +163,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return handleAuthAction(async () => {
       console.log('🏪 Merchant login attempt:', email);
       const response = await authAPI.loginMerchant(email, password);
-      const { user } = response.data;
+      const { user: userData } = response.data;
       
-      if (user.role === 'admin') {
+      if (userData.role === 'admin') {
         showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
         throw new Error('Admin access restricted');
       }
       
       console.log('✅ Merchant login successful:', {
-        id: user.id,
-        email: user.email,
-        businessName: user.businessName
+        id: userData.id,
+        email: userData.email,
+        role: userData.role, // ← NOW LOGGING ROLE
+        businessName: userData.businessName
       });
       
-      // CRITICAL FIX: Set user state BEFORE navigation
-      setUser(user);
+      // CRITICAL FIX: Set user state WITH role
+      setUser({
+        ...userData,
+        role: userData.role || 'merchant' // ← ENSURING ROLE IS INCLUDED
+      });
       
       // Clear session check flag to force re-check on next mount
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
@@ -186,18 +197,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const googleAuth = async (credential: string) => {
     return handleAuthAction(async () => {
       const response = await authAPI.googleAuth(credential);
-      const { user } = response.data;
+      const { user: userData } = response.data;
       
-      if (user.role === 'admin') {
+      if (userData.role === 'admin') {
         showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
         throw new Error('Admin access restricted');
       }
       
-      // CRITICAL FIX: Set user state BEFORE navigation
-      setUser(user);
+      // CRITICAL FIX: Set user state WITH role
+      setUser({
+        ...userData,
+        role: userData.role || 'user' // ← ENSURING ROLE IS INCLUDED
+      });
+      
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       
-      const targetPath = user.isMerchant || user.businessName 
+      const targetPath = userData.isMerchant || userData.businessName 
         ? '/merchant/dashboard' 
         : '/dashboard';
       
@@ -212,8 +227,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: any) => {
     return handleAuthAction(async () => {
       const response = await authAPI.register(userData);
-      // CRITICAL FIX: Set user state BEFORE navigation
-      setUser(response.data.user);
+      // CRITICAL FIX: Set user state WITH role
+      setUser({
+        ...response.data.user,
+        role: response.data.user.role || 'user' // ← ENSURING ROLE IS INCLUDED
+      });
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       navigate('/dashboard', { replace: true });
       showToast('Registration Successful', 'Your account has been created');
@@ -224,8 +242,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const registerMerchant = async (merchantData: any) => {
     return handleAuthAction(async () => {
       const response = await authAPI.registerMerchant(merchantData);
-      // CRITICAL FIX: Set user state BEFORE navigation
-      setUser(response.data.user);
+      // CRITICAL FIX: Set user state WITH role
+      setUser({
+        ...response.data.user,
+        role: response.data.user.role || 'merchant' // ← ENSURING ROLE IS INCLUDED
+      });
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       navigate('/merchant/dashboard', { replace: true });
       showToast('Merchant Registration Successful', 'Your merchant account has been created');
@@ -264,7 +285,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateProfile = async (userData: any) => {
     return handleAuthAction(async () => {
       const response = await authAPI.updateProfile(userData);
-      setUser(prev => prev ? { ...prev, ...userData } : null);
+      // CRITICAL FIX: Preserve role when updating profile
+      setUser(prev => prev ? { ...prev, ...userData, role: prev.role } : null);
       showToast('Profile Updated', 'Your profile has been updated');
       return response;
     }, 'Profile Update', 'Profile Update');
@@ -275,7 +297,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('🔄 Refreshing user data...');
       const response = await authAPI.getMe();
       console.log('✅ User data refreshed:', response.data.data.email);
-      setUser(response.data.data);
+      // CRITICAL FIX: Ensure role is included when refreshing
+      setUser({
+        ...response.data.data,
+        role: response.data.data.role || 'user'
+      });
       return true;
     } catch (error) {
       console.error('❌ Failed to refresh user data:', error);
@@ -311,7 +337,5 @@ export const useAuth = () => {
   }
   return context;
 };
-
-
 
 export default AuthContext;
