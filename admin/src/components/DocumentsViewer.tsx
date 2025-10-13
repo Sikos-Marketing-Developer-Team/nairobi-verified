@@ -23,6 +23,7 @@ interface DocumentInfo {
   fileSize?: number;
   mimeType?: string;
   description?: string;
+  publicId?: string;
 }
 
 interface DocumentAnalysis {
