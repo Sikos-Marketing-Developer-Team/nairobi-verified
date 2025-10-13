@@ -18,14 +18,7 @@ import {
   LayoutDashboard,
   LogOut,
   Store,
-  BarChart3,
-  Package,
-  CreditCard,
-  Users,
-  Settings,
-  Bell,
-  Shield,
-  TrendingUp
+  Shield
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
@@ -48,10 +41,9 @@ const Navbar = () => {
   const isMerchantRoute = location.pathname.startsWith('/merchant/');
   
   // Show merchant navbar for merchants on merchant routes
-const showMerchantNav = isAuthenticated && 
-  ((user?.role === 'merchant' || user?.role === 'admin') && 
-  location.pathname.startsWith('/merchant/')) ||
-  (sessionStorage.getItem('userRole') === 'merchant' && location.pathname.startsWith('/merchant/'));
+  const showMerchantNav = isAuthenticated && 
+    (user?.role === 'merchant' || user?.role === 'admin') && 
+    isMerchantRoute;
 
   // Handle scroll effect
   useEffect(() => {
@@ -119,16 +111,14 @@ const showMerchantNav = isAuthenticated &&
     setIsMenuOpen(false);
   };
 
-  // Merchant-specific navigation items
+  // Merchant-specific navigation items - ONLY EXISTING ROUTES
   const merchantNavItems = [
     { path: '/merchant/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/merchant/products', label: 'Products', icon: Package },
-    { path: '/merchant/orders', label: 'Orders', icon: CreditCard },
-    { path: '/merchant/analytics', label: 'Analytics', icon: BarChart3 },
-    { path: '/merchant/customers', label: 'Customers', icon: Users },
+    { path: '/merchant/profile/edit', label: 'Profile', icon: User },
+    { path: '/merchant/verification', label: 'Verification', icon: Shield },
   ];
 
-  // User navigation items
+  // User navigation items - ONLY EXISTING ROUTES
   const userNavItems = [
     { path: '/products', label: 'Hot Deals', icon: Zap, highlight: true },
     { 
@@ -308,6 +298,15 @@ const showMerchantNav = isAuthenticated &&
           </div>
         )}
 
+        {/* Show placeholder when in merchant mode */}
+        {showMerchantNav && (
+          <div className="hidden md:flex items-center justify-center w-1/2 max-w-lg"
+            style={{ minWidth: "300px" }}
+          >
+            <span className="text-gray-500 text-sm">Merchant Business Portal</span>
+          </div>
+        )}
+
         {/* User Options */}
         <div className="flex items-center space-x-2 sm:space-x-4">
           {isAuthenticated ? (
@@ -315,7 +314,7 @@ const showMerchantNav = isAuthenticated &&
               {/* User Dropdown */}
               <div className="relative group">
                 <button className="hidden sm:flex items-center space-x-2 text-grey hover:text-[#EC5C0A] transition-colors p-2 rounded-[14px] hover:bg-[#FEEED5]">
-                  <div className="p-1 rounded-full bg-[#FEEED5] text-gray">
+                  <div className={`p-1 rounded-full ${showMerchantNav ? 'bg-blue-100' : 'bg-[#FEEED5]'} text-gray`}>
                     <User className="h-4 w-4" />
                   </div>
                   <span className="text-sm text-gray">Hello, {getUserDisplayName()}</span>
@@ -393,32 +392,13 @@ const showMerchantNav = isAuthenticated &&
               <span className="absolute -top-1 -right-1 bg-[#EC5C0A] text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
             </Link>
           )}
-
-          {/* Merchant-specific icons */}
-          {showMerchantNav && (
-            <>
-              <Link 
-                to="/merchant/notifications" 
-                className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-blue-50 p-2 rounded-[16px] relative"
-                title="Notifications"
-              >
-                <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 bg-blue-500 text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">3</span>
-              </Link>
-              <Link 
-                to="/merchant/settings" 
-                className="hover:scale-110 transition-transform duration-200 text-gray text-xl bg-blue-50 p-2 rounded-[16px]"
-                title="Settings"
-              >
-                <Settings className="w-5 h-5" />
-              </Link>
-            </>
-          )}
         </div>
       </div>
 
       {/* Desktop Navigation Links */}
-      <div className="hidden md:flex items-center justify-between px-6 py-2 border-t border-gray-200 text-gray text-base">
+      <div className={`hidden md:flex items-center justify-between px-6 py-2 border-t text-base ${
+        showMerchantNav ? 'border-blue-200 text-blue-800' : 'border-gray-200 text-gray'
+      }`}>
         <ul className="flex space-x-6 p-2">
           {renderDesktopNavItems()}
         </ul>
@@ -426,11 +406,14 @@ const showMerchantNav = isAuthenticated &&
         <ul className="flex items-center space-x-6">
           <li>
             <Link 
-              to="/support" 
-              className="hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 text-[#EC5C0A]"
-              title="Contact Support"
+              to="/contact" 
+              className={`hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 ${
+                showMerchantNav ? 'text-blue-600' : 'text-[#EC5C0A]'
+              }`}
+              title="Contact Us"
             >
-              <Phone className="w-4 h-4 text-[#EC5C0A]"  /> Contact Us
+              <Phone className={`w-4 h-4 ${showMerchantNav ? 'text-blue-600' : 'text-[#EC5C0A]'}`} /> 
+              Contact Us
             </Link>
           </li>
                       
@@ -499,6 +482,13 @@ const showMerchantNav = isAuthenticated &&
             </div>
           </div>
         )}
+
+        {/* Merchant placeholder on mobile */}
+        {showMerchantNav && (
+          <div className="flex-grow mx-2 text-center">
+            <span className="text-blue-600 text-sm font-medium">Business Portal</span>
+          </div>
+        )}
       </div>
 
       {/* Mobile Menu */}
@@ -512,10 +502,10 @@ const showMerchantNav = isAuthenticated &&
         
         {/* Contact Us */}
         <Link 
-          to="/support" 
+          to="/contact" 
           onClick={() => setIsMenuOpen(false)}
           className="hover:text-[#EC5C0A] transition-colors py-1.5 flex items-center gap-1 text-[#EC5C0A]"
-          title="Contact Support"
+          title="Contact Us"
         >
           <Phone className="w-4 h-4 text-[#EC5C0A]" /> Contact Us
         </Link>
