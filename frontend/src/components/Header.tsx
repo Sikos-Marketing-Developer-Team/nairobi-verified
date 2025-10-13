@@ -408,7 +408,7 @@ const Navbar = () => {
             <Link 
               to="/contact" 
               className={`hover:text-gray-700 transition-colors font-semibold flex items-center gap-1 opacity-90 ${
-                showMerchantNav ? 'text-blue-600' : 'text-[#EC5C0A]'
+                showMerchantNav ? 'text-orange-600' : 'text-[#EC5C0A]'
               }`}
               title="Contact Us"
             >
