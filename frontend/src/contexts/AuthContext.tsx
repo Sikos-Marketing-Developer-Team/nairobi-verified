@@ -9,12 +9,12 @@ type ReactNode = React.ReactNode;
 // Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// CRITICAL FIX: Remove localStorage initialization - always fetch fresh from session
+// Session management keys
 const LS_AUTH_CHECKED_KEY = 'authChecked';
+const LS_USER_ROLE_KEY = 'userRole'; // NEW: Store role separately for persistence
 
 // Provider component
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // CRITICAL FIX: Start with null, don't load from localStorage
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
@@ -35,32 +35,62 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   }, [toast]);
 
-  // CRITICAL FIX: Always check session on mount, ignore localStorage
+  // Enhanced user state setter that persists role
+  const setUserWithPersistence = useCallback((userData: User | null) => {
+    if (userData && userData.role) {
+      // Store role in sessionStorage for persistence
+      sessionStorage.setItem(LS_USER_ROLE_KEY, userData.role);
+      console.log('💾 Stored user role:', userData.role);
+    } else if (userData === null) {
+      // Clear stored role on logout
+      sessionStorage.removeItem(LS_USER_ROLE_KEY);
+      console.log('🧹 Cleared stored role');
+    }
+    
+    setUser(userData);
+  }, []);
+
+  // CRITICAL FIX: Enhanced auth check with role persistence
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('🔍 Checking authentication...');
+      console.log('🔍 Checking authentication with role persistence...');
       
       try {
-        // Use authAPI.getMe() instead of direct fetch to maintain consistency
         console.log('🔄 Checking session via getMe...');
         const meResponse = await authAPI.getMe();
-        console.log('✅ getMe successful:', meResponse.data.data.email);
-        handleSuccessfulAuth(meResponse.data.data);
+        const userData = meResponse.data.data;
+        
+        console.log('✅ getMe successful:', {
+          email: userData.email,
+          role: userData.role,
+          hasStoredRole: sessionStorage.getItem(LS_USER_ROLE_KEY)
+        });
+
+        handleSuccessfulAuth(userData);
       } catch (getMeError) {
         console.log('❌ No active session, user is guest');
-        setUser(null);
+        // Even if session fails, try to restore from stored role if available
+        const storedRole = sessionStorage.getItem(LS_USER_ROLE_KEY);
+        if (storedRole) {
+          console.log('🔄 Restoring from stored role:', storedRole);
+          // We have a stored role but no active session - redirect to login
+          if (location.pathname.startsWith('/merchant/')) {
+            console.log('🔒 Merchant route without session, redirecting to login');
+            navigate('/auth', { replace: true });
+          }
+        }
+        setUserWithPersistence(null);
       } finally {
         setIsLoading(false);
-        // Mark that we've checked auth in this session
         sessionStorage.setItem(LS_AUTH_CHECKED_KEY, 'true');
       }
     };
 
     const handleSuccessfulAuth = (userData: User) => {
-      console.log('🎯 Setting user data:', {
+      console.log('🎯 Setting user data with role persistence:', {
         id: userData.id || userData._id,
         email: userData.email,
-        role: userData.role, // ← NOW INCLUDING ROLE
+        role: userData.role,
         isMerchant: userData.isMerchant,
         businessName: userData.businessName
       });
@@ -68,29 +98,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Block admin users
       if (userData.role === 'admin') {
         showToast('Admin Access', 'Please use the dedicated admin dashboard to access admin features.', 'destructive');
-        setUser(null);
+        setUserWithPersistence(null);
         return;
       }
 
-      // CRITICAL FIX: Ensure role is included in user state
-      setUser({
+      // CRITICAL FIX: Ensure role is included and persisted
+      const userWithRole = {
         ...userData,
-        role: userData.role || 'user' // ← DEFAULT TO 'user' IF NOT PROVIDED
-      });
+        role: userData.role || sessionStorage.getItem(LS_USER_ROLE_KEY) as 'user' | 'merchant' | 'admin' || 'user'
+      };
+
+      setUserWithPersistence(userWithRole);
       
-      // Don't navigate if already on correct page
-      const isMerchant = userData.isMerchant || userData.businessName;
+      // Smart navigation based on role and current route
+      const isMerchant = userWithRole.role === 'merchant' || userWithRole.isMerchant || userWithRole.businessName;
       const targetPath = isMerchant ? '/merchant/dashboard' : '/dashboard';
       
+      // Only navigate if we're on auth page or if we're on a merchant route without merchant role
       if (location.pathname === '/auth') {
         console.log('🚀 Redirecting to:', targetPath);
         navigate(targetPath, { replace: true });
         showToast('Login Successful', 'Your session has been restored');
+      } else if (location.pathname.startsWith('/merchant/') && !isMerchant) {
+        console.log('⚠️ Non-merchant on merchant route, redirecting to user dashboard');
+        navigate('/dashboard', { replace: true });
       }
     };
 
-    // Only check auth once per page load
-    if (!sessionStorage.getItem(LS_AUTH_CHECKED_KEY)) {
+    // Check auth on mount and also when route changes to merchant routes
+    if (!sessionStorage.getItem(LS_AUTH_CHECKED_KEY) || location.pathname.startsWith('/merchant/')) {
       checkAuth();
     } else {
       setIsLoading(false);
@@ -98,9 +134,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Clear auth check flag when navigating away
     return () => {
-      sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
+      // Don't clear the checked flag immediately to prevent excessive API calls
+      setTimeout(() => {
+        if (!location.pathname.startsWith('/merchant/')) {
+          sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
+        }
+      }, 1000);
     };
-  }, [navigate, location, showToast]);
+  }, [navigate, location, showToast, setUserWithPersistence]);
+
+  // Enhanced auth check for merchant routes
+  useEffect(() => {
+    // Additional check when navigating to merchant routes
+    if (location.pathname.startsWith('/merchant/') && user && user.role !== 'merchant') {
+      console.log('🛑 Unauthorized merchant route access, redirecting...');
+      navigate('/dashboard', { replace: true });
+      showToast('Access Denied', 'Merchant dashboard is for merchants only', 'destructive');
+    }
+  }, [location.pathname, user, navigate, showToast]);
 
   // Auth functions
   const handleAuthAction = async (
@@ -137,17 +188,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       console.log('👤 User login successful:', userData.email);
       
-      // CRITICAL FIX: Set user state WITH role
-      setUser({
+      // CRITICAL FIX: Set user state WITH role persistence
+      setUserWithPersistence({
         ...userData,
-        role: userData.role || 'user' // ← ENSURING ROLE IS INCLUDED
+        role: userData.role || 'user'
       });
       
-      // CRITICAL FIX: Clear session check flag to force re-check on next mount
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       
-      // CRITICAL FIX: Wait for state update and then navigate
-      const targetPath = userData.isMerchant || userData.businessName 
+      const targetPath = userData.role === 'merchant' || userData.isMerchant || userData.businessName 
         ? '/merchant/dashboard' 
         : '/dashboard';
       
@@ -173,17 +222,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('✅ Merchant login successful:', {
         id: userData.id,
         email: userData.email,
-        role: userData.role, // ← NOW LOGGING ROLE
+        role: userData.role,
         businessName: userData.businessName
       });
       
-      // CRITICAL FIX: Set user state WITH role
-      setUser({
+      // CRITICAL FIX: Set user state WITH role persistence
+      setUserWithPersistence({
         ...userData,
-        role: userData.role || 'merchant' // ← ENSURING ROLE IS INCLUDED
+        role: userData.role || 'merchant'
       });
       
-      // Clear session check flag to force re-check on next mount
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       
       console.log('🚀 Navigating to merchant dashboard');
@@ -204,15 +252,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Admin access restricted');
       }
       
-      // CRITICAL FIX: Set user state WITH role
-      setUser({
+      // CRITICAL FIX: Set user state WITH role persistence
+      setUserWithPersistence({
         ...userData,
-        role: userData.role || 'user' // ← ENSURING ROLE IS INCLUDED
+        role: userData.role || 'user'
       });
       
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       
-      const targetPath = userData.isMerchant || userData.businessName 
+      const targetPath = userData.role === 'merchant' || userData.isMerchant || userData.businessName 
         ? '/merchant/dashboard' 
         : '/dashboard';
       
@@ -227,10 +275,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: any) => {
     return handleAuthAction(async () => {
       const response = await authAPI.register(userData);
-      // CRITICAL FIX: Set user state WITH role
-      setUser({
+      // CRITICAL FIX: Set user state WITH role persistence
+      setUserWithPersistence({
         ...response.data.user,
-        role: response.data.user.role || 'user' // ← ENSURING ROLE IS INCLUDED
+        role: response.data.user.role || 'user'
       });
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       navigate('/dashboard', { replace: true });
@@ -242,10 +290,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const registerMerchant = async (merchantData: any) => {
     return handleAuthAction(async () => {
       const response = await authAPI.registerMerchant(merchantData);
-      // CRITICAL FIX: Set user state WITH role
-      setUser({
+      // CRITICAL FIX: Set user state WITH role persistence
+      setUserWithPersistence({
         ...response.data.user,
-        role: response.data.user.role || 'merchant' // ← ENSURING ROLE IS INCLUDED
+        role: response.data.user.role || 'merchant'
       });
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       navigate('/merchant/dashboard', { replace: true });
@@ -257,9 +305,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     return handleAuthAction(async () => {
       await authAPI.logout();
-      // CRITICAL FIX: Set user to null BEFORE navigation
-      setUser(null);
+      // CRITICAL FIX: Clear all persistence
+      setUserWithPersistence(null);
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
+      sessionStorage.removeItem(LS_USER_ROLE_KEY);
       navigate('/', { replace: true });
       showToast('Logout Successful', 'You have been logged out', 'destructive');
     }, 'Logout', 'Logout');
@@ -286,7 +335,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return handleAuthAction(async () => {
       const response = await authAPI.updateProfile(userData);
       // CRITICAL FIX: Preserve role when updating profile
-      setUser(prev => prev ? { ...prev, ...userData, role: prev.role } : null);
+      setUserWithPersistence(user ? { ...user, ...userData, role: user.role } : null);
       showToast('Profile Updated', 'Your profile has been updated');
       return response;
     }, 'Profile Update', 'Profile Update');
@@ -298,15 +347,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await authAPI.getMe();
       console.log('✅ User data refreshed:', response.data.data.email);
       // CRITICAL FIX: Ensure role is included when refreshing
-      setUser({
+      setUserWithPersistence({
         ...response.data.data,
-        role: response.data.data.role || 'user'
+        role: response.data.data.role || sessionStorage.getItem(LS_USER_ROLE_KEY) as 'user' | 'merchant' | 'admin' || 'user'
       });
       return true;
     } catch (error) {
       console.error('❌ Failed to refresh user data:', error);
       // If refresh fails, log the user out
-      setUser(null);
+      setUserWithPersistence(null);
       return false;
     }
   };
