@@ -48,9 +48,9 @@ const Navbar = () => {
   const isMerchantRoute = location.pathname.startsWith('/merchant/');
   
   // Show merchant navbar for merchants on merchant routes
-  const showMerchantNav = isAuthenticated && 
-    (user?.role === 'merchant' || user?.role === 'admin') && 
-    isMerchantRoute;
+const showMerchantNav = isAuthenticated && 
+  (user?.role === 'merchant' || user?.role === 'admin') && 
+  location.pathname.startsWith('/merchant/');
 
   // Handle scroll effect
   useEffect(() => {
