@@ -17,10 +17,13 @@ import { useToast } from '@/hooks/use-toast';
 interface DocumentInfo {
   path?: string;
   uploadedAt?: string;
+  url?: string;
+  cloudinaryUrl?: string;
   originalName?: string;
   fileSize?: number;
   mimeType?: string;
   description?: string;
+  publicId?: string;
 }
 
 interface DocumentAnalysis {
@@ -192,23 +195,30 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
   };
 
   const getDocumentStatus = (docInfo: DocumentInfo | null): { 
-    status: 'uploaded' | 'missing'; 
-    color: string; 
-    icon: React.ReactNode; 
-  } => {
-    if (docInfo?.path) {
-      return {
-        status: 'uploaded',
-        color: 'text-green-600 bg-green-100',
-        icon: <CheckCircle className="h-4 w-4" />
-      };
-    }
+  status: 'uploaded' | 'missing'; 
+  color: string; 
+  icon: React.ReactNode; 
+} => {
+  // FIXED: Check multiple possible path formats
+  const hasDocument = !!(
+    docInfo?.path || 
+    docInfo?.url || 
+    docInfo?.cloudinaryUrl
+  );
+  
+  if (hasDocument) {
     return {
-      status: 'missing',
-      color: 'text-red-600 bg-red-100',
-      icon: <XCircle className="h-4 w-4" />
+      status: 'uploaded',
+      color: 'text-green-600 bg-green-100',
+      icon: <CheckCircle className="h-4 w-4" />
     };
+  }
+  return {
+    status: 'missing',
+    color: 'text-red-600 bg-red-100',
+    icon: <XCircle className="h-4 w-4" />
   };
+};
 
   const renderDocumentCard = (
     title: string,
