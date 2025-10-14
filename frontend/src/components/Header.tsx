@@ -37,14 +37,13 @@ const Navbar = () => {
   // Get auth state from context
   const { user, isAuthenticated, logout } = useAuth();
 
-  // FIXED: Better route detection and user role handling
-  const isMerchantRoute = location.pathname.startsWith('/merchant');
+  // FIXED: User role handling - merchants always use merchant interface
   const isAdmin = user?.role === 'admin';
   const isMerchant = user?.role === 'merchant';
   const isRegularUser = isAuthenticated && !isMerchant && !isAdmin;
   
-  // FIXED: Show merchant navbar only for merchants/admins on merchant routes
-  const showMerchantNav = (isMerchant || isAdmin) && isMerchantRoute;
+  // FIXED: Show merchant navbar for merchants/admins regardless of current route
+  const showMerchantNav = isMerchant || isAdmin;
 
   // Handle scroll effect
   useEffect(() => {
@@ -73,6 +72,29 @@ const Navbar = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMenuOpen]);
 
+  // FIXED: Redirect merchants to merchant routes when they try to access user routes
+  useEffect(() => {
+    if (isAuthenticated && showMerchantNav) {
+      // If merchant is on a user route, redirect to merchant equivalent or dashboard
+      const userRoutes = ['/', '/products', '/merchants', '/about', '/contact', '/cart', '/favorites', '/dashboard'];
+      const currentPath = location.pathname;
+      
+      if (userRoutes.includes(currentPath) || userRoutes.some(route => currentPath.startsWith(route))) {
+        // For specific routes, create merchant equivalents
+        if (currentPath === '/contact') {
+          navigate('/merchant/contact', { replace: true });
+        } else if (currentPath.startsWith('/products')) {
+          navigate('/merchant/products', { replace: true });
+        } else if (currentPath === '/merchants') {
+          navigate('/merchant/competitors', { replace: true });
+        } else if (currentPath !== '/merchant/dashboard') {
+          // Default redirect to merchant dashboard for other user routes
+          navigate('/merchant/dashboard', { replace: true });
+        }
+      }
+    }
+  }, [isAuthenticated, showMerchantNav, location.pathname, navigate]);
+
   const handleSearch = () => {
     if (searchQuery.trim()) {
       console.log('Searching for:', searchQuery);
@@ -94,14 +116,14 @@ const Navbar = () => {
     return user?.businessName || user?.email?.split('@')[0] || 'User';
   };
 
-  // FIXED: Better dashboard URL logic
+  // FIXED: Better dashboard URL logic - merchants always go to merchant dashboard
   const getDashboardUrl = () => {
     if (!isAuthenticated || !user) {
       return '/auth';
     }
     
-    // Merchant users go to merchant dashboard
-    if (isMerchant || isAdmin) {
+    // Merchant users ALWAYS go to merchant dashboard
+    if (showMerchantNav) {
       return '/merchant/dashboard';
     }
     
@@ -119,8 +141,11 @@ const Navbar = () => {
   // FIXED: Merchant-specific navigation items - ONLY for merchant view
   const merchantNavItems = [
     { path: '/merchant/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/merchant/products', label: 'Products', icon: Store },
+    { path: '/merchant/orders', label: 'Orders', icon: ShoppingCart },
     { path: '/merchant/profile/edit', label: 'Profile', icon: User },
     { path: '/merchant/verification', label: 'Verification', icon: Shield },
+    { path: '/merchant/contact', label: 'Contact Support', icon: Phone },
   ];
 
   // FIXED: User navigation items - ONLY for regular user view
@@ -147,6 +172,16 @@ const Navbar = () => {
     return showMerchantNav ? merchantNavItems : userNavItems;
   };
 
+  // FIXED: Handle navigation for merchants to user routes in new tab/window
+  const handleMerchantToUserRoute = (path, e) => {
+    if (showMerchantNav) {
+      e.preventDefault();
+      // Open user routes in new tab for merchants
+      const fullUrl = window.location.origin + path;
+      window.open(fullUrl, '_blank');
+    }
+  };
+
   // Render navigation items for desktop
   const renderDesktopNavItems = () => {
     const items = getNavItems();
@@ -168,6 +203,7 @@ const Navbar = () => {
                     to={dropdownItem.path}
                     className="block px-4 py-2.5 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                     title={dropdownItem.label}
+                    onClick={(e) => showMerchantNav ? handleMerchantToUserRoute(dropdownItem.path, e) : null}
                   >
                     {dropdownItem.label}
                   </Link>
@@ -186,6 +222,12 @@ const Navbar = () => {
               item.highlight ? 'text-orange-600' : ''
             }`}
             title={item.label}
+            onClick={(e) => {
+              // For merchant-specific routes, no special handling needed
+              if (item.path.startsWith('/merchant')) return;
+              // For user routes when in merchant view, handle specially
+              if (showMerchantNav) handleMerchantToUserRoute(item.path, e);
+            }}
           >
             {item.icon && <item.icon className={`w-4 h-4 ${item.highlight ? 'text-orange-600' : 'text-gray-900'}`} />}
             {item.label}
@@ -209,7 +251,14 @@ const Navbar = () => {
                 <li key={dropdownItem.label}>
                   <Link 
                     to={dropdownItem.path}
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={(e) => {
+                      if (showMerchantNav) {
+                        e.preventDefault();
+                        const fullUrl = window.location.origin + dropdownItem.path;
+                        window.open(fullUrl, '_blank');
+                      }
+                      setIsMenuOpen(false);
+                    }}
                     className="block pl-4 py-1.5 hover:text-orange-600 transition-colors text-gray-800"
                     title={dropdownItem.label}
                   >
@@ -226,7 +275,22 @@ const Navbar = () => {
         <Link
           key={item.path}
           to={item.path}
-          onClick={() => setIsMenuOpen(false)}
+          onClick={(e) => {
+            // For merchant-specific routes, no special handling needed
+            if (item.path.startsWith('/merchant')) {
+              setIsMenuOpen(false);
+              return;
+            }
+            // For user routes when in merchant view, handle specially
+            if (showMerchantNav) {
+              e.preventDefault();
+              const fullUrl = window.location.origin + item.path;
+              window.open(fullUrl, '_blank');
+              setIsMenuOpen(false);
+            } else {
+              setIsMenuOpen(false);
+            }
+          }}
           className={`block hover:text-orange-600 transition-colors text-gray-800 ${
             item.highlight ? 'text-orange-600' : ''
           }`}
@@ -242,7 +306,6 @@ const Navbar = () => {
   console.log('🔍 Navbar Debug:', {
     userRole: user?.role,
     isAuthenticated,
-    isMerchantRoute,
     showMerchantNav,
     isMerchant,
     isAdmin,
@@ -255,7 +318,7 @@ const Navbar = () => {
       ref={navbarRef}
       className={`fixed w-full top-0 z-50 transition-all duration-300 max-h-[150px] text-[15px] bg-white ${
         scrolled ? 'shadow-lg bg-opacity-95 backdrop-blur-sm' : 'shadow-md'
-      } ${showMerchantNav ? 'merchant-nav border-b-2 border-blue-500' : 'user-nav'}`}
+      } ${showMerchantNav ? 'merchant-nav border-b border-gray-200' : 'user-nav'}`}
       aria-label="Main navigation"
     >
       {/* Top Row - Logo, Search, Icons */}
@@ -272,7 +335,7 @@ const Navbar = () => {
             className="w-22 h-12 object-contain rounded-[16px] shadow-sm transition-transform group-hover:scale-105"
           />
           {showMerchantNav && (
-            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">
+            <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-semibold border border-gray-300">
               Merchant 
             </span>
           )}
@@ -316,6 +379,11 @@ const Navbar = () => {
         )}
 
         {/* Show placeholder when in merchant mode */}
+        {showMerchantNav && (
+          <div className="hidden md:flex items-center justify-center flex-1 mx-8">
+            <span className="text-gray-700 font-semibold text-lg">Business Portal</span>
+          </div>
+        )}
     
         {/* User Options */}
         <div className="flex items-center space-x-2 sm:space-x-4">
@@ -324,7 +392,7 @@ const Navbar = () => {
               {/* User Dropdown */}
               <div className="relative group">
                 <button className="hidden sm:flex items-center space-x-2 text-gray-700 hover:text-orange-600 transition-colors p-2 rounded-[14px] hover:bg-orange-50">
-                  <div className={`p-1 rounded-full ${showMerchantNav ? 'bg-blue-100' : 'bg-orange-50'} text-gray-700`}>
+                  <div className={`p-1 rounded-full ${showMerchantNav ? 'bg-gray-100' : 'bg-orange-50'} text-gray-700`}>
                     <User className="h-4 w-4" />
                   </div>
                   <span className="text-sm text-gray-800">Hello, {getUserDisplayName()}</span>
@@ -340,12 +408,12 @@ const Navbar = () => {
                   >
                     <div className="flex items-center gap-2">
                       <LayoutDashboard className="w-4 h-4" />
-                      {(isMerchant || isAdmin) ? 'Merchant Dashboard' : 'My Dashboard'}
+                      {showMerchantNav ? 'Merchant Dashboard' : 'My Dashboard'}
                     </div>
                   </button>
                   
                   {/* Show different profile links based on user type */}
-                  {(isMerchant || isAdmin) ? (
+                  {showMerchantNav ? (
                     <Link 
                       to="/merchant/profile/edit"
                       className="block px-4 py-3 hover:bg-orange-50 hover:text-orange-600 transition-colors border-b border-gray-100 text-gray-800"
@@ -423,7 +491,7 @@ const Navbar = () => {
 
       {/* Desktop Navigation Links */}
       <div className={`hidden md:flex items-center justify-between px-6 py-2 border-t text-base ${
-        showMerchantNav ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-gray-200 text-gray-800 bg-white'
+        showMerchantNav ? 'border-gray-200 bg-white text-gray-800' : 'border-gray-200 text-gray-800 bg-white'
       }`}>
         <ul className="flex space-x-6 p-2">
           {renderDesktopNavItems()}
@@ -432,14 +500,14 @@ const Navbar = () => {
         <ul className="flex items-center space-x-6">
           <li>
             <Link 
-              to="/contact" 
+              to={showMerchantNav ? "/merchant/contact" : "/contact"}
               className={`hover:text-orange-600 transition-colors font-semibold flex items-center gap-1 text-gray-900 ${
-                showMerchantNav ? 'text-blue-700 hover:text-blue-900' : 'text-orange-600'
+                showMerchantNav ? 'text-gray-700 hover:text-orange-600' : 'text-orange-600'
               }`}
               title="Contact Us"
             >
-              <Phone className={`w-4 h-4 ${showMerchantNav ? 'text-blue-600' : 'text-orange-600'}`} /> 
-              Contact Us
+              <Phone className={`w-4 h-4 ${showMerchantNav ? 'text-gray-600' : 'text-orange-600'}`} /> 
+              {showMerchantNav ? 'Contact Support' : 'Contact Us'}
             </Link>
           </li>
                       
@@ -479,13 +547,16 @@ const Navbar = () => {
           {/* Show "Switch to User View" for merchants on merchant routes */}
           {showMerchantNav && (
             <li>
-              <Link 
-                to="/"
+              <button
+                onClick={() => {
+                  const fullUrl = window.location.origin;
+                  window.open(fullUrl, '_blank');
+                }}
                 className="bg-orange-600 hover:bg-orange-700 transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px] text-sm"
-                title="Switch to Shopping View"
+                title="Open Shopping Site in New Tab"
               >
                 Shop Products
-              </Link>
+              </button>
             </li>
           )}
           
@@ -506,12 +577,12 @@ const Navbar = () => {
 
       {/* Mobile Menu Toggle & Search */}
       <div className={`flex md:hidden justify-between items-center px-4 py-2 border-t text-gray-800 ${
-        showMerchantNav ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-white'
+        showMerchantNav ? 'border-gray-200 bg-white' : 'border-gray-200 bg-white'
       }`}>
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className={`text-gray-800 focus:outline-none text-xl p-2 rounded-[16px] ${
-            showMerchantNav ? 'bg-blue-100 text-blue-700' : 'bg-orange-50'
+            showMerchantNav ? 'bg-gray-100 text-gray-700' : 'bg-orange-50'
           }`}
           aria-expanded={isMenuOpen}
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
@@ -542,7 +613,7 @@ const Navbar = () => {
         {/* Merchant placeholder on mobile */}
         {showMerchantNav && (
           <div className="flex-grow mx-2 text-center">
-            <span className="text-blue-600 text-sm font-medium">Business Portal</span>
+            <span className="text-gray-700 text-sm font-medium">Business Portal</span>
           </div>
         )}
       </div>
@@ -558,12 +629,13 @@ const Navbar = () => {
         
         {/* Contact Us */}
         <Link 
-          to="/contact" 
+          to={showMerchantNav ? "/merchant/contact" : "/contact"} 
           onClick={() => setIsMenuOpen(false)}
           className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-orange-600"
-          title="Contact Us"
+          title={showMerchantNav ? "Contact Support" : "Contact Us"}
         >
-          <Phone className="w-4 h-4 text-orange-600" /> Contact Us
+          <Phone className="w-4 h-4 text-orange-600" /> 
+          {showMerchantNav ? 'Contact Support' : 'Contact Us'}
         </Link>
         
         {/* Dashboard Link for Authenticated Users in Mobile Menu */}
@@ -574,20 +646,20 @@ const Navbar = () => {
             title="My Dashboard"
           >
             <LayoutDashboard className="w-4 h-4" /> 
-            {(isMerchant || isAdmin) ? 'Merchant Dashboard' : 'My Dashboard'}
+            {showMerchantNav ? 'Merchant Dashboard' : 'My Dashboard'}
           </button>
         )}
         
         {/* Profile Link for Authenticated Users in Mobile Menu */}
         {isAuthenticated && (
           <Link 
-            to={(isMerchant || isAdmin) ? "/merchant/profile/edit" : "/profile"}
+            to={showMerchantNav ? "/merchant/profile/edit" : "/profile"}
             onClick={() => setIsMenuOpen(false)}
             className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
             title="My Profile"
           >
             <User className="w-4 h-4" /> 
-            {(isMerchant || isAdmin) ? 'Merchant Profile' : 'My Profile'}
+            {showMerchantNav ? 'Merchant Profile' : 'My Profile'}
           </Link>
         )}
         
@@ -617,14 +689,17 @@ const Navbar = () => {
         
         {/* Show appropriate CTA button */}
         {showMerchantNav ? (
-          <Link 
-            to="/"
-            onClick={() => setIsMenuOpen(false)}
-            className="block bg-orange-600 text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-orange-700 transition-colors"
-            title="Switch to Shopping View"
+          <button
+            onClick={() => {
+              const fullUrl = window.location.origin;
+              window.open(fullUrl, '_blank');
+              setIsMenuOpen(false);
+            }}
+            className="block w-full bg-orange-600 text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-orange-700 transition-colors"
+            title="Open Shopping Site in New Tab"
           >
             Shop Products
-          </Link>
+          </button>
         ) : isRegularUser ? (
           <Link 
             to="/auth/register/merchant" 
