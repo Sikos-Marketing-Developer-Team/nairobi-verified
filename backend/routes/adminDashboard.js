@@ -52,6 +52,62 @@ router.put('/merchants/:id/status', checkPermission('merchants.approve'), update
 router.put('/merchants/bulk-status', checkPermission('merchants.approve'), bulkUpdateMerchantStatus);
 router.delete('/merchants/:merchantId', protectAdmin, checkPermission('merchants.delete'), deleteMerchant);
 router.delete('/merchants/bulk-delete', protectAdmin, checkPermission('merchants.delete'), bulkDeleteMerchants);
+// Single merchant featured status
+router.put('/merchants/:id/featured', async (req, res) => {
+  try {
+    const { featured } = req.body;
+    const merchant = await Merchant.findById(req.params.id);
+    
+    if (!merchant) {
+      return res.status(404).json({ success: false, error: 'Merchant not found' });
+    }
+
+    merchant.featured = !!featured;
+    merchant.featuredDate = featured ? Date.now() : null;
+    await merchant.save();
+
+    res.status(200).json({ 
+      success: true, 
+      data: merchant,
+      message: `Merchant ${featured ? 'featured' : 'unfeatured'} successfully`
+    });
+  } catch (error) {
+    console.error('setFeatured error:', error);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+// Bulk featured status
+router.post('/merchants/bulk-featured', async (req, res) => {
+  try {
+    const { merchantIds, featured } = req.body;
+    
+    if (!merchantIds || !Array.isArray(merchantIds)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'merchantIds array is required' 
+      });
+    }
+
+    const result = await Merchant.updateMany(
+      { _id: { $in: merchantIds } },
+      { 
+        featured: !!featured,
+        featuredDate: featured ? Date.now() : null,
+        updatedAt: Date.now()
+      }
+    );
+
+    res.status(200).json({ 
+      success: true, 
+      data: result,
+      message: `${result.modifiedCount} merchants ${featured ? 'featured' : 'unfeatured'} successfully`
+    });
+  } catch (error) {
+    console.error('bulkSetFeatured error:', error);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
 
 // Document management routes
 router.get('/merchants/:id/documents', checkPermission('merchants.read'), getMerchantDocuments);
