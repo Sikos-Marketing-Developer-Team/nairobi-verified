@@ -269,7 +269,7 @@ const MerchantRegister = () => {
     setIsSubmitting(true);
     
     try {
-      // STEP 1: Create merchant account first
+      // STEP 1: Create merchant account first (with auto-login)
       const registrationData = {
         businessName: formData.businessName,
         email: formData.email,
@@ -292,6 +292,7 @@ const MerchantRegister = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // 🔑 CRITICAL: Include credentials to receive session cookie
         body: JSON.stringify(registrationData)
       });
 
@@ -303,7 +304,29 @@ const MerchantRegister = () => {
 
       console.log('✅ Merchant account created:', registrationResult);
       
-      // STEP 2: Upload documents
+      // Check if auto-login was successful
+      if (!registrationResult.authenticated) {
+        console.warn('⚠️ Auto-login failed, merchant needs to login manually');
+        toast('Account created! Please log in to continue', {
+          description: 'You need to log in before uploading documents.',
+          duration: 5000,
+          position: 'top-center',
+          style: {
+            background: '#f59e0b',
+            color: 'white',
+            fontSize: '1.1rem',
+            fontWeight: 'bold'
+          }
+        });
+        
+        // Redirect to login page with merchant email pre-filled
+        setTimeout(() => {
+          window.location.href = `/auth/login?email=${encodeURIComponent(formData.email)}&type=merchant`;
+        }, 2000);
+        return;
+      }
+      
+      // STEP 2: Upload documents (merchant is now authenticated)
       const merchantId = registrationResult.data.id;
       console.log('Step 2: Uploading documents for merchant:', merchantId);
       
@@ -337,9 +360,10 @@ const MerchantRegister = () => {
         additionalDocs: uploadedFiles.additionalDocs.length
       });
 
-      // Upload documents to merchant's account
+      // Upload documents to merchant's account (now authenticated)
       const documentsResponse = await fetch(`${apiUrl}/merchants/${merchantId}/documents`, {
         method: 'PUT',
+        credentials: 'include', // 🔑 CRITICAL: Include credentials to send session cookie
         // DO NOT set Content-Type header - browser will set it automatically with boundary
         body: formDataWithFiles
       });
@@ -366,7 +390,7 @@ const MerchantRegister = () => {
         }
       });
       
-      // Redirect to success page or homepage
+      // Redirect to success page or merchant dashboard
       setTimeout(() => {
         window.location.href = '/merchant-registration-success';
       }, 3000);
