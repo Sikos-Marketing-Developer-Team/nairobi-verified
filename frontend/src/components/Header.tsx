@@ -42,7 +42,7 @@ const Navbar = () => {
   const isMerchant = user?.role === 'merchant';
   const isRegularUser = isAuthenticated && !isMerchant && !isAdmin;
   
-  // FIXED: Show merchant navbar for merchants/admins regardless of current route
+  // FIXED: Show merchant navbar for merchants/admins
   const showMerchantNav = isMerchant || isAdmin;
 
   // Handle scroll effect
@@ -71,29 +71,6 @@ const Navbar = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMenuOpen]);
-
-  // FIXED: Redirect merchants to merchant routes when they try to access user routes
-  useEffect(() => {
-    if (isAuthenticated && showMerchantNav) {
-      // If merchant is on a user route, redirect to merchant equivalent or dashboard
-      const userRoutes = ['/', '/products', '/merchants', '/about', '/contact', '/cart', '/favorites', '/dashboard'];
-      const currentPath = location.pathname;
-      
-      if (userRoutes.includes(currentPath) || userRoutes.some(route => currentPath.startsWith(route))) {
-        // For specific routes, create merchant equivalents
-        if (currentPath === '/contact') {
-          navigate('/merchant/contact', { replace: true });
-        } else if (currentPath.startsWith('/products')) {
-          navigate('/merchant/products', { replace: true });
-        } else if (currentPath === '/merchants') {
-          navigate('/merchant/competitors', { replace: true });
-        } else if (currentPath !== '/merchant/dashboard') {
-          // Default redirect to merchant dashboard for other user routes
-          navigate('/merchant/dashboard', { replace: true });
-        }
-      }
-    }
-  }, [isAuthenticated, showMerchantNav, location.pathname, navigate]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -138,7 +115,19 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
 
-  // FIXED: Merchant-specific navigation items - ONLY for merchant view
+  // FIXED: Handle navigation for merchants to user routes in new tab
+  const handleMerchantToUserRoute = (path, e) => {
+    if (showMerchantNav && !path.startsWith('/merchant')) {
+      e.preventDefault();
+      // Open user routes in new tab for merchants
+      const fullUrl = window.location.origin + path;
+      window.open(fullUrl, '_blank');
+      return true;
+    }
+    return false;
+  };
+
+  // FIXED: Merchant-specific navigation items
   const merchantNavItems = [
     { path: '/merchant/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/merchant/products', label: 'Products', icon: Store },
@@ -148,7 +137,7 @@ const Navbar = () => {
     { path: '/merchant/contact', label: 'Contact Support', icon: Phone },
   ];
 
-  // FIXED: User navigation items - ONLY for regular user view
+  // FIXED: User navigation items
   const userNavItems = [
     { path: '/products', label: 'Hot Deals', icon: Zap, highlight: true },
     { 
@@ -172,16 +161,6 @@ const Navbar = () => {
     return showMerchantNav ? merchantNavItems : userNavItems;
   };
 
-  // FIXED: Handle navigation for merchants to user routes in new tab/window
-  const handleMerchantToUserRoute = (path, e) => {
-    if (showMerchantNav) {
-      e.preventDefault();
-      // Open user routes in new tab for merchants
-      const fullUrl = window.location.origin + path;
-      window.open(fullUrl, '_blank');
-    }
-  };
-
   // Render navigation items for desktop
   const renderDesktopNavItems = () => {
     const items = getNavItems();
@@ -203,7 +182,7 @@ const Navbar = () => {
                     to={dropdownItem.path}
                     className="block px-4 py-2.5 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                     title={dropdownItem.label}
-                    onClick={(e) => showMerchantNav ? handleMerchantToUserRoute(dropdownItem.path, e) : null}
+                    onClick={(e) => handleMerchantToUserRoute(dropdownItem.path, e)}
                   >
                     {dropdownItem.label}
                   </Link>
@@ -214,6 +193,8 @@ const Navbar = () => {
         );
       }
 
+      const IconComponent = item.icon;
+
       return (
         <li key={item.path}>
           <Link 
@@ -222,14 +203,9 @@ const Navbar = () => {
               item.highlight ? 'text-orange-600' : ''
             }`}
             title={item.label}
-            onClick={(e) => {
-              // For merchant-specific routes, no special handling needed
-              if (item.path.startsWith('/merchant')) return;
-              // For user routes when in merchant view, handle specially
-              if (showMerchantNav) handleMerchantToUserRoute(item.path, e);
-            }}
+            onClick={(e) => handleMerchantToUserRoute(item.path, e)}
           >
-            {item.icon && <item.icon className={`w-4 h-4 ${item.highlight ? 'text-orange-600' : 'text-gray-900'}`} />}
+            {IconComponent && <IconComponent className={`w-4 h-4 ${item.highlight ? 'text-orange-600' : 'text-gray-900'}`} />}
             {item.label}
           </Link>
         </li>
@@ -252,12 +228,9 @@ const Navbar = () => {
                   <Link 
                     to={dropdownItem.path}
                     onClick={(e) => {
-                      if (showMerchantNav) {
-                        e.preventDefault();
-                        const fullUrl = window.location.origin + dropdownItem.path;
-                        window.open(fullUrl, '_blank');
+                      if (handleMerchantToUserRoute(dropdownItem.path, e)) {
+                        setIsMenuOpen(false);
                       }
-                      setIsMenuOpen(false);
                     }}
                     className="block pl-4 py-1.5 hover:text-orange-600 transition-colors text-gray-800"
                     title={dropdownItem.label}
@@ -271,23 +244,14 @@ const Navbar = () => {
         );
       }
 
+      const IconComponent = item.icon;
+
       return (
         <Link
           key={item.path}
           to={item.path}
           onClick={(e) => {
-            // For merchant-specific routes, no special handling needed
-            if (item.path.startsWith('/merchant')) {
-              setIsMenuOpen(false);
-              return;
-            }
-            // For user routes when in merchant view, handle specially
-            if (showMerchantNav) {
-              e.preventDefault();
-              const fullUrl = window.location.origin + item.path;
-              window.open(fullUrl, '_blank');
-              setIsMenuOpen(false);
-            } else {
+            if (handleMerchantToUserRoute(item.path, e)) {
               setIsMenuOpen(false);
             }
           }}
@@ -301,17 +265,6 @@ const Navbar = () => {
       );
     });
   };
-
-  // FIXED: Debug info to see what's happening
-  console.log('🔍 Navbar Debug:', {
-    userRole: user?.role,
-    isAuthenticated,
-    showMerchantNav,
-    isMerchant,
-    isAdmin,
-    isRegularUser,
-    path: location.pathname
-  });
 
   return (
     <nav 
@@ -504,7 +457,8 @@ const Navbar = () => {
               className={`hover:text-orange-600 transition-colors font-semibold flex items-center gap-1 text-gray-900 ${
                 showMerchantNav ? 'text-gray-700 hover:text-orange-600' : 'text-orange-600'
               }`}
-              title="Contact Us"
+              title={showMerchantNav ? "Contact Support" : "Contact Us"}
+              onClick={(e) => handleMerchantToUserRoute("/contact", e)}
             >
               <Phone className={`w-4 h-4 ${showMerchantNav ? 'text-gray-600' : 'text-orange-600'}`} /> 
               {showMerchantNav ? 'Contact Support' : 'Contact Us'}
@@ -630,7 +584,10 @@ const Navbar = () => {
         {/* Contact Us */}
         <Link 
           to={showMerchantNav ? "/merchant/contact" : "/contact"} 
-          onClick={() => setIsMenuOpen(false)}
+          onClick={(e) => {
+            if (handleMerchantToUserRoute("/contact", e)) return;
+            setIsMenuOpen(false);
+          }}
           className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-orange-600"
           title={showMerchantNav ? "Contact Support" : "Contact Us"}
         >
