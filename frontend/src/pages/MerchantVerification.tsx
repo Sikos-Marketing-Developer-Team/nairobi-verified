@@ -7,8 +7,49 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
-import { merchantsAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+// API service functions for verification
+const verificationAPI = {
+  getVerificationStatus: async () => {
+    const response = await fetch(`${API_BASE_URL}/merchants/verification/status`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    return response.json();
+  },
+
+  getDocuments: async () => {
+    const response = await fetch(`${API_BASE_URL}/merchants/verification/documents`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    return response.json();
+  },
+
+  uploadDocument: async (documentType: string, file: File) => {
+    const formData = new FormData();
+    formData.append('documentType', documentType);
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/merchants/verification/documents`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData
+    });
+    return response.json();
+  },
+
+  getRequiredDocuments: async () => {
+    const response = await fetch(`${API_BASE_URL}/merchants/verification/required-documents`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    return response.json();
+  }
+};
 
 const MerchantVerification = () => {
   const { toast } = useToast();
@@ -23,89 +64,75 @@ const MerchantVerification = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [verificationData, setVerificationData] = useState<any>(null);
+  const [requiredDocuments, setRequiredDocuments] = useState<string[]>([]);
 
-  // Load verification data
+  // Load verification data from actual API
   useEffect(() => {
     const loadVerificationData = async () => {
       try {
         setLoading(true);
         
-        // For now, use mock data since the API might not have the verification endpoint yet
-        const mockData = {
-          status: 'pending', // verified, pending, rejected, incomplete
-          submittedDate: '2024-01-10',
-          reviewedDate: '2024-01-12',
-          verificationSteps: [
-            { 
-              id: 1, 
-              title: 'Application Submitted', 
-              completed: true, 
-              date: '2024-01-10',
-              description: 'Your verification application has been received'
-            },
-            { 
-              id: 2, 
-              title: 'Documents Reviewed', 
-              completed: false, 
-              date: null,
-              description: 'All submitted documents have been reviewed'
-            },
-            { 
-              id: 3, 
-              title: 'Physical Verification', 
-              completed: false, 
-              date: null,
-              description: 'Your business location has been verified'
-            },
-            { 
-              id: 4, 
-              title: 'Verification Complete', 
-              completed: false, 
-              date: null,
-              description: 'Your business is now verified and visible to customers'
-            }
-          ],
-          documents: [
-            { 
-              id: 1,
-              type: 'Business Registration', 
-              status: 'pending', 
-              uploadDate: '2024-05-10',
-              notes: 'Under review',
-              fileName: 'business_registration.pdf',
-              fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
-            },
-            { 
-              id: 2,
-              type: 'ID Document', 
-              status: 'pending', 
-              uploadDate: '2024-05-10',
-              notes: 'Under review',
-              fileName: 'id_document.pdf',
-              fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
-            },
-            { 
-              id: 3,
-              type: 'Utility Bill', 
-              status: 'rejected', 
-              uploadDate: '2024-05-10',
-              notes: 'Document is too old. Please upload a utility bill from the last 3 months.',
-              fileName: 'utility_bill.pdf',
-              fileUrl: 'https://www.africau.edu/images/default/sample.pdf'
-            }
-          ],
-          requiredDocuments: [
+        // Fetch all verification data in parallel
+        const [statusResponse, documentsResponse, requiredDocsResponse] = await Promise.all([
+          verificationAPI.getVerificationStatus(),
+          verificationAPI.getDocuments(),
+          verificationAPI.getRequiredDocuments()
+        ]);
+
+        if (statusResponse.success) {
+          setVerificationData(statusResponse.data);
+        } else {
+          throw new Error(statusResponse.error || 'Failed to load verification status');
+        }
+
+        if (documentsResponse.success) {
+          setDocuments(documentsResponse.data);
+        } else {
+          throw new Error(documentsResponse.error || 'Failed to load documents');
+        }
+
+        if (requiredDocsResponse.success) {
+          setRequiredDocuments(requiredDocsResponse.data);
+        } else {
+          // If required documents endpoint fails, use default list
+          setRequiredDocuments([
             'Business Registration',
             'ID Document',
             'Utility Bill',
             'Business Photos'
-          ]
-        };
-        
-        setVerificationData(mockData);
-        setLoading(false);
+          ]);
+        }
+
       } catch (error) {
         console.error('Error loading verification data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load verification data. Please try again.",
+          variant: "destructive",
+        });
+        
+        // Set minimal data to prevent permanent loading state
+        setVerificationData({
+          status: 'incomplete',
+          submittedDate: new Date().toISOString().split('T')[0],
+          verificationSteps: [
+            { 
+              id: 1, 
+              title: 'Application Submitted', 
+              completed: false, 
+              date: null,
+              description: 'Submit your verification application'
+            }
+          ]
+        });
+        
+        setRequiredDocuments([
+          'Business Registration',
+          'ID Document',
+          'Utility Bill',
+          'Business Photos'
+        ]);
+      } finally {
         setLoading(false);
       }
     };
@@ -113,7 +140,7 @@ const MerchantVerification = () => {
     if (user?.isMerchant) {
       loadVerificationData();
     }
-  }, [user]);
+  }, [user, toast]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -143,7 +170,30 @@ const MerchantVerification = () => {
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload PDF, JPG, or PNG files only",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setSelectedFile(file);
     }
   };
   
@@ -157,49 +207,38 @@ const MerchantVerification = () => {
       return;
     }
 
-    if (!user?.id) {
-      toast({
-        title: "Error",
-        description: "User not authenticated",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     try {
       setUploading(true);
       
-      // Convert document type to API field name
-      const fieldMap: Record<string, string> = {
-        "Business Registration": "businessRegistration",
-        "ID Document": "idDocument",
-        "Utility Bill": "utilityBill",
-        "Business Photos": "additionalDocs"
-      };
+      const response = await verificationAPI.uploadDocument(documentType, selectedFile);
       
-      const fieldName = fieldMap[documentType] || "additionalDocs";
-      
-      // Use the actual user ID from the auth context
-      await merchantsAPI.uploadDocuments(user.id, { [fieldName]: selectedFile });
-      
-      // Create a new document object to add to the state
-      const newDoc = {
-        id: Date.now(),
-        type: documentType,
-        status: 'pending',
-        uploadDate: new Date().toISOString().split('T')[0],
-        notes: 'Under review',
-        fileName: selectedFile.name,
-        fileUrl: URL.createObjectURL(selectedFile)
-      };
-      
-      // Update the documents state with the new document
-      setDocuments(prevDocs => [...prevDocs, newDoc]);
-      
-      toast({
-        title: "Document uploaded",
-        description: `${documentType} has been uploaded successfully and is pending review.`,
-      });
+      if (response.success) {
+        // Add the new document to the state
+        const newDoc = {
+          id: response.data.id || Date.now(),
+          type: documentType,
+          status: 'pending',
+          uploadDate: new Date().toISOString().split('T')[0],
+          notes: 'Under review',
+          fileName: selectedFile.name,
+          fileUrl: response.data.fileUrl || URL.createObjectURL(selectedFile)
+        };
+        
+        setDocuments(prevDocs => [...prevDocs, newDoc]);
+        
+        toast({
+          title: "Document uploaded",
+          description: `${documentType} has been uploaded successfully and is pending review.`,
+        });
+        
+        // Refresh verification status
+        const statusResponse = await verificationAPI.getVerificationStatus();
+        if (statusResponse.success) {
+          setVerificationData(statusResponse.data);
+        }
+      } else {
+        throw new Error(response.error || 'Upload failed');
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -221,6 +260,36 @@ const MerchantVerification = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setLoading(true);
+      const [statusResponse, documentsResponse] = await Promise.all([
+        verificationAPI.getVerificationStatus(),
+        verificationAPI.getDocuments()
+      ]);
+
+      if (statusResponse.success) {
+        setVerificationData(statusResponse.data);
+      }
+      if (documentsResponse.success) {
+        setDocuments(documentsResponse.data);
+      }
+
+      toast({
+        title: "Refreshed",
+        description: "Verification data updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh failed",
+        description: "Could not update verification data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -230,22 +299,6 @@ const MerchantVerification = () => {
             <div className="text-center">
               <Clock className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
               <p className="text-gray-600">Loading verification status...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!verificationData) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <p className="text-gray-600">Unable to load verification data</p>
             </div>
           </div>
         </div>
@@ -264,9 +317,15 @@ const MerchantVerification = () => {
               <h1 className="text-3xl font-bold text-gray-900">Verification Status</h1>
               <p className="text-gray-600 mt-2">Track your business verification progress</p>
             </div>
-            <Link to="/merchant/dashboard">
-              <Button variant="outline">Back to Dashboard</Button>
-            </Link>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={handleRefresh} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Link to="/merchant/dashboard">
+                <Button variant="outline">Back to Dashboard</Button>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -275,24 +334,26 @@ const MerchantVerification = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                {getStatusIcon(verificationData.status)}
+                {verificationData ? getStatusIcon(verificationData.status) : <Clock className="h-6 w-6 text-gray-600" />}
                 <div>
                   <h3 className="text-xl font-semibold capitalize">
-                    {verificationData.status === 'verified' ? 'Business Verified' : 
-                     verificationData.status === 'pending' ? 'Verification Pending' :
-                     verificationData.status === 'rejected' ? 'Verification Rejected' :
+                    {verificationData?.status === 'verified' ? 'Business Verified' : 
+                     verificationData?.status === 'pending' ? 'Verification Pending' :
+                     verificationData?.status === 'rejected' ? 'Verification Rejected' :
                      'Verification Incomplete'}
                   </h3>
                   <p className="text-gray-600">
-                    {verificationData.status === 'verified' ? 
-                      `Verified on ${verificationData.reviewedDate}` :
-                      `Submitted on ${verificationData.submittedDate}`}
+                    {verificationData?.submittedDate ? 
+                      `Submitted on ${verificationData.submittedDate}` :
+                      'No verification application submitted'}
                   </p>
                 </div>
               </div>
-              <span className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${getStatusColor(verificationData.status)}`}>
-                {verificationData.status}
-              </span>
+              {verificationData && (
+                <span className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${getStatusColor(verificationData.status)}`}>
+                  {verificationData.status}
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -305,8 +366,8 @@ const MerchantVerification = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {verificationData.verificationSteps.map((step, index) => (
-                  <div key={step.id} className="flex items-start gap-4">
+                {verificationData?.verificationSteps?.map((step: any, index: number) => (
+                  <div key={step.id || index} className="flex items-start gap-4">
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                       step.completed ? 'bg-green-100' : 'bg-gray-100'
                     }`}>
@@ -329,7 +390,12 @@ const MerchantVerification = () => {
                       <p className="text-sm text-gray-600 mt-1">{step.description}</p>
                     </div>
                   </div>
-                ))}
+                )) || (
+                  <div className="text-center py-8 text-gray-500">
+                    <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No verification steps available</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -341,70 +407,77 @@ const MerchantVerification = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[...verificationData.documents, ...documents].map((doc) => (
-                  <div key={doc.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-gray-400" />
-                        <span className="font-medium">{doc.type}</span>
+                {documents.length > 0 ? (
+                  documents.map((doc) => (
+                    <div key={doc.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-gray-400" />
+                          <span className="font-medium">{doc.type}</span>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          doc.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          doc.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-amber-100 text-amber-800'
+                        }`}>
+                          {doc.status}
+                        </span>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        doc.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        doc.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-amber-100 text-amber-800'
-                      }`}>
-                        {doc.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600">Uploaded: {doc.uploadDate}</p>
-                    <p className="text-sm text-gray-600">File: {doc.fileName}</p>
-                    {doc.notes && (
-                      <p className="text-sm text-gray-500 mt-2 italic">{doc.notes}</p>
-                    )}
-                    
-                    <div className="flex items-center gap-2 mt-3">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          setSelectedDocument(doc);
-                          setPreviewOpen(true);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Preview
-                      </Button>
+                      <p className="text-sm text-gray-600">Uploaded: {doc.uploadDate}</p>
+                      <p className="text-sm text-gray-600">File: {doc.fileName}</p>
+                      {doc.notes && (
+                        <p className="text-sm text-gray-500 mt-2 italic">{doc.notes}</p>
+                      )}
                       
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => window.open(doc.fileUrl, '_blank')}
-                      >
-                        <Download className="h-4 w-4 mr-1" />
-                        Download
-                      </Button>
-                      
-                      {doc.status === 'rejected' && (
+                      <div className="flex items-center gap-2 mt-3">
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="text-primary border-primary hover:bg-primary/10"
                           onClick={() => {
-                            setDocumentType(doc.type);
-                            setUploadDialogOpen(true);
+                            setSelectedDocument(doc);
+                            setPreviewOpen(true);
                           }}
                         >
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          Replace
+                          <Eye className="h-4 w-4 mr-1" />
+                          Preview
                         </Button>
-                      )}
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.open(doc.fileUrl, '_blank')}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
+                        
+                        {doc.status === 'rejected' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-primary border-primary hover:bg-primary/10"
+                            onClick={() => {
+                              setDocumentType(doc.type);
+                              setUploadDialogOpen(true);
+                            }}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            Replace
+                          </Button>
+                        )}
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No documents uploaded yet</p>
                   </div>
-                ))}
+                )}
                 
                 {/* Missing Documents */}
-                {verificationData.requiredDocuments
-                  .filter(reqDoc => ![...verificationData.documents, ...documents].some(doc => doc.type === reqDoc))
+                {requiredDocuments
+                  .filter(reqDoc => !documents.some(doc => doc.type === reqDoc))
                   .map((missingDoc, index) => (
                     <div key={`missing-${index}`} className="border border-dashed rounded-lg p-4 bg-gray-50">
                       <div className="flex items-center justify-between mb-2">
@@ -449,7 +522,7 @@ const MerchantVerification = () => {
         </div>
 
         {/* Additional Information */}
-        {verificationData.status === 'verified' && (
+        {verificationData?.status === 'verified' && (
           <Card className="mt-8">
             <CardHeader>
               <CardTitle>What's Next?</CardTitle>
@@ -561,7 +634,7 @@ const MerchantVerification = () => {
                 required
               >
                 <option value="">Select document type</option>
-                {verificationData.requiredDocuments.map((type) => (
+                {requiredDocuments.map((type) => (
                   <option key={type} value={type}>{type}</option>
                 ))}
               </select>
