@@ -93,7 +93,7 @@ router.get(
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:resetToken', resetPassword);
 
-// Merchant password change route
-router.post('/merchant/change-password', protect, changeMerchantPassword);
+// Merchant password change route (supports both authenticated and temporary password changes)
+router.post('/merchant/change-password', changeMerchantPassword);
 
 module.exports = router;
