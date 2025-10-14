@@ -728,10 +728,10 @@ exports.resetPassword = async (req, res) => {
 
 // @desc    Change merchant temporary password
 // @route   POST /api/auth/merchant/change-password
-// @access  Private (Merchant)
+// @access  Public (for temporary passwords) / Private (for regular password changes)
 exports.changeMerchantPassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { email, currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -747,14 +747,52 @@ exports.changeMerchantPassword = async (req, res) => {
       });
     }
 
-    // Get merchant with password field
-    const merchant = await Merchant.findById(req.user.id).select('+password +tempPasswordExpiry');
+    let merchant;
+    
+    // If email is provided, this is a temporary password change (no auth required)
+    if (email) {
+      merchant = await Merchant.findOne({ email }).select('+password +tempPasswordExpiry +passwordChanged');
+      
+      if (!merchant) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          error: 'Merchant not found'
+        });
+      }
 
-    if (!merchant) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        error: 'Merchant not found'
-      });
+      // Verify this is actually an admin-created account with temp password
+      if (!merchant.createdByAdmin || !merchant.tempPasswordExpiry) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          error: 'This account does not have temporary password restrictions'
+        });
+      }
+
+      // Check if temp password has expired
+      if (new Date() > merchant.tempPasswordExpiry) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          error: 'Your temporary password has expired. Please contact admin for assistance.',
+          expired: true
+        });
+      }
+    } else {
+      // Regular authenticated password change
+      if (!req.user || !req.user.id) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          error: 'Authentication required'
+        });
+      }
+
+      merchant = await Merchant.findById(req.user.id).select('+password +tempPasswordExpiry +passwordChanged');
+
+      if (!merchant) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          error: 'Merchant not found'
+        });
+      }
     }
 
     // Verify current password
@@ -765,17 +803,6 @@ exports.changeMerchantPassword = async (req, res) => {
         success: false,
         error: 'Current password is incorrect'
       });
-    }
-
-    // If this merchant was created by admin, check if temp password has expired
-    if (merchant.createdByAdmin && merchant.tempPasswordExpiry) {
-      if (new Date() > merchant.tempPasswordExpiry) {
-        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-          success: false,
-          error: 'Your temporary password has expired. Please contact admin for assistance.',
-          expired: true
-        });
-      }
     }
 
     // Update password and mark as changed
@@ -792,7 +819,7 @@ exports.changeMerchantPassword = async (req, res) => {
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Password changed successfully'
+      message: 'Password changed successfully. You can now log in with your new password.'
     });
 
   } catch (error) {
