@@ -127,6 +127,37 @@ exports.registerMerchant = async (req, res) => {
       businessHours
     });
 
+    // Send registration confirmation email (don't block registration if email fails)
+    try {
+      await emailService.sendMerchantRegistrationConfirmation({
+        businessName: merchant.businessName,
+        email: merchant.email,
+        businessType: merchant.businessType
+      });
+      console.log(`Registration confirmation email sent to: ${merchant.email}`);
+    } catch (emailError) {
+      console.error('Registration confirmation email failed:', emailError);
+      // Don't fail registration if email fails
+    }
+
+    // Send admin notification about new merchant registration (don't block registration if email fails)
+    try {
+      await emailService.sendAdminMerchantNotification({
+        businessName: merchant.businessName,
+        email: merchant.email,
+        businessType: merchant.businessType,
+        phone: merchant.phone,
+        address: merchant.address,
+        location: merchant.location,
+        yearEstablished: merchant.yearEstablished,
+        createdAt: merchant.createdAt
+      });
+      console.log(`Admin notification sent for new merchant: ${merchant.businessName}`);
+    } catch (emailError) {
+      console.error('Admin notification email failed:', emailError);
+      // Don't fail registration if email fails
+    }
+
     req.login(merchant, (err) => {
       if (err) {
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
@@ -227,7 +258,7 @@ exports.loginMerchant = async (req, res) => {
       });
     }
 
-    const merchant = await Merchant.findOne({ email }).select('+password');
+    const merchant = await Merchant.findOne({ email }).select('+password +tempPasswordExpiry');
 
     if (!merchant) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
@@ -243,6 +274,37 @@ exports.loginMerchant = async (req, res) => {
         success: false,
         error: 'Invalid credentials'
       });
+    }
+
+    // Check if the account was created by admin and has temporary password restrictions
+    if (merchant.createdByAdmin && merchant.tempPasswordExpiry) {
+      // Check if temporary password has expired
+      if (new Date() > merchant.tempPasswordExpiry) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          error: 'Your temporary password has expired. Please contact admin for a new password.',
+          expired: true
+        });
+      }
+
+      // If this is their first login with temp password, require password change
+      if (!merchant.passwordChanged) {
+        return res.status(HTTP_STATUS.OK).json({
+          success: true,
+          requirePasswordChange: true,
+          message: 'Please change your password to continue',
+          user: {
+            id: merchant._id,
+            businessName: merchant.businessName,
+            email: merchant.email,
+            phone: merchant.phone,
+            businessType: merchant.businessType,
+            verified: merchant.verified,
+            isMerchant: true,
+            tempPasswordExpiry: merchant.tempPasswordExpiry
+          }
+        });
+      }
     }
 
     req.login(merchant, (err) => {

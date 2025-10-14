@@ -144,6 +144,19 @@ class EmailService {
   }
 
   /**
+   * Send merchant registration confirmation email
+   */
+  async sendMerchantRegistrationConfirmation(merchantData) {
+    const emailOptions = {
+      to: merchantData.email,
+      subject: '🏪 Registration Received - Profile Under Review | Nairobi Verified',
+      html: this.getMerchantRegistrationConfirmationTemplate(merchantData)
+    };
+
+    return this.sendEmail(emailOptions);
+  }
+
+  /**
    * Merchant welcome email template
    */
   getMerchantWelcomeTemplate(merchantData, credentials, setupUrl) {
@@ -225,6 +238,62 @@ class EmailService {
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
           <p style="color: #999; font-size: 12px;">
             Nairobi Verified | Connecting You with Trusted Merchants
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Merchant registration confirmation email template
+   */
+  getMerchantRegistrationConfirmationTemplate(merchantData) {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🏪 Registration Received!</h1>
+          <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Your business profile is under review</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+          <h2 style="color: #333; margin-top: 0;">Hello ${merchantData.businessName}!</h2>
+          <p style="color: #666; line-height: 1.6;">
+            Thank you for registering your business with Nairobi Verified! We've received your application 
+            and our verification team is now reviewing your business profile.
+          </p>
+        </div>
+
+        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #ff9800;">
+          <h3 style="color: #ef6c00; margin-top: 0;">📋 What happens next?</h3>
+          <ol style="color: #666; line-height: 1.8; padding-left: 20px;">
+            <li><strong>Document Review</strong> - Our team will verify your business registration and documents</li>
+            <li><strong>Profile Verification</strong> - We'll confirm your business details and authenticity</li>
+            <li><strong>Account Activation</strong> - Once approved, you'll receive login credentials via email</li>
+            <li><strong>Dashboard Access</strong> - Start managing your business profile and products</li>
+          </ol>
+        </div>
+
+        <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+          <h3 style="color: #2e7d32; margin-top: 0;">⏱️ Review Timeline</h3>
+          <p style="color: #666; line-height: 1.6; margin: 0;">
+            <strong>Business Category:</strong> ${merchantData.businessType}<br>
+            <strong>Expected Review Time:</strong> 1-3 business days<br>
+            <strong>Status:</strong> <span style="color: #ff9800; font-weight: bold;">Under Review</span>
+          </p>
+        </div>
+
+        <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+          <h3 style="color: #1976d2; margin-top: 0;">📞 Need Help?</h3>
+          <p style="color: #666; line-height: 1.6; margin: 0;">
+            If you have any questions about the verification process, please contact our support team:<br>
+            <strong>Email:</strong> support@nairobiverified.com<br>
+            <strong>Phone:</strong> +254 700 000 000
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          <p style="color: #999; font-size: 12px;">
+            Nairobi Verified | Building Trust in Local Business
           </p>
         </div>
       </div>
