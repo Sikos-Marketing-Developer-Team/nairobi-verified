@@ -52,36 +52,84 @@ router.put('/merchants/:id/status', checkPermission('merchants.approve'), update
 router.put('/merchants/bulk-status', checkPermission('merchants.approve'), bulkUpdateMerchantStatus);
 router.delete('/merchants/:merchantId', protectAdmin, checkPermission('merchants.delete'), deleteMerchant);
 router.delete('/merchants/bulk-delete', protectAdmin, checkPermission('merchants.delete'), bulkDeleteMerchants);
-// Single merchant featured status
-router.put('/merchants/:id/featured', async (req, res) => {
+
+// @desc    Set single merchant featured status
+// @route   PUT /api/admin/dashboard/merchants/:id/featured
+// @access  Private/Admin
+router.put('/merchants/:id/featured', protectAdmin, checkPermission('merchants.approve'), async (req, res) => {
   try {
+    console.log('🌟 Featured status update:', {
+      merchantId: req.params.id,
+      featured: req.body.featured,
+      adminId: req.user._id
+    });
+
     const { featured } = req.body;
+    
+    // Validate featured parameter
+    if (typeof featured !== 'boolean') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Featured status must be a boolean value' 
+      });
+    }
+
+    // Find merchant
     const merchant = await Merchant.findById(req.params.id);
     
     if (!merchant) {
-      return res.status(404).json({ success: false, error: 'Merchant not found' });
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Merchant not found' 
+      });
     }
 
-    merchant.featured = !!featured;
+    // Update featured status
+    merchant.featured = featured;
     merchant.featuredDate = featured ? Date.now() : null;
+    merchant.updatedAt = Date.now();
     await merchant.save();
+
+    console.log('✅ Featured status updated:', {
+      merchantId: merchant._id,
+      businessName: merchant.businessName,
+      featured: merchant.featured
+    });
 
     res.status(200).json({ 
       success: true, 
-      data: merchant,
+      data: {
+        _id: merchant._id,
+        businessName: merchant.businessName,
+        featured: merchant.featured,
+        featuredDate: merchant.featuredDate,
+        updatedAt: merchant.updatedAt
+      },
       message: `Merchant ${featured ? 'featured' : 'unfeatured'} successfully`
     });
   } catch (error) {
-    console.error('setFeatured error:', error);
-    res.status(400).json({ success: false, error: error.message });
+    console.error('❌ setFeatured error:', error);
+    res.status(400).json({ 
+      success: false, 
+      error: error.message || 'Failed to update featured status'
+    });
   }
 });
 
-// Bulk featured status
-router.post('/merchants/bulk-featured', async (req, res) => {
+// @desc    Bulk set merchant featured status
+// @route   POST /api/admin/dashboard/merchants/bulk-featured
+// @access  Private/Admin
+router.post('/merchants/bulk-featured', protectAdmin, checkPermission('merchants.approve'), async (req, res) => {
   try {
+    console.log('🌟 Bulk featured update:', {
+      merchantIds: req.body.merchantIds,
+      featured: req.body.featured,
+      adminId: req.user._id
+    });
+
     const { merchantIds, featured } = req.body;
     
+    // Validate input
     if (!merchantIds || !Array.isArray(merchantIds)) {
       return res.status(400).json({ 
         success: false, 
@@ -89,23 +137,52 @@ router.post('/merchants/bulk-featured', async (req, res) => {
       });
     }
 
+    if (merchantIds.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'At least one merchant ID is required' 
+      });
+    }
+
+    if (typeof featured !== 'boolean') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Featured status must be a boolean value' 
+      });
+    }
+
+    // Bulk update
     const result = await Merchant.updateMany(
       { _id: { $in: merchantIds } },
       { 
-        featured: !!featured,
-        featuredDate: featured ? Date.now() : null,
-        updatedAt: Date.now()
+        $set: {
+          featured: featured,
+          featuredDate: featured ? Date.now() : null,
+          updatedAt: Date.now()
+        }
       }
     );
 
+    console.log('✅ Bulk featured update complete:', {
+      matched: result.matchedCount,
+      modified: result.modifiedCount
+    });
+
     res.status(200).json({ 
       success: true, 
-      data: result,
-      message: `${result.modifiedCount} merchants ${featured ? 'featured' : 'unfeatured'} successfully`
+      data: {
+        matchedCount: result.matchedCount,
+        modifiedCount: result.modifiedCount,
+        merchantIds: merchantIds
+      },
+      message: `${result.modifiedCount} merchant(s) ${featured ? 'featured' : 'unfeatured'} successfully`
     });
   } catch (error) {
-    console.error('bulkSetFeatured error:', error);
-    res.status(400).json({ success: false, error: error.message });
+    console.error('❌ bulkSetFeatured error:', error);
+    res.status(400).json({ 
+      success: false, 
+      error: error.message || 'Failed to bulk update featured status'
+    });
   }
 });
 
