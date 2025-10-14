@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useRef, useState } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -152,7 +153,7 @@ const MerchantVerification = () => {
         if (statusResponse.success) {
           setVerificationData(statusResponse.data);
         } else {
-          throw new Error(statusResponse.error || 'Failed to load verification status');
+          throw new Error('Failed to load verification status');
         }
 
         // Try to fetch documents (will return empty array if endpoint doesn't exist)
