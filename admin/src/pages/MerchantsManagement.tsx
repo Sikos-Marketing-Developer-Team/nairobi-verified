@@ -347,32 +347,39 @@ const MerchantsManagement: React.FC = () => {
     }
   };
 
-  // UPDATE - Toggle featured status (using status update as workaround)
-  const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean): Promise<void> => {
-    try {
-      const newFeaturedStatus = !currentFeatured;
-      
-      setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
-          ? { ...merchant, featured: newFeaturedStatus, updatedAt: new Date().toISOString() }
-          : merchant
-      ));
+  // UPDATE - Toggle featured status (FIXED with API call)
+const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean): Promise<void> => {
+  try {
+    const newFeaturedStatus = !currentFeatured;
+    
+    // Optimistic update - update UI immediately
+    setMerchants(prev => prev.map(merchant => 
+      merchant._id === merchantId 
+        ? { ...merchant, featured: newFeaturedStatus, updatedAt: new Date().toISOString() }
+        : merchant
+    ));
 
+    // 🔑 FIXED: Call the backend API to persist the change
+    const response = await adminAPI.setFeaturedStatus(merchantId, newFeaturedStatus);
+    
+    if (response.data.success) {
       toast.success(`Merchant ${newFeaturedStatus ? 'added to' : 'removed from'} featured list`);
-      
-      // Note: Since there's no featured endpoint, we only update local state
-      // You would need to add a featured endpoint in backend for persistence
-    } catch (error) {
-      console.error('Error toggling featured status:', error);
-      
-      setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
-          ? { ...merchant, featured: currentFeatured }
-          : merchant
-      ));
-      toast.error('Failed to update featured status');
+    } else {
+      throw new Error('Failed to update featured status');
     }
-  };
+  } catch (error) {
+    console.error('Error toggling featured status:', error);
+    
+    // Revert on error
+    setMerchants(prev => prev.map(merchant => 
+      merchant._id === merchantId 
+        ? { ...merchant, featured: currentFeatured }
+        : merchant
+    ));
+    
+    toast.error('Failed to update featured status');
+  }
+};
 
   // DELETE - Single merchant (FIXED: using correct endpoint)
   const handleDeleteMerchant = async (merchantId: string): Promise<void> => {
@@ -397,58 +404,59 @@ const MerchantsManagement: React.FC = () => {
 
   // Bulk Operations - FIXED to work with existing endpoints
   const handleBulkAction = async (action: 'verify' | 'activate' | 'deactivate' | 'delete' | 'feature' | 'unfeature') => {
-    if (selectedMerchants.length === 0) {
-      toast.error('Please select merchants first');
-      return;
-    }
+  if (selectedMerchants.length === 0) {
+    toast.error('Please select merchants first');
+    return;
+  }
 
-    try {
-      switch (action) {
-        case 'verify':
-          await adminAPI.bulkVerifyMerchants(selectedMerchants);
-          toast.success(`${selectedMerchants.length} merchants verified successfully`);
-          break;
-        case 'activate':
-          await adminAPI.updateMerchantStatus(selectedMerchants, true);
-          toast.success(`${selectedMerchants.length} merchants activated successfully`);
-          break;
-        case 'deactivate':
-          await adminAPI.updateMerchantStatus(selectedMerchants, false);
-          toast.success(`${selectedMerchants.length} merchants deactivated successfully`);
-          break;
-        case 'feature':
-          // Update local state only (no backend endpoint)
-          setMerchants(prev => prev.map(merchant => 
-            selectedMerchants.includes(merchant._id) 
-              ? { ...merchant, featured: true, updatedAt: new Date().toISOString() }
-              : merchant
-          ));
-          toast.success(`${selectedMerchants.length} merchants featured successfully`);
-          break;
-        case 'unfeature':
-          // Update local state only (no backend endpoint)
-          setMerchants(prev => prev.map(merchant => 
-            selectedMerchants.includes(merchant._id) 
-              ? { ...merchant, featured: false, updatedAt: new Date().toISOString() }
-              : merchant
-          ));
-          toast.success(`${selectedMerchants.length} merchants unfeatured successfully`);
-          break;
-        case 'delete':
-          // Delete merchants in bulk using the correct API signature
-          await adminAPI.deleteMerchant(selectedMerchants);
-          toast.success(`${selectedMerchants.length} merchants deleted successfully`);
-          break;
-      }
-      
-      setSelectedMerchants([]);
-      setShowBulkActions(false);
-      loadMerchants(true); // Refresh data
-    } catch (error: any) {
-      console.error(`Bulk ${action} error:`, error);
-      toast.error(`Failed to ${action} merchants: ${error.response?.data?.message || error.message}`);
+  try {
+    switch (action) {
+      case 'verify':
+        await adminAPI.bulkVerifyMerchants(selectedMerchants);
+        toast.success(`${selectedMerchants.length} merchants verified successfully`);
+        break;
+      case 'activate':
+        await adminAPI.updateMerchantStatus(selectedMerchants, true);
+        toast.success(`${selectedMerchants.length} merchants activated successfully`);
+        break;
+      case 'deactivate':
+        await adminAPI.updateMerchantStatus(selectedMerchants, false);
+        toast.success(`${selectedMerchants.length} merchants deactivated successfully`);
+        break;
+      case 'feature':
+        // 🔑 FIXED: Use API instead of local state only
+        await adminAPI.bulkSetFeatured(selectedMerchants, true);
+        setMerchants(prev => prev.map(merchant => 
+          selectedMerchants.includes(merchant._id) 
+            ? { ...merchant, featured: true, updatedAt: new Date().toISOString() }
+            : merchant
+        ));
+        toast.success(`${selectedMerchants.length} merchants featured successfully`);
+        break;
+      case 'unfeature':
+        // 🔑 FIXED: Use API instead of local state only
+        await adminAPI.bulkSetFeatured(selectedMerchants, false);
+        setMerchants(prev => prev.map(merchant => 
+          selectedMerchants.includes(merchant._id) 
+            ? { ...merchant, featured: false, updatedAt: new Date().toISOString() }
+            : merchant
+        ));
+        toast.success(`${selectedMerchants.length} merchants unfeatured successfully`);
+        break;
+      case 'delete':
+        await adminAPI.deleteMerchant(selectedMerchants);
+        toast.success(`${selectedMerchants.length} merchants deleted successfully`);
+        break;
     }
-  };
+    
+    setSelectedMerchants([]);
+    setShowBulkActions(false);
+    loadMerchants(true); // Refresh data
+  } catch (error: any) {
+    console.error(`Bulk ${action} error:`, error);
+    toast.error(`Failed to ${action} merchants: ${error.response?.data?.message || error.message}`);
+  }
+};
 
   const handleSelectAll = () => {
     if (selectedMerchants.length === filteredMerchants.length) {
