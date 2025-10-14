@@ -258,7 +258,7 @@ exports.loginMerchant = async (req, res) => {
       });
     }
 
-    const merchant = await Merchant.findOne({ email }).select('+password +tempPasswordExpiry');
+    const merchant = await Merchant.findOne({ email }).select('+password +tempPasswordExpiry +passwordChanged');
 
     if (!merchant) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
@@ -287,7 +287,7 @@ exports.loginMerchant = async (req, res) => {
         });
       }
 
-      // If this is their first login with temp password, require password change
+      // If this is their first login with temp password (passwordChanged is false or undefined), require password change
       if (!merchant.passwordChanged) {
         return res.status(HTTP_STATUS.OK).json({
           success: true,
