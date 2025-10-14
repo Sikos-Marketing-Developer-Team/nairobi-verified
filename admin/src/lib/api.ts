@@ -214,6 +214,11 @@ export const adminAPI = {
     return api.put(endpoint, { isActive, merchantIds: Array.isArray(merchantIdOrIds) ? merchantIdOrIds : undefined });
   },
   createMerchant: (merchantData: any) => api.post('/admin/dashboard/merchants', merchantData),
+  setFeaturedStatus: (merchantId: string, featured: boolean) => 
+    api.put(`/admin/dashboard/merchants/${merchantId}/featured`, { featured }),
+  bulkSetFeatured: (merchantIds: string[], featured: boolean) => 
+    api.post('/admin/dashboard/merchants/bulk-featured', { merchantIds, featured }),
+
   
   // Document management
   getMerchantDocuments: (merchantId: string) => api.get(`/admin/dashboard/merchants/${merchantId}/documents`),
