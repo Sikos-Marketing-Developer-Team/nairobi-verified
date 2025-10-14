@@ -243,28 +243,55 @@ exports.createMerchant = async (req, res) => {
 
     const merchant = await Merchant.create(merchantPayload);
 
-    // Try sending admin notification (non-blocking)
-    try {
-      if (emailService && typeof emailService.sendAdminMerchantNotification === 'function') {
-        await emailService.sendAdminMerchantNotification(merchant);
+    // 🔑 CRITICAL FIX: Auto-login the merchant after registration
+    // This allows them to upload documents in the next step
+    req.login(merchant, (err) => {
+      if (err) {
+        console.error('❌ Auto-login failed after merchant creation:', err);
+        // Still return success but without session
+        return res.status(201).json({
+          success: true,
+          data: {
+            id: merchant._id,
+            businessName: merchant.businessName,
+            email: merchant.email,
+            phone: merchant.phone,
+            businessType: merchant.businessType,
+            verified: merchant.verified,
+            createdAt: merchant.createdAt,
+            message: 'Merchant registration submitted successfully. Please log in to upload documents.'
+          },
+          requiresLogin: true
+        });
       }
-    } catch (emailError) {
-      console.error('Failed to send admin notification email:', emailError);
-    }
 
-    res.status(201).json({
-      success: true,
-      data: {
-        id: merchant._id,
-        businessName: merchant.businessName,
-        email: merchant.email,
-        phone: merchant.phone,
-        businessType: merchant.businessType,
-        verified: merchant.verified,
-        createdAt: merchant.createdAt,
-        message: 'Merchant registration submitted successfully. You will be contacted within 2-3 business days for verification.'
+      console.log('✅ Merchant auto-logged in after registration:', merchant.email);
+
+      // Try sending admin notification (non-blocking)
+      try {
+        if (emailService && typeof emailService.sendAdminMerchantNotification === 'function') {
+          emailService.sendAdminMerchantNotification(merchant);
+        }
+      } catch (emailError) {
+        console.error('Failed to send admin notification email:', emailError);
       }
+
+      res.status(201).json({
+        success: true,
+        authenticated: true, // Flag to frontend that user is now logged in
+        data: {
+          id: merchant._id,
+          businessName: merchant.businessName,
+          email: merchant.email,
+          phone: merchant.phone,
+          businessType: merchant.businessType,
+          verified: merchant.verified,
+          createdAt: merchant.createdAt,
+          message: 'Merchant registration submitted successfully. You can now upload documents.'
+        }
+      });
     });
+
   } catch (error) {
     console.error('createMerchant error:', error);
     if (error.code === 11000) {
