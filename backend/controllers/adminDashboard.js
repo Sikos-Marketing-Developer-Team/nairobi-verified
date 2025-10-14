@@ -1065,7 +1065,7 @@ const createMerchant = asyncHandler(async (req, res) => {
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/merchant/login" style="background: #f44336; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/merchant/sign-in" style="background: #f44336; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
             Login to Your Account
           </a>
         </div>
@@ -1221,7 +1221,7 @@ const updateMerchantStatus = asyncHandler(async (req, res) => {
         <p>Hello ${existingMerchant.businessName},</p>
         <p>${statusMessage}</p>
         ${verified ? '<p>You can now start adding products and services to your merchant dashboard.</p>' : ''}
-        <p>Login to your dashboard: ${process.env.FRONTEND_URL}/merchant/login</p>
+        <p>Login to your dashboard: ${process.env.FRONTEND_URL}/merchant/sign-in</p>
       `;
 
       await transporter.sendMail({
