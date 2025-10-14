@@ -30,7 +30,6 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [hasRedirected, setHasRedirected] = useState(false);
   const [isMarketDropdownOpen, setIsMarketDropdownOpen] = useState(false);
   const navbarRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -40,7 +39,7 @@ const Navbar = () => {
   const location = useLocation();
 
   // Get auth state from context
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
 
   // FIXED: User role handling - merchants always use merchant interface
   const isAdmin = user?.role === 'admin';
@@ -50,22 +49,24 @@ const Navbar = () => {
   // FIXED: Show merchant navbar for merchants/admins
   const showMerchantNav = isMerchant || isAdmin;
 
-  // FIXED: Handle session restoration redirect for merchants
+  // FIXED: Handle session restoration redirect for merchants - more aggressive
   useEffect(() => {
+    if (isLoading) return; // Wait for auth to load
+    
     // Only redirect if authenticated, is merchant/admin, and not already on a merchant route
-    if (isAuthenticated && showMerchantNav && !hasRedirected) {
+    if (isAuthenticated && showMerchantNav) {
       const currentPath = location.pathname;
       const isOnMerchantRoute = currentPath.startsWith('/merchant');
       const isOnAuthRoute = currentPath.startsWith('/auth');
+      const isOnUserDashboard = currentPath === '/dashboard';
       
-      // If merchant is on a non-merchant route (and not auth), redirect to merchant dashboard
-      if (!isOnMerchantRoute && !isOnAuthRoute) {
-        console.log('🔄 Session restoration: Redirecting merchant to dashboard');
-        setHasRedirected(true);
+      // If merchant is on user dashboard or non-merchant route, redirect immediately
+      if (isOnUserDashboard || (!isOnMerchantRoute && !isOnAuthRoute && currentPath !== '/')) {
+        console.log('🔄 Session restoration: Redirecting merchant to dashboard from', currentPath);
         navigate('/merchant/dashboard', { replace: true });
       }
     }
-  }, [isAuthenticated, showMerchantNav, location.pathname, navigate, hasRedirected]);
+  }, [isAuthenticated, showMerchantNav, location.pathname, navigate, isLoading]);
 
   // Close market dropdown when clicking outside
   useEffect(() => {
@@ -78,11 +79,6 @@ const Navbar = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // Reset redirect flag when user changes
-  useEffect(() => {
-    setHasRedirected(false);
-  }, [user?.id]);
 
   // Handle scroll effect
   useEffect(() => {
@@ -125,7 +121,6 @@ const Navbar = () => {
   const handleLogout = () => {
     logout();
     setIsMenuOpen(false);
-    setHasRedirected(false);
     navigate('/');
   };
 
@@ -202,7 +197,7 @@ const Navbar = () => {
     { path: '/about', label: 'About' },
   ];
 
-  // FIXED: Market research links for merchants - only open in new tabs, no navigation
+  // Market research links for merchants
   const marketResearchLinks = [
     { path: '/products', label: 'Browse Products', icon: Store, description: 'See trending products' },
     { path: '/merchants', label: 'View Competitors', icon: BarChart3, description: 'Analyze other shops' },
@@ -231,7 +226,26 @@ const Navbar = () => {
     }
   };
 
-  // Render desktop navigation items
+  // Show loading state while auth is being determined
+  if (isLoading) {
+    return (
+      <nav className="fixed w-full top-0 z-50 bg-white shadow-md">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-22 h-12 bg-gray-200 rounded-[16px] animate-pulse"></div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="hidden sm:flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
+  // Render navigation items for desktop
   const renderDesktopNavItems = () => {
     const items = getNavItems();
     
