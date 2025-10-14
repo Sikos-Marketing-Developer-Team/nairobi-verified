@@ -73,8 +73,7 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
   const [documentsData, setDocumentsData] = useState<MerchantDocumentsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -87,7 +86,7 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
         URL.revokeObjectURL(previewUrl);
       }
     };
-  }, [merchantId]);
+  }, [merchantId, previewUrl]);
 
   const fetchDocuments = async () => {
     try {
@@ -113,59 +112,138 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
     }
   };
 
-  const handleViewDocument = async (docType: string, documentInfo: DocumentInfo) => {
+  // 🔑 FIXED: Get the actual document URL from various possible formats
+  const getDocumentUrl = (documentInfo: DocumentInfo | null): string | null => {
+    if (!documentInfo) return null;
+    
+    // Priority order: cloudinaryUrl > url > path
+    return documentInfo.cloudinaryUrl || documentInfo.url || documentInfo.path || null;
+  };
+
+  // 🔑 FIXED: View document without CORS issues
+  const handleViewDocument = (_docType: string, documentInfo: DocumentInfo) => {
     try {
-      setPreviewLoading(true);
+      const documentUrl = getDocumentUrl(documentInfo);
       
-      const response = await adminAPI.viewMerchantDocument(merchantId, docType);
-      
-      // Create blob URL for preview
-      const blob = new Blob([response.data], { type: documentInfo.mimeType || 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      
-      // Clean up previous preview URL
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
+      if (!documentUrl) {
+        toast({
+          title: 'Error',
+          description: 'Document URL not found',
+        });
+        return;
       }
+
+      // Check if it's a Cloudinary URL
+      const isCloudinary = documentUrl.includes('cloudinary.com') || 
+                          documentUrl.includes('res.cloudinary');
       
-      setPreviewUrl(url);
-      
-      // Open in new tab for better viewing
-      window.open(url, '_blank');
-      
+      if (isCloudinary) {
+        // ✅ For Cloudinary URLs, open directly in new tab
+        // NO fetch needed - avoids CORS issues
+        console.log('📄 Opening Cloudinary document:', documentUrl);
+        window.open(documentUrl, '_blank');
+        
+        toast({
+          title: 'Success',
+          description: 'Document opened in new tab',
+        });
+      } else {
+        // For non-Cloudinary URLs (your own server)
+        console.log('📄 Opening server document:', documentUrl);
+        window.open(documentUrl, '_blank');
+        
+        toast({
+          title: 'Success',
+          description: 'Document opened in new tab',
+        });
+      }
     } catch (err: any) {
       console.error('Error viewing document:', err);
       toast({
         title: 'Error',
-        description: 'Failed to load document preview',
+        description: 'Failed to open document',
       });
-    } finally {
-      setPreviewLoading(false);
     }
   };
 
+  // 🔑 FIXED: Download document without CORS issues
   const handleDownloadDocument = async (docType: string, documentInfo: DocumentInfo) => {
     try {
-      const response = await adminAPI.viewMerchantDocument(merchantId, docType);
+      const documentUrl = getDocumentUrl(documentInfo);
       
-      // Create download
-      const blob = new Blob([response.data], { type: documentInfo.mimeType || 'application/pdf' });
-      const url = URL.createObjectURL(blob);
+      if (!documentUrl) {
+        toast({
+          title: 'Error',
+          description: 'Document URL not found',
+        });
+        return;
+      }
+
+      const isCloudinary = documentUrl.includes('cloudinary.com') || 
+                          documentUrl.includes('res.cloudinary');
       
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = documentInfo.originalName || `${docType}_${merchantName}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: 'Success',
-        description: 'Document downloaded successfully',
-      });
-      
+      if (isCloudinary) {
+        // ✅ For Cloudinary, add fl_attachment flag to force download
+        const downloadUrl = documentUrl.includes('?') 
+          ? `${documentUrl}&fl_attachment`
+          : `${documentUrl}?fl_attachment`;
+        
+        console.log('⬇️ Downloading from Cloudinary:', downloadUrl);
+        
+        // Create temporary link and trigger download
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = documentInfo.originalName || `${docType}_${merchantName}`;
+        link.target = '_blank'; // Open in new tab as fallback
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: 'Success',
+          description: 'Document download started',
+        });
+      } else {
+        // For non-Cloudinary URLs, try to fetch with credentials
+        console.log('⬇️ Downloading from server:', documentUrl);
+        
+        try {
+          const response = await fetch(documentUrl, {
+            method: 'GET',
+            credentials: 'include', // Include credentials for your own server
+          });
+          
+          if (!response.ok) {
+            throw new Error('Download failed');
+          }
+          
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = documentInfo.originalName || `${docType}_${merchantName}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          window.URL.revokeObjectURL(url);
+          
+          toast({
+            title: 'Success',
+            description: 'Document downloaded successfully',
+          });
+        } catch (fetchError) {
+          // Fallback: open in new tab
+          console.log('⚠️ Fetch failed, opening in new tab:', fetchError);
+          window.open(documentUrl, '_blank');
+          
+          toast({
+            title: 'Info',
+            description: 'Document opened in new tab for download',
+          });
+        }
+      }
     } catch (err: any) {
       console.error('Error downloading document:', err);
       toast({
@@ -195,30 +273,27 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
   };
 
   const getDocumentStatus = (docInfo: DocumentInfo | null): { 
-  status: 'uploaded' | 'missing'; 
-  color: string; 
-  icon: React.ReactNode; 
-} => {
-  // FIXED: Check multiple possible path formats
-  const hasDocument = !!(
-    docInfo?.path || 
-    docInfo?.url || 
-    docInfo?.cloudinaryUrl
-  );
-  
-  if (hasDocument) {
+    status: 'uploaded' | 'missing'; 
+    color: string; 
+    icon: React.ReactNode; 
+  } => {
+    // Check multiple possible path formats
+    const documentUrl = getDocumentUrl(docInfo);
+    const hasDocument = !!documentUrl;
+    
+    if (hasDocument) {
+      return {
+        status: 'uploaded',
+        color: 'text-green-600 bg-green-100',
+        icon: <CheckCircle className="h-4 w-4" />
+      };
+    }
     return {
-      status: 'uploaded',
-      color: 'text-green-600 bg-green-100',
-      icon: <CheckCircle className="h-4 w-4" />
+      status: 'missing',
+      color: 'text-red-600 bg-red-100',
+      icon: <XCircle className="h-4 w-4" />
     };
-  }
-  return {
-    status: 'missing',
-    color: 'text-red-600 bg-red-100',
-    icon: <XCircle className="h-4 w-4" />
   };
-};
 
   const renderDocumentCard = (
     title: string,
@@ -227,6 +302,7 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
     required: boolean = true
   ) => {
     const { status, color, icon } = getDocumentStatus(documentInfo);
+    const documentUrl = getDocumentUrl(documentInfo);
     
     return (
       <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -246,40 +322,42 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
           </div>
         </div>
 
-        {documentInfo?.path ? (
+        {documentUrl ? (
           <div className="space-y-2">
             <div className="text-sm text-gray-600 space-y-1">
               <div className="flex items-center space-x-2">
                 <span className="font-medium">File:</span>
-                <span>{documentInfo.originalName || 'Document file'}</span>
+                <span className="truncate">{documentInfo?.originalName || 'Document file'}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-3 w-3" />
-                <span>Uploaded: {formatDate(documentInfo.uploadedAt)}</span>
-              </div>
-              {documentInfo.fileSize && (
+              {documentInfo?.uploadedAt && (
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-3 w-3 flex-shrink-0" />
+                  <span>Uploaded: {formatDate(documentInfo.uploadedAt)}</span>
+                </div>
+              )}
+              {documentInfo?.fileSize && (
                 <div className="flex items-center space-x-2">
                   <span>Size: {formatFileSize(documentInfo.fileSize)}</span>
+                </div>
+              )}
+              {documentInfo?.mimeType && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-500">Type: {documentInfo.mimeType}</span>
                 </div>
               )}
             </div>
 
             <div className="flex space-x-2 pt-2">
               <button
-                onClick={() => handleViewDocument(docType, documentInfo)}
-                disabled={previewLoading}
+                onClick={() => handleViewDocument(docType, documentInfo!)}
                 className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
-                {previewLoading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Eye className="h-3 w-3" />
-                )}
+                <Eye className="h-3 w-3" />
                 <span>View</span>
               </button>
               
               <button
-                onClick={() => handleDownloadDocument(docType, documentInfo)}
+                onClick={() => handleDownloadDocument(docType, documentInfo!)}
                 className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
               >
                 <Download className="h-3 w-3" />
@@ -369,7 +447,9 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
               <div className="text-sm text-gray-600">Documents Complete</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{analysis.requiredDocsSubmitted}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {analysis.requiredDocsSubmitted}/{analysis.totalRequiredDocs}
+              </div>
               <div className="text-sm text-gray-600">Required Docs</div>
             </div>
             <div className="text-center">
@@ -388,7 +468,7 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
         </div>
 
         {/* Document List */}
-        <div className="p-6">
+        <div className="p-6 max-h-[60vh] overflow-y-auto">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Required Documents</h3>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -460,9 +540,10 @@ const DocumentsViewer: React.FC<DocumentsViewerProps> = ({
                   description: 'Use the main merchant verification button to verify this merchant',
                 });
               }}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center space-x-2"
             >
-              Ready for Verification
+              <CheckCircle className="h-4 w-4" />
+              <span>Ready for Verification</span>
             </button>
           )}
         </div>
