@@ -18,7 +18,9 @@ import {
   LayoutDashboard,
   LogOut,
   Store,
-  Shield
+  Shield,
+  BarChart3,
+  TrendingUp
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
@@ -28,8 +30,11 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
+  const [isMarketDropdownOpen, setIsMarketDropdownOpen] = useState(false);
   const navbarRef = useRef(null);
   const searchInputRef = useRef(null);
+  const marketDropdownRef = useRef(null);
   const { favoritesCount } = useFavorites();
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,6 +49,40 @@ const Navbar = () => {
   
   // FIXED: Show merchant navbar for merchants/admins
   const showMerchantNav = isMerchant || isAdmin;
+
+  // FIXED: Handle session restoration redirect for merchants
+  useEffect(() => {
+    // Only redirect if authenticated, is merchant/admin, and not already on a merchant route
+    if (isAuthenticated && showMerchantNav && !hasRedirected) {
+      const currentPath = location.pathname;
+      const isOnMerchantRoute = currentPath.startsWith('/merchant');
+      const isOnAuthRoute = currentPath.startsWith('/auth');
+      
+      // If merchant is on a non-merchant route (and not auth), redirect to merchant dashboard
+      if (!isOnMerchantRoute && !isOnAuthRoute) {
+        console.log('🔄 Session restoration: Redirecting merchant to dashboard');
+        setHasRedirected(true);
+        navigate('/merchant/dashboard', { replace: true });
+      }
+    }
+  }, [isAuthenticated, showMerchantNav, location.pathname, navigate, hasRedirected]);
+
+  // Close market dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (marketDropdownRef.current && !marketDropdownRef.current.contains(event.target)) {
+        setIsMarketDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Reset redirect flag when user changes
+  useEffect(() => {
+    setHasRedirected(false);
+  }, [user?.id]);
 
   // Handle scroll effect
   useEffect(() => {
@@ -66,11 +105,15 @@ const Navbar = () => {
       if (e.key === 'Escape' && isMenuOpen) {
         setIsMenuOpen(false);
       }
+      
+      if (e.key === 'Escape' && isMarketDropdownOpen) {
+        setIsMarketDropdownOpen(false);
+      }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isMenuOpen]);
+  }, [isMenuOpen, isMarketDropdownOpen]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -82,6 +125,7 @@ const Navbar = () => {
   const handleLogout = () => {
     logout();
     setIsMenuOpen(false);
+    setHasRedirected(false);
     navigate('/');
   };
 
@@ -117,9 +161,14 @@ const Navbar = () => {
 
   // FIXED: Handle navigation for merchants to user routes in new tab
   const handleMerchantToUserRoute = (path, e) => {
-    if (showMerchantNav && !path.startsWith('/merchant')) {
+    // Allow merchant routes to work normally
+    if (path.startsWith('/merchant')) {
+      return false;
+    }
+    
+    // For non-merchant routes, open in new tab for merchants
+    if (showMerchantNav) {
       e.preventDefault();
-      // Open user routes in new tab for merchants
       const fullUrl = window.location.origin + path;
       window.open(fullUrl, '_blank');
       return true;
@@ -127,14 +176,11 @@ const Navbar = () => {
     return false;
   };
 
-  // FIXED: Merchant-specific navigation items
+  // UPDATED: Merchant-specific navigation items - ONLY routes that actually exist
   const merchantNavItems = [
     { path: '/merchant/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/merchant/products', label: 'Products', icon: Store },
-    { path: '/merchant/orders', label: 'Orders', icon: ShoppingCart },
     { path: '/merchant/profile/edit', label: 'Profile', icon: User },
     { path: '/merchant/verification', label: 'Verification', icon: Shield },
-    { path: '/merchant/contact', label: 'Contact Support', icon: Phone },
   ];
 
   // FIXED: User navigation items
@@ -156,12 +202,27 @@ const Navbar = () => {
     { path: '/about', label: 'About' },
   ];
 
+  // Market research links for merchants
+  const marketResearchLinks = [
+    { path: '/products', label: 'Browse Products', icon: Store, description: 'See trending products' },
+    { path: '/merchants', label: 'View Competitors', icon: BarChart3, description: 'Analyze other shops' },
+    { path: '/categories', label: 'Explore Categories', icon: TrendingUp, description: 'Popular categories' },
+  ];
+
   // FIXED: Get current navigation items based on context
   const getNavItems = () => {
     return showMerchantNav ? merchantNavItems : userNavItems;
   };
 
-  // Render navigation items for desktop
+  // Handle opening market research links
+  const handleMarketResearchClick = (path) => {
+    const fullUrl = window.location.origin + path;
+    window.open(fullUrl, '_blank');
+    setIsMarketDropdownOpen(false);
+    setIsMenuOpen(false);
+  };
+
+  // Render desktop navigation items
   const renderDesktopNavItems = () => {
     const items = getNavItems();
     
@@ -265,6 +326,72 @@ const Navbar = () => {
       );
     });
   };
+
+  // Render market research dropdown for desktop
+  const renderMarketResearchDropdown = () => (
+    <li className="relative" ref={marketDropdownRef}>
+      <button 
+        onClick={() => setIsMarketDropdownOpen(!isMarketDropdownOpen)}
+        className="hover:text-orange-600 transition-colors font-semibold flex items-center gap-1 text-gray-900"
+        title="Market Research"
+      >
+        <TrendingUp className="w-4 h-4" />
+        Market Research
+        <ChevronDown className={`w-4 h-4 transition-transform ${isMarketDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {isMarketDropdownOpen && (
+        <ul className="absolute left-0 mt-2 w-64 rounded-[16px] bg-white text-gray-800 shadow-xl z-50 border border-gray-100 text-base">
+          {marketResearchLinks.map((link) => {
+            const IconComponent = link.icon;
+            return (
+              <li key={link.path}>
+                <button
+                  onClick={() => handleMarketResearchClick(link.path)}
+                  className="block w-full text-left px-4 py-3 hover:bg-orange-50 hover:text-orange-600 transition-colors border-b border-gray-100 last:border-b-0"
+                  title={link.label}
+                >
+                  <div className="flex items-center gap-3">
+                    <IconComponent className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{link.label}</div>
+                      <div className="text-xs text-gray-500">{link.description}</div>
+                    </div>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </li>
+  );
+
+  // Render market research section for mobile
+  const renderMobileMarketResearch = () => (
+    <div className="border-t border-gray-200 pt-4 mt-4">
+      <span className="font-bold block mb-3 text-gray-900 text-lg">Market Research</span>
+      <div className="space-y-2">
+        {marketResearchLinks.map((link) => {
+          const IconComponent = link.icon;
+          return (
+            <button
+              key={link.path}
+              onClick={() => handleMarketResearchClick(link.path)}
+              className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-orange-500 hover:bg-orange-50 transition-colors flex items-center gap-3"
+              title={link.label}
+            >
+              <IconComponent className="w-5 h-5 text-orange-600 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="font-medium text-gray-900">{link.label}</div>
+                <div className="text-xs text-gray-500">{link.description}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <nav 
@@ -448,6 +575,8 @@ const Navbar = () => {
       }`}>
         <ul className="flex space-x-6 p-2">
           {renderDesktopNavItems()}
+          {/* Add Market Research dropdown for merchants */}
+          {showMerchantNav && renderMarketResearchDropdown()}
         </ul>
 
         <ul className="flex items-center space-x-6">
@@ -580,6 +709,9 @@ const Navbar = () => {
         aria-hidden={!isMenuOpen}
       >
         {renderMobileNavItems()}
+        
+        {/* Market Research Section for Mobile - Only for merchants */}
+        {showMerchantNav && renderMobileMarketResearch()}
         
         {/* Contact Us */}
         <Link 
