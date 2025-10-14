@@ -264,86 +264,132 @@ const MerchantRegister = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateStep(4)) {
-      setIsSubmitting(true);
+  e.preventDefault();
+  if (validateStep(4)) {
+    setIsSubmitting(true);
+    
+    try {
+      // STEP 1: Create merchant account first
+      const registrationData = {
+        businessName: formData.businessName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        businessType: formData.businessType,
+        description: formData.description,
+        yearEstablished: formData.yearEstablished,
+        website: formData.website,
+        address: formData.address,
+        landmark: formData.landmark,
+        businessHours: formData.businessHours
+      };
       
-      try {
-        // Prepare form data for submission
-        const submissionData = {
-          businessName: formData.businessName,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          businessType: formData.businessType,
-          description: formData.description,
-          yearEstablished: formData.yearEstablished,
-          website: formData.website,
-          address: formData.address,
-          landmark: formData.landmark,
-          businessHours: formData.businessHours
-        };
-        
-        console.log('Submitting merchant registration:', submissionData);
-        
-        // Submit to API
-        const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
-        const response = await fetch(`${apiUrl}/merchants`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(submissionData)
-        });
+      console.log('Step 1: Creating merchant account...');
+      
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
+      const registrationResponse = await fetch(`${apiUrl}/merchants`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData)
+      });
 
-        const data = await response.json();
+      const registrationResult = await registrationResponse.json();
 
-        if (!response.ok) {
-          throw new Error(data.error || `HTTP error! status: ${response.status}`);
-        }
-
-        console.log('Registration successful:', data);
-        
-        // Show success toast with Sonner
-        toast('Registration submitted successfully!', {
-          description: 'We will review your application and get back to you within 2-3 business days.',
-          duration: 5000,
-          position: 'top-center',
-          style: {
-            background: '#16a34a',
-            color: 'white',
-            fontSize: '1.1rem',
-            fontWeight: 'bold'
-          },
-          descriptionClassName: 'text-white!important',
-        });
-        
-        // Redirect to homepage after 3 seconds
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 3000);
-        
-      } catch (error: any) {
-        console.error('Error registering merchant:', error);
-        
-        // Show error toast
-        toast('Registration failed!', {
-          description: error.message || 'Please try again or contact support.',
-          duration: 5000,
-          position: 'top-center',
-          style: {
-            background: '#dc2626',
-            color: 'white',
-            fontSize: '1.1rem',
-            fontWeight: 'bold'
-          },
-          descriptionClassName: 'text-white',
-        });
-      } finally {
-        setIsSubmitting(false);
+      if (!registrationResponse.ok) {
+        throw new Error(registrationResult.error || 'Registration failed');
       }
+
+      console.log('✅ Merchant account created:', registrationResult);
+      
+      // STEP 2: Upload documents
+      const merchantId = registrationResult.data.id;
+      console.log('Step 2: Uploading documents for merchant:', merchantId);
+      
+      // Create FormData with files
+      const formDataWithFiles = new FormData();
+      
+      // Add business registration files
+      uploadedFiles.businessRegistration.forEach(file => {
+        formDataWithFiles.append('businessRegistration', file);
+      });
+      
+      // Add ID document files
+      uploadedFiles.idDocument.forEach(file => {
+        formDataWithFiles.append('idDocument', file);
+      });
+      
+      // Add utility bill files
+      uploadedFiles.utilityBill.forEach(file => {
+        formDataWithFiles.append('utilityBill', file);
+      });
+      
+      // Add additional documents
+      uploadedFiles.additionalDocs.forEach(file => {
+        formDataWithFiles.append('additionalDocs', file);
+      });
+
+      console.log('📤 Uploading documents...', {
+        businessRegistration: uploadedFiles.businessRegistration.length,
+        idDocument: uploadedFiles.idDocument.length,
+        utilityBill: uploadedFiles.utilityBill.length,
+        additionalDocs: uploadedFiles.additionalDocs.length
+      });
+
+      // Upload documents to merchant's account
+      const documentsResponse = await fetch(`${apiUrl}/merchants/${merchantId}/documents`, {
+        method: 'PUT',
+        // DO NOT set Content-Type header - browser will set it automatically with boundary
+        body: formDataWithFiles
+      });
+
+      const documentsResult = await documentsResponse.json();
+
+      if (!documentsResponse.ok) {
+        console.error('❌ Document upload failed:', documentsResult);
+        throw new Error(documentsResult.error || 'Document upload failed');
+      }
+
+      console.log('✅ Documents uploaded successfully:', documentsResult);
+      
+      // Show success toast
+      toast('Registration submitted successfully!', {
+        description: 'We will review your application and get back to you within 2-3 business days.',
+        duration: 5000,
+        position: 'top-center',
+        style: {
+          background: '#16a34a',
+          color: 'white',
+          fontSize: '1.1rem',
+          fontWeight: 'bold'
+        }
+      });
+      
+      // Redirect to success page or homepage
+      setTimeout(() => {
+        window.location.href = '/merchant-registration-success';
+      }, 3000);
+      
+    } catch (error: any) {
+      console.error('❌ Registration error:', error);
+      
+      toast('Registration failed!', {
+        description: error.message || 'Please try again or contact support.',
+        duration: 5000,
+        position: 'top-center',
+        style: {
+          background: '#dc2626',
+          color: 'white',
+          fontSize: '1.1rem',
+          fontWeight: 'bold'
+        }
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }
+};
 
   if (isLoading) {
     return (
