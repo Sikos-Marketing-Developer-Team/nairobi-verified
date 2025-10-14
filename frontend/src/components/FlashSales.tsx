@@ -83,11 +83,17 @@ const FlashSales = () => {
     // FIX: Use the centralized API instance
     const response = await flashSalesAPI.getFlashSales();
 
+    console.log('🔥 FlashSales API Response:', response.data);
+
     if (response.data.success) {
-      setFlashSales(response.data.data);
+      // Filter flash sales to only show those with products for better UX
+      const flashSalesWithProducts = response.data.data.filter((sale: FlashSale) => 
+        sale.products && sale.products.length > 0
+      );
+      setFlashSales(flashSalesWithProducts);
       // Initialize current indices for each flash sale
       const indices: {[key: string]: number} = {};
-      response.data.data.forEach((sale: FlashSale) => {
+      flashSalesWithProducts.forEach((sale: FlashSale) => {
         indices[sale._id] = 0;
       });
       setCurrentIndices(indices);
@@ -96,7 +102,7 @@ const FlashSales = () => {
     }
   } catch (err) {
     console.error('Flash sales fetch error:', err);
-    setError('We couldn’t load the flash sales right now. Please try again.');
+    setError('We could not load the flash sales right now. Please try again.');
   } finally {
     setLoading(false);
   }
@@ -348,8 +354,27 @@ const FlashSales = () => {
     );
   }
 
-  if (flashSales.length === 0) {
-    return null;
+  if (flashSales.length === 0 && !loading && !error) {
+    return (
+      <section className="py-8 sm:py-16 bg-gradient-to-r from-red-50 to-orange-50">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 text-center">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <Flame className="h-5 w-5 sm:h-8 sm:w-8 text-red-500" />
+            <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold inter text-gray-900">
+              Flash Sales
+            </h2>
+            <Flame className="h-5 w-5 sm:h-8 sm:w-8 text-red-500" />
+          </div>
+          <p className="text-gray-600 mb-4">No active flash sales at the moment. Check back soon!</p>
+          <Button
+            onClick={fetchFlashSales}
+            className="bg-red-500 hover:bg-red-600 text-white"
+          >
+            Refresh
+          </Button>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -387,49 +412,58 @@ const FlashSales = () => {
             </div>
 
             {/* Carousel for all screen sizes */}
-            <div className="relative mb-6 sm:mb-8 overflow-hidden">
-              <div 
-                ref={el => carouselRefs.current[flashSale._id] = el}
-                className="flex transition-transform duration-300 ease-in-out gap-2 sm:gap-4"
-                style={{ transform: getTransformValue(flashSale._id) }}
-              >
-                {flashSale.products.slice(0, 8).map((product) => (
-                  <div key={product.productId} className="flex-shrink-0" style={{ width: isMobile ? '140px' : 'calc(25% - 12px)' }}>
-                    <ProductCard 
-                      product={product} 
-                      flashSaleId={flashSale._id}
-                      isMobile={isMobile}
-                    />
-                  </div>
-                ))}
-              </div>
-              
-              {/* Navigation arrows */}
-              {currentIndices[flashSale._id] > 0 && (
-                <Button
-                  onClick={() => prevSlide(flashSale._id)}
-                  className="absolute left-1 sm:left-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-6 w-6 sm:h-10 sm:w-10 rounded-full p-0 z-10"
+            {flashSale.products && flashSale.products.length > 0 ? (
+              <div className="relative mb-6 sm:mb-8 overflow-hidden">
+                <div 
+                  ref={el => carouselRefs.current[flashSale._id] = el}
+                  className="flex transition-transform duration-300 ease-in-out gap-2 sm:gap-4"
+                  style={{ transform: getTransformValue(flashSale._id) }}
                 >
-                  <ChevronLeft className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
-                </Button>
-              )}
-              
-              {currentIndices[flashSale._id] < flashSale.products.length - visibleCards && (
-                <Button
-                  onClick={() => nextSlide(flashSale._id)}
-                  className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-6 w-6 sm:h-10 sm:w-10 rounded-full p-0 z-10"
-                >
-                  <ChevronRight className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
-                </Button>
-              )}
+                  {flashSale.products.slice(0, 8).map((product) => (
+                    <div key={product.productId} className="flex-shrink-0" style={{ width: isMobile ? '140px' : 'calc(25% - 12px)' }}>
+                      <ProductCard 
+                        product={product} 
+                        flashSaleId={flashSale._id}
+                        isMobile={isMobile}
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Navigation arrows */}
+                {currentIndices[flashSale._id] > 0 && (
+                  <Button
+                    onClick={() => prevSlide(flashSale._id)}
+                    className="absolute left-1 sm:left-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-6 w-6 sm:h-10 sm:w-10 rounded-full p-0 z-10"
+                  >
+                    <ChevronLeft className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
+                  </Button>
+                )}
+                
+                {currentIndices[flashSale._id] < flashSale.products.length - visibleCards && (
+                  <Button
+                    onClick={() => nextSlide(flashSale._id)}
+                    className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-6 w-6 sm:h-10 sm:w-10 rounded-full p-0 z-10"
+                  >
+                    <ChevronRight className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
+                  </Button>
+                )}
 
-              {/* Counter indicator */}
-              <div className="flex justify-center mt-4 sm:mt-6">
-                <div className="bg-black/70 text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm">
-                  {currentIndices[flashSale._id] + 1} / {flashSale.products.length - visibleCards + 1}
+                {/* Counter indicator */}
+                <div className="flex justify-center mt-4 sm:mt-6">
+                  <div className="bg-black/70 text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm">
+                    {currentIndices[flashSale._id] + 1} / {flashSale.products.length - visibleCards + 1}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-8 sm:py-12">
+                <p className="text-gray-500 mb-4">No products available for this flash sale yet.</p>
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                  Check Back Soon
+                </Button>
+              </div>
+            )}
 
             {flashSale.products.length > 8 && (
               <div className="text-center">
