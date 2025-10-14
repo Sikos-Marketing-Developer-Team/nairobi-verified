@@ -215,7 +215,7 @@ export const adminAPI = {
   },
   createMerchant: (merchantData: any) => api.post('/admin/dashboard/merchants', merchantData),
   setFeaturedStatus: (merchantId: string, featured: boolean) => 
-    api.put(`/admin/dashboard/merchants/${merchantId}/featured`, { featured }),
+    api.put(`/merchants/${merchantId}/featured`, { featured }),
   bulkSetFeatured: (merchantIds: string[], featured: boolean) => 
     api.post('/admin/dashboard/merchants/bulk-featured', { merchantIds, featured }),
 
