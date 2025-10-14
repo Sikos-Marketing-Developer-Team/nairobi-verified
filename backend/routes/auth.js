@@ -11,7 +11,8 @@ const {
   googleAuthRedirect,
   googleCallback,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  changeMerchantPassword
 } = require('../controllers/auth');
 const { protect } = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');
