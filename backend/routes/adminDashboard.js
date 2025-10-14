@@ -52,6 +52,46 @@ router.put('/merchants/:id/status', checkPermission('merchants.approve'), update
 router.put('/merchants/bulk-status', checkPermission('merchants.approve'), bulkUpdateMerchantStatus);
 router.delete('/merchants/:merchantId', protectAdmin, checkPermission('merchants.delete'), deleteMerchant);
 router.delete('/merchants/bulk-delete', protectAdmin, checkPermission('merchants.delete'), bulkDeleteMerchants);
+router.put('/merchants/:id/featured', checkPermission('merchants.write'), async (req, res) => {
+  try {
+    const Merchant = require('../models/Merchant');
+    const { featured } = req.body;
+    
+    console.log('Setting featured status:', { 
+      merchantId: req.params.id, 
+      featured,
+      admin: req.admin.email 
+    });
+    
+    const merchant = await Merchant.findById(req.params.id);
+    
+    if (!merchant) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Merchant not found' 
+      });
+    }
+
+    merchant.featured = !!featured;
+    merchant.featuredDate = featured ? Date.now() : null;
+    await merchant.save();
+
+    console.log('✅ Featured status updated:', merchant.businessName, 'Featured:', merchant.featured);
+
+    res.status(200).json({ 
+      success: true, 
+      data: merchant,
+      message: `Merchant ${featured ? 'added to' : 'removed from'} featured list`
+    });
+  } catch (error) {
+    console.error('❌ setFeatured error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update featured status',
+      error: error.message 
+    });
+  }
+});
 
 // Document management routes
 router.get('/merchants/:id/documents', checkPermission('merchants.read'), getMerchantDocuments);
