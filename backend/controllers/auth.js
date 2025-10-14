@@ -725,3 +725,81 @@ exports.resetPassword = async (req, res) => {
     });
   }
 };
+
+// @desc    Change merchant temporary password
+// @route   POST /api/auth/merchant/change-password
+// @access  Private (Merchant)
+exports.changeMerchantPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Please provide current password and new password'
+      });
+    }
+
+    if (!PASSWORD_VALIDATION.REGEX.test(newPassword)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: PASSWORD_VALIDATION.ERROR_MESSAGE,
+      });
+    }
+
+    // Get merchant with password field
+    const merchant = await Merchant.findById(req.user.id).select('+password +tempPasswordExpiry');
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Verify current password
+    const isMatch = await merchant.matchPassword(currentPassword);
+
+    if (!isMatch) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Current password is incorrect'
+      });
+    }
+
+    // If this merchant was created by admin, check if temp password has expired
+    if (merchant.createdByAdmin && merchant.tempPasswordExpiry) {
+      if (new Date() > merchant.tempPasswordExpiry) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          error: 'Your temporary password has expired. Please contact admin for assistance.',
+          expired: true
+        });
+      }
+    }
+
+    // Update password and mark as changed
+    merchant.password = newPassword;
+    merchant.passwordChanged = true;
+    merchant.passwordChangedAt = new Date();
+    
+    // Clear temporary password restrictions
+    if (merchant.createdByAdmin) {
+      merchant.tempPasswordExpiry = undefined;
+    }
+
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Could not change password. Please try again later.'
+    });
+  }
+};
