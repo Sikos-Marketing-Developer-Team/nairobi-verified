@@ -202,7 +202,7 @@ const Navbar = () => {
     { path: '/about', label: 'About' },
   ];
 
-  // Market research links for merchants
+  // FIXED: Market research links for merchants - only open in new tabs, no navigation
   const marketResearchLinks = [
     { path: '/products', label: 'Browse Products', icon: Store, description: 'See trending products' },
     { path: '/merchants', label: 'View Competitors', icon: BarChart3, description: 'Analyze other shops' },
@@ -220,6 +220,15 @@ const Navbar = () => {
     window.open(fullUrl, '_blank');
     setIsMarketDropdownOpen(false);
     setIsMenuOpen(false);
+  };
+
+  // FIXED: Handle contact navigation - use existing /contact route for both
+  const handleContactClick = (e) => {
+    if (showMerchantNav) {
+      e.preventDefault();
+      const fullUrl = window.location.origin + '/contact';
+      window.open(fullUrl, '_blank');
+    }
   };
 
   // Render desktop navigation items
@@ -582,12 +591,12 @@ const Navbar = () => {
         <ul className="flex items-center space-x-6">
           <li>
             <Link 
-              to={showMerchantNav ? "/merchant/contact" : "/contact"}
+              to="/contact"
               className={`hover:text-orange-600 transition-colors font-semibold flex items-center gap-1 text-gray-900 ${
                 showMerchantNav ? 'text-gray-700 hover:text-orange-600' : 'text-orange-600'
               }`}
               title={showMerchantNav ? "Contact Support" : "Contact Us"}
-              onClick={(e) => handleMerchantToUserRoute("/contact", e)}
+              onClick={handleContactClick}
             >
               <Phone className={`w-4 h-4 ${showMerchantNav ? 'text-gray-600' : 'text-orange-600'}`} /> 
               {showMerchantNav ? 'Contact Support' : 'Contact Us'}
@@ -714,18 +723,22 @@ const Navbar = () => {
         {showMerchantNav && renderMobileMarketResearch()}
         
         {/* Contact Us */}
-        <Link 
-          to={showMerchantNav ? "/merchant/contact" : "/contact"} 
-          onClick={(e) => {
-            if (handleMerchantToUserRoute("/contact", e)) return;
+        <button
+          onClick={() => {
+            if (showMerchantNav) {
+              const fullUrl = window.location.origin + '/contact';
+              window.open(fullUrl, '_blank');
+            } else {
+              navigate('/contact');
+            }
             setIsMenuOpen(false);
           }}
-          className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-orange-600"
+          className="w-full text-left hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-orange-600"
           title={showMerchantNav ? "Contact Support" : "Contact Us"}
         >
           <Phone className="w-4 h-4 text-orange-600" /> 
           {showMerchantNav ? 'Contact Support' : 'Contact Us'}
-        </Link>
+        </button>
         
         {/* Dashboard Link for Authenticated Users in Mobile Menu */}
         {isAuthenticated && (
