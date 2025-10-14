@@ -390,9 +390,9 @@ const MerchantRegister = () => {
         }
       });
       
-      // Redirect to success page or merchant dashboard
+      // Redirect to merchants page to see other merchants
       setTimeout(() => {
-        window.location.href = '/merchant-registration-success';
+        window.location.href = '/merchants';
       }, 3000);
       
     } catch (error: any) {

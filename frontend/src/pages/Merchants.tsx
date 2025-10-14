@@ -52,13 +52,15 @@ const Merchants = () => {
     const fetchMerchants = async () => {
       try {
         const response = await merchantsAPI.getMerchants();
-        setMerchants(response.data.data);
+        setMerchants(response.data.data || []);
       } catch (err) {
         setError('Failed to load merchants');
       } finally {
         setLoading(false);
       }
     };
+    
+    // Load merchants based on search params
     if (!searchParams.get('search') && !searchParams.get('category')) {
       fetchMerchants();
     }
@@ -202,9 +204,12 @@ const Merchants = () => {
               <CardContent className="p-0">
                 <div className="relative">
                   <img
-                    src={merchant.logo}
+                    src={merchant.logo || 'https://via.placeholder.com/300x200/f3f4f6/9ca3af?text=No+Logo'}
                     alt={merchant.businessName}
                     className={`w-full object-cover ${viewMode === 'grid' ? 'h-28 sm:h-36' : 'h-24 sm:h-28'}`}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200/f3f4f6/9ca3af?text=No+Logo';
+                    }}
                   />
                   {merchant.verified && (
                     <div className="absolute top-1 right-1 bg-white rounded-full p-1">
@@ -217,7 +222,7 @@ const Merchants = () => {
                     <span className="text-[9px] sm:text-xs px-1 py-0.5 bg-primary/10 text-primary rounded-full">
                       {merchant.businessType}
                     </span>
-                    <span className="text-[9px] sm:text-xs text-gray-500">Est. {merchant.yearEstablished}</span>
+                    <span className="text-[9px] sm:text-xs text-gray-500">Est. {merchant.yearEstablished || 'N/A'}</span>
                   </div>
                   <h3 className="font-semibold text-[13px] sm:text-base text-gray-900 mb-1">
                     {merchant.businessName}
