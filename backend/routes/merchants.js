@@ -31,23 +31,23 @@ router.route('/')
   .get(getMerchants)
   .post(createMerchant);
 
-// Merchant self-management routes (must be before /:id routes)
-router.get('/me', protect, isMerchant, (req, res) => {
+router.route('/:id')
+  .get(getMerchant)
+  .put(protect, isMerchant, updateMerchant)
+  .delete(protect, authorize('admin'), deleteMerchant);
+
+// Merchant self-management routes - placed after /:id to avoid conflicts
+router.get('/profile/me', protect, isMerchant, (req, res) => {
   // Redirect to getMerchant with the merchant's own ID
   req.params.id = req.user._id;
   getMerchant(req, res);
 });
 
-router.put('/me', protect, isMerchant, (req, res) => {
+router.put('/profile/me', protect, isMerchant, (req, res) => {
   // Redirect to updateMerchant with the merchant's own ID
   req.params.id = req.user._id;
   updateMerchant(req, res);
 });
-
-router.route('/:id')
-  .get(getMerchant)
-  .put(protect, isMerchant, updateMerchant)
-  .delete(protect, authorize('admin'), deleteMerchant);
 
 router.put('/:id/logo', protect, isMerchant, uploadImage.single('logo'), uploadLogo);
 router.put('/:id/banner', protect, isMerchant, uploadImage.single('banner'), uploadBanner);
