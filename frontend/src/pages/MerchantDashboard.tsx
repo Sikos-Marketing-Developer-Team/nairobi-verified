@@ -4,7 +4,7 @@ import {
   Eye, Edit, Users, Clock, CheckCircle, AlertCircle, MessageSquare, 
   BarChart3, TrendingUp, Phone, MapPin, Heart, Calendar, Settings, 
   Bell, Package, CreditCard, Star, Mail, Shield, Download, Award,
-  RefreshCw, Store
+  RefreshCw, Store, Plus, Upload, Image
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,13 +22,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// API service functions
+// API service functions - Updated to match documentation
 const dashboardAPI = {
   getOverview: async () => {
     const response = await fetch(`${API_BASE_URL}/merchants/dashboard/overview`, {
       method: 'GET',
       credentials: 'include'
     });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return response.json();
   },
 
@@ -37,6 +40,9 @@ const dashboardAPI = {
       method: 'GET',
       credentials: 'include'
     });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return response.json();
   },
 
@@ -45,6 +51,9 @@ const dashboardAPI = {
       method: 'GET',
       credentials: 'include'
     });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return response.json();
   },
 
@@ -53,6 +62,9 @@ const dashboardAPI = {
       method: 'GET',
       credentials: 'include'
     });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return response.json();
   },
 
@@ -61,6 +73,31 @@ const dashboardAPI = {
       method: 'GET',
       credentials: 'include'
     });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getReviews: async (page: number = 1, limit: number = 10, sortBy: string = 'createdAt', order: string = 'desc', rating?: string) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      sortBy,
+      order
+    });
+    
+    if (rating && rating !== 'all') {
+      params.append('rating', rating);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/reviews?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return response.json();
   }
 };
@@ -167,18 +204,31 @@ const MerchantDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      await Promise.all([
+      const results = await Promise.allSettled([
         fetchOverview(),
         fetchAnalytics(),
         fetchActivity(),
         fetchNotifications(),
         fetchQuickActions()
       ]);
+
+      // Check for any rejected promises
+      const errors = results
+        .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+        .map(result => result.reason.message);
+
+      if (errors.length > 0) {
+        console.warn('Some dashboard data failed to load:', errors);
+        if (errors.length === results.length) {
+          throw new Error('All dashboard data failed to load');
+        }
+      }
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load dashboard data',
+        description: error instanceof Error ? error.message : 'Failed to load dashboard data',
         variant: 'destructive',
       });
     } finally {
@@ -192,7 +242,7 @@ const MerchantDashboard = () => {
     if (response.success) {
       setOverview(response.data);
     } else {
-      throw new Error(response.error);
+      throw new Error(response.error || 'Failed to fetch overview');
     }
   };
 
@@ -201,7 +251,7 @@ const MerchantDashboard = () => {
     if (response.success) {
       setAnalytics(response.data);
     } else {
-      throw new Error(response.error);
+      throw new Error(response.error || 'Failed to fetch analytics');
     }
   };
 
@@ -210,7 +260,7 @@ const MerchantDashboard = () => {
     if (response.success) {
       setActivities(response.data);
     } else {
-      throw new Error(response.error);
+      throw new Error(response.error || 'Failed to fetch activity');
     }
   };
 
@@ -219,7 +269,7 @@ const MerchantDashboard = () => {
     if (response.success) {
       setNotifications(response.data);
     } else {
-      throw new Error(response.error);
+      throw new Error(response.error || 'Failed to fetch notifications');
     }
   };
 
@@ -228,7 +278,21 @@ const MerchantDashboard = () => {
     if (response.success) {
       setQuickActions(response.data);
     } else {
-      throw new Error(response.error);
+      throw new Error(response.error || 'Failed to fetch quick actions');
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const response = await dashboardAPI.getReviews(1, 5);
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to fetch reviews');
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      throw error;
     }
   };
 
@@ -414,158 +478,85 @@ const MerchantDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Analytics Section */}
-        {analytics && (
-          <Card className="mb-8">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Performance Analytics</CardTitle>
-                <Select value={timeRange} onValueChange={(value: '7' | '30' | '90') => setTimeRange(value)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select time range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="7">Last 7 days</SelectItem>
-                    <SelectItem value="30">Last 30 days</SelectItem>
-                    <SelectItem value="90">Last 90 days</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <CardDescription>
-                {analytics.period} - Track your business performance
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Reviews Analytics */}
-                <div className="text-center p-6 bg-blue-50 rounded-lg">
-                  <Star className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900">
-                    {analytics.analytics.reviews.recent}
-                  </p>
-                  <p className="text-sm text-gray-600">New Reviews</p>
-                  <p className="text-xs text-green-600 mt-1">
-                    {analytics.analytics.reviews.growth}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Total: {analytics.analytics.reviews.total}
-                  </p>
-                </div>
-
-                {/* Products Analytics */}
-                {analytics.analytics.products && (
-                  <div className="text-center p-6 bg-green-50 rounded-lg">
-                    <Package className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">
-                      {analytics.analytics.products.active}
-                    </p>
-                    <p className="text-sm text-gray-600">Active Products</p>
-                    <p className="text-xs text-green-600 mt-1">
-                      {analytics.analytics.products.growth}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Total: {analytics.analytics.products.total}
-                    </p>
-                  </div>
-                )}
-
-                {/* Orders Analytics */}
-                {analytics.analytics.orders && (
-                  <div className="text-center p-6 bg-purple-50 rounded-lg">
-                    <CreditCard className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">
-                      {analytics.analytics.orders.recent}
-                    </p>
-                    <p className="text-sm text-gray-600">Recent Orders</p>
-                    <p className="text-xs text-green-600 mt-1">
-                      {analytics.analytics.orders.growth}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Revenue: {analytics.analytics.orders.revenue.current.toLocaleString()} {analytics.analytics.orders.revenue.currency}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Chart Placeholder */}
-              <div className="mt-6 bg-gray-50 rounded-lg p-4 h-48 flex items-center justify-center">
-                <div className="text-center">
-                  <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">Performance overview for {analytics.period.toLowerCase()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
+        {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Recent Activity */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {activities.length > 0 ? (
-                    activities.map((activity, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-full ${
-                            activity.type === 'review' ? 'bg-blue-100' :
-                            activity.type === 'product' ? 'bg-green-100' :
-                            activity.type === 'order' ? 'bg-purple-100' : 'bg-gray-100'
-                          }`}>
-                            {activity.type === 'review' && <Star className="h-4 w-4 text-blue-600" />}
-                            {activity.type === 'product' && <Package className="h-4 w-4 text-green-600" />}
-                            {activity.type === 'order' && <CreditCard className="h-4 w-4 text-purple-600" />}
-                          </div>
-                          <span className="text-gray-900">{activity.description}</span>
-                        </div>
-                        <span className="text-sm text-gray-500">{activity.timestamp}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500 text-center py-4">No recent activity</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Actions & Notifications */}
+          {/* Left Column - Quick Actions */}
           <div className="space-y-6">
             {/* Quick Actions */}
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
+                <CardDescription>Manage your business quickly</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {quickActions.length > 0 ? (
-                  quickActions.map((action) => (
-                    <Link key={action.id} to={action.link}>
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start"
-                        disabled={!action.enabled}
-                      >
-                        {getIconComponent(action.icon)}
-                        {action.label}
-                        {action.badge && (
-                          <Badge 
-                            variant="secondary" 
-                            className={`ml-auto ${
-                              action.badgeColor === 'green' ? 'bg-green-100 text-green-800' :
-                              action.badgeColor === 'red' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {action.badge}
-                          </Badge>
-                        )}
+                  <>
+                    {/* Add Products Action */}
+                    <Link to="/merchant/products/add">
+                      <Button variant="outline" className="w-full justify-start h-auto py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <Plus className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900">Add Products</p>
+                            <p className="text-xs text-gray-500">Showcase your items</p>
+                          </div>
+                        </div>
                       </Button>
                     </Link>
-                  ))
+
+                    {/* Upload Photos Action */}
+                    <Link to="/merchant/photos/upload">
+                      <Button variant="outline" className="w-full justify-start h-auto py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Upload className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900">Upload Photos</p>
+                            <p className="text-xs text-gray-500">Upload business images</p>
+                          </div>
+                        </div>
+                      </Button>
+                    </Link>
+
+                    {/* Existing Quick Actions */}
+                    {quickActions.map((action) => (
+                      <Link key={action.id} to={action.link}>
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-start h-auto py-3"
+                          disabled={!action.enabled}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${
+                              action.badgeColor === 'green' ? 'bg-green-100' :
+                              action.badgeColor === 'red' ? 'bg-red-100' :
+                              'bg-gray-100'
+                            }`}>
+                              {getIconComponent(action.icon)}
+                            </div>
+                            <div className="text-left">
+                              <p className="font-medium text-gray-900">{action.label}</p>
+                              {action.badge && (
+                                <Badge 
+                                  variant="secondary" 
+                                  className={`mt-1 ${
+                                    action.badgeColor === 'green' ? 'bg-green-100 text-green-800' :
+                                    action.badgeColor === 'red' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}
+                                >
+                                  {action.badge}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </Button>
+                      </Link>
+                    ))}
+                  </>
                 ) : (
                   <p className="text-gray-500 text-center py-2">No quick actions available</p>
                 )}
@@ -576,6 +567,7 @@ const MerchantDashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Notifications</CardTitle>
+                <CardDescription>Latest updates</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -606,6 +598,161 @@ const MerchantDashboard = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Right Column - Analytics & Activity */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Analytics Section */}
+            {analytics && analytics.analytics ? (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Performance Analytics</CardTitle>
+                    <Select value={timeRange} onValueChange={(value: '7' | '30' | '90') => setTimeRange(value)}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select time range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7">Last 7 days</SelectItem>
+                        <SelectItem value="30">Last 30 days</SelectItem>
+                        <SelectItem value="90">Last 90 days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <CardDescription>
+                    {analytics.period} - Track your business performance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Reviews Analytics */}
+                    <div className="text-center p-6 bg-blue-50 rounded-lg">
+                      <Star className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-gray-900">
+                        {analytics.analytics.reviews?.recent || 0}
+                      </p>
+                      <p className="text-sm text-gray-600">New Reviews</p>
+                      <p className={`text-xs mt-1 ${
+                        analytics.analytics.reviews?.growth?.startsWith('+') 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {analytics.analytics.reviews?.growth || '0%'}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Total: {analytics.analytics.reviews?.total || 0}
+                      </p>
+                    </div>
+
+                    {/* Products Analytics - only show if data exists */}
+                    {analytics.analytics.products && (
+                      <div className="text-center p-6 bg-green-50 rounded-lg">
+                        <Package className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-gray-900">
+                          {analytics.analytics.products.active}
+                        </p>
+                        <p className="text-sm text-gray-600">Active Products</p>
+                        <p className={`text-xs mt-1 ${
+                          analytics.analytics.products.growth?.startsWith('+') 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {analytics.analytics.products.growth}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Total: {analytics.analytics.products.total}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Orders Analytics - only show if data exists */}
+                    {analytics.analytics.orders && (
+                      <div className="text-center p-6 bg-purple-50 rounded-lg">
+                        <CreditCard className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-gray-900">
+                          {analytics.analytics.orders.recent}
+                        </p>
+                        <p className="text-sm text-gray-600">Recent Orders</p>
+                        <p className={`text-xs mt-1 ${
+                          analytics.analytics.orders.growth?.startsWith('+') 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {analytics.analytics.orders.growth}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Revenue: {analytics.analytics.orders.revenue.current.toLocaleString()} {analytics.analytics.orders.revenue.currency}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chart Placeholder */}
+                  <div className="mt-6 bg-gray-50 rounded-lg p-4 h-48 flex items-center justify-center">
+                    <div className="text-center">
+                      <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500">Performance overview for {analytics.period.toLowerCase()}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center py-8">
+                    <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-500">Analytics data not available</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Latest business activities</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {activities.length > 0 ? (
+                    activities.map((activity, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-full ${
+                            activity.type === 'review' ? 'bg-blue-100' :
+                            activity.type === 'product' ? 'bg-green-100' :
+                            activity.type === 'order' ? 'bg-purple-100' : 'bg-gray-100'
+                          }`}>
+                            {activity.type === 'review' && <Star className="h-4 w-4 text-blue-600" />}
+                            {activity.type === 'product' && <Package className="h-4 w-4 text-green-600" />}
+                            {activity.type === 'order' && <CreditCard className="h-4 w-4 text-purple-600" />}
+                          </div>
+                          <div>
+                            <span className="text-gray-900 block">{activity.description}</span>
+                            {activity.data?.rating && (
+                              <div className="flex items-center gap-1 mt-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-3 w-3 ${
+                                      i < activity.data.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-sm text-gray-500 whitespace-nowrap">{activity.timestamp}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">No recent activity</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
@@ -616,7 +763,7 @@ const MerchantDashboard = () => {
 
 // Helper function to get icon components
 const getIconComponent = (iconName: string) => {
-  const iconProps = { className: "h-4 w-4 mr-2" };
+  const iconProps = { className: "h-4 w-4" };
   switch (iconName) {
     case 'edit': return <Edit {...iconProps} />;
     case 'eye': return <Eye {...iconProps} />;
@@ -629,6 +776,9 @@ const getIconComponent = (iconName: string) => {
     case 'bell': return <Bell {...iconProps} />;
     case 'shield': return <Shield {...iconProps} />;
     case 'download': return <Download {...iconProps} />;
+    case 'plus': return <Plus {...iconProps} />;
+    case 'upload': return <Upload {...iconProps} />;
+    case 'image': return <Image {...iconProps} />;
     default: return <Settings {...iconProps} />;
   }
 };
@@ -674,16 +824,22 @@ const DashboardSkeleton = () => {
 
           {/* Activity & Actions Skeleton */}
           <div className="grid lg:grid-cols-3 gap-6">
+            <div className="space-y-4">
+              <Skeleton className="h-6 w-32" />
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+              <div className="pt-4">
+                <Skeleton className="h-6 w-32 mb-2" />
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-full mb-2" />
+                ))}
+              </div>
+            </div>
             <div className="lg:col-span-2 space-y-4">
               <Skeleton className="h-6 w-32" />
               {[...Array(3)].map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-            <div className="space-y-4">
-              <Skeleton className="h-6 w-32" />
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
           </div>
