@@ -30,6 +30,14 @@ interface MerchantProfileData {
   specializations: string[];
   businessHours: BusinessHours;
   images: string[];
+  socialLinks: {
+    facebook: string;
+    instagram: string;
+    twitter: string;
+    whatsapp: string;
+    linkedin: string;
+  };
+  whatsappNumber: string;
 }
 
 const MerchantProfileEdit = () => {
