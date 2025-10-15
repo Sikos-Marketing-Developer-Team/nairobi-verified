@@ -655,12 +655,15 @@ const MerchantDashboard = () => {
             </Card>
           </div>
 
-          {/* Quick Actions & Notifications */}
+          {/* Enhanced Sidebar */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <Card>
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-500" />
+                  Quick Actions
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {quickActions.length > 0 ? (
