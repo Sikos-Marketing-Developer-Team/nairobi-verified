@@ -577,6 +577,98 @@ const MerchantProfileEdit = () => {
             </CardContent>
           </Card>
 
+          {/* Social Media & Contact */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Social Media & Contact</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    WhatsApp Number *
+                  </label>
+                  <Input
+                    type="tel"
+                    value={formData.whatsappNumber}
+                    onChange={(e) => setFormData(prev => ({ ...prev, whatsappNumber: e.target.value }))}
+                    placeholder="e.g. 254712345678"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Customers will use this to contact you via WhatsApp
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Facebook Page
+                  </label>
+                  <Input
+                    type="url"
+                    value={formData.socialLinks.facebook}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      socialLinks: { ...prev.socialLinks, facebook: e.target.value }
+                    }))}
+                    placeholder="https://facebook.com/yourpage"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Instagram Profile
+                  </label>
+                  <Input
+                    type="url"
+                    value={formData.socialLinks.instagram}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      socialLinks: { ...prev.socialLinks, instagram: e.target.value }
+                    }))}
+                    placeholder="https://instagram.com/yourprofile"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Twitter Profile
+                  </label>
+                  <Input
+                    type="url"
+                    value={formData.socialLinks.twitter}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      socialLinks: { ...prev.socialLinks, twitter: e.target.value }
+                    }))}
+                    placeholder="https://twitter.com/yourprofile"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    LinkedIn Profile
+                  </label>
+                  <Input
+                    type="url"
+                    value={formData.socialLinks.linkedin}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      socialLinks: { ...prev.socialLinks, linkedin: e.target.value }
+                    }))}
+                    placeholder="https://linkedin.com/company/yourcompany"
+                  />
+                </div>
+              </div>
+              
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>WhatsApp Integration:</strong> Your WhatsApp number will be automatically linked 
+                  to your products so customers can easily contact you about specific items.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Photo Gallery */}
           <Card>
             <CardHeader>
