@@ -4,7 +4,8 @@ import {
   Eye, Edit, Users, Clock, CheckCircle, AlertCircle, MessageSquare, 
   BarChart3, TrendingUp, Phone, MapPin, Heart, Calendar, Settings, 
   Bell, Package, CreditCard, Star, Mail, Shield, Download, Award,
-  RefreshCw, Store
+  RefreshCw, Store, Activity, DollarSign, ArrowUpRight, ArrowDownRight,
+  Plus, Image, Share2, Target, Zap, Sparkles
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -316,103 +317,196 @@ const MerchantDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Header />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
+        {/* Enhanced Header with Gradient */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Welcome back, {overview.merchant.businessName}!
-              </h1>
-              <p className="text-gray-600 mt-2">Manage your business profile and track performance</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button onClick={handleSendCredentials} variant="outline" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Send Login Credentials
-              </Button>
-              <Button onClick={handleRefresh} variant="outline" disabled={refreshing}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+                  <h1 className="text-3xl font-bold">
+                    Welcome back, {overview.merchant.businessName}!
+                  </h1>
+                </div>
+                <p className="text-blue-100 text-lg">Manage your business and grow your success</p>
+                <div className="flex items-center gap-6 mt-4 text-blue-100">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-4 w-4" />
+                    <span>{overview.merchant.rating} rating</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>{overview.merchant.totalReviews} reviews</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>Member since {new Date(overview.merchant.memberSince).getFullYear()}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button 
+                  onClick={handleSendCredentials} 
+                  variant="secondary" 
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Credentials
+                </Button>
+                <Button 
+                  onClick={handleRefresh} 
+                  variant="secondary" 
+                  disabled={refreshing}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Verification Status */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-full ${
-                  overview.verificationStatus.isVerified 
-                    ? 'bg-green-100' 
-                    : 'bg-amber-100'
-                }`}>
-                  <CheckCircle className={`h-6 w-6 ${
+        {/* Enhanced Status Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Verification Status */}
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`p-4 rounded-2xl ${
                     overview.verificationStatus.isVerified 
-                      ? 'text-green-600' 
-                      : 'text-amber-600'
-                  }`} />
+                      ? 'bg-gradient-to-br from-green-400 to-green-600' 
+                      : 'bg-gradient-to-br from-amber-400 to-orange-500'
+                  } shadow-lg`}>
+                    <CheckCircle className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl text-gray-900">
+                      {overview.verificationStatus.verificationBadge}
+                    </h3>
+                    <p className="text-gray-600 mt-1">
+                      {overview.verificationStatus.statusMessage}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {overview.verificationStatus.verificationBadge}
-                  </h3>
-                  <p className="text-gray-600">
-                    {overview.verificationStatus.statusMessage}
-                  </p>
+                <div className="text-right">
+                  {overview.verificationStatus.isFeatured && (
+                    <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0 mb-2">
+                      <Award className="h-3 w-3 mr-1" />
+                      Featured
+                    </Badge>
+                  )}
+                  <Link to="/merchant/verification">
+                    <Button size="sm" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Status
+                    </Button>
+                  </Link>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                {overview.verificationStatus.isFeatured && (
-                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                    <Award className="h-3 w-3 mr-1" />
-                    Featured
-                  </Badge>
-                )}
-                <Link to="/merchant/verification">
-                  <Button variant="outline">
-                    View Status
+            </CardContent>
+          </Card>
+
+          {/* Profile Completion */}
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 shadow-lg">
+                      <Target className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="font-bold text-xl text-gray-900">Profile Completion</h3>
+                  </div>
+                  <div className="relative">
+                    <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 h-4 rounded-full transition-all duration-500 shadow-lg"
+                        style={{ width: `${overview.profileCompletion.percentage}%` }}
+                      ></div>
+                    </div>
+                    <span className="absolute right-0 -top-8 text-sm font-semibold text-purple-600">
+                      {overview.profileCompletion.percentage}%
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">
+                    {overview.profileCompletion.percentage}% complete • {overview.profileCompletion.nextSteps.length} steps remaining
+                  </p>
+                </div>
+                <Link to="/merchant/profile/edit">
+                  <Button size="sm" className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Complete
                   </Button>
                 </Link>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Profile Completion */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-2">Profile Completion</h3>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div 
-                    className="bg-primary h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${overview.profileCompletion.percentage}%` }}
-                  ></div>
+            </CardContent>
+          </Card>
+        {/* Enhanced Quick Actions Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg">Edit Profile</h3>
+                  <p className="text-blue-100 text-sm mt-1">Update your business info</p>
                 </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  {overview.profileCompletion.percentage}% complete
-                </p>
-                {overview.profileCompletion.nextSteps.length > 0 && (
-                  <p className="text-sm text-amber-600 mt-1">
-                    Next: {overview.profileCompletion.nextSteps[0]}
-                  </p>
-                )}
+                <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
+                  <Edit className="h-6 w-6" />
+                </div>
               </div>
-              <Link to="/merchant/profile/edit">
-                <Button className="ml-6 bg-primary hover:bg-primary-dark">
-                  Complete Profile
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg">View Profile</h3>
+                  <p className="text-green-100 text-sm mt-1">See your public page</p>
+                </div>
+                <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
+                  <Eye className="h-6 w-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg">Add Products</h3>
+                  <p className="text-purple-100 text-sm mt-1">Showcase your items</p>
+                </div>
+                <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
+                  <Plus className="h-6 w-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-red-500 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg">Upload Photos</h3>
+                  <p className="text-orange-100 text-sm mt-1">Add business images</p>
+                </div>
+                <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
+                  <Image className="h-6 w-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Analytics Section */}
         {analytics && (
