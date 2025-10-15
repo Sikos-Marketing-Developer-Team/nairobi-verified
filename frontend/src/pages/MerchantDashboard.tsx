@@ -269,6 +269,20 @@ const MerchantDashboard = () => {
     }
   };
 
+  // Handle View Profile - Open in new tab with proper authentication
+  const handleViewProfile = () => {
+    if (!overview) return;
+    
+    // Create a new tab with the merchant public URL
+    const publicUrl = `/merchant/${overview.merchant.id}`;
+    window.open(publicUrl, '_blank', 'noopener,noreferrer');
+    
+    toast({
+      title: 'Opening Public Profile',
+      description: 'Your public profile is opening in a new tab',
+    });
+  };
+
   // Check authentication
   if (!isAuthenticated) {
     return (
@@ -403,12 +417,6 @@ const MerchantDashboard = () => {
                       Featured
                     </Badge>
                   )}
-                  <Link to="/merchant/verification">
-                    <Button size="sm" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Status
-                    </Button>
-                  </Link>
                 </div>
               </div>
             </CardContent>
@@ -451,8 +459,9 @@ const MerchantDashboard = () => {
           </Card>
         </div>
 
-        {/* Enhanced Quick Actions Section */}
+        {/* Enhanced Quick Actions Section - FIXED */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Edit Profile */}
           <Link to="/merchant/profile/edit">
             <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
               <CardContent className="p-6">
@@ -469,49 +478,57 @@ const MerchantDashboard = () => {
             </Card>
           </Link>
 
-          <Link to={`/merchants/${overview.merchant.id}`}>
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
+          {/* View Profile - FIXED: Using onClick handler */}
+          <Card 
+            onClick={handleViewProfile}
+            className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group"
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg">View Profile</h3>
+                  <p className="text-green-100 text-sm mt-1">See your public page</p>
+                </div>
+                <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
+                  <Eye className="h-6 w-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Add Products - FIXED: Added proper link */}
+          <Link to="/merchant/products">
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold text-lg">View Profile</h3>
-                    <p className="text-green-100 text-sm mt-1">See your public page</p>
+                    <h3 className="font-bold text-lg">Add Products</h3>
+                    <p className="text-purple-100 text-sm mt-1">Showcase your items</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
-                    <Eye className="h-6 w-6" />
+                    <Plus className="h-6 w-6" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </Link>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-lg">Add Products</h3>
-                  <p className="text-purple-100 text-sm mt-1">Showcase your items</p>
+          {/* Upload Photos - FIXED: Added proper link */}
+          <Link to="/merchant/gallery">
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-red-500 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg">Upload Photos</h3>
+                    <p className="text-orange-100 text-sm mt-1">Add business images</p>
+                  </div>
+                  <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
+                    <Image className="h-6 w-6" />
+                  </div>
                 </div>
-                <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
-                  <Plus className="h-6 w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-red-500 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-lg">Upload Photos</h3>
-                  <p className="text-orange-100 text-sm mt-1">Add business images</p>
-                </div>
-                <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
-                  <Image className="h-6 w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Analytics Section */}

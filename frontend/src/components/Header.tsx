@@ -175,7 +175,6 @@ const Navbar = () => {
   const merchantNavItems = [
     { path: '/merchant/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/merchant/profile/edit', label: 'Profile', icon: User },
-    { path: '/merchant/verification', label: 'Verification', icon: Shield },
   ];
 
   // FIXED: User navigation items
