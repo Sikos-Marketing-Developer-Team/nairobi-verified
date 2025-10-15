@@ -188,16 +188,25 @@ const MerchantProfileEdit = () => {
         email: formData.email,
         website: formData.website,
         address: formData.address,
-        category: formData.category,
+        businessType: formData.category, // Note: backend uses businessType
         specializations: formData.specializations,
         businessHours: formData.businessHours,
-        // Note: You'll need to handle image upload separately
+        // Add socialLinks and whatsappNumber if available
+        socialLinks: {
+          facebook: '',
+          instagram: '',
+          twitter: '',
+          whatsapp: formData.phone || '', // Use phone as whatsapp for now
+          linkedin: '',
+          website: formData.website || ''
+        },
+        whatsappNumber: formData.phone || ''
       };
 
-      // Since you don't have a dedicated profile update endpoint yet,
-      // we'll use a generic fetch call to your backend
-      // You'll need to create this endpoint in your backend
-      const response = await fetch('/api/merchants/profile', {
+      console.log('💾 Saving merchant profile data:', saveData);
+
+      // Use the correct endpoint for updating merchant profile
+      const response = await fetch('/api/merchants/profile/me', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -207,10 +216,12 @@ const MerchantProfileEdit = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
+      console.log('✅ Profile update response:', result);
 
       if (result.success) {
         toast({
