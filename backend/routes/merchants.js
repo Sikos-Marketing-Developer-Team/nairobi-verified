@@ -54,15 +54,15 @@ router.put('/:id/banner', protect, isMerchant, uploadImage.single('banner'), upl
 router.put('/:id/gallery', protect, isMerchant, uploadImage.array('gallery', 10), uploadGallery);
 
 // Current merchant image upload routes
-router.put('/me/logo', protect, isMerchant, uploadImage.single('logo'), (req, res) => {
+router.put('/profile/me/logo', protect, isMerchant, uploadImage.single('logo'), (req, res) => {
   req.params.id = req.user._id;
   uploadLogo(req, res);
 });
-router.put('/me/banner', protect, isMerchant, uploadImage.single('banner'), (req, res) => {
+router.put('/profile/me/banner', protect, isMerchant, uploadImage.single('banner'), (req, res) => {
   req.params.id = req.user._id;
   uploadBanner(req, res);
 });
-router.put('/me/gallery', protect, isMerchant, uploadImage.array('gallery', 10), (req, res) => {
+router.put('/profile/me/gallery', protect, isMerchant, uploadImage.array('gallery', 10), (req, res) => {
   req.params.id = req.user._id;
   uploadGallery(req, res);
 });
