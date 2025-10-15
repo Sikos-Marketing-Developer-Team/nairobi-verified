@@ -512,10 +512,13 @@ const MerchantDashboard = () => {
 
         {/* Analytics Section */}
         {analytics && (
-          <Card className="mb-8">
+          <Card className="mb-8 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Performance Analytics</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-purple-600" />
+                  Performance Analytics
+                </CardTitle>
                 <Select value={timeRange} onValueChange={(value: '7' | '30' | '90') => setTimeRange(value)}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Select time range" />
@@ -534,32 +537,36 @@ const MerchantDashboard = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Reviews Analytics */}
-                <div className="text-center p-6 bg-blue-50 rounded-lg">
-                  <Star className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900">
+                <div className="text-center p-6 bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-xl shadow-lg">
+                  <div className="p-3 bg-white/20 rounded-xl mx-auto w-fit mb-3">
+                    <Star className="h-8 w-8" />
+                  </div>
+                  <p className="text-3xl font-bold mb-1">
                     {analytics.analytics.reviews.recent}
                   </p>
-                  <p className="text-sm text-gray-600">New Reviews</p>
-                  <p className="text-xs text-green-600 mt-1">
+                  <p className="text-blue-100">New Reviews</p>
+                  <p className="text-sm bg-white/20 px-2 py-1 rounded-full mt-2 inline-block">
                     {analytics.analytics.reviews.growth}
                   </p>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-blue-100 mt-2">
                     Total: {analytics.analytics.reviews.total}
                   </p>
                 </div>
 
                 {/* Products Analytics */}
                 {analytics.analytics.products && (
-                  <div className="text-center p-6 bg-green-50 rounded-lg">
-                    <Package className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">
+                  <div className="text-center p-6 bg-gradient-to-br from-green-400 to-emerald-600 text-white rounded-xl shadow-lg">
+                    <div className="p-3 bg-white/20 rounded-xl mx-auto w-fit mb-3">
+                      <Package className="h-8 w-8" />
+                    </div>
+                    <p className="text-3xl font-bold mb-1">
                       {analytics.analytics.products.active}
                     </p>
-                    <p className="text-sm text-gray-600">Active Products</p>
-                    <p className="text-xs text-green-600 mt-1">
+                    <p className="text-green-100">Active Products</p>
+                    <p className="text-sm bg-white/20 px-2 py-1 rounded-full mt-2 inline-block">
                       {analytics.analytics.products.growth}
                     </p>
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-green-100 mt-2">
                       Total: {analytics.analytics.products.total}
                     </p>
                   </div>
@@ -567,27 +574,35 @@ const MerchantDashboard = () => {
 
                 {/* Orders Analytics */}
                 {analytics.analytics.orders && (
-                  <div className="text-center p-6 bg-purple-50 rounded-lg">
-                    <CreditCard className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">
+                  <div className="text-center p-6 bg-gradient-to-br from-purple-400 to-purple-600 text-white rounded-xl shadow-lg">
+                    <div className="p-3 bg-white/20 rounded-xl mx-auto w-fit mb-3">
+                      <CreditCard className="h-8 w-8" />
+                    </div>
+                    <p className="text-3xl font-bold mb-1">
                       {analytics.analytics.orders.recent}
                     </p>
-                    <p className="text-sm text-gray-600">Recent Orders</p>
-                    <p className="text-xs text-green-600 mt-1">
+                    <p className="text-purple-100">Recent Orders</p>
+                    <p className="text-sm bg-white/20 px-2 py-1 rounded-full mt-2 inline-block">
                       {analytics.analytics.orders.growth}
                     </p>
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-purple-100 mt-2">
                       Revenue: {analytics.analytics.orders.revenue.current.toLocaleString()} {analytics.analytics.orders.revenue.currency}
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Chart Placeholder */}
-              <div className="mt-6 bg-gray-50 rounded-lg p-4 h-48 flex items-center justify-center">
+              {/* Enhanced Chart Placeholder */}
+              <div className="mt-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 h-64 flex items-center justify-center border border-gray-200">
                 <div className="text-center">
-                  <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">Performance overview for {analytics.period.toLowerCase()}</p>
+                  <div className="p-4 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-xl mx-auto w-fit mb-4">
+                    <BarChart3 className="h-12 w-12 text-white" />
+                  </div>
+                  <p className="text-gray-600 font-medium">Performance Chart</p>
+                  <p className="text-gray-500 text-sm">Detailed analytics for {analytics.period.toLowerCase()}</p>
+                  <Button className="mt-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700">
+                    View Detailed Report
+                  </Button>
                 </div>
               </div>
             </CardContent>
