@@ -13,20 +13,30 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [favoritesCount, setFavoritesCount] = useState(0);
   const { isAuthenticated, user } = useAuth();
 
- const updateFavoritesCount = async () => {
-  if (isAuthenticated && user) {
+  const updateFavoritesCount = async () => {
+    // Determine if the user is a merchant
+    const isMerchant = user?.role === 'merchant' || user?.businessName;
+
+    if (!isAuthenticated) {
+      console.log('User not authenticated — resetting favorites count.');
+      setFavoritesCount(0);
+      return;
+    }
+
+    if (isMerchant) {
+      console.log('Skipping favorites fetch for merchant user:', user?.email || user?.id);
+      setFavoritesCount(0);
+      return;
+    }
+
     try {
       const favoritesRes = await favoritesAPI.getFavorites();
-      // Use the count from backend response
       setFavoritesCount(favoritesRes.data.count);
     } catch (error) {
       console.error('Error fetching favorites count:', error);
       setFavoritesCount(0);
     }
-  } else {
-    setFavoritesCount(0);
-  }
-};
+  };
 
   useEffect(() => {
     updateFavoritesCount();
