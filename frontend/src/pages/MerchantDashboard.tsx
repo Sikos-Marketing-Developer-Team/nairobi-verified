@@ -671,7 +671,7 @@ const MerchantDashboard = () => {
                     <Link key={action.id} to={action.link}>
                       <Button 
                         variant="outline" 
-                        className="w-full justify-start"
+                        className="w-full justify-start bg-gradient-to-r from-gray-50 to-gray-100 hover:from-blue-50 hover:to-blue-100 border-gray-200 hover:border-blue-300 transition-all duration-300"
                         disabled={!action.enabled}
                       >
                         {getIconComponent(action.icon)}
@@ -692,44 +692,112 @@ const MerchantDashboard = () => {
                     </Link>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-center py-2">No quick actions available</p>
+                  <div className="text-center py-6">
+                    <div className="p-3 bg-gradient-to-br from-gray-400 to-gray-600 rounded-xl mx-auto w-fit mb-3">
+                      <Zap className="h-6 w-6 text-white" />
+                    </div>
+                    <p className="text-gray-500 text-sm">No quick actions available</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Notifications */}
-            <Card>
+            {/* Enhanced Notifications */}
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Notifications</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Bell className="h-5 w-5 text-purple-600" />
+                    Notifications
+                  </span>
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <Badge className="bg-gradient-to-r from-red-400 to-red-600 text-white">
+                      {notifications.filter(n => !n.read).length}
+                    </Badge>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {notifications.length > 0 ? (
-                    notifications.slice(0, 3).map((notification) => (
-                      <div key={notification.id} className={`p-3 border rounded-lg ${
-                        !notification.read ? 'bg-blue-50 border-blue-200' : ''
+                    notifications.slice(0, 4).map((notification) => (
+                      <div key={notification.id} className={`p-4 rounded-xl transition-all duration-300 ${
+                        !notification.read 
+                          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500' 
+                          : 'bg-gradient-to-r from-gray-50 to-gray-100'
                       }`}>
                         <div className="flex items-start gap-3">
-                          <div className={`p-1 rounded-full ${
-                            notification.type === 'success' ? 'bg-green-100' :
-                            notification.type === 'warning' ? 'bg-amber-100' :
-                            'bg-blue-100'
+                          <div className={`p-2 rounded-lg ${
+                            notification.type === 'success' ? 'bg-gradient-to-br from-green-400 to-green-600' :
+                            notification.type === 'warning' ? 'bg-gradient-to-br from-amber-400 to-orange-500' :
+                            'bg-gradient-to-br from-blue-400 to-blue-600'
                           }`}>
                             {getIconComponent(notification.icon)}
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm text-gray-900">{notification.title}</p>
+                            <p className="text-sm font-medium text-gray-900">{notification.title}</p>
                             <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
                           </div>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 text-center py-4">No notifications</p>
+                    <div className="text-center py-8">
+                      <div className="p-3 bg-gradient-to-br from-gray-400 to-gray-600 rounded-xl mx-auto w-fit mb-3">
+                        <Bell className="h-6 w-6 text-white" />
+                      </div>
+                      <p className="text-gray-500 font-medium">No notifications</p>
+                      <p className="text-gray-400 text-xs">We'll notify you of important updates</p>
+                    </div>
                   )}
                 </div>
+                {notifications.length > 4 && (
+                  <Button variant="outline" className="w-full mt-4 text-sm">
+                    View All Notifications
+                  </Button>
+                )}
               </CardContent>
             </Card>
+
+            {/* Profile Completion Tips */}
+            {overview.profileCompletion.nextSteps.length > 0 && (
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-400 to-pink-500 text-white">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Complete Your Profile
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="bg-white/20 rounded-lg p-3">
+                      <p className="text-sm font-medium">
+                        {overview.profileCompletion.percentage}% Complete
+                      </p>
+                      <div className="w-full bg-white/20 rounded-full h-2 mt-2">
+                        <div 
+                          className="bg-white h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${overview.profileCompletion.percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {overview.profileCompletion.nextSteps.slice(0, 3).map((step, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                          <span className="text-sm">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Link to="/merchant/profile/edit">
+                      <Button className="w-full mt-4 bg-white text-orange-600 hover:bg-gray-100 font-medium">
+                        Complete Now
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
