@@ -215,16 +215,8 @@ const MerchantProfileEdit = () => {
         businessType: formData.category, // Note: backend uses businessType
         specializations: formData.specializations,
         businessHours: formData.businessHours,
-        // Add socialLinks and whatsappNumber if available
-        socialLinks: {
-          facebook: '',
-          instagram: '',
-          twitter: '',
-          whatsapp: formData.phone || '', // Use phone as whatsapp for now
-          linkedin: '',
-          website: formData.website || ''
-        },
-        whatsappNumber: formData.phone || ''
+        socialLinks: formData.socialLinks,
+        whatsappNumber: formData.whatsappNumber || formData.phone
       };
 
       console.log('💾 Saving merchant profile data:', saveData);
