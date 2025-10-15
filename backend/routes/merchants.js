@@ -31,6 +31,19 @@ router.route('/')
   .get(getMerchants)
   .post(createMerchant);
 
+// Merchant self-management routes (must be before /:id routes)
+router.get('/me', protect, isMerchant, (req, res) => {
+  // Redirect to getMerchant with the merchant's own ID
+  req.params.id = req.user._id;
+  getMerchant(req, res);
+});
+
+router.put('/me', protect, isMerchant, (req, res) => {
+  // Redirect to updateMerchant with the merchant's own ID
+  req.params.id = req.user._id;
+  updateMerchant(req, res);
+});
+
 router.route('/:id')
   .get(getMerchant)
   .put(protect, isMerchant, updateMerchant)
@@ -39,6 +52,20 @@ router.route('/:id')
 router.put('/:id/logo', protect, isMerchant, uploadImage.single('logo'), uploadLogo);
 router.put('/:id/banner', protect, isMerchant, uploadImage.single('banner'), uploadBanner);
 router.put('/:id/gallery', protect, isMerchant, uploadImage.array('gallery', 10), uploadGallery);
+
+// Current merchant image upload routes
+router.put('/me/logo', protect, isMerchant, uploadImage.single('logo'), (req, res) => {
+  req.params.id = req.user._id;
+  uploadLogo(req, res);
+});
+router.put('/me/banner', protect, isMerchant, uploadImage.single('banner'), (req, res) => {
+  req.params.id = req.user._id;
+  uploadBanner(req, res);
+});
+router.put('/me/gallery', protect, isMerchant, uploadImage.array('gallery', 10), (req, res) => {
+  req.params.id = req.user._id;
+  uploadGallery(req, res);
+});
 
 router.put('/:id/documents', protect, isMerchant, uploadDocs.fields([
   { name: 'businessRegistration', maxCount: 1 },

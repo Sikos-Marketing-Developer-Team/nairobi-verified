@@ -136,6 +136,19 @@ const MerchantSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  socialLinks: {
+    facebook: { type: String, default: '' },
+    instagram: { type: String, default: '' },
+    twitter: { type: String, default: '' },
+    whatsapp: { type: String, default: '' },
+    linkedin: { type: String, default: '' },
+    website: { type: String, default: '' }
+  },
+  whatsappNumber: {
+    type: String,
+    default: '',
+    trim: true
+  },
   documents: {
     type: DocumentsSchema,
     default: {}

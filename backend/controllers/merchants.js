@@ -348,8 +348,8 @@ exports.updateMerchant = async (req, res) => {
       'businessName', 'email', 'phone', 'businessType', 'description', 
       'yearEstablished', 'website', 'address', 'location', 'landmark', 
       'businessHours', 'logo', 'bannerImage', 'gallery', 'socialLinks',
-      'priceRange', 'latitude', 'longitude', 'seoTitle', 'seoDescription',
-      'googleBusinessUrl'
+      'whatsappNumber', 'priceRange', 'latitude', 'longitude', 'seoTitle', 
+      'seoDescription', 'googleBusinessUrl'
     ];
     
     allowed.forEach(key => {
