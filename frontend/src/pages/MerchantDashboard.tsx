@@ -453,33 +453,37 @@ const MerchantDashboard = () => {
 
         {/* Enhanced Quick Actions Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-lg">Edit Profile</h3>
-                  <p className="text-blue-100 text-sm mt-1">Update your business info</p>
+          <Link to="/merchant/profile/edit">
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg">Edit Profile</h3>
+                    <p className="text-blue-100 text-sm mt-1">Update your business info</p>
+                  </div>
+                  <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
+                    <Edit className="h-6 w-6" />
+                  </div>
                 </div>
-                <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
-                  <Edit className="h-6 w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-lg">View Profile</h3>
-                  <p className="text-green-100 text-sm mt-1">See your public page</p>
+          <Link to={`/merchants/${overview.merchant.id}`}>
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg">View Profile</h3>
+                    <p className="text-green-100 text-sm mt-1">See your public page</p>
+                  </div>
+                  <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
+                    <Eye className="h-6 w-6" />
+                  </div>
                 </div>
-                <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
-                  <Eye className="h-6 w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
             <CardContent className="p-6">
