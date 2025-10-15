@@ -135,7 +135,15 @@ const MerchantProfileEdit = () => {
             saturday: { open: '09:00', close: '16:00', closed: false },
             sunday: { open: '10:00', close: '16:00', closed: true }
           },
-          images: merchantData.gallery || []
+          images: merchantData.gallery || [],
+          socialLinks: merchantData.socialLinks || {
+            facebook: '',
+            instagram: '',
+            twitter: '',
+            whatsapp: '',
+            linkedin: ''
+          },
+          whatsappNumber: merchantData.whatsappNumber || merchantData.phone || ''
         }));
 
         console.log('📊 Loaded merchant data from API:', merchantData);
