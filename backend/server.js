@@ -67,7 +67,8 @@ app.use(cors({
     'http://localhost:3000',
     'https://nairobi-verified-frontend1-6f8g.onrender.com',
     'https://nairobi-verified-1-rmgv.onrender.com',
-    'https://nairobi-verified-admin.onrender.com/'
+    'https://nairobi-verified-admin.onrender.com/',
+    'https://nairobiverified.co.ke',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
