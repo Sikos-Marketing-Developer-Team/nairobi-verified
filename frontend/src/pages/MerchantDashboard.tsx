@@ -612,32 +612,43 @@ const MerchantDashboard = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Recent Activity */}
           <div className="lg:col-span-2">
-            <Card>
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-green-600" />
+                  Recent Activity
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {activities.length > 0 ? (
                     activities.map((activity, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-full ${
-                            activity.type === 'review' ? 'bg-blue-100' :
-                            activity.type === 'product' ? 'bg-green-100' :
-                            activity.type === 'order' ? 'bg-purple-100' : 'bg-gray-100'
+                      <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl hover:shadow-md transition-all duration-300">
+                        <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-xl shadow-md ${
+                            activity.type === 'review' ? 'bg-gradient-to-br from-blue-400 to-blue-600' :
+                            activity.type === 'product' ? 'bg-gradient-to-br from-green-400 to-green-600' :
+                            activity.type === 'order' ? 'bg-gradient-to-br from-purple-400 to-purple-600' : 'bg-gradient-to-br from-gray-400 to-gray-600'
                           }`}>
-                            {activity.type === 'review' && <Star className="h-4 w-4 text-blue-600" />}
-                            {activity.type === 'product' && <Package className="h-4 w-4 text-green-600" />}
-                            {activity.type === 'order' && <CreditCard className="h-4 w-4 text-purple-600" />}
+                            {activity.type === 'review' && <Star className="h-5 w-5 text-white" />}
+                            {activity.type === 'product' && <Package className="h-5 w-5 text-white" />}
+                            {activity.type === 'order' && <CreditCard className="h-5 w-5 text-white" />}
                           </div>
-                          <span className="text-gray-900">{activity.description}</span>
+                          <div>
+                            <span className="text-gray-900 font-medium">{activity.description}</span>
+                          </div>
                         </div>
-                        <span className="text-sm text-gray-500">{activity.timestamp}</span>
+                        <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">{activity.timestamp}</span>
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 text-center py-4">No recent activity</p>
+                    <div className="text-center py-12">
+                      <div className="p-4 bg-gradient-to-br from-gray-400 to-gray-600 rounded-xl mx-auto w-fit mb-4">
+                        <Activity className="h-12 w-12 text-white" />
+                      </div>
+                      <p className="text-gray-500 font-medium">No recent activity</p>
+                      <p className="text-gray-400 text-sm">Your activities will appear here</p>
+                    </div>
                   )}
                 </div>
               </CardContent>
