@@ -106,9 +106,9 @@ app.use(session({
   store: mongoStore,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Allow HTTP for development/testing
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    sameSite: 'lax' // More permissive for testing
   }
 }));
 

@@ -309,11 +309,19 @@ exports.loginMerchant = async (req, res) => {
 
     req.login(merchant, (err) => {
       if (err) {
+        console.error('❌ req.login error for merchant:', err);
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
           success: false,
           error: 'Error logging in'
         });
       }
+      
+      console.log('✅ Merchant successfully logged in:', {
+        id: merchant._id,
+        email: merchant.email,
+        sessionID: req.sessionID,
+        session: req.session
+      });
       
       return res.status(HTTP_STATUS.OK).json({
         success: true,

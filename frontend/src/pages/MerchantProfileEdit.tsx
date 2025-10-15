@@ -79,10 +79,10 @@ const MerchantProfileEdit = () => {
   const fetchMerchantProfile = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching merchant profile from /api/merchants/dashboard/overview...');
+      console.log('🔄 Fetching merchant profile from /api/merchants/profile/me...');
       
-      // Use your existing endpoint
-      const response = await fetch('/api/merchants/dashboard/overview', {
+      // Use the correct endpoint that returns full merchant data
+      const response = await fetch('/api/merchants/profile/me', {
         method: 'GET',
         credentials: 'include' // Important for session cookies
       });
@@ -95,16 +95,31 @@ const MerchantProfileEdit = () => {
       console.log('✅ Merchant profile response:', result);
 
       if (result.success && result.data) {
-        const merchantData = result.data.merchant;
+        const merchantData = result.data;
         
-        // Transform API data to form format
+        // Transform API data to form format with all available fields
         setFormData(prev => ({
           ...prev,
           businessName: merchantData.businessName || '',
           email: merchantData.email || user?.email || '',
           phone: merchantData.phone || '',
-          // Note: Your current API doesn't return all profile fields
-          // You'll need to add more fields as they become available
+          website: merchantData.website || '',
+          address: merchantData.address || '',
+          category: merchantData.businessType || '',
+          description: merchantData.description || '',
+          // Add more fields from the API response
+          tagline: merchantData.tagline || '',
+          specializations: merchantData.specializations || [],
+          businessHours: merchantData.businessHours || {
+            monday: { open: '09:00', close: '18:00', closed: false },
+            tuesday: { open: '09:00', close: '18:00', closed: false },
+            wednesday: { open: '09:00', close: '18:00', closed: false },
+            thursday: { open: '09:00', close: '18:00', closed: false },
+            friday: { open: '09:00', close: '18:00', closed: false },
+            saturday: { open: '09:00', close: '16:00', closed: false },
+            sunday: { open: '10:00', close: '16:00', closed: true }
+          },
+          images: merchantData.gallery || []
         }));
 
         console.log('📊 Loaded merchant data from API:', merchantData);
