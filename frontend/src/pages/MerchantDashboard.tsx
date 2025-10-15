@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Eye, Edit, Users, Clock, CheckCircle, AlertCircle, MessageSquare, 
-  BarChart3, TrendingUp, Phone, MapPin, Heart, Calendar, Settings, 
-  Bell, Package, CreditCard, Star, Mail, Shield, Download, Award,
-  RefreshCw, Store, Activity, DollarSign, ArrowUpRight, ArrowDownRight,
-  Plus, Image, Share2, Target, Zap, Sparkles
+  Eye, Edit, CheckCircle, AlertCircle, MessageSquare, 
+  BarChart3, Calendar, Settings, Bell, Package, CreditCard, 
+  Star, Mail, Shield, Download, Award, RefreshCw, Store, 
+  Activity, Plus, Image, Target, Zap, Sparkles
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { merchantsAPI } from '@/lib/api';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 interface MerchantOverview {
   merchant: {
@@ -117,7 +113,7 @@ const MerchantDashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    console.log('Auth state:', { user, isAuthenticated });
+    console.log('Auth state:', { user, isAuthenticated, userId: user?.id });
     if (isAuthenticated) {
       fetchDashboardData();
     }
@@ -137,7 +133,7 @@ const MerchantDashboard = () => {
       console.error('Error fetching dashboard data:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load dashboard data',
+        description: 'Failed to load dashboard data. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -148,94 +144,155 @@ const MerchantDashboard = () => {
 
   const fetchOverview = async () => {
     try {
-      const response = await merchantsAPI.getMyMerchant();
-      console.log('getMyMerchant response:', response);
-      if (response.data) {
+      const response = await fetch(`${API_BASE_URL}/merchants/dashboard/overview`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      console.log('getOverview response:', data);
+      if (data.success && data.data) {
         setOverview({
           merchant: {
-            id: response.data._id || response.data.id,
-            businessName: response.data.businessName || 'Unknown',
-            email: response.data.email || '',
-            phone: response.data.phone || '',
-            rating: response.data.rating || 0,
-            totalReviews: response.data.totalReviews || 0,
-            memberSince: response.data.memberSince || new Date().toISOString(),
+            id: data.data.merchant.id,
+            businessName: data.data.merchant.businessName || 'Unknown',
+            email: data.data.merchant.email || '',
+            phone: data.data.merchant.phone || '',
+            rating: data.data.merchant.rating || 0,
+            totalReviews: data.data.merchant.totalReviews || 0,
+            memberSince: data.data.merchant.memberSince || new Date().toISOString(),
           },
-          verificationStatus: response.data.verificationStatus || {
+          verificationStatus: data.data.verificationStatus || {
             isVerified: false,
             isFeatured: false,
             verificationBadge: 'Unverified',
             statusMessage: 'Not verified',
             verifiedDate: null,
           },
-          profileCompletion: response.data.profileCompletion || {
+          profileCompletion: data.data.profileCompletion || {
             percentage: 0,
             documentsPercentage: 0,
             nextSteps: [],
           },
         });
       } else {
-        throw new Error('No merchant data returned');
+        console.log('No merchant data found:', data.error || 'Unknown error');
+        setOverview(null);
+        if (data.error === 'Merchant not found') {
+          toast({
+            title: 'No Merchant Account',
+            description: 'Please register as a merchant to access the dashboard.',
+            variant: 'destructive',
+            action: (
+              <Button
+                onClick={() => window.location.href = '/register/merchant'}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                Register Now
+              </Button>
+            ),
+          });
+        }
       }
     } catch (error: any) {
       console.error('fetchOverview error:', error);
-      throw error;
+      setOverview(null);
+      toast({
+        title: 'Error',
+        description: 'Failed to load merchant profile. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
   const fetchAnalytics = async () => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/analytics?period=${timeRange}`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    const data = await response.json();
-    console.log('Analytics response:', data);
-    if (data.success) {
-      setAnalytics(data.data);
-    } else {
-      throw new Error(data.error || 'Failed to fetch analytics');
+    try {
+      const response = await fetch(`${API_BASE_URL}/merchants/dashboard/analytics?period=${timeRange}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      console.log('Analytics response:', data);
+      if (data.success) {
+        setAnalytics(data.data);
+      } else {
+        throw new Error(data.error || 'Failed to fetch analytics');
+      }
+    } catch (error: any) {
+      console.error('fetchAnalytics error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load analytics data.',
+        variant: 'destructive',
+      });
     }
   };
 
   const fetchActivity = async () => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/activity?limit=5`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    const data = await response.json();
-    console.log('Activity response:', data);
-    if (data.success) {
-      setActivities(data.data);
-    } else {
-      throw new Error(data.error || 'Failed to fetch activity');
+    try {
+      const response = await fetch(`${API_BASE_URL}/merchants/dashboard/activity?limit=5`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      console.log('Activity response:', data);
+      if (data.success) {
+        setActivities(data.data);
+      } else {
+        throw new Error(data.error || 'Failed to fetch activity');
+      }
+    } catch (error: any) {
+      console.error('fetchActivity error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load activity data.',
+        variant: 'destructive',
+      });
     }
   };
 
   const fetchNotifications = async () => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/notifications`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    const data = await response.json();
-    console.log('Notifications response:', data);
-    if (data.success) {
-      setNotifications(data.data);
-    } else {
-      throw new Error(data.error || 'Failed to fetch notifications');
+    try {
+      const response = await fetch(`${API_BASE_URL}/merchants/dashboard/notifications`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      console.log('Notifications response:', data);
+      if (data.success) {
+        setNotifications(data.data);
+      } else {
+        throw new Error(data.error || 'Failed to fetch notifications');
+      }
+    } catch (error: any) {
+      console.error('fetchNotifications error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load notifications.',
+        variant: 'destructive',
+      });
     }
   };
 
   const fetchQuickActions = async () => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/quick-actions`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    const data = await response.json();
-    console.log('Quick Actions response:', data);
-    if (data.success) {
-      setQuickActions(data.data);
-    } else {
-      throw new Error(data.error || 'Failed to fetch quick actions');
+    try {
+      const response = await fetch(`${API_BASE_URL}/merchants/dashboard/quick-actions`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      console.log('Quick Actions response:', data);
+      if (data.success) {
+        setQuickActions(data.data);
+      } else {
+        throw new Error(data.error || 'Failed to fetch quick actions');
+      }
+    } catch (error: any) {
+      console.error('fetchQuickActions error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load quick actions.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -253,8 +310,8 @@ const MerchantDashboard = () => {
         credentials: 'include',
         body: JSON.stringify({
           email: overview.merchant.email,
-          businessName: overview.merchant.businessName
-        })
+          businessName: overview.merchant.businessName,
+        }),
       });
       if (response.ok) {
         toast({
@@ -307,11 +364,17 @@ const MerchantDashboard = () => {
             <Store className="h-12 w-12 text-black mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-black mb-4">No Merchant Account Found</h1>
             <p className="text-black mb-6">
-              You don't have a merchant account associated with your profile.
+              You don't have a merchant account associated with your profile. Register as a merchant to start managing your business.
             </p>
-            <Button onClick={() => window.location.href = '/register/merchant'} className="bg-orange-500 hover:bg-orange-600 text-white">
+            <Button
+              onClick={() => window.location.href = '/register/merchant'}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 text-lg"
+            >
               Create Merchant Account
             </Button>
+            <p className="text-sm text-black mt-4">
+              Already registered? <Link to="/login/merchant" className="text-orange-500 hover:underline">Log in as merchant</Link>
+            </p>
           </div>
         </main>
         <Footer />
@@ -322,7 +385,6 @@ const MerchantDashboard = () => {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -354,17 +416,17 @@ const MerchantDashboard = () => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Button 
-                  onClick={handleSendCredentials} 
-                  variant="secondary" 
+                <Button
+                  onClick={handleSendCredentials}
+                  variant="secondary"
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
                 >
                   <Mail className="h-4 w-4 mr-2" />
                   Send Credentials
                 </Button>
-                <Button 
-                  onClick={handleRefresh} 
-                  variant="secondary" 
+                <Button
+                  onClick={handleRefresh}
+                  variant="secondary"
                   disabled={refreshing}
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
                 >
@@ -378,25 +440,24 @@ const MerchantDashboard = () => {
 
         {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Verification Status */}
           <Card className="border-0 shadow-lg bg-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={`p-4 rounded-2xl ${
-                    overview.verificationStatus.isVerified 
-                      ? 'bg-gradient-to-br from-orange-400 to-orange-600' 
-                      : 'bg-gradient-to-br from-orange-300 to-orange-400'
-                  } shadow-lg`}>
+                  <div
+                    className={`p-4 rounded-2xl ${
+                      overview.verificationStatus.isVerified
+                        ? 'bg-gradient-to-br from-orange-400 to-orange-600'
+                        : 'bg-gradient-to-br from-orange-300 to-orange-400'
+                    } shadow-lg`}
+                  >
                     <CheckCircle className="h-8 w-8 text-white" />
                   </div>
                   <div>
                     <h3 className="font-bold text-xl text-black">
                       {overview.verificationStatus.verificationBadge}
                     </h3>
-                    <p className="text-black mt-1">
-                      {overview.verificationStatus.statusMessage}
-                    </p>
+                    <p className="text-black mt-1">{overview.verificationStatus.statusMessage}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -411,7 +472,6 @@ const MerchantDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Profile Completion */}
           <Card className="border-0 shadow-lg bg-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -424,7 +484,7 @@ const MerchantDashboard = () => {
                   </div>
                   <div className="relative">
                     <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
-                      <div 
+                      <div
                         className="bg-gradient-to-r from-orange-500 to-orange-600 h-4 rounded-full transition-all duration-500 shadow-lg"
                         style={{ width: `${overview.profileCompletion.percentage}%` }}
                       ></div>
@@ -450,7 +510,6 @@ const MerchantDashboard = () => {
 
         {/* Quick Actions Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Edit Profile */}
           <Link to="/merchant/profile/edit">
             <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
               <CardContent className="p-6">
@@ -467,7 +526,6 @@ const MerchantDashboard = () => {
             </Card>
           </Link>
 
-          {/* View Profile */}
           <Link
             to={overview?.merchant?.id ? `/merchant/${overview.merchant.id}` : '#'}
             target="_blank"
@@ -503,7 +561,6 @@ const MerchantDashboard = () => {
             </CardContent>
           </Link>
 
-          {/* Add Products */}
           <Link to="/merchant/products">
             <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
               <CardContent className="p-6">
@@ -520,7 +577,6 @@ const MerchantDashboard = () => {
             </Card>
           </Link>
 
-          {/* Upload Photos */}
           <Link to="/merchant/gallery">
             <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
               <CardContent className="p-6">
@@ -564,51 +620,36 @@ const MerchantDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Reviews Analytics */}
                 <div className="text-center p-6 bg-gradient-to-br from-orange-400 to-orange-600 text-white rounded-xl shadow-lg">
                   <div className="p-3 bg-white/20 rounded-xl mx-auto w-fit mb-3">
                     <Star className="h-8 w-8" />
                   </div>
-                  <p className="text-3xl font-bold mb-1">
-                    {analytics.analytics.reviews.recent}
-                  </p>
+                  <p className="text-3xl font-bold mb-1">{analytics.analytics.reviews.recent}</p>
                   <p className="text-white">New Reviews</p>
                   <p className="text-sm bg-white/20 px-2 py-1 rounded-full mt-2 inline-block">
                     {analytics.analytics.reviews.growth}
                   </p>
-                  <p className="text-white mt-2">
-                    Total: {analytics.analytics.reviews.total}
-                  </p>
+                  <p className="text-white mt-2">Total: {analytics.analytics.reviews.total}</p>
                 </div>
-
-                {/* Products Analytics */}
                 {analytics.analytics.products && (
                   <div className="text-center p-6 bg-gradient-to-br from-orange-400 to-orange-600 text-white rounded-xl shadow-lg">
                     <div className="p-3 bg-white/20 rounded-xl mx-auto w-fit mb-3">
                       <Package className="h-8 w-8" />
                     </div>
-                    <p className="text-3xl font-bold mb-1">
-                      {analytics.analytics.products.active}
-                    </p>
+                    <p className="text-3xl font-bold mb-1">{analytics.analytics.products.active}</p>
                     <p className="text-white">Active Products</p>
                     <p className="text-sm bg-white/20 px-2 py-1 rounded-full mt-2 inline-block">
                       {analytics.analytics.products.growth}
                     </p>
-                    <p className="text-white mt-2">
-                      Total: {analytics.analytics.products.total}
-                    </p>
+                    <p className="text-white mt-2">Total: {analytics.analytics.products.total}</p>
                   </div>
                 )}
-
-                {/* Orders Analytics */}
                 {analytics.analytics.orders && (
                   <div className="text-center p-6 bg-gradient-to-br from-orange-400 to-orange-600 text-white rounded-xl shadow-lg">
                     <div className="p-3 bg-white/20 rounded-xl mx-auto w-fit mb-3">
                       <CreditCard className="h-8 w-8" />
                     </div>
-                    <p className="text-3xl font-bold mb-1">
-                      {analytics.analytics.orders.recent}
-                    </p>
+                    <p className="text-3xl font-bold mb-1">{analytics.analytics.orders.recent}</p>
                     <p className="text-white">Recent Orders</p>
                     <p className="text-sm bg-white/20 px-2 py-1 rounded-full mt-2 inline-block">
                       {analytics.analytics.orders.growth}
@@ -619,8 +660,6 @@ const MerchantDashboard = () => {
                   </div>
                 )}
               </div>
-
-              {/* Chart Placeholder */}
               <div className="mt-6 bg-white rounded-xl p-6 h-64 flex items-center justify-center border border-black">
                 <div className="text-center">
                   <div className="p-4 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl mx-auto w-fit mb-4">
@@ -638,7 +677,6 @@ const MerchantDashboard = () => {
         )}
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Recent Activity */}
           <div className="lg:col-span-2">
             <Card className="border-0 shadow-lg bg-white">
               <CardHeader>
@@ -651,13 +689,12 @@ const MerchantDashboard = () => {
                 <div className="space-y-4">
                   {activities.length > 0 ? (
                     activities.map((activity, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl hover:shadow-md transition-all duration-300 border border-black">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 bg-white rounded-xl hover:shadow-md transition-all duration-300 border border-black"
+                      >
                         <div className="flex items-center gap-4">
-                          <div className={`p-3 rounded-xl shadow-md ${
-                            activity.type === 'review' ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
-                            activity.type === 'product' ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
-                            activity.type === 'order' ? 'bg-gradient-to-br from-orange-400 to-orange-600' : 'bg-gradient-to-br from-orange-400 to-orange-600'
-                          }`}>
+                          <div className="p-3 rounded-xl shadow-md bg-gradient-to-br from-orange-400 to-orange-600">
                             {activity.type === 'review' && <Star className="h-5 w-5 text-white" />}
                             {activity.type === 'product' && <Package className="h-5 w-5 text-white" />}
                             {activity.type === 'order' && <CreditCard className="h-5 w-5 text-white" />}
@@ -666,7 +703,9 @@ const MerchantDashboard = () => {
                             <span className="text-black font-medium">{activity.description}</span>
                           </div>
                         </div>
-                        <span className="text-sm text-black bg-white px-3 py-1 rounded-full border border-black">{activity.timestamp}</span>
+                        <span className="text-sm text-black bg-white px-3 py-1 rounded-full border border-black">
+                          {activity.timestamp}
+                        </span>
                       </div>
                     ))
                   ) : (
@@ -683,9 +722,7 @@ const MerchantDashboard = () => {
             </Card>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Quick Actions */}
             <Card className="border-0 shadow-lg bg-white">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -697,22 +734,15 @@ const MerchantDashboard = () => {
                 {quickActions.length > 0 ? (
                   quickActions.map((action) => (
                     <Link key={action.id} to={action.link}>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="w-full justify-start bg-white hover:bg-orange-50 border-black hover:border-orange-500 text-black transition-all duration-300"
                         disabled={!action.enabled}
                       >
                         {getIconComponent(action.icon)}
                         {action.label}
                         {action.badge && (
-                          <Badge 
-                            variant="secondary" 
-                            className={`ml-auto ${
-                              action.badgeColor === 'green' ? 'bg-orange-100 text-black' :
-                              action.badgeColor === 'red' ? 'bg-orange-100 text-black' :
-                              'bg-orange-100 text-black'
-                            }`}
-                          >
+                          <Badge variant="secondary" className="ml-auto bg-orange-100 text-black">
                             {action.badge}
                           </Badge>
                         )}
@@ -730,7 +760,6 @@ const MerchantDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Notifications */}
             <Card className="border-0 shadow-lg bg-white">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -738,9 +767,9 @@ const MerchantDashboard = () => {
                     <Bell className="h-5 w-5 text-black" />
                     Notifications
                   </span>
-                  {notifications.filter(n => !n.read).length > 0 && (
+                  {notifications.filter((n) => !n.read).length > 0 && (
                     <Badge className="bg-orange-500 text-white">
-                      {notifications.filter(n => !n.read).length}
+                      {notifications.filter((n) => !n.read).length}
                     </Badge>
                   )}
                 </CardTitle>
@@ -749,17 +778,14 @@ const MerchantDashboard = () => {
                 <div className="space-y-3">
                   {notifications.length > 0 ? (
                     notifications.slice(0, 4).map((notification) => (
-                      <div key={notification.id} className={`p-4 rounded-xl transition-all duration-300 ${
-                        !notification.read 
-                          ? 'bg-orange-50 border-l-4 border-orange-500' 
-                          : 'bg-white border border-black'
-                      }`}>
+                      <div
+                        key={notification.id}
+                        className={`p-4 rounded-xl transition-all duration-300 ${
+                          !notification.read ? 'bg-orange-50 border-l-4 border-orange-500' : 'bg-white border border-black'
+                        }`}
+                      >
                         <div className="flex items-start gap-3">
-                          <div className={`p-2 rounded-lg ${
-                            notification.type === 'success' ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
-                            notification.type === 'warning' ? 'bg-gradient-to-br from-orange-300 to-orange-400' :
-                            'bg-gradient-to-br from-orange-400 to-orange-600'
-                          }`}>
+                          <div className="p-2 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600">
                             {getIconComponent(notification.icon)}
                           </div>
                           <div className="flex-1">
@@ -780,14 +806,16 @@ const MerchantDashboard = () => {
                   )}
                 </div>
                 {notifications.length > 4 && (
-                  <Button variant="outline" className="w-full mt-4 text-sm text-black border-black hover:bg-orange-50">
+                  <Button
+                    variant="outline"
+                    className="w-full mt-4 text-sm text-black border-black hover:bg-orange-50"
+                  >
                     View All Notifications
                   </Button>
                 )}
               </CardContent>
             </Card>
 
-            {/* Profile Completion Tips */}
             {overview.profileCompletion.nextSteps.length > 0 && (
               <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-400 to-orange-600 text-white">
                 <CardHeader>
@@ -799,11 +827,9 @@ const MerchantDashboard = () => {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="bg-white/20 rounded-lg p-3">
-                      <p className="text-sm font-medium">
-                        {overview.profileCompletion.percentage}% Complete
-                      </p>
+                      <p className="text-sm font-medium">{overview.profileCompletion.percentage}% Complete</p>
                       <div className="w-full bg-white/20 rounded-full h-2 mt-2">
-                        <div 
+                        <div
                           className="bg-white h-2 rounded-full transition-all duration-500"
                           style={{ width: `${overview.profileCompletion.percentage}%` }}
                         ></div>
@@ -829,39 +855,47 @@ const MerchantDashboard = () => {
           </div>
         </div>
       </div>
-
       <Footer />
     </div>
   );
 };
 
-// Helper function to get icon components
 const getIconComponent = (iconName: string) => {
-  const iconProps = { className: "h-4 w-4 mr-2 text-white" };
+  const iconProps = { className: 'h-4 w-4 mr-2 text-white' };
   switch (iconName) {
-    case 'edit': return <Edit {...iconProps} />;
-    case 'eye': return <Eye {...iconProps} />;
-    case 'check-circle': return <CheckCircle {...iconProps} />;
-    case 'calendar': return <Calendar {...iconProps} />;
-    case 'message-square': return <MessageSquare {...iconProps} />;
-    case 'package': return <Package {...iconProps} />;
-    case 'credit-card': return <CreditCard {...iconProps} />;
-    case 'settings': return <Settings {...iconProps} />;
-    case 'bell': return <Bell {...iconProps} />;
-    case 'shield': return <Shield {...iconProps} />;
-    case 'download': return <Download {...iconProps} />;
-    default: return <Settings {...iconProps} />;
+    case 'edit':
+      return <Edit {...iconProps} />;
+    case 'eye':
+      return <Eye {...iconProps} />;
+    case 'check-circle':
+      return <CheckCircle {...iconProps} />;
+    case 'calendar':
+      return <Calendar {...iconProps} />;
+    case 'message-square':
+      return <MessageSquare {...iconProps} />;
+    case 'package':
+      return <Package {...iconProps} />;
+    case 'credit-card':
+      return <CreditCard {...iconProps} />;
+    case 'settings':
+      return <Settings {...iconProps} />;
+    case 'bell':
+      return <Bell {...iconProps} />;
+    case 'shield':
+      return <Shield {...iconProps} />;
+    case 'download':
+      return <Download {...iconProps} />;
+    default:
+      return <Settings {...iconProps} />;
   }
 };
 
-// Loading Skeleton
 const DashboardSkeleton = () => {
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
-          {/* Header Skeleton */}
           <div className="flex justify-between items-center">
             <div>
               <Skeleton className="h-8 w-64 mb-2 bg-gray-200" />
@@ -872,14 +906,8 @@ const DashboardSkeleton = () => {
               <Skeleton className="h-10 w-24 bg-gray-200" />
             </div>
           </div>
-
-          {/* Verification Status Skeleton */}
           <Skeleton className="h-24 w-full bg-gray-200" />
-
-          {/* Profile Completion Skeleton */}
           <Skeleton className="h-24 w-full bg-gray-200" />
-
-          {/* Analytics Skeleton */}
           <div className="space-y-4">
             <div className="flex justify-between">
               <Skeleton className="h-6 w-48 bg-gray-200" />
@@ -892,8 +920,6 @@ const DashboardSkeleton = () => {
             </div>
             <Skeleton className="h-48 w-full bg-gray-200" />
           </div>
-
-          {/* Activity & Actions Skeleton */}
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
               <Skeleton className="h-6 w-32 bg-gray-200" />
