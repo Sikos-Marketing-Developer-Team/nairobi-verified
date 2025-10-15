@@ -66,7 +66,15 @@ const MerchantProfileEdit = () => {
       saturday: { open: '09:00', close: '16:00', closed: false },
       sunday: { open: '10:00', close: '16:00', closed: true }
     },
-    images: []
+    images: [],
+    socialLinks: {
+      facebook: '',
+      instagram: '',
+      twitter: '',
+      whatsapp: '',
+      linkedin: ''
+    },
+    whatsappNumber: ''
   });
 
   const [specializationsInput, setSpecializationsInput] = useState('');
