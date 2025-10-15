@@ -449,6 +449,8 @@ const MerchantDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
         {/* Enhanced Quick Actions Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
