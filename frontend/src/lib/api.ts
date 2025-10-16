@@ -82,9 +82,9 @@ export const usersAPI = {
   updatePassword: (id: string, passwordData: any) => api.put(`/users/${id}/password`, passwordData)
 };
 
-// Merchants API - ENHANCED with dashboard functionality
+// Merchants API - CORRECTED with proper dashboard endpoints
 export const merchantsAPI = {
-  // Existing endpoints
+  // Basic merchant endpoints
   getMerchants: (params = {}) => api.get('/merchants', { params }),
   searchMerchants: (searchTerm: string, category?: string) => api.get('/merchants', { 
     params: { 
@@ -97,10 +97,18 @@ export const merchantsAPI = {
   deleteMerchant: (id: string) => api.delete(`/merchants/${id}`),
   verifyMerchant: (id: string) => api.put(`/merchants/${id}/verify`),
 
-  // NEW: Merchant dashboard specific endpoints
-  getMyMerchant: () => api.get('/merchants/me'), // Get merchant for logged-in user
+  // Current merchant endpoints
+  getMyMerchant: () => api.get('/merchants/me'),
   updateMyMerchant: (merchantData: any) => api.put('/merchants/me', merchantData),
   
+  // DASHBOARD ENDPOINTS - CORRECTED to match backend
+  getDashboardOverview: () => api.get('/merchants/dashboard/overview'),
+  getDashboardAnalytics: (period: string = '30') => api.get(`/merchants/dashboard/analytics?period=${period}`),
+  getDashboardActivity: (limit: number = 10) => api.get(`/merchants/dashboard/activity?limit=${limit}`),
+  getDashboardNotifications: () => api.get('/merchants/dashboard/notifications'),
+  getDashboardReviews: (params = {}) => api.get('/merchants/dashboard/reviews', { params }),
+  getDashboardQuickActions: () => api.get('/merchants/dashboard/quick-actions'),
+
   // Image upload endpoints
   uploadLogo: (id: string, logoFile: File) => {
     const formData = new FormData();
@@ -126,7 +134,7 @@ export const merchantsAPI = {
     });
   },
   
-  // NEW: Convenience methods for current merchant
+  // Current merchant image uploads
   uploadMyLogo: (logoFile: File) => {
     const formData = new FormData();
     formData.append('logo', logoFile);
@@ -151,7 +159,7 @@ export const merchantsAPI = {
     });
   },
   
-  // NEW: Gallery management
+  // Gallery management
   deleteGalleryImage: (id: string, imageIndex: number) => api.delete(`/merchants/${id}/gallery/${imageIndex}`),
   deleteMyGalleryImage: (imageIndex: number) => api.delete(`/merchants/me/gallery/${imageIndex}`),
   
@@ -167,7 +175,7 @@ export const merchantsAPI = {
   updateSEOSettings: (id: string, seoSettings: any) => api.put(`/merchants/${id}/seo`, seoSettings),
   updateMySEOSettings: (seoSettings: any) => api.put('/merchants/me/seo', seoSettings),
 
-  // Documents upload (existing)
+  // Documents upload
   uploadDocuments: (id: string, documents: Record<string, File | File[]>) => {
     const formData = new FormData();
     Object.entries(documents).forEach(([key, value]) => {
@@ -183,14 +191,9 @@ export const merchantsAPI = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
-
-  // NEW: Dashboard analytics
-  getDashboardStats: () => api.get('/merchants/me/stats'),
-  getRecentReviews: () => api.get('/merchants/me/reviews/recent'),
-  getPerformanceMetrics: (period: string = 'monthly') => api.get(`/merchants/me/analytics?period=${period}`),
 };
 
-// Reviews API (consolidated)
+// Reviews API
 export const reviewsAPI = {
   getReviews: (merchantId: string, params = {}) => api.get(`/reviews/merchant/${merchantId}`, { params }),
   getUserReviews: (params = {}) => api.get('/reviews/user', { params }),
@@ -202,13 +205,13 @@ export const reviewsAPI = {
   addReply: (id: string, replyData: any) => api.post(`/reviews/${id}/reply`, replyData),
   markHelpful: (id: string) => api.put(`/reviews/${id}/helpful`),
   
-  // NEW: Merchant review management
-  getMyMerchantReviews: (params = {}) => api.get('/merchants/me/reviews', { params }),
+  // Merchant review management - UPDATED to use dashboard endpoints
+  getMyMerchantReviews: (params = {}) => api.get('/merchants/dashboard/reviews', { params }),
   replyToReview: (reviewId: string, reply: string) => api.post(`/merchants/me/reviews/${reviewId}/reply`, { reply }),
   deleteReviewReply: (reviewId: string) => api.delete(`/merchants/me/reviews/${reviewId}/reply`),
 };
 
-// Favorites API (consolidated)
+// Favorites API
 export const favoritesAPI = {
   getFavorites: () => api.get('/favorites'),
   addFavorite: (merchantId: string) => api.post(`/favorites/${merchantId}`),
@@ -220,7 +223,7 @@ export const ordersAPI = {
   getOrders: () => api.get('/orders'),
   getOrder: (id: string) => api.get(`/orders/${id}`),
   
-  // NEW: Merchant order management
+  // Merchant order management
   getMyMerchantOrders: (params = {}) => api.get('/merchants/me/orders', { params }),
   updateOrderStatus: (orderId: string, status: string) => api.put(`/merchants/me/orders/${orderId}/status`, { status }),
   getOrderAnalytics: (period: string = 'monthly') => api.get(`/merchants/me/orders/analytics?period=${period}`),
@@ -278,7 +281,7 @@ export const productsAPI = {
   updateProduct: (id: string, productData: any) => api.put(`/products/${id}`, productData),
   deleteProduct: (id: string) => api.delete(`/products/${id}`),
   
-  // NEW: Merchant product management
+  // Merchant product management
   getMyProducts: (params = {}) => api.get('/merchants/me/products', { params }),
   createMyProduct: (productData: any) => api.post('/merchants/me/products', productData),
   updateMyProduct: (productId: string, productData: any) => api.put(`/merchants/me/products/${productId}`, productData),
@@ -307,13 +310,13 @@ export const adminAPI = {
   approveMerchant: (merchantId: string, notes?: string) => api.post(`/admin/merchants/${merchantId}/verify`, { notes }),
   rejectMerchantVerification: (merchantId: string, reason: string, notes?: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason, notes }),
   
-  // NEW: Admin merchant management
+  // Admin merchant management
   getMerchantAnalytics: (merchantId: string) => api.get(`/admin/merchants/${merchantId}/analytics`),
   suspendMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/suspend`, { reason }),
   unsuspendMerchant: (merchantId: string) => api.post(`/admin/merchants/${merchantId}/unsuspend`),
 };
 
-// NEW: Analytics API for comprehensive dashboard data
+// Analytics API
 export const analyticsAPI = {
   // Merchant analytics
   getMerchantOverview: (period: string = 'monthly') => api.get(`/analytics/merchant/overview?period=${period}`),
@@ -329,7 +332,7 @@ export const analyticsAPI = {
   getMerchantGrowth: (period: string = 'monthly') => api.get(`/analytics/admin/merchants?period=${period}`),
 };
 
-// NEW: Notifications API for merchant dashboard
+// Notifications API - UPDATED to use dashboard endpoints
 export const notificationsAPI = {
   getNotifications: (params = {}) => api.get('/notifications', { params }),
   markAsRead: (notificationId: string) => api.put(`/notifications/${notificationId}/read`),
@@ -337,15 +340,15 @@ export const notificationsAPI = {
   getUnreadCount: () => api.get('/notifications/unread/count'),
   deleteNotification: (notificationId: string) => api.delete(`/notifications/${notificationId}`),
   
-  // Merchant specific notifications
-  getMerchantNotifications: (params = {}) => api.get('/merchants/me/notifications', { params }),
-  getMerchantUnreadCount: () => api.get('/merchants/me/notifications/unread/count'),
+  // Merchant specific notifications - UPDATED
+  getMerchantNotifications: () => api.get('/merchants/dashboard/notifications'),
+  getMerchantUnreadCount: () => api.get('/merchants/dashboard/notifications').then(response => response.data.unreadCount),
 };
 
-
-// Add to your existing API exports
+// Flash Sales API
 export const flashSalesAPI = {
   getFlashSales: () => api.get('/flash-sales'),
   getFlashSale: (id: string) => api.get(`/flash-sales/${id}`),
 };
+
 export default api;
