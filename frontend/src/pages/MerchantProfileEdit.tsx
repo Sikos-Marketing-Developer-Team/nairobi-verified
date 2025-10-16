@@ -47,6 +47,7 @@ const MerchantProfileEdit = () => {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState<MerchantProfileData>({
     businessName: '',
     tagline: '',
@@ -123,7 +124,6 @@ const MerchantProfileEdit = () => {
           address: merchantData.address || '',
           category: merchantData.businessType || '',
           description: merchantData.description || '',
-          // Add more fields from the API response
           tagline: merchantData.tagline || '',
           specializations: merchantData.specializations || [],
           businessHours: merchantData.businessHours || {
@@ -145,6 +145,11 @@ const MerchantProfileEdit = () => {
           },
           whatsappNumber: merchantData.whatsappNumber || merchantData.phone || ''
         }));
+
+        // Set specializations input for display
+        if (merchantData.specializations?.length > 0) {
+          setSpecializationsInput(merchantData.specializations.join(', '));
+        }
 
         console.log('📊 Loaded merchant data from API:', merchantData);
       } else {
@@ -168,6 +173,33 @@ const MerchantProfileEdit = () => {
     }
   };
 
+  const validateForm = (): boolean => {
+    const requiredFields = ['businessName', 'description', 'phone', 'email', 'address', 'category'];
+    const missingFields = requiredFields.filter(field => !formData[field as keyof MerchantProfileData]);
+    
+    if (missingFields.length > 0) {
+      toast({
+        title: 'Missing required fields',
+        description: `Please fill in: ${missingFields.join(', ')}`,
+        variant: 'destructive',
+      });
+      return false;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: 'Invalid email',
+        description: 'Please enter a valid email address',
+        variant: 'destructive',
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleInputChange = (field: keyof MerchantProfileData, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -177,15 +209,34 @@ const MerchantProfileEdit = () => {
 
   const handleSpecializationsChange = (value: string) => {
     setSpecializationsInput(value);
-    // Convert comma-separated string to array
-    const specializationsArray = value.split(',').map(item => item.trim()).filter(item => item);
-    setFormData(prev => ({
-      ...prev,
-      specializations: specializationsArray
-    }));
+    
+    // Update form data when user adds commas
+    if (value.endsWith(',') || value === '') {
+      const specializationsArray = value.split(',')
+        .map(item => item.trim())
+        .filter(item => item.length > 0);
+        
+      setFormData(prev => ({
+        ...prev,
+        specializations: specializationsArray
+      }));
+    }
   };
 
   const handleHoursChange = (day: string, field: string, value: string | boolean) => {
+    // Validate time format
+    if (field === 'open' || field === 'close') {
+      const timeValue = value as string;
+      if (timeValue && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeValue)) {
+        toast({
+          title: 'Invalid time format',
+          description: 'Please use HH:MM format (e.g., 09:00)',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
       businessHours: {
@@ -199,6 +250,8 @@ const MerchantProfileEdit = () => {
   };
 
   const handleSave = async () => {
+    if (!validateForm()) return;
+    
     try {
       setSaving(true);
       console.log('💾 Saving profile data:', formData);
@@ -212,7 +265,7 @@ const MerchantProfileEdit = () => {
         email: formData.email,
         website: formData.website,
         address: formData.address,
-        businessType: formData.category, // Note: backend uses businessType
+        businessType: formData.category,
         specializations: formData.specializations,
         businessHours: formData.businessHours,
         socialLinks: formData.socialLinks,
@@ -263,13 +316,6 @@ const MerchantProfileEdit = () => {
         description: 'Profile changes saved locally. Backend endpoint needed for persistence.',
       });
       console.log('⚠️ Profile saved locally (backend endpoint needed)');
-      
-      // Uncomment below when you have the backend endpoint
-      // toast({
-      //   title: 'Error',
-      //   description: error.message || 'Failed to save profile changes',
-      //   variant: 'destructive',
-      // });
     } finally {
       setSaving(false);
     }
@@ -283,24 +329,66 @@ const MerchantProfileEdit = () => {
   };
 
   const addImage = (imageUrl: string) => {
+    if (formData.images.length >= 10) {
+      toast({
+        title: 'Maximum images reached',
+        description: 'You can only upload up to 10 images',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       images: [...prev.images, imageUrl]
     }));
   };
 
-  // Handle image upload (placeholder - implement actual upload logic)
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // In a real app, you would upload to your server and get back a URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        addImage(imageUrl);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // File validation
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: 'File too large',
+        description: 'Please select an image smaller than 5MB',
+        variant: 'destructive',
+      });
+      return;
     }
+    
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please select an image file (JPEG, PNG, etc.)',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageUrl = e.target?.result as string;
+      addImage(imageUrl);
+      setUploadingImage(false);
+    };
+    
+    reader.onerror = () => {
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to read image file',
+        variant: 'destructive',
+      });
+      setUploadingImage(false);
+    };
+    
+    reader.readAsDataURL(file);
+    
+    // Reset input to allow uploading same file again
+    event.target.value = '';
   };
 
   if (loading) {
@@ -308,12 +396,14 @@ const MerchantProfileEdit = () => {
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
+          <div className="animate-pulse space-y-8">
+            {/* Header skeleton */}
             <div className="h-8 bg-gray-200 rounded w-1/4 mb-2"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
             
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-64 bg-gray-200 rounded mb-6"></div>
+            {/* Card skeletons */}
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
             ))}
           </div>
         </div>
@@ -372,7 +462,7 @@ const MerchantProfileEdit = () => {
                   </label>
                   <Input
                     value={formData.tagline}
-                    onChange={(e) => handleInputChange('tagline', e.target.value)}
+                    onChange={(e) => handleInputChange('tagline', e.target.value.slice(0, 100))}
                     placeholder="Brief tagline for your business"
                     maxLength={100}
                   />
@@ -388,7 +478,7 @@ const MerchantProfileEdit = () => {
                 </label>
                 <Textarea
                   value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  onChange={(e) => handleInputChange('description', e.target.value.slice(0, 500))}
                   rows={4}
                   placeholder="Describe your business, services, and what makes you unique..."
                   className="resize-none"
@@ -687,6 +777,7 @@ const MerchantProfileEdit = () => {
                       <button
                         onClick={() => removeImage(index)}
                         className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label={`Remove image ${index + 1}`}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -695,13 +786,21 @@ const MerchantProfileEdit = () => {
                   
                   <label className="border-2 border-dashed border-gray-300 rounded-lg h-32 flex items-center justify-center hover:border-primary transition-colors cursor-pointer">
                     <div className="text-center">
-                      <Upload className="h-6 w-6 text-gray-400 mx-auto mb-1" />
-                      <p className="text-xs text-gray-500">Add Photo</p>
+                      {uploadingImage ? (
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                      ) : (
+                        <>
+                          <Upload className="h-6 w-6 text-gray-400 mx-auto mb-1" />
+                          <p className="text-xs text-gray-500">Add Photo</p>
+                        </>
+                      )}
                       <input
                         type="file"
                         accept="image/*"
                         onChange={handleImageUpload}
                         className="hidden"
+                        aria-label="Upload business photo"
+                        disabled={uploadingImage}
                       />
                     </div>
                   </label>

@@ -8,45 +8,106 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+interface FormErrors {
+  email?: string;
+  password?: string;
+  general?: string;
+}
+
 const MerchantAuth = () => {
   const { merchantLogin, googleAuth, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
   });
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Redirect to merchant dashboard if already authenticated
   if (isAuthenticated) {
-    return <Navigate to="/merchant/dashboard" />;
+    return <Navigate to="/merchant/dashboard" replace />;
   }
 
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    // Email validation
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Clear error when user starts typing
+    if (errors[name as keyof FormErrors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!validateForm()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors in the form',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLocalLoading(true);
+    setErrors({});
+
     try {
-      // Use merchant login function instead of regular login
       await merchantLogin(formData.email, formData.password);
+      
       toast({
         title: 'Merchant Login Successful',
         description: 'Welcome to your merchant dashboard',
       });
     } catch (error: any) {
       console.error('Merchant login error:', error);
+      
+      const errorMessage = error.response?.data?.error || 
+                          error.message || 
+                          'An error occurred during login';
+      
+      setErrors({ general: errorMessage });
+      
       toast({
         title: 'Login Failed',
-        description: error.response?.data?.error || 'An error occurred during login',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -65,21 +126,27 @@ const MerchantAuth = () => {
     }
 
     setGoogleLoading(true);
+    setErrors({});
+
     try {
-      // You might want to create a separate googleMerchantAuth function
-      // or modify googleAuth to handle merchant authentication
-      await googleAuth(credentialResponse.credential
-        // , 'merchant'
-    );
+      await googleAuth(credentialResponse.credential);
+      
       toast({
         title: 'Merchant Login Successful',
         description: 'You have been logged in with Google',
       });
     } catch (error: any) {
       console.error('Google auth error:', error);
+      
+      const errorMessage = error.response?.data?.error || 
+                          error.message || 
+                          'Failed to authenticate with Google';
+      
+      setErrors({ general: errorMessage });
+      
       toast({
         title: 'Google Authentication Failed',
-        description: error.response?.data?.error || 'Failed to authenticate with Google',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -96,7 +163,7 @@ const MerchantAuth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center px-2 py-2">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center px-4 py-4">
       <div className="w-full max-w-[90vw] sm:max-w-sm space-y-4">
         {/* Logo */}
         <div className="text-center">
@@ -124,7 +191,13 @@ const MerchantAuth = () => {
             </div>
           </CardHeader>
           <CardContent className="px-4">
-            <form onSubmit={handleSubmit} className="space-y-2">
+            {errors.general && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800" role="alert">
+                {errors.general}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-2" noValidate>
               <div className="relative">
                 <Mail className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -133,9 +206,16 @@ const MerchantAuth = () => {
                   placeholder="Business Email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="pl-8 text-sm h-9"
+                  className={`pl-8 text-sm h-9 ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
                   required
+                  aria-describedby={errors.email ? "email-error" : undefined}
+                  aria-invalid={!!errors.email}
                 />
+                {errors.email && (
+                  <p id="email-error" className="text-red-500 text-xs mt-1" role="alert">
+                    {errors.email}
+                  </p>
+                )}
               </div>
 
               <div className="relative">
@@ -146,24 +226,40 @@ const MerchantAuth = () => {
                   placeholder="Password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="pl-8 pr-8 text-sm h-9"
+                  className={`pl-8 pr-8 text-sm h-9 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
                   required
+                  aria-describedby={errors.password ? "password-error" : undefined}
+                  aria-invalid={!!errors.password}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
+                {errors.password && (
+                  <p id="password-error" className="text-red-500 text-xs mt-1" role="alert">
+                    {errors.password}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <label className="flex items-center">
-                  <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-600 h-3.5 w-3.5" />
+                <label className="flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-600 h-3.5 w-3.5" 
+                  />
                   <span className="ml-1 text-gray-600">Remember me</span>
                 </label>
-                <a href="/auth/merchant/forgot-password" className="text-blue-600 hover:text-blue-800">
+                <a 
+                  href="/auth/merchant/forgot-password" 
+                  className="text-blue-600 hover:text-blue-800 focus:outline-none focus:underline"
+                >
                   Forgot password?
                 </a>
               </div>
@@ -172,10 +268,11 @@ const MerchantAuth = () => {
                 type="submit" 
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm h-9"
                 disabled={localLoading || isLoading}
+                aria-live="polite"
               >
                 {(localLoading || isLoading) ? (
                   <>
-                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
                     Signing In...
                   </>
                 ) : (
@@ -202,7 +299,7 @@ const MerchantAuth = () => {
                     className="w-full bg-white hover:bg-gray-50 text-sm h-9"
                     disabled={true}
                   >
-                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
                     Connecting...
                   </Button>
                 ) : (
@@ -225,7 +322,7 @@ const MerchantAuth = () => {
               </span>
               <a
                 href="/auth/register/merchant"
-                className="ml-1 text-blue-600 hover:text-blue-800 font-medium"
+                className="ml-1 text-blue-600 hover:text-blue-800 font-medium focus:outline-none focus:underline"
               >
                 Register your business
               </a>
@@ -237,7 +334,7 @@ const MerchantAuth = () => {
               </span>
               <a
                 href="/auth"
-                className="ml-1 text-blue-600 hover:text-blue-800 font-medium"
+                className="ml-1 text-blue-600 hover:text-blue-800 font-medium focus:outline-none focus:underline"
               >
                 Sign in as customer
               </a>
