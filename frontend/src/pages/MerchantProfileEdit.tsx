@@ -94,84 +94,97 @@ const MerchantProfileEdit = () => {
   }, [isAuthenticated]);
 
   const fetchMerchantProfile = async () => {
-    try {
-      setLoading(true);
-      console.log('🔄 Fetching merchant profile from /api/merchants/profile/me...');
-      
-      // Use the correct endpoint that returns full merchant data
-      const response = await fetch('/api/merchants/profile/me', {
-        method: 'GET',
-        credentials: 'include' // Important for session cookies
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+  try {
+    setLoading(true);
+    console.log('🔄 Fetching merchant profile from /api/merchants/profile/me...');
+    
+    // Use the correct endpoint that returns full merchant data
+    const response = await fetch('/api/merchants/profile/me', {
+      method: 'GET',
+      credentials: 'include', // Important for session cookies
+      headers: {
+        'Content-Type': 'application/json'
       }
+    });
 
-      const result = await response.json();
-      console.log('✅ Merchant profile response:', result);
+    console.log('📡 Response status:', response.status);
+    console.log('📡 Response headers:', Object.fromEntries(response.headers));
 
-      if (result.success && result.data) {
-        const merchantData = result.data;
-        
-        // Transform API data to form format with all available fields
-        setFormData(prev => ({
-          ...prev,
-          businessName: merchantData.businessName || '',
-          email: merchantData.email || user?.email || '',
-          phone: merchantData.phone || '',
-          website: merchantData.website || '',
-          address: merchantData.address || '',
-          category: merchantData.businessType || '',
-          description: merchantData.description || '',
-          tagline: merchantData.tagline || '',
-          specializations: merchantData.specializations || [],
-          businessHours: merchantData.businessHours || {
-            monday: { open: '09:00', close: '18:00', closed: false },
-            tuesday: { open: '09:00', close: '18:00', closed: false },
-            wednesday: { open: '09:00', close: '18:00', closed: false },
-            thursday: { open: '09:00', close: '18:00', closed: false },
-            friday: { open: '09:00', close: '18:00', closed: false },
-            saturday: { open: '09:00', close: '16:00', closed: false },
-            sunday: { open: '10:00', close: '16:00', closed: true }
-          },
-          images: merchantData.gallery || [],
-          socialLinks: merchantData.socialLinks || {
-            facebook: '',
-            instagram: '',
-            twitter: '',
-            whatsapp: '',
-            linkedin: ''
-          },
-          whatsappNumber: merchantData.whatsappNumber || merchantData.phone || ''
-        }));
-
-        // Set specializations input for display
-        if (merchantData.specializations?.length > 0) {
-          setSpecializationsInput(merchantData.specializations.join(', '));
-        }
-
-        console.log('📊 Loaded merchant data from API:', merchantData);
-      } else {
-        throw new Error(result.error || 'Failed to load merchant data');
-      }
-    } catch (error) {
-      console.error('💥 Error fetching merchant profile:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load merchant profile data',
-        variant: 'destructive',
+    if (!response.ok) {
+      // Log the actual response text to debug
+      const responseText = await response.text();
+      console.error('❌ Response not OK:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: responseText
       });
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Merchant profile response:', result);
+
+    if (result.success && result.data) {
+      const merchantData = result.data;
       
-      // Fallback: Use user data if API fails
+      // Transform API data to form format with all available fields
       setFormData(prev => ({
         ...prev,
-        email: user?.email || '',
+        businessName: merchantData.businessName || '',
+        email: merchantData.email || user?.email || '',
+        phone: merchantData.phone || '',
+        website: merchantData.website || '',
+        address: merchantData.address || '',
+        category: merchantData.businessType || '',
+        description: merchantData.description || '',
+        tagline: merchantData.tagline || '',
+        specializations: merchantData.specializations || [],
+        businessHours: merchantData.businessHours || {
+          monday: { open: '09:00', close: '18:00', closed: false },
+          tuesday: { open: '09:00', close: '18:00', closed: false },
+          wednesday: { open: '09:00', close: '18:00', closed: false },
+          thursday: { open: '09:00', close: '18:00', closed: false },
+          friday: { open: '09:00', close: '18:00', closed: false },
+          saturday: { open: '09:00', close: '16:00', closed: false },
+          sunday: { open: '10:00', close: '16:00', closed: true }
+        },
+        images: merchantData.gallery || [],
+        socialLinks: merchantData.socialLinks || {
+          facebook: '',
+          instagram: '',
+          twitter: '',
+          whatsapp: '',
+          linkedin: ''
+        },
+        whatsappNumber: merchantData.whatsappNumber || merchantData.phone || ''
       }));
-    } finally {
-      setLoading(false);
+
+      // Set specializations input for display
+      if (merchantData.specializations?.length > 0) {
+        setSpecializationsInput(merchantData.specializations.join(', '));
+      }
+
+      console.log('📊 Loaded merchant data from API:', merchantData);
+    } else {
+      throw new Error(result.error || 'Failed to load merchant data');
     }
-  };
+  } catch (error) {
+    console.error('💥 Error fetching merchant profile:', error);
+    toast({
+      title: 'Error',
+      description: 'Failed to load merchant profile data',
+      variant: 'destructive',
+    });
+    
+    // Fallback: Use user data if API fails
+    setFormData(prev => ({
+      ...prev,
+      email: user?.email || '',
+    }));
+  } finally {
+    setLoading(false);
+  }
+};
 
   const validateForm = (): boolean => {
     const requiredFields = ['businessName', 'description', 'phone', 'email', 'address', 'category'];
