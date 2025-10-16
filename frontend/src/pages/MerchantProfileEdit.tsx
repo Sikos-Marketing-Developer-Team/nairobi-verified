@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 interface BusinessHours {
   [key: string]: {
@@ -99,7 +100,7 @@ const MerchantProfileEdit = () => {
     console.log('🔄 Fetching merchant profile from /api/merchants/profile/me...');
     
     // Use the correct endpoint that returns full merchant data
-    const response = await fetch('/api/merchants/profile/me', {
+    const response = await fetch(`${API_BASE_URL}/merchants/profile/me`, {
       method: 'GET',
       credentials: 'include', // Important for session cookies
       headers: {
