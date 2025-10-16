@@ -9,7 +9,22 @@ import { usePageLoading } from '@/hooks/use-loading';
 import { ProductGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { productsAPI } from '@/lib/api';
-import { Product } from '@/types/products';
+
+// Define the Product interface
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice: number;
+  rating: number;
+  reviews: number;
+  image: string;
+  merchant: string;
+  location: string;
+  verified: boolean;
+  category: string;
+  inStock: boolean;
+}
 
 const categories = ['All', 'Electronics', 'Fashion', 'Home & Garden', 'Books', 'Sports'];
 
@@ -27,9 +42,16 @@ const Products = () => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const pageLoading = usePageLoading(600);
 
-  // Fetch products on component mount and when filters change
+  // Fetch products on component mount
   useEffect(() => {
     fetchProducts();
+  }, []);
+
+  // Fetch products when filters change
+  useEffect(() => {
+    if (!pageLoading) {
+      fetchProducts();
+    }
   }, [searchTerm, selectedCategory]);
 
   const fetchProducts = async () => {
@@ -53,26 +75,30 @@ const Products = () => {
         response = await productsAPI.getProducts(params);
       }
       
-      setProducts(response.data.products || response.data);
+      // Handle different API response formats safely
+      let productsData: Product[] = [];
+      
+      if (response && response.data) {
+        // If response.data is an array, use it directly
+        if (Array.isArray(response.data)) {
+          productsData = response.data;
+        } 
+        // If response.data has a products property that's an array
+        else if (response.data.products && Array.isArray(response.data.products)) {
+          productsData = response.data.products;
+        }
+        // If response.data is a single product object, wrap it in an array
+        else if (typeof response.data === 'object' && response.data.id) {
+          productsData = [response.data];
+        }
+      }
+      
+      console.log('Fetched products:', productsData); // Debug log
+      setProducts(productsData);
     } catch (err) {
       console.error('Error fetching products:', err);
       setError('Failed to load products. Please try again.');
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Alternative: Fetch featured products on initial load
-  const fetchFeaturedProducts = async () => {
-    try {
-      setLoading(true);
-      const response = await productsAPI.getFeaturedProducts(12); // Get 12 featured products
-      setProducts(response.data.products || response.data);
-    } catch (err) {
-      console.error('Error fetching featured products:', err);
-      setError('Failed to load products. Please try again.');
-      setProducts([]);
+      setProducts([]); // Ensure products is always an array
     } finally {
       setLoading(false);
     }
@@ -134,22 +160,31 @@ const Products = () => {
     return `translateX(-${currentIndex * (100 / visibleCards)}%)`;
   };
 
-  // Filter products based on search and category
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  // Safely filter products - ensure products is always treated as an array
+  const filteredProducts = Array.isArray(products) 
+    ? products.filter(product => {
+        if (!product || typeof product !== 'object') return false;
+        
+        const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
+        const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+      })
+    : [];
 
   const ProductCard = ({ product, isMobile = false }: { product: Product; isMobile?: boolean }) => {
+    if (!product) return null;
+    
     return (
       <Card className={`hover-scale cursor-pointer border-0 shadow-lg overflow-hidden flex-shrink-0 ${isMobile ? 'w-[160px]' : 'w-full'}`}>
         <CardContent className="p-0">
           <div className="relative">
             <img
-              src={product.image}
-              alt={product.name}
+              src={product.image || '/placeholder-image.jpg'}
+              alt={product.name || 'Product image'}
               className={`w-full ${isMobile ? 'h-32' : 'h-48'} object-cover`}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+              }}
             />
             {!product.inStock && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -160,7 +195,9 @@ const Products = () => {
           
           <div className={`${isMobile ? 'p-2' : 'p-4'}`}>
             <div className="flex items-center gap-1 mb-1">
-              <span className={`text-gray-600 truncate ${isMobile ? 'text-[10px]' : 'text-sm'}`}>{product.merchant}</span>
+              <span className={`text-gray-600 truncate ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+                {product.merchant || 'Unknown Merchant'}
+              </span>
               {product.verified && (
                 <div className={`verified-badge flex items-center gap-1 bg-green-100 text-green-700 px-1 py-0.5 rounded-full flex-shrink-0 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                   <Check className={`${isMobile ? 'h-2 w-2' : 'h-3 w-3'}`} />
@@ -170,25 +207,29 @@ const Products = () => {
             </div>
             
             <h3 className={`font-semibold text-gray-900 mb-1 line-clamp-2 ${isMobile ? 'text-xs' : 'text-base'}`}>
-              {product.name}
+              {product.name || 'Unnamed Product'}
             </h3>
             
             <div className={`flex items-center gap-1 mb-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
               <MapPin className={`text-gray-400 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              <span className="truncate">{product.location}</span>
+              <span className="truncate">{product.location || 'Location not specified'}</span>
             </div>
             
             <div className="flex items-center gap-1 mb-2">
               <div className="flex items-center">
                 <Star className={`text-yellow-400 fill-current ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                <span className={`font-medium ml-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>{product.rating}</span>
+                <span className={`font-medium ml-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+                  {product.rating || 0}
+                </span>
               </div>
-              <span className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>({product.reviews})</span>
+              <span className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+                ({product.reviews || 0})
+              </span>
             </div>
             
             <div className="flex items-center gap-1 mb-2">
               <span className={`font-bold text-primary ${isMobile ? 'text-sm' : 'text-xl'}`}>
-                {formatPrice(product.price)}
+                {formatPrice(product.price || 0)}
               </span>
               {product.originalPrice > product.price && (
                 <span className={`text-gray-500 line-through ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
@@ -353,58 +394,67 @@ const Products = () => {
         </div>
 
         {/* Carousel for all screen sizes */}
-        <div className="relative mb-8 overflow-hidden">
-          <div 
-            ref={carouselRef}
-            className="flex transition-transform duration-300 ease-in-out gap-4"
-            style={{ transform: getTransformValue() }}
-          >
-            {filteredProducts.map((product) => (
-              <div key={product.id} className="flex-shrink-0" style={{ width: isMobile ? '160px' : 'calc(25% - 12px)' }}>
-                <ProductCard 
-                  product={product} 
-                  isMobile={isMobile}
-                />
-              </div>
-            ))}
-          </div>
-          
-          {/* Navigation arrows - Show only when there are more products */}
-          {filteredProducts.length > visibleCards && (
-            <>
-              {currentIndex > 0 && (
-                <Button
-                  onClick={prevSlide}
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
-                >
-                  <ChevronLeft className="h-6 w-6 text-white" />
-                </Button>
-              )}
-              
-              {currentIndex < filteredProducts.length - visibleCards && (
-                <Button
-                  onClick={nextSlide}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
-                >
-                  <ChevronRight className="h-6 w-6 text-white" />
-                </Button>
-              )}
-            </>
-          )}
-
-          {/* Counter indicator */}
-          {filteredProducts.length > visibleCards && (
-            <div className="flex justify-center mt-6">
-              <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm">
-                {currentIndex + 1} / {filteredProducts.length - visibleCards + 1}
-              </div>
+        {filteredProducts.length > 0 ? (
+          <div className="relative mb-8 overflow-hidden">
+            <div 
+              ref={carouselRef}
+              className="flex transition-transform duration-300 ease-in-out gap-4"
+              style={{ transform: getTransformValue() }}
+            >
+              {filteredProducts.map((product) => (
+                <div key={product.id} className="flex-shrink-0" style={{ width: isMobile ? '160px' : 'calc(25% - 12px)' }}>
+                  <ProductCard 
+                    product={product} 
+                    isMobile={isMobile}
+                  />
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+            
+            {/* Navigation arrows - Show only when there are more products */}
+            {filteredProducts.length > visibleCards && (
+              <>
+                {currentIndex > 0 && (
+                  <Button
+                    onClick={prevSlide}
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
+                  >
+                    <ChevronLeft className="h-6 w-6 text-white" />
+                  </Button>
+                )}
+                
+                {currentIndex < filteredProducts.length - visibleCards && (
+                  <Button
+                    onClick={nextSlide}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
+                  >
+                    <ChevronRight className="h-6 w-6 text-white" />
+                  </Button>
+                )}
+              </>
+            )}
 
-        {filteredProducts.length === 0 && (
+            {/* Counter indicator */}
+            {filteredProducts.length > visibleCards && (
+              <div className="flex justify-center mt-6">
+                <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                  {currentIndex + 1} / {filteredProducts.length - visibleCards + 1}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
+            <Button 
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('All');
+              }}
+              className="mt-4 bg-primary hover:bg-primary-dark"
+            >
+              Clear Filters
+            </Button>
           </div>
         )}
       </div>
