@@ -1,5 +1,4 @@
 export interface Merchant {
-  contact: any;
   _id: string;
   businessName: string;
   email: string;
@@ -87,32 +86,3 @@ export interface UserSettings {
   updatedAt: Date;
 } 
 
-// Product Types
-export interface Product {
-  _id: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  category: string;
-  subcategory?: string;
-  brand?: string;
-  model?: string;
-  merchant: string | Merchant;
-  merchantName?: string;
-  primaryImage: string;
-  gallery?: string[];
-  images?: string[]; // Alternative to gallery
-  rating?: number;
-  reviewCount?: number;
-  reviews?: Review[];
-  featured?: boolean;
-  tags?: string[];
-  specifications?: Record<string, any>;
-  inventory?: number;
-  sku?: string;
-  isActive: boolean;
-  views?: number;
-  createdAt: Date;
-  updatedAt: Date;
-}

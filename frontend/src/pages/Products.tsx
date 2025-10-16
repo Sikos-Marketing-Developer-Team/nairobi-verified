@@ -8,93 +8,8 @@ import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
 import { ProductGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const products = [
-  {
-    id: '60d0fe4f5311236168a10101',
-    name: 'MacBook Pro 16-inch',
-    price: 185000,
-    originalPrice: 200000,
-    rating: 4.8,
-    reviews: 24,
-    image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop',
-    merchant: 'TechHub Kenya',
-    location: 'Kimathi Street, CBD',
-    verified: true,
-    category: 'Electronics',
-    inStock: true
-  },
-  {
-    id: '60d0fe4f5311236168a10102',
-    name: 'Samsung Galaxy S24 Ultra',
-    price: 120000,
-    originalPrice: 135000,
-    rating: 4.7,
-    reviews: 18,
-    image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop',
-    merchant: 'Mobile World',
-    location: 'Tom Mboya Street, CBD',
-    verified: true,
-    category: 'Electronics',
-    inStock: true
-  },
-  {
-    id: '60d0fe4f5311236168a10103',
-    name: 'Nike Air Max 270',
-    price: 12000,
-    originalPrice: 15000,
-    rating: 4.6,
-    reviews: 32,
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=300&fit=crop',
-    merchant: 'Sports Corner',
-    location: 'Moi Avenue, CBD',
-    verified: true,
-    category: 'Fashion',
-    inStock: true
-  },
-  {
-    id: '60d0fe4f5311236168a10104',
-    name: 'Canon EOS R5 Camera',
-    price: 75000,
-    originalPrice: 85000,
-    rating: 4.9,
-    reviews: 15,
-    image: 'https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=400&h=300&fit=crop',
-    merchant: 'PhotoPro Kenya',
-    location: 'Koinange Street, CBD',
-    verified: true,
-    category: 'Electronics',
-    inStock: false
-  },
-  {
-    id: '60d0fe4f5311236168a10105',
-    name: 'Designer Handbag',
-    price: 8500,
-    originalPrice: 12000,
-    rating: 4.4,
-    reviews: 28,
-    image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=300&fit=crop',
-    merchant: 'Fashion House',
-    location: 'River Road, CBD',
-    verified: true,
-    category: 'Fashion',
-    inStock: true
-  },
-  {
-    id: '60d0fe4f5311236168a10106',
-    name: 'Office Chair',
-    price: 15000,
-    originalPrice: 18000,
-    rating: 4.3,
-    reviews: 12,
-    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop',
-    merchant: 'Office Solutions',
-    location: 'Haile Selassie Avenue, CBD',
-    verified: true,
-    category: 'Home & Garden',
-    inStock: true
-  }
-];
+import { productsAPI } from '@/lib/api';
+import { Product } from '@/types/products';
 
 const categories = ['All', 'Electronics', 'Fashion', 'Home & Garden', 'Books', 'Sports'];
 
@@ -106,8 +21,62 @@ const Products = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleCards, setVisibleCards] = useState(4);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
-  const isLoading = usePageLoading(600);
+  const pageLoading = usePageLoading(600);
+
+  // Fetch products on component mount and when filters change
+  useEffect(() => {
+    fetchProducts();
+  }, [searchTerm, selectedCategory]);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      let response;
+      
+      if (searchTerm.trim()) {
+        // Use search API if there's a search term
+        response = await productsAPI.searchProducts(searchTerm, {
+          category: selectedCategory !== 'All' ? selectedCategory : undefined
+        });
+      } else {
+        // Use regular products API with filters
+        const params: any = {};
+        if (selectedCategory !== 'All') {
+          params.category = selectedCategory;
+        }
+        response = await productsAPI.getProducts(params);
+      }
+      
+      setProducts(response.data.products || response.data);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again.');
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Alternative: Fetch featured products on initial load
+  const fetchFeaturedProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await productsAPI.getFeaturedProducts(12); // Get 12 featured products
+      setProducts(response.data.products || response.data);
+    } catch (err) {
+      console.error('Error fetching featured products:', err);
+      setError('Failed to load products. Please try again.');
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Check screen size and update visible cards count
@@ -165,13 +134,14 @@ const Products = () => {
     return `translateX(-${currentIndex * (100 / visibleCards)}%)`;
   };
 
+  // Filter products based on search and category
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const ProductCard = ({ product, isMobile = false }: { product: typeof products[0]; isMobile?: boolean }) => {
+  const ProductCard = ({ product, isMobile = false }: { product: Product; isMobile?: boolean }) => {
     return (
       <Card className={`hover-scale cursor-pointer border-0 shadow-lg overflow-hidden flex-shrink-0 ${isMobile ? 'w-[160px]' : 'w-full'}`}>
         <CardContent className="p-0">
@@ -239,7 +209,8 @@ const Products = () => {
     );
   };
 
-  if (isLoading) {
+  // Show loading skeleton
+  if (pageLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -279,6 +250,24 @@ const Products = () => {
           </div>
         </PageSkeleton>
         
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-7xl mx-auto mt-20 px-4 pt-16 sm:px-6 sm:mt-15 lg:px-8 py-8">
+          <div className="text-center py-12">
+            <p className="text-red-500 text-lg mb-4">{error}</p>
+            <Button onClick={fetchProducts} className="bg-primary hover:bg-primary-dark">
+              Try Again
+            </Button>
+          </div>
+        </div>
         <Footer />
       </div>
     );
