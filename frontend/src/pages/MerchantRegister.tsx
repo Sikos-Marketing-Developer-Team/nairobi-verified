@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,10 +10,50 @@ import { PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
+// Types
+interface BusinessHours {
+  [key: string]: {
+    open: string;
+    close: string;
+    closed: boolean;
+  };
+}
+
+interface FormData {
+  businessName: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+  businessType: string;
+  description: string;
+  yearEstablished: string;
+  website: string;
+  address: string;
+  landmark: string;
+  businessHours: BusinessHours;
+}
+
+interface UploadedFiles {
+  businessRegistration: File[];
+  idDocument: File[];
+  utilityBill: File[];
+  additionalDocs: File[];
+}
+
+interface UploadingFiles {
+  businessRegistration: boolean;
+  idDocument: boolean;
+  utilityBill: boolean;
+  additionalDocs: boolean;
+}
+
 const MerchantRegister = () => {
   const isLoading = usePageLoading(700);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  
   const businessRegRef = useRef<HTMLInputElement>(null);
   const idDocRef = useRef<HTMLInputElement>(null);
   const utilityBillRef = useRef<HTMLInputElement>(null);
@@ -27,14 +67,21 @@ const MerchantRegister = () => {
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const [hasInteractedWithPassword, setHasInteractedWithPassword] = useState(false);
 
-  const [uploadedFiles, setUploadedFiles] = useState({
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles>({
     businessRegistration: [],
     idDocument: [],
     utilityBill: [],
     additionalDocs: []
   });
 
-  const [formData, setFormData] = useState({
+  const [uploadingFiles, setUploadingFiles] = useState<UploadingFiles>({
+    businessRegistration: false,
+    idDocument: false,
+    utilityBill: false,
+    additionalDocs: false
+  });
+
+  const [formData, setFormData] = useState<FormData>({
     // Step 1: Basic Information
     businessName: '',
     email: '',
@@ -71,6 +118,23 @@ const MerchantRegister = () => {
     { id: 'special', text: 'One special character', test: (pwd: string) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd) }
   ];
 
+  // Load saved form data from localStorage
+  useEffect(() => {
+    const savedFormData = localStorage.getItem('merchantRegistration');
+    if (savedFormData) {
+      try {
+        setFormData(JSON.parse(savedFormData));
+      } catch (error) {
+        console.error('Error loading saved form data:', error);
+      }
+    }
+  }, []);
+
+  // Save form data to localStorage
+  useEffect(() => {
+    localStorage.setItem('merchantRegistration', JSON.stringify(formData));
+  }, [formData]);
+
   // Validate password against all requirements
   const validatePassword = (password: string) => {
     const errors: string[] = [];
@@ -87,6 +151,34 @@ const MerchantRegister = () => {
     return passwordRequirements.every(req => req.test(password));
   };
 
+  // Validate business hours
+  const validateBusinessHours = (hours: BusinessHours) => {
+    for (const [day, schedule] of Object.entries(hours)) {
+      if (!schedule.closed) {
+        if (!schedule.open || !schedule.close) {
+          return `${day} has incomplete hours`;
+        }
+        if (schedule.open >= schedule.close) {
+          return `${day} closing time must be after opening time`;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Show error toast helper
+  const showErrorToast = (message: string, description?: string) => {
+    toast(message, {
+      description,
+      style: { 
+        background: '#dc2626', 
+        color: 'white',
+        border: '1px solid #fecaca'
+      },
+      duration: 5000
+    });
+  };
+
   const handlePasswordChange = (value: string) => {
     setFormData(prev => ({ ...prev, password: value }));
     setHasInteractedWithPassword(true);
@@ -96,7 +188,7 @@ const MerchantRegister = () => {
     setPasswordErrors(errors);
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: string) => {
     if (field === 'password') {
       handlePasswordChange(value);
     } else {
@@ -144,72 +236,74 @@ const MerchantRegister = () => {
     switch (step) {
       case 1:
         if (!formData.businessName.trim()) {
-          toast('Business name is required!', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('Business name is required!');
           return false;
         }
         if (!formData.email.trim()) {
-          toast('Email is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('Email is required');
           return false;
         }
         if (!formData.phone.trim()) {
-          toast('Phone number is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('Phone number is required');
           return false;
         }
         if (!formData.password.trim()) {
-          toast('Password is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('Password is required');
           return false;
         }
         // Check if password meets all requirements
         if (!isPasswordValid(formData.password)) {
-          toast('Password does not meet requirements', { 
-            style: { background: 'crimson', color: 'white' },
-            description: 'Please check the password requirements below'
-          });
+          showErrorToast('Password does not meet requirements', 'Please check the password requirements below');
           return false;
         }
         if (formData.password !== formData.confirmPassword) {
-          toast('Passwords do not match', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('Passwords do not match');
           return false;
         }
         return true;
       
       case 2:
         if (!formData.businessType.trim()) {
-          toast('Business type is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('Business type is required');
           return false;
         }
         if (!formData.description.trim()) {
-          toast('Business description is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('Business description is required');
           return false;
         }
         if (!formData.yearEstablished.trim()) {
-          toast('Year established is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('Year established is required');
           return false;
         }
         return true;
       
       case 3:
         if (!formData.address.trim()) {
-          toast('Business address is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('Business address is required');
           return false;
         }
         if (!formData.landmark.trim()) {
-          toast('Landmark is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('Landmark is required');
+          return false;
+        }
+        const hoursError = validateBusinessHours(formData.businessHours);
+        if (hoursError) {
+          showErrorToast('Invalid business hours', hoursError);
           return false;
         }
         return true;
       
       case 4:
         if (uploadedFiles.businessRegistration.length === 0) {
-          toast('At least one business registration document is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('At least one business registration document is required');
           return false;
         }
         if (uploadedFiles.idDocument.length === 0) {
-          toast('At least one ID document is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('At least one ID document is required');
           return false;
         }
         if (uploadedFiles.utilityBill.length === 0) {
-          toast('At least one utility bill is required', { style: { background: 'crimson', color: 'white' } });
+          showErrorToast('At least one utility bill is required');
           return false;
         }
         return true;
@@ -229,28 +323,58 @@ const MerchantRegister = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  const handleFileChange = (field: string, files: FileList | null) => {
+  const handleFileChange = async (field: keyof UploadedFiles, files: FileList | null) => {
     if (!files) return;
     
-    const newFiles = Array.from(files);
-    setUploadedFiles(prev => ({
-      ...prev,
-      [field]: [...prev[field], ...newFiles]
-    }));
-    
-    // Reset the file input to allow selecting the same file again
-    if (field === 'businessRegistration' && businessRegRef.current) {
-      businessRegRef.current.value = '';
-    } else if (field === 'idDocument' && idDocRef.current) {
-      idDocRef.current.value = '';
-    } else if (field === 'utilityBill' && utilityBillRef.current) {
-      utilityBillRef.current.value = '';
-    } else if (field === 'additionalDocs' && additionalDocsRef.current) {
-      additionalDocsRef.current.value = '';
+    setUploadingFiles(prev => ({ ...prev, [field]: true }));
+
+    try {
+      // Simulate upload delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const newFiles = Array.from(files);
+      
+      // Validate file types and sizes
+      const validFiles = newFiles.filter(file => {
+        const isValidType = file.type.startsWith('image/') || file.type === 'application/pdf';
+        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
+        
+        if (!isValidType) {
+          showErrorToast('Invalid file type', 'Please upload only images (JPEG, PNG) or PDF files');
+        }
+        
+        if (!isValidSize) {
+          showErrorToast('File too large', 'Please upload files smaller than 5MB');
+        }
+        
+        return isValidType && isValidSize;
+      });
+      
+      if (validFiles.length === 0) return;
+      
+      setUploadedFiles(prev => ({
+        ...prev,
+        [field]: [...prev[field], ...validFiles]
+      }));
+      
+    } finally {
+      setUploadingFiles(prev => ({ ...prev, [field]: false }));
+      
+      // Reset the file input to allow selecting the same file again
+      const refs = {
+        businessRegistration: businessRegRef,
+        idDocument: idDocRef,
+        utilityBill: utilityBillRef,
+        additionalDocs: additionalDocsRef
+      };
+      
+      if (refs[field].current) {
+        refs[field].current!.value = '';
+      }
     }
   };
 
-  const removeFile = (field: string, index: number) => {
+  const removeFile = (field: keyof UploadedFiles, index: number) => {
     setUploadedFiles(prev => ({
       ...prev,
       [field]: prev[field].filter((_, i) => i !== index)
@@ -263,157 +387,232 @@ const MerchantRegister = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (validateStep(4)) {
-    setIsSubmitting(true);
-    
-    try {
-      // STEP 1: Create merchant account first (with auto-login)
-      const registrationData = {
-        businessName: formData.businessName,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
-        businessType: formData.businessType,
-        description: formData.description,
-        yearEstablished: formData.yearEstablished,
-        website: formData.website,
-        address: formData.address,
-        landmark: formData.landmark,
-        businessHours: formData.businessHours
-      };
-      
-      console.log('Step 1: Creating merchant account...');
-      
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
-      const registrationResponse = await fetch(`${apiUrl}/merchants`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // 🔑 CRITICAL: Include credentials to receive session cookie
-        body: JSON.stringify(registrationData)
-      });
-
-      const registrationResult = await registrationResponse.json();
-
-      if (!registrationResponse.ok) {
-        throw new Error(registrationResult.error || 'Registration failed');
+  // Reset form function
+  const resetForm = () => {
+    setFormData({
+      businessName: '',
+      email: '',
+      phone: '',
+      password: '',
+      confirmPassword: '',
+      businessType: '',
+      description: '',
+      yearEstablished: '',
+      website: '',
+      address: '',
+      landmark: '',
+      businessHours: {
+        monday: { open: '08:00', close: '18:00', closed: false },
+        tuesday: { open: '08:00', close: '18:00', closed: false },
+        wednesday: { open: '08:00', close: '18:00', closed: false },
+        thursday: { open: '08:00', close: '18:00', closed: false },
+        friday: { open: '08:00', close: '18:00', closed: false },
+        saturday: { open: '09:00', close: '16:00', closed: false },
+        sunday: { open: '', close: '', closed: true }
       }
+    });
+    setUploadedFiles({
+      businessRegistration: [],
+      idDocument: [],
+      utilityBill: [],
+      additionalDocs: []
+    });
+    setCurrentStep(1);
+    setPasswordErrors([]);
+    setHasInteractedWithPassword(false);
+    localStorage.removeItem('merchantRegistration');
+  };
 
-      console.log('✅ Merchant account created:', registrationResult);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateStep(4)) {
+      setIsSubmitting(true);
       
-      // Check if auto-login was successful
-      if (!registrationResult.authenticated) {
-        console.warn('⚠️ Auto-login failed, merchant needs to login manually');
-        toast('Account created! Please log in to continue', {
-          description: 'You need to log in before uploading documents.',
+      try {
+        // STEP 1: Create merchant account first (with auto-login)
+        const registrationData = {
+          businessName: formData.businessName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          businessType: formData.businessType,
+          description: formData.description,
+          yearEstablished: formData.yearEstablished,
+          website: formData.website,
+          address: formData.address,
+          landmark: formData.landmark,
+          businessHours: formData.businessHours
+        };
+        
+        console.log('Step 1: Creating merchant account...');
+        
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
+        const registrationResponse = await fetch(`${apiUrl}/merchants`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(registrationData)
+        });
+
+        const registrationResult = await registrationResponse.json();
+
+        if (!registrationResponse.ok) {
+          throw new Error(registrationResult.error || 'Registration failed');
+        }
+
+        console.log('✅ Merchant account created:', registrationResult);
+        
+        // Check if auto-login was successful
+        if (!registrationResult.authenticated) {
+          console.warn('⚠️ Auto-login failed, merchant needs to login manually');
+          toast('Account created! Please log in to continue', {
+            description: 'You need to log in before uploading documents.',
+            duration: 5000,
+            position: 'top-center',
+            style: {
+              background: '#f59e0b',
+              color: 'white',
+              fontSize: '1.1rem',
+              fontWeight: 'bold'
+            }
+          });
+          
+          // Redirect to login page with merchant email pre-filled
+          setTimeout(() => {
+            window.location.href = `/auth/login?email=${encodeURIComponent(formData.email)}&type=merchant`;
+          }, 2000);
+          return;
+        }
+        
+        // STEP 2: Upload documents (merchant is now authenticated)
+        const merchantId = registrationResult.data.id;
+        console.log('Step 2: Uploading documents for merchant:', merchantId);
+        
+        // Create FormData with files
+        const formDataWithFiles = new FormData();
+        
+        // Add business registration files
+        uploadedFiles.businessRegistration.forEach(file => {
+          formDataWithFiles.append('businessRegistration', file);
+        });
+        
+        // Add ID document files
+        uploadedFiles.idDocument.forEach(file => {
+          formDataWithFiles.append('idDocument', file);
+        });
+        
+        // Add utility bill files
+        uploadedFiles.utilityBill.forEach(file => {
+          formDataWithFiles.append('utilityBill', file);
+        });
+        
+        // Add additional documents
+        uploadedFiles.additionalDocs.forEach(file => {
+          formDataWithFiles.append('additionalDocs', file);
+        });
+
+        console.log('📤 Uploading documents...', {
+          businessRegistration: uploadedFiles.businessRegistration.length,
+          idDocument: uploadedFiles.idDocument.length,
+          utilityBill: uploadedFiles.utilityBill.length,
+          additionalDocs: uploadedFiles.additionalDocs.length
+        });
+
+        // Upload documents to merchant's account (now authenticated)
+        const documentsResponse = await fetch(`${apiUrl}/merchants/${merchantId}/documents`, {
+          method: 'PUT',
+          credentials: 'include',
+          body: formDataWithFiles
+        });
+
+        const documentsResult = await documentsResponse.json();
+
+        if (!documentsResponse.ok) {
+          console.error('❌ Document upload failed:', documentsResult);
+          throw new Error(documentsResult.error || 'Document upload failed');
+        }
+
+        console.log('✅ Documents uploaded successfully:', documentsResult);
+        
+        // Show success toast
+        toast('Registration submitted successfully!', {
+          description: 'We will review your application and get back to you within 2-3 business days.',
           duration: 5000,
           position: 'top-center',
           style: {
-            background: '#f59e0b',
+            background: '#16a34a',
             color: 'white',
             fontSize: '1.1rem',
             fontWeight: 'bold'
           }
         });
         
-        // Redirect to login page with merchant email pre-filled
+        // Clear saved data and set submitted state
+        localStorage.removeItem('merchantRegistration');
+        setIsSubmitted(true);
+        
+        // Redirect to merchants page
         setTimeout(() => {
-          window.location.href = `/auth/login?email=${encodeURIComponent(formData.email)}&type=merchant`;
-        }, 2000);
-        return;
+          window.location.href = '/merchants';
+        }, 3000);
+        
+      } catch (error: any) {
+        console.error('❌ Registration error:', error);
+        
+        toast('Registration failed!', {
+          description: error.message || 'Please try again or contact support.',
+          duration: 5000,
+          position: 'top-center',
+          style: {
+            background: '#dc2626',
+            color: 'white',
+            fontSize: '1.1rem',
+            fontWeight: 'bold'
+          }
+        });
+      } finally {
+        setIsSubmitting(false);
       }
-      
-      // STEP 2: Upload documents (merchant is now authenticated)
-      const merchantId = registrationResult.data.id;
-      console.log('Step 2: Uploading documents for merchant:', merchantId);
-      
-      // Create FormData with files
-      const formDataWithFiles = new FormData();
-      
-      // Add business registration files
-      uploadedFiles.businessRegistration.forEach(file => {
-        formDataWithFiles.append('businessRegistration', file);
-      });
-      
-      // Add ID document files
-      uploadedFiles.idDocument.forEach(file => {
-        formDataWithFiles.append('idDocument', file);
-      });
-      
-      // Add utility bill files
-      uploadedFiles.utilityBill.forEach(file => {
-        formDataWithFiles.append('utilityBill', file);
-      });
-      
-      // Add additional documents
-      uploadedFiles.additionalDocs.forEach(file => {
-        formDataWithFiles.append('additionalDocs', file);
-      });
-
-      console.log('📤 Uploading documents...', {
-        businessRegistration: uploadedFiles.businessRegistration.length,
-        idDocument: uploadedFiles.idDocument.length,
-        utilityBill: uploadedFiles.utilityBill.length,
-        additionalDocs: uploadedFiles.additionalDocs.length
-      });
-
-      // Upload documents to merchant's account (now authenticated)
-      const documentsResponse = await fetch(`${apiUrl}/merchants/${merchantId}/documents`, {
-        method: 'PUT',
-        credentials: 'include', // 🔑 CRITICAL: Include credentials to send session cookie
-        // DO NOT set Content-Type header - browser will set it automatically with boundary
-        body: formDataWithFiles
-      });
-
-      const documentsResult = await documentsResponse.json();
-
-      if (!documentsResponse.ok) {
-        console.error('❌ Document upload failed:', documentsResult);
-        throw new Error(documentsResult.error || 'Document upload failed');
-      }
-
-      console.log('✅ Documents uploaded successfully:', documentsResult);
-      
-      // Show success toast
-      toast('Registration submitted successfully!', {
-        description: 'We will review your application and get back to you within 2-3 business days.',
-        duration: 5000,
-        position: 'top-center',
-        style: {
-          background: '#16a34a',
-          color: 'white',
-          fontSize: '1.1rem',
-          fontWeight: 'bold'
-        }
-      });
-      
-      // Redirect to merchants page to see other merchants
-      setTimeout(() => {
-        window.location.href = '/merchants';
-      }, 3000);
-      
-    } catch (error: any) {
-      console.error('❌ Registration error:', error);
-      
-      toast('Registration failed!', {
-        description: error.message || 'Please try again or contact support.',
-        duration: 5000,
-        position: 'top-center',
-        style: {
-          background: '#dc2626',
-          color: 'white',
-          fontSize: '1.1rem',
-          fontWeight: 'bold'
-        }
-      });
-    } finally {
-      setIsSubmitting(false);
     }
+  };
+
+  // Show success screen if submitted
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24 mt-5">
+          <Card className="max-w-md mx-auto text-center">
+            <CardContent className="pt-6">
+              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Submitted!</h2>
+              <p className="text-gray-600 mb-6">
+                Your merchant application has been received. We'll review it and contact you within 2-3 business days.
+              </p>
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => window.location.href = '/'}
+                  className="w-full"
+                >
+                  Return to Homepage
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.location.href = '/merchants'}
+                  className="w-full"
+                >
+                  Browse Other Merchants
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <Footer />
+      </div>
+    );
   }
-};
 
   if (isLoading) {
     return (
@@ -467,7 +666,7 @@ const MerchantRegister = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24 mt-5">
         {/* Header */}
         <div className="text-center mb-8 mt-7 pt-5 md:pt-0">
-          <h1 className="text-3xl font-bold inter text-gray-900 mb-2 ">
+          <h1 className="text-3xl font-bold inter text-gray-900 mb-2">
             Register Your Business
           </h1>
           <p className="text-gray-600">
@@ -588,6 +787,7 @@ const MerchantRegister = () => {
                               ...prev,
                               password: !prev.password
                             }))}
+                            aria-label={showPassword.password ? "Hide password" : "Show password"}
                           >
                             {showPassword.password ? (
                               <EyeClosed className="h-5 w-5" />
@@ -622,6 +822,7 @@ const MerchantRegister = () => {
                               ...prev,
                               confirmPassword: !prev.confirmPassword
                             }))}
+                            aria-label={showPassword.confirmPassword ? "Hide password" : "Show password"}
                           >
                             {showPassword.confirmPassword ? (
                               <EyeClosed className="h-5 w-5" />
@@ -890,8 +1091,15 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(businessRegRef)}
                         className="mb-3"
+                        aria-label="Upload business registration documents"
+                        disabled={uploadingFiles.businessRegistration}
                       >
-                        <Upload className="h-4 w-4 mr-1" /> Add Files
+                        {uploadingFiles.businessRegistration ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-1"></div>
+                        ) : (
+                          <Upload className="h-4 w-4 mr-1" />
+                        )}
+                        {uploadingFiles.businessRegistration ? 'Uploading...' : 'Add Files'}
                       </Button>
                       <input
                         type="file"
@@ -916,6 +1124,7 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('businessRegistration', index)}
+                                aria-label={`Remove ${file.name}`}
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -935,8 +1144,15 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(idDocRef)}
                         className="mb-3"
+                        aria-label="Upload ID documents"
+                        disabled={uploadingFiles.idDocument}
                       >
-                        <Upload className="h-4 w-4 mr-1" /> Add Files
+                        {uploadingFiles.idDocument ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-1"></div>
+                        ) : (
+                          <Upload className="h-4 w-4 mr-1" />
+                        )}
+                        {uploadingFiles.idDocument ? 'Uploading...' : 'Add Files'}
                       </Button>
                       <input
                         type="file"
@@ -961,6 +1177,7 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('idDocument', index)}
+                                aria-label={`Remove ${file.name}`}
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -980,8 +1197,15 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(utilityBillRef)}
                         className="mb-3"
+                        aria-label="Upload utility bill documents"
+                        disabled={uploadingFiles.utilityBill}
                       >
-                        <Upload className="h-4 w-4 mr-1" /> Add Files
+                        {uploadingFiles.utilityBill ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-1"></div>
+                        ) : (
+                          <Upload className="h-4 w-4 mr-1" />
+                        )}
+                        {uploadingFiles.utilityBill ? 'Uploading...' : 'Add Files'}
                       </Button>
                       <input
                         type="file"
@@ -1006,6 +1230,7 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('utilityBill', index)}
+                                aria-label={`Remove ${file.name}`}
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -1025,8 +1250,15 @@ const MerchantRegister = () => {
                         size="sm"
                         onClick={() => handleFileButtonClick(additionalDocsRef)}
                         className="mb-3"
+                        aria-label="Upload additional documents"
+                        disabled={uploadingFiles.additionalDocs}
                       >
-                        <Upload className="h-4 w-4 mr-1" /> Add Files
+                        {uploadingFiles.additionalDocs ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-1"></div>
+                        ) : (
+                          <Upload className="h-4 w-4 mr-1" />
+                        )}
+                        {uploadingFiles.additionalDocs ? 'Uploading...' : 'Add Files'}
                       </Button>
                       <input
                         type="file"
@@ -1051,6 +1283,7 @@ const MerchantRegister = () => {
                                 size="sm" 
                                 className="h-5 w-5 p-0"
                                 onClick={() => removeFile('additionalDocs', index)}
+                                aria-label={`Remove ${file.name}`}
                               >
                                 <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
@@ -1087,21 +1320,30 @@ const MerchantRegister = () => {
 
               {/* Navigation Buttons */}
               <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentStep === 1}
-                >
-                  Previous
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentStep === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={resetForm}
+                    className="text-gray-500"
+                  >
+                    Reset Form
+                  </Button>
+                </div>
                 
                 {currentStep < 4 ? (
                   <Button
                     type="button"
                     onClick={handleNext}
                     className="bg-primary hover:bg-primary-dark"
-                    // Disable next button if password is invalid in step 1
                     disabled={currentStep === 1 && (!isPasswordValid(formData.password) || formData.password !== formData.confirmPassword)}
                   >
                     Next

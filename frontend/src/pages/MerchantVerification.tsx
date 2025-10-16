@@ -13,70 +13,84 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 // CORRECTED API service functions for verification
 const verificationAPI = {
   getVerificationStatus: async () => {
-    // Use the same endpoint as dashboard overview which we know works
-    const response = await fetch(`${API_BASE_URL}/api/merchants/dashboard/overview`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    const data = await response.json();
-    
-    if (data.success) {
-      // Transform the overview data to match verification component expectations
-      return {
-        success: true,
-        data: {
-          status: data.data.verificationStatus.isVerified ? 'verified' : 'pending',
-          submittedDate: data.data.verificationStatus.verifiedDate || new Date().toISOString().split('T')[0],
-          verificationSteps: [
-            { 
-              id: 1, 
-              title: 'Profile Completion', 
-              completed: data.data.profileCompletion.percentage === 100,
-              date: data.data.merchant.memberSince,
-              description: `Profile ${data.data.profileCompletion.percentage}% complete`
-            },
-            { 
-              id: 2, 
-              title: 'Document Submission', 
-              completed: data.data.profileCompletion.documentsPercentage === 100,
-              date: null,
-              description: `Documents ${data.data.profileCompletion.documentsPercentage}% complete`
-            },
-            { 
-              id: 3, 
-              title: 'Verification Review', 
-              completed: data.data.verificationStatus.isVerified,
-              date: data.data.verificationStatus.verifiedDate,
-              description: data.data.verificationStatus.isVerified ? 'Verified successfully' : 'Under review'
-            }
-          ]
-        }
-      };
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/merchants/dashboard/overview`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Transform the overview data to match verification component expectations
+        return {
+          success: true,
+          data: {
+            status: data.data.verificationStatus?.isVerified
+              ? 'verified'
+              : (data.data.verificationStatus?.isRejected
+                ? 'rejected'
+                : 'pending') as 'verified' | 'pending' | 'rejected',
+            submittedDate: data.data.verificationStatus?.verifiedDate || new Date().toISOString().split('T')[0],
+            verificationSteps: [
+              { 
+                id: 1, 
+                title: 'Profile Completion', 
+                completed: data.data.profileCompletion?.percentage === 100,
+                date: data.data.merchant?.memberSince,
+                description: `Profile ${data.data.profileCompletion?.percentage || 0}% complete`
+              },
+              { 
+                id: 2, 
+                title: 'Document Submission', 
+                completed: data.data.profileCompletion?.documentsPercentage === 100,
+                date: null,
+                description: `Documents ${data.data.profileCompletion?.documentsPercentage || 0}% complete`
+              },
+              { 
+                id: 3, 
+                title: 'Verification Review', 
+                completed: data.data.verificationStatus?.isVerified,
+                date: data.data.verificationStatus?.verifiedDate,
+                description: data.data.verificationStatus?.isVerified ? 'Verified successfully' : 'Under review'
+              }
+            ]
+          }
+        };
+      }
+      throw new Error(data.error || 'Failed to load verification status');
+    } catch (error) {
+      console.error('Verification status error:', error);
+      throw error;
     }
-    throw new Error(data.error || 'Failed to load verification status');
   },
 
   getDocuments: async () => {
-    // Since we don't have a documents endpoint yet, return empty array
-    // You'll need to create this endpoint in your backend
     try {
       const response = await fetch(`${API_BASE_URL}/api/merchants/documents`, {
         method: 'GET',
         credentials: 'include'
       });
+      
       if (response.ok) {
-        return await response.json();
+        const data = await response.json();
+        return data;
       }
+      
       // If endpoint doesn't exist, return empty array
       return { success: true, data: [] };
     } catch (error) {
+      console.error('Documents fetch error:', error);
       // Return empty array if endpoint doesn't exist
       return { success: true, data: [] };
     }
   },
 
   uploadDocument: async (documentType: string, file: File) => {
-    // You'll need to create this endpoint in your backend
     const formData = new FormData();
     formData.append('documentType', documentType);
     formData.append('file', file);
@@ -89,23 +103,28 @@ const verificationAPI = {
       });
       
       if (response.ok) {
-        return await response.json();
+        const data = await response.json();
+        return data;
       }
-      // Simulate success for demo purposes
+      
+      // Fallback for demo purposes
       return { 
         success: true, 
         data: { 
           id: Date.now(),
-          fileUrl: URL.createObjectURL(file)
+          fileUrl: URL.createObjectURL(file),
+          fileName: file.name
         } 
       };
     } catch (error) {
-      // Simulate success for demo purposes until backend is ready
+      console.error('Upload error:', error);
+      // Fallback for demo purposes
       return { 
         success: true, 
         data: { 
           id: Date.now(),
-          fileUrl: URL.createObjectURL(file)
+          fileUrl: URL.createObjectURL(file),
+          fileName: file.name
         } 
       };
     }
@@ -126,19 +145,43 @@ const verificationAPI = {
   }
 };
 
+interface VerificationStep {
+  id: number;
+  title: string;
+  completed: boolean;
+  date: string | null;
+  description: string;
+}
+
+interface Document {
+  id: string | number;
+  type: string;
+  status: 'pending' | 'approved' | 'rejected';
+  uploadDate: string;
+  notes?: string;
+  fileName: string;
+  fileUrl: string;
+}
+
+interface VerificationData {
+  status: 'verified' | 'pending' | 'rejected';
+  submittedDate: string;
+  verificationSteps: VerificationStep[];
+}
+
 const MerchantVerification = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedDocument, setSelectedDocument] = useState<any>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [documentType, setDocumentType] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [verificationData, setVerificationData] = useState<any>(null);
+  const [verificationData, setVerificationData] = useState<VerificationData | null>(null);
   const [requiredDocuments, setRequiredDocuments] = useState<string[]>([]);
 
   // Load verification data from actual API
@@ -294,7 +337,7 @@ const MerchantVerification = () => {
       
       if (response.success) {
         // Add the new document to the state
-        const newDoc = {
+        const newDoc: Document = {
           id: response.data.id || Date.now(),
           type: documentType,
           status: 'pending',
@@ -331,6 +374,10 @@ const MerchantVerification = () => {
       setUploadDialogOpen(false);
       setSelectedFile(null);
       setDocumentType('');
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
   
@@ -360,6 +407,7 @@ const MerchantVerification = () => {
         description: "Verification data updated successfully",
       });
     } catch (error) {
+      console.error('Refresh error:', error);
       toast({
         title: "Refresh failed",
         description: "Could not update verification data",
@@ -369,6 +417,11 @@ const MerchantVerification = () => {
       setLoading(false);
     }
   };
+
+  // Get missing documents
+  const missingDocuments = requiredDocuments.filter(reqDoc => 
+    !documents.some(doc => doc.type === reqDoc)
+  );
 
   if (loading) {
     return (
@@ -446,7 +499,7 @@ const MerchantVerification = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {verificationData?.verificationSteps?.map((step: any, index: number) => (
+                {verificationData?.verificationSteps?.map((step: VerificationStep, index: number) => (
                   <div key={step.id || index} className="flex items-start gap-4">
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                       step.completed ? 'bg-green-100' : 'bg-gray-100'
@@ -561,36 +614,33 @@ const MerchantVerification = () => {
                 )}
                 
                 {/* Missing Documents */}
-                {requiredDocuments
-                  .filter(reqDoc => !documents.some(doc => doc.type === reqDoc))
-                  .map((missingDoc, index) => (
-                    <div key={`missing-${index}`} className="border border-dashed rounded-lg p-4 bg-gray-50">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-5 w-5 text-gray-400" />
-                          <span className="font-medium">{missingDoc}</span>
-                        </div>
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          Required
-                        </span>
+                {missingDocuments.map((missingDoc, index) => (
+                  <div key={`missing-${index}`} className="border border-dashed rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-gray-400" />
+                        <span className="font-medium">{missingDoc}</span>
                       </div>
-                      <p className="text-sm text-gray-500">This document is required for business verification</p>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="mt-3 text-primary border-primary hover:bg-primary/10"
-                        onClick={() => {
-                          setDocumentType(missingDoc);
-                          setUploadDialogOpen(true);
-                        }}
-                      >
-                        <Upload className="h-4 w-4 mr-1" />
-                        Upload Document
-                      </Button>
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Required
+                      </span>
                     </div>
-                  ))
-                }
+                    <p className="text-sm text-gray-500">This document is required for business verification</p>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="mt-3 text-primary border-primary hover:bg-primary/10"
+                      onClick={() => {
+                        setDocumentType(missingDoc);
+                        setUploadDialogOpen(true);
+                      }}
+                    >
+                      <Upload className="h-4 w-4 mr-1" />
+                      Upload Document
+                    </Button>
+                  </div>
+                ))}
               </div>
               
               <div className="mt-6">
@@ -733,8 +783,15 @@ const MerchantVerification = () => {
                 Document File
               </label>
               <div 
-                className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center cursor-pointer hover:border-primary"
+                className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center cursor-pointer hover:border-primary transition-colors"
                 onClick={openFileSelector}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    openFileSelector();
+                  }
+                }}
               >
                 <input
                   type="file"
@@ -742,6 +799,7 @@ const MerchantVerification = () => {
                   onChange={handleFileChange}
                   className="hidden"
                   accept=".pdf,.jpg,.jpeg,.png"
+                  aria-label="Select document file"
                 />
                 {selectedFile ? (
                   <div>
@@ -780,7 +838,11 @@ const MerchantVerification = () => {
             <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpload} disabled={!selectedFile || !documentType || uploading}>
+            <Button 
+              onClick={handleUpload} 
+              disabled={!selectedFile || !documentType || uploading}
+              className="bg-primary hover:bg-primary-dark"
+            >
               {uploading ? (
                 <>
                   <Clock className="mr-2 h-4 w-4 animate-spin" />
