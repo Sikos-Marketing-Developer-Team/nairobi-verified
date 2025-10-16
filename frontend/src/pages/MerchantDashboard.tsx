@@ -18,88 +18,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-
-// API service functions - Updated to match documentation
-const dashboardAPI = {
-  getOverview: async () => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/overview`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  },
-
-  getAnalytics: async (period: string = '30') => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/analytics?period=${period}`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  },
-
-  getActivity: async (limit: number = 10) => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/activity?limit=${limit}`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  },
-
-  getNotifications: async () => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/notifications`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  },
-
-  getQuickActions: async () => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/quick-actions`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  },
-
-  getReviews: async (page: number = 1, limit: number = 10, sortBy: string = 'createdAt', order: string = 'desc', rating?: string) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      sortBy,
-      order
-    });
-    
-    if (rating && rating !== 'all') {
-      params.append('rating', rating);
-    }
-
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/reviews?${params.toString()}`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  }
-};
+import { merchantsAPI } from '@/lib/api';
 
 interface MerchantOverview {
   merchant: {
@@ -203,24 +122,62 @@ const MerchantDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      
+      // Use centralized API service
       const results = await Promise.allSettled([
-        fetchOverview(),
-        fetchAnalytics(),
-        fetchActivity(),
-        fetchNotifications(),
-        fetchQuickActions()
+        merchantsAPI.getDashboardOverview(),
+        merchantsAPI.getDashboardAnalytics(timeRange),
+        merchantsAPI.getDashboardActivity(5),
+        merchantsAPI.getDashboardNotifications(),
+        merchantsAPI.getDashboardQuickActions()
       ]);
 
-      // Check for any rejected promises
-      const errors = results
-        .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
-        .map(result => result.reason.message);
+      // Process results
+      const [overviewResult, analyticsResult, activityResult, notificationsResult, quickActionsResult] = results;
 
-      if (errors.length > 0) {
-        console.warn('Some dashboard data failed to load:', errors);
-        if (errors.length === results.length) {
-          throw new Error('All dashboard data failed to load');
-        }
+      // Handle overview
+      if (overviewResult.status === 'fulfilled' && overviewResult.value.data.success) {
+        setOverview(overviewResult.value.data.data);
+      } else {
+        console.error('Overview failed:', overviewResult.status === 'rejected' ? overviewResult.reason : overviewResult.value);
+      }
+
+      // Handle analytics
+      if (analyticsResult.status === 'fulfilled' && analyticsResult.value.data.success) {
+        setAnalytics(analyticsResult.value.data.data);
+      } else {
+        console.error('Analytics failed:', analyticsResult.status === 'rejected' ? analyticsResult.reason : analyticsResult.value);
+      }
+
+      // Handle activity
+      if (activityResult.status === 'fulfilled' && activityResult.value.data.success) {
+        setActivities(activityResult.value.data.data);
+      } else {
+        console.error('Activity failed:', activityResult.status === 'rejected' ? activityResult.reason : activityResult.value);
+      }
+
+      // Handle notifications
+      if (notificationsResult.status === 'fulfilled' && notificationsResult.value.data.success) {
+        setNotifications(notificationsResult.value.data.data);
+      } else {
+        console.error('Notifications failed:', notificationsResult.status === 'rejected' ? notificationsResult.reason : notificationsResult.value);
+      }
+
+      // Handle quick actions
+      if (quickActionsResult.status === 'fulfilled' && quickActionsResult.value.data.success) {
+        setQuickActions(quickActionsResult.value.data.data);
+      } else {
+        console.error('Quick actions failed:', quickActionsResult.status === 'rejected' ? quickActionsResult.reason : quickActionsResult.value);
+      }
+
+      // Check if all requests failed
+      const failedCount = results.filter(result => 
+        result.status === 'rejected' || 
+        (result.status === 'fulfilled' && !result.value.data.success)
+      ).length;
+
+      if (failedCount === results.length) {
+        throw new Error('All dashboard data failed to load');
       }
 
     } catch (error) {
@@ -236,65 +193,6 @@ const MerchantDashboard = () => {
     }
   };
 
-  const fetchOverview = async () => {
-    const response = await dashboardAPI.getOverview();
-    if (response.success) {
-      setOverview(response.data);
-    } else {
-      throw new Error(response.error || 'Failed to fetch overview');
-    }
-  };
-
-  const fetchAnalytics = async () => {
-    const response = await dashboardAPI.getAnalytics(timeRange);
-    if (response.success) {
-      setAnalytics(response.data);
-    } else {
-      throw new Error(response.error || 'Failed to fetch analytics');
-    }
-  };
-
-  const fetchActivity = async () => {
-    const response = await dashboardAPI.getActivity(5);
-    if (response.success) {
-      setActivities(response.data);
-    } else {
-      throw new Error(response.error || 'Failed to fetch activity');
-    }
-  };
-
-  const fetchNotifications = async () => {
-    const response = await dashboardAPI.getNotifications();
-    if (response.success) {
-      setNotifications(response.data);
-    } else {
-      throw new Error(response.error || 'Failed to fetch notifications');
-    }
-  };
-
-  const fetchQuickActions = async () => {
-    const response = await dashboardAPI.getQuickActions();
-    if (response.success) {
-      setQuickActions(response.data);
-    } else {
-      throw new Error(response.error || 'Failed to fetch quick actions');
-    }
-  };
-
-  const fetchReviews = async () => {
-    try {
-      const response = await dashboardAPI.getReviews(1, 5);
-      if (response.success) {
-        return response.data;
-      } else {
-        throw new Error(response.error || 'Failed to fetch reviews');
-      }
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-      throw error;
-    }
-  };
-
   const handleRefresh = () => {
     setRefreshing(true);
     fetchDashboardData();
@@ -304,7 +202,7 @@ const MerchantDashboard = () => {
     if (!overview) return;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/merchants/send-credentials`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/merchants/send-credentials`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -328,6 +226,33 @@ const MerchantDashboard = () => {
         description: 'Failed to send credentials. Please try again.',
         variant: 'destructive',
       });
+    }
+  };
+
+  // Debug function to check API responses
+  const debugAPI = async () => {
+    try {
+      console.log('🔍 Debugging API calls...');
+      
+      const testEndpoints = [
+        merchantsAPI.getDashboardOverview(),
+        merchantsAPI.getDashboardAnalytics('30'),
+        merchantsAPI.getDashboardActivity(5)
+      ];
+
+      const results = await Promise.allSettled(testEndpoints);
+      
+      results.forEach((result, index) => {
+        const endpointNames = ['Overview', 'Analytics', 'Activity'];
+        console.log(`--- ${endpointNames[index]} ---`);
+        if (result.status === 'fulfilled') {
+          console.log('✅ Success:', result.value);
+        } else {
+          console.log('❌ Error:', result.reason);
+        }
+      });
+    } catch (error) {
+      console.error('Debug error:', error);
     }
   };
 
@@ -368,9 +293,16 @@ const MerchantDashboard = () => {
             <p className="text-gray-600 mb-6">
               You don't have a merchant account associated with your profile.
             </p>
-            <Button onClick={() => window.location.href = '/register/merchant'}>
-              Create Merchant Account
-            </Button>
+            <div className="space-y-4">
+              <Button onClick={() => window.location.href = '/register/merchant'}>
+                Create Merchant Account
+              </Button>
+              <div>
+                <Button variant="outline" onClick={debugAPI} className="mt-4">
+                  Debug API
+                </Button>
+              </div>
+            </div>
           </div>
         </main>
         <Footer />
@@ -400,6 +332,9 @@ const MerchantDashboard = () => {
               <Button onClick={handleRefresh} variant="outline" disabled={refreshing}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
+              </Button>
+              <Button onClick={debugAPI} variant="outline" className="text-xs">
+                Debug
               </Button>
             </div>
           </div>
@@ -849,4 +784,4 @@ const DashboardSkeleton = () => {
   );
 };
 
-export default MerchantDashboard; 
+export default MerchantDashboard;
