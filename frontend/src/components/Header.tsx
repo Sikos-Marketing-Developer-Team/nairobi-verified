@@ -49,7 +49,7 @@ const Navbar = () => {
   // FIXED: Show merchant navbar for merchants/admins
   const showMerchantNav = isMerchant || isAdmin;
 
-  // FIXED: Handle session restoration redirect for merchants - more aggressive
+  // FIXED: Enhanced session restoration for merchants - more reliable
   useEffect(() => {
     if (isLoading) return; // Wait for auth to load
     
@@ -59,14 +59,43 @@ const Navbar = () => {
       const isOnMerchantRoute = currentPath.startsWith('/merchant');
       const isOnAuthRoute = currentPath.startsWith('/auth');
       const isOnUserDashboard = currentPath === '/dashboard';
+      const isOnRoot = currentPath === '/';
       
-      // If merchant is on user dashboard or non-merchant route, redirect immediately
-      if (isOnUserDashboard || (!isOnMerchantRoute && !isOnAuthRoute && currentPath !== '/')) {
+      // If merchant is on user dashboard, root, or non-merchant route, redirect immediately
+      if (isOnUserDashboard || isOnRoot || (!isOnMerchantRoute && !isOnAuthRoute)) {
         console.log('🔄 Session restoration: Redirecting merchant to dashboard from', currentPath);
         navigate('/merchant/dashboard', { replace: true });
       }
     }
   }, [isAuthenticated, showMerchantNav, location.pathname, navigate, isLoading]);
+
+  // FIXED: Additional protection - prevent navigation to user routes for merchants
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return;
+
+    if (showMerchantNav) {
+      const currentPath = location.pathname;
+      const restrictedUserRoutes = [
+        '/dashboard',
+        '/profile',
+        '/favorites', 
+        '/cart',
+        '/products',
+        '/merchants',
+        '/categories'
+      ];
+
+      // Check if current path is a user route that merchants shouldn't access
+      const isRestrictedRoute = restrictedUserRoutes.some(route => 
+        currentPath === route || currentPath.startsWith(route + '/')
+      );
+
+      if (isRestrictedRoute) {
+        console.log('🚫 Merchant attempted to access user route, redirecting:', currentPath);
+        navigate('/merchant/dashboard', { replace: true });
+      }
+    }
+  }, [location.pathname, isAuthenticated, showMerchantNav, navigate, isLoading]);
 
   // Close market dropdown when clicking outside
   useEffect(() => {
@@ -649,21 +678,7 @@ const Navbar = () => {
             </li>
           )}
           
-          {/* Show "Switch to User View" for merchants on merchant routes */}
-          {showMerchantNav && (
-            <li>
-              <button
-                onClick={() => {
-                  const fullUrl = window.location.origin;
-                  window.open(fullUrl, '_blank');
-                }}
-                className="bg-orange-600 hover:bg-orange-700 transition-colors text-white font-semibold px-3 py-1.5 rounded-[16px] text-sm"
-                title="Open Shopping Site in New Tab"
-              >
-                Shop Products
-              </button>
-            </li>
-          )}
+          {/* REMOVED: "Shop Products" button next to contact for merchants */}
           
           {/* Show "Become a Seller" for regular users */}
           {!showMerchantNav && isRegularUser && (
