@@ -4,7 +4,7 @@ import {
   Eye, Edit, Users, Clock, CheckCircle, AlertCircle, MessageSquare, 
   BarChart3, TrendingUp, Phone, MapPin, Heart, Calendar, Settings, 
   Bell, Package, CreditCard, Star, Mail, Shield, Download, Award,
-  RefreshCw, Store, Plus, Upload, Image
+  RefreshCw, Store, Plus, Upload, Image, ExternalLink
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,10 +22,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// API service functions - Updated to match documentation
+// Enhanced API service functions with shop information
 const dashboardAPI = {
   getOverview: async () => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/overview`, {
+    const response = await fetch(`${API_BASE_URL}/api/merchants/dashboard/overview`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -35,8 +35,27 @@ const dashboardAPI = {
     return response.json();
   },
 
+  getShopInfo: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/merchants/shop`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) {
+      // If shop endpoint doesn't exist, fall back to merchant profile
+      const profileResponse = await fetch(`${API_BASE_URL}/api/merchants/profile/me`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      if (!profileResponse.ok) {
+        throw new Error('Failed to fetch shop information');
+      }
+      return profileResponse.json();
+    }
+    return response.json();
+  },
+
   getAnalytics: async (period: string = '30') => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/analytics?period=${period}`, {
+    const response = await fetch(`${API_BASE_URL}/api/merchants/dashboard/analytics?period=${period}`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -47,7 +66,7 @@ const dashboardAPI = {
   },
 
   getActivity: async (limit: number = 10) => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/activity?limit=${limit}`, {
+    const response = await fetch(`${API_BASE_URL}/api/merchants/dashboard/activity?limit=${limit}`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -58,7 +77,7 @@ const dashboardAPI = {
   },
 
   getNotifications: async () => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/notifications`, {
+    const response = await fetch(`${API_BASE_URL}/api/merchants/dashboard/notifications`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -69,29 +88,7 @@ const dashboardAPI = {
   },
 
   getQuickActions: async () => {
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/quick-actions`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  },
-
-  getReviews: async (page: number = 1, limit: number = 10, sortBy: string = 'createdAt', order: string = 'desc', rating?: string) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      sortBy,
-      order
-    });
-    
-    if (rating && rating !== 'all') {
-      params.append('rating', rating);
-    }
-
-    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/reviews?${params.toString()}`, {
+    const response = await fetch(`${API_BASE_URL}/api/merchants/dashboard/quick-actions`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -111,6 +108,8 @@ interface MerchantOverview {
     rating: number;
     totalReviews: number;
     memberSince: string;
+    shopSlug?: string; // Added shop slug for URL
+    shopId?: string; // Added shop ID
   };
   verificationStatus: {
     isVerified: boolean;
@@ -124,6 +123,15 @@ interface MerchantOverview {
     documentsPercentage: number;
     nextSteps: string[];
   };
+}
+
+interface ShopInfo {
+  id: string;
+  slug: string;
+  businessName: string;
+  isActive: boolean;
+  published: boolean;
+  url: string;
 }
 
 interface AnalyticsData {
@@ -188,6 +196,7 @@ const MerchantDashboard = () => {
   const { toast } = useToast();
   const [timeRange, setTimeRange] = useState<'7' | '30' | '90'>('30');
   const [overview, setOverview] = useState<MerchantOverview | null>(null);
+  const [shopInfo, setShopInfo] = useState<ShopInfo | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -206,6 +215,7 @@ const MerchantDashboard = () => {
       setLoading(true);
       const results = await Promise.allSettled([
         fetchOverview(),
+        fetchShopInfo(),
         fetchAnalytics(),
         fetchActivity(),
         fetchNotifications(),
@@ -246,6 +256,37 @@ const MerchantDashboard = () => {
     }
   };
 
+  const fetchShopInfo = async () => {
+    try {
+      const response = await dashboardAPI.getShopInfo();
+      if (response.success) {
+        // Transform the response to match ShopInfo interface
+        const shopData = response.data;
+        setShopInfo({
+          id: shopData._id || shopData.id,
+          slug: shopData.slug || generateSlug(shopData.businessName),
+          businessName: shopData.businessName,
+          isActive: shopData.isActive !== false,
+          published: shopData.published !== false,
+          url: `/merchant/${shopData._id || shopData.id}`
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to fetch shop info, using fallback:', error);
+      // Create fallback shop info from overview data
+      if (overview) {
+        setShopInfo({
+          id: overview.merchant.id,
+          slug: generateSlug(overview.merchant.businessName),
+          businessName: overview.merchant.businessName,
+          isActive: true,
+          published: true,
+          url: `/merchant/${overview.merchant.id}`
+        });
+      }
+    }
+  };
+
   const fetchAnalytics = async () => {
     const response = await dashboardAPI.getAnalytics(timeRange);
     if (response.success) {
@@ -282,18 +323,12 @@ const MerchantDashboard = () => {
     }
   };
 
-  const fetchReviews = async () => {
-    try {
-      const response = await dashboardAPI.getReviews(1, 5);
-      if (response.success) {
-        return response.data;
-      } else {
-        throw new Error(response.error || 'Failed to fetch reviews');
-      }
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-      throw error;
-    }
+  // Generate slug from business name
+  const generateSlug = (businessName: string): string => {
+    return businessName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
   };
 
   const handleRefresh = () => {
@@ -305,7 +340,7 @@ const MerchantDashboard = () => {
     if (!overview) return;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/merchants/send-credentials`, {
+      const response = await fetch(`${API_BASE_URL}/api/merchants/send-credentials`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -332,6 +367,25 @@ const MerchantDashboard = () => {
     }
   };
 
+  // Get shop URL for View Shop button
+  const getShopUrl = (): string => {
+    if (shopInfo) {
+      return shopInfo.url;
+    }
+    if (overview?.merchant.shopSlug) {
+      return `/merchant/${overview.merchant.shopSlug}`;
+    }
+    if (overview?.merchant.id) {
+      return `/merchant/${overview.merchant.id}`;
+    }
+    return '/merchant/shop';
+  };
+
+  // Check if shop is published and active
+  const isShopViewable = (): boolean => {
+    return shopInfo ? (shopInfo.isActive && shopInfo.published) : true;
+  };
+
   // Check authentication
   if (!isAuthenticated) {
     return (
@@ -344,7 +398,7 @@ const MerchantDashboard = () => {
             <p className="text-gray-600 mb-6">
               Please sign in to access the merchant dashboard.
             </p>
-            <Button onClick={() => window.location.href = '/login'}>
+            <Button onClick={() => window.location.href = '/auth/merchant'}>
               Sign In
             </Button>
           </div>
@@ -369,7 +423,7 @@ const MerchantDashboard = () => {
             <p className="text-gray-600 mb-6">
               You don't have a merchant account associated with your profile.
             </p>
-            <Button onClick={() => window.location.href = '/register/merchant'}>
+            <Button onClick={() => window.location.href = '/auth/register/merchant'}>
               Create Merchant Account
             </Button>
           </div>
@@ -394,6 +448,15 @@ const MerchantDashboard = () => {
               <p className="text-gray-600 mt-2">Manage your business profile and track performance</p>
             </div>
             <div className="flex items-center gap-3">
+              {/* View Shop Button */}
+              <Link to={getShopUrl()} target="_blank">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  View Shop
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              </Link>
+              
               <Button onClick={handleSendCredentials} variant="outline" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Send Login Credentials
@@ -405,6 +468,20 @@ const MerchantDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Shop Status Alert */}
+        {shopInfo && !isShopViewable() && (
+          <Alert className="mb-6 bg-amber-50 border-amber-200">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription>
+              Your shop is currently {!shopInfo.published ? 'not published' : 'inactive'}. 
+              Customers cannot view your shop until it's published and active.
+              <Link to="/merchant/profile/edit" className="ml-2 text-amber-700 hover:text-amber-800 font-medium">
+                Update shop settings
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Verification Status */}
         <Card className="mb-8">
@@ -429,6 +506,11 @@ const MerchantDashboard = () => {
                   <p className="text-gray-600">
                     {overview.verificationStatus.statusMessage}
                   </p>
+                  {shopInfo && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Shop URL: {window.location.origin}{getShopUrl()}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -469,15 +551,25 @@ const MerchantDashboard = () => {
                   </p>
                 )}
               </div>
-              <Link to="/merchant/profile/edit">
-                <Button className="ml-6 bg-primary hover:bg-primary-dark">
-                  Complete Profile
-                </Button>
-              </Link>
+              <div className="flex gap-2 ml-6">
+                <Link to="/merchant/profile/edit">
+                  <Button className="bg-primary hover:bg-primary-dark">
+                    Complete Profile
+                  </Button>
+                </Link>
+                {shopInfo && (
+                  <Link to="/merchant/shop/settings">
+                    <Button variant="outline">
+                      Shop Settings
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Rest of the component remains the same... */}
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column - Quick Actions */}
@@ -491,6 +583,21 @@ const MerchantDashboard = () => {
               <CardContent className="space-y-3">
                 {quickActions.length > 0 ? (
                   <>
+                    {/* View Shop Action */}
+                    <Link to={getShopUrl()} target="_blank">
+                      <Button variant="outline" className="w-full justify-start h-auto py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Store className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900">View Shop</p>
+                            <p className="text-xs text-gray-500">See how customers view your shop</p>
+                          </div>
+                        </div>
+                      </Button>
+                    </Link>
+
                     {/* Add Products Action */}
                     <Link to="/merchant/products/add">
                       <Button variant="outline" className="w-full justify-start h-auto py-3">
@@ -510,8 +617,8 @@ const MerchantDashboard = () => {
                     <Link to="/merchant/photos/upload">
                       <Button variant="outline" className="w-full justify-start h-auto py-3">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <Upload className="h-4 w-4 text-blue-600" />
+                          <div className="p-2 bg-purple-100 rounded-lg">
+                            <Upload className="h-4 w-4 text-purple-600" />
                           </div>
                           <div className="text-left">
                             <p className="font-medium text-gray-900">Upload Photos</p>
@@ -779,11 +886,13 @@ const getIconComponent = (iconName: string) => {
     case 'plus': return <Plus {...iconProps} />;
     case 'upload': return <Upload {...iconProps} />;
     case 'image': return <Image {...iconProps} />;
+    case 'store': return <Store {...iconProps} />;
+    case 'external-link': return <ExternalLink {...iconProps} />;
     default: return <Settings {...iconProps} />;
   }
 };
 
-// Loading Skeleton
+// Loading Skeleton (keep the same as before)
 const DashboardSkeleton = () => {
   return (
     <div className="min-h-screen bg-gray-50">
