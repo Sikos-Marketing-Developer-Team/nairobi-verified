@@ -1,140 +1,233 @@
-// src/pages/merchant/MerchantDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { 
-  Eye, Edit, Plus, Upload, CheckCircle, AlertCircle, 
-  BarChart3, Package, CreditCard, Star, Mail, Award,
-  RefreshCw, Store, ExternalLink, Users, Calendar, MessageSquare
+  Eye, Edit, Users, Clock, CheckCircle, AlertCircle, MessageSquare, 
+  BarChart3, TrendingUp, Phone, MapPin, Heart, Calendar, Settings, 
+  Bell, Package, CreditCard, Star, Mail, Shield, Download, Award,
+  RefreshCw, Store, Plus, Upload, Image
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// REAL API endpoints that we know exist
-const merchantAPI = {
-  // This endpoint we know exists from MerchantProfileEdit
-  getProfile: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/merchants/profile/me`, {
+// API service functions - Updated to match documentation
+const dashboardAPI = {
+  getOverview: async () => {
+    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/overview`, {
       method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+      credentials: 'include'
     });
-    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
     return response.json();
   },
 
-  // Fallback: Get merchant by ID if profile endpoint fails
-  getMerchantById: async (id: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/merchants/${id}`, {
+  getAnalytics: async (period: string = '30') => {
+    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/analytics?period=${period}`, {
       method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+      credentials: 'include'
     });
-    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+    return response.json();
+  },
+
+  getActivity: async (limit: number = 10) => {
+    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/activity?limit=${limit}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getNotifications: async () => {
+    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/notifications`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getQuickActions: async () => {
+    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/quick-actions`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getReviews: async (page: number = 1, limit: number = 10, sortBy: string = 'createdAt', order: string = 'desc', rating?: string) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      sortBy,
+      order
+    });
     
+    if (rating && rating !== 'all') {
+      params.append('rating', rating);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/merchants/dashboard/reviews?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return response.json();
   }
 };
 
-interface MerchantData {
-  _id: string;
-  businessName: string;
-  email: string;
-  phone: string;
-  businessType: string;
+interface MerchantOverview {
+  merchant: {
+    id: string;
+    businessName: string;
+    email: string;
+    phone: string;
+    rating: number;
+    totalReviews: number;
+    memberSince: string;
+  };
+  verificationStatus: {
+    isVerified: boolean;
+    isFeatured: boolean;
+    verificationBadge: string;
+    statusMessage: string;
+    verifiedDate: string | null;
+  };
+  profileCompletion: {
+    percentage: number;
+    documentsPercentage: number;
+    nextSteps: string[];
+  };
+}
+
+interface AnalyticsData {
+  period: string;
+  analytics: {
+    reviews: {
+      total: number;
+      recent: number;
+      growth: string;
+    };
+    products?: {
+      total: number;
+      active: number;
+      inactive: number;
+      recent: number;
+      growth: string;
+    } | null;
+    orders?: {
+      total: number;
+      recent: number;
+      growth: string;
+      revenue: {
+        current: number;
+        previous: number;
+        growth: string;
+        currency: string;
+      };
+    } | null;
+  };
+}
+
+interface ActivityItem {
+  type: string;
   description: string;
-  address: string;
-  isActive: boolean;
-  verified: boolean;
-  memberSince: string;
-  rating?: number;
-  totalReviews?: number;
-  slug?: string;
-  website?: string;
+  timestamp: string;
+  date: string;
+  data: any;
+}
+
+interface Notification {
+  id: string;
+  type: string;
+  icon: string;
+  title: string;
+  timestamp: string;
+  date: string;
+  read: boolean;
+}
+
+interface QuickAction {
+  id: string;
+  label: string;
+  icon: string;
+  link: string;
+  enabled: boolean;
+  badge: string | null;
+  badgeColor: string | null;
 }
 
 const MerchantDashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const [merchantData, setMerchantData] = useState<MerchantData | null>(null);
+  const [timeRange, setTimeRange] = useState<'7' | '30' | '90'>('30');
+  const [overview, setOverview] = useState<MerchantOverview | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [quickActions, setQuickActions] = useState<QuickAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchMerchantData();
+    if (isAuthenticated) {
+      fetchDashboardData();
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, timeRange]);
 
-  const fetchMerchantData = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      console.log('🔄 Fetching merchant data...');
+      const results = await Promise.allSettled([
+        fetchOverview(),
+        fetchAnalytics(),
+        fetchActivity(),
+        fetchNotifications(),
+        fetchQuickActions()
+      ]);
 
-      // Try the main profile endpoint first
-      try {
-        const profileResponse = await merchantAPI.getProfile();
-        if (profileResponse.success && profileResponse.data) {
-          console.log('✅ Merchant profile loaded:', profileResponse.data);
-          setMerchantData(profileResponse.data);
-          return;
+      // Check for any rejected promises
+      const errors = results
+        .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+        .map(result => result.reason.message);
+
+      if (errors.length > 0) {
+        console.warn('Some dashboard data failed to load:', errors);
+        if (errors.length === results.length) {
+          throw new Error('All dashboard data failed to load');
         }
-      } catch (profileError) {
-        console.warn('Profile endpoint failed, trying alternatives...', profileError);
-      }
-
-      // If profile endpoint fails, try to get merchant by user ID
-      if (user?.id) {
-        try {
-          const merchantResponse = await merchantAPI.getMerchantById(user.id);
-          if (merchantResponse.success && merchantResponse.data) {
-            console.log('✅ Merchant data loaded by ID:', merchantResponse.data);
-            setMerchantData(merchantResponse.data);
-            return;
-          }
-        } catch (idError) {
-          console.warn('Merchant by ID also failed:', idError);
-        }
-      }
-
-      // If all API calls fail, check if user has merchant role but no data
-      if (user?.isMerchant) {
-        setError('Merchant account exists but data cannot be loaded. Please contact support.');
-      } else {
-        setError('No merchant account found. Please create a merchant account.');
       }
 
     } catch (error) {
-      console.error('💥 Error fetching merchant data:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load merchant data';
-      setError(errorMessage);
-      
+      console.error('Error fetching dashboard data:', error);
       toast({
         title: 'Error',
-        description: errorMessage,
+        description: error instanceof Error ? error.message : 'Failed to load dashboard data',
         variant: 'destructive',
       });
     } finally {
@@ -143,85 +236,102 @@ const MerchantDashboard = () => {
     }
   };
 
+  const fetchOverview = async () => {
+    const response = await dashboardAPI.getOverview();
+    if (response.success) {
+      setOverview(response.data);
+    } else {
+      throw new Error(response.error || 'Failed to fetch overview');
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    const response = await dashboardAPI.getAnalytics(timeRange);
+    if (response.success) {
+      setAnalytics(response.data);
+    } else {
+      throw new Error(response.error || 'Failed to fetch analytics');
+    }
+  };
+
+  const fetchActivity = async () => {
+    const response = await dashboardAPI.getActivity(5);
+    if (response.success) {
+      setActivities(response.data);
+    } else {
+      throw new Error(response.error || 'Failed to fetch activity');
+    }
+  };
+
+  const fetchNotifications = async () => {
+    const response = await dashboardAPI.getNotifications();
+    if (response.success) {
+      setNotifications(response.data);
+    } else {
+      throw new Error(response.error || 'Failed to fetch notifications');
+    }
+  };
+
+  const fetchQuickActions = async () => {
+    const response = await dashboardAPI.getQuickActions();
+    if (response.success) {
+      setQuickActions(response.data);
+    } else {
+      throw new Error(response.error || 'Failed to fetch quick actions');
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const response = await dashboardAPI.getReviews(1, 5);
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to fetch reviews');
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      throw error;
+    }
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchMerchantData();
+    fetchDashboardData();
   };
 
-  // Calculate profile completion based on filled fields
-  const calculateProfileCompletion = (merchant: MerchantData): number => {
-    const requiredFields = [
-      'businessName',
-      'email', 
-      'phone',
-      'businessType',
-      'description',
-      'address'
-    ];
+  const handleSendCredentials = async () => {
+    if (!overview) return;
     
-    const completedFields = requiredFields.filter(field => {
-      const value = merchant[field as keyof MerchantData];
-      return value && value.toString().trim().length > 0;
-    });
-    
-    return Math.round((completedFields.length / requiredFields.length) * 100);
+    try {
+      const response = await fetch(`${API_BASE_URL}/merchants/send-credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: overview.merchant.email,
+          businessName: overview.merchant.businessName
+        })
+      });
+      
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: 'Login credentials sent to your email successfully!',
+        });
+      } else {
+        throw new Error('Failed to send credentials');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to send credentials. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  // Get next steps for profile completion
-  const getNextSteps = (merchant: MerchantData): string[] => {
-    const steps = [];
-    
-    if (!merchant.businessName || merchant.businessName.trim().length === 0) {
-      steps.push('Add your business name');
-    }
-    
-    if (!merchant.description || merchant.description.trim().length === 0) {
-      steps.push('Write a business description');
-    }
-    
-    if (!merchant.address || merchant.address.trim().length === 0) {
-      steps.push('Add your business address');
-    }
-    
-    if (!merchant.phone || merchant.phone.trim().length === 0) {
-      steps.push('Add your phone number');
-    }
-    
-    if (steps.length === 0) {
-      steps.push('Your profile is complete! Consider adding more details');
-    }
-    
-    return steps.slice(0, 2);
-  };
-
-  // Get shop URL for View Shop button
-  const getShopUrl = (): string => {
-    if (merchantData?.slug) {
-      return `/merchant/${merchantData.slug}`;
-    }
-    if (merchantData?._id) {
-      return `/merchant/${merchantData._id}`;
-    }
-    return '/merchants';
-  };
-
-  // Mock data for demonstration (remove in production)
-  const getMockAnalytics = () => ({
-    reviews: { total: 0, recent: 0, growth: '0%' },
-    products: { total: 0, active: 0, inactive: 0, recent: 0, growth: '0%' }
-  });
-
-  // Mock activities for demonstration
-  const getMockActivities = () => [
-    {
-      type: 'info',
-      description: 'Welcome to your merchant dashboard!',
-      timestamp: 'Just now',
-      date: new Date().toISOString()
-    }
-  ];
-
-  // Check authentication and redirect if needed
+  // Check authentication
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -233,8 +343,8 @@ const MerchantDashboard = () => {
             <p className="text-gray-600 mb-6">
               Please sign in to access the merchant dashboard.
             </p>
-            <Button onClick={() => navigate('/auth/merchant')}>
-              Sign In as Merchant
+            <Button onClick={() => window.location.href = '/login'}>
+              Sign In
             </Button>
           </div>
         </main>
@@ -247,62 +357,26 @@ const MerchantDashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  if (error && !merchantData) {
+  if (!overview) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              {error.includes('No merchant account') ? 'Merchant Account Required' : 'Account Setup Required'}
-            </h1>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <div className="flex gap-4 justify-center">
-              <Button onClick={() => navigate('/auth/register/merchant')}>
-                Create Merchant Account
-              </Button>
-              <Button variant="outline" onClick={handleRefresh}>
-                Try Again
-              </Button>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!merchantData) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Unable to Load Data</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">No Merchant Account Found</h1>
             <p className="text-gray-600 mb-6">
-              There was a problem loading your merchant data. Please try again or contact support.
+              You don't have a merchant account associated with your profile.
             </p>
-            <div className="flex gap-4 justify-center">
-              <Button onClick={handleRefresh}>
-                Retry
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/contact')}>
-                Contact Support
-              </Button>
-            </div>
+            <Button onClick={() => window.location.href = '/register/merchant'}>
+              Create Merchant Account
+            </Button>
           </div>
         </main>
         <Footer />
       </div>
     );
   }
-
-  const profileCompletion = calculateProfileCompletion(merchantData);
-  const nextSteps = getNextSteps(merchantData);
-  const mockAnalytics = getMockAnalytics();
-  const mockActivities = getMockActivities();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -314,23 +388,15 @@ const MerchantDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                Welcome back, {merchantData.businessName || 'Merchant'}!
+                Welcome back, {overview.merchant.businessName}!
               </h1>
               <p className="text-gray-600 mt-2">Manage your business profile and track performance</p>
-              <p className="text-sm text-gray-500 mt-1">
-                Merchant ID: {merchantData._id}
-              </p>
             </div>
             <div className="flex items-center gap-3">
-              {/* View Shop Button */}
-              <Link to={getShopUrl()} target="_blank">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
-                  View Shop
-                  <ExternalLink className="h-3 w-3" />
-                </Button>
-              </Link>
-              
+              <Button onClick={handleSendCredentials} variant="outline" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Send Login Credentials
+              </Button>
               <Button onClick={handleRefresh} variant="outline" disabled={refreshing}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
@@ -339,45 +405,41 @@ const MerchantDashboard = () => {
           </div>
         </div>
 
-        {error && (
-          <Alert className="mb-6 bg-amber-50 border-amber-200">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription>
-              {error} Some demo data is being shown.
-            </AlertDescription>
-          </Alert>
-        )}
-
         {/* Verification Status */}
         <Card className="mb-8">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-full ${
-                  merchantData.verified ? 'bg-green-100' : 'bg-amber-100'
+                  overview.verificationStatus.isVerified 
+                    ? 'bg-green-100' 
+                    : 'bg-amber-100'
                 }`}>
                   <CheckCircle className={`h-6 w-6 ${
-                    merchantData.verified ? 'text-green-600' : 'text-amber-600'
+                    overview.verificationStatus.isVerified 
+                      ? 'text-green-600' 
+                      : 'text-amber-600'
                   }`} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">
-                    {merchantData.verified ? 'Verified Business' : 'Pending Verification'}
+                    {overview.verificationStatus.verificationBadge}
                   </h3>
                   <p className="text-gray-600">
-                    {merchantData.verified 
-                      ? 'Your business is verified and visible to customers' 
-                      : 'Complete verification to unlock all features'}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Shop URL: {window.location.origin}{getShopUrl()}
+                    {overview.verificationStatus.statusMessage}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                {overview.verificationStatus.isFeatured && (
+                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                    <Award className="h-3 w-3 mr-1" />
+                    Featured
+                  </Badge>
+                )}
                 <Link to="/merchant/verification">
                   <Button variant="outline">
-                    {merchantData.verified ? 'View Status' : 'Get Verified'}
+                    View Status
                   </Button>
                 </Link>
               </div>
@@ -394,94 +456,144 @@ const MerchantDashboard = () => {
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div 
                     className="bg-primary h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${profileCompletion}%` }}
+                    style={{ width: `${overview.profileCompletion.percentage}%` }}
                   ></div>
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  {profileCompletion}% complete
+                  {overview.profileCompletion.percentage}% complete
                 </p>
-                {nextSteps.length > 0 && (
+                {overview.profileCompletion.nextSteps.length > 0 && (
                   <p className="text-sm text-amber-600 mt-1">
-                    Next: {nextSteps[0]}
+                    Next: {overview.profileCompletion.nextSteps[0]}
                   </p>
                 )}
               </div>
-              <div className="flex gap-2 ml-6">
-                <Link to="/merchant/profile/edit">
-                  <Button className="bg-primary hover:bg-primary-dark">
-                    {profileCompletion === 100 ? 'Update Profile' : 'Complete Profile'}
-                  </Button>
-                </Link>
-              </div>
+              <Link to="/merchant/profile/edit">
+                <Button className="ml-6 bg-primary hover:bg-primary-dark">
+                  Complete Profile
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Actions & Analytics Grid */}
+        {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column - Quick Actions */}
           <div className="space-y-6">
+            {/* Quick Actions */}
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
                 <CardDescription>Manage your business quickly</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Link to={getShopUrl()} target="_blank">
-                  <Button variant="outline" className="w-full justify-start h-auto py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Store className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-900">View Shop</p>
-                        <p className="text-xs text-gray-500">See how customers view your shop</p>
-                      </div>
-                    </div>
-                  </Button>
-                </Link>
+                {quickActions.length > 0 ? (
+                  <>
+                    {/* Add Products Action */}
+                    <Link to="/merchant/products/add">
+                      <Button variant="outline" className="w-full justify-start h-auto py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <Plus className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900">Add Products</p>
+                            <p className="text-xs text-gray-500">Showcase your items</p>
+                          </div>
+                        </div>
+                      </Button>
+                    </Link>
 
-                <Link to="/merchant/products/add">
-                  <Button variant="outline" className="w-full justify-start h-auto py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <Plus className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-900">Add Products</p>
-                        <p className="text-xs text-gray-500">Showcase your items</p>
-                      </div>
-                    </div>
-                  </Button>
-                </Link>
+                    {/* Upload Photos Action */}
+                    <Link to="/merchant/photos/upload">
+                      <Button variant="outline" className="w-full justify-start h-auto py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Upload className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900">Upload Photos</p>
+                            <p className="text-xs text-gray-500">Upload business images</p>
+                          </div>
+                        </div>
+                      </Button>
+                    </Link>
 
-                <Link to="/merchant/profile/edit">
-                  <Button variant="outline" className="w-full justify-start h-auto py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-100 rounded-lg">
-                        <Edit className="h-4 w-4 text-purple-600" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-900">Edit Profile</p>
-                        <p className="text-xs text-gray-500">Update business information</p>
-                      </div>
-                    </div>
-                  </Button>
-                </Link>
+                    {/* Existing Quick Actions */}
+                    {quickActions.map((action) => (
+                      <Link key={action.id} to={action.link}>
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-start h-auto py-3"
+                          disabled={!action.enabled}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${
+                              action.badgeColor === 'green' ? 'bg-green-100' :
+                              action.badgeColor === 'red' ? 'bg-red-100' :
+                              'bg-gray-100'
+                            }`}>
+                              {getIconComponent(action.icon)}
+                            </div>
+                            <div className="text-left">
+                              <p className="font-medium text-gray-900">{action.label}</p>
+                              {action.badge && (
+                                <Badge 
+                                  variant="secondary" 
+                                  className={`mt-1 ${
+                                    action.badgeColor === 'green' ? 'bg-green-100 text-green-800' :
+                                    action.badgeColor === 'red' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}
+                                >
+                                  {action.badge}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </Button>
+                      </Link>
+                    ))}
+                  </>
+                ) : (
+                  <p className="text-gray-500 text-center py-2">No quick actions available</p>
+                )}
+              </CardContent>
+            </Card>
 
-                <Link to="/merchant/verification">
-                  <Button variant="outline" className="w-full justify-start h-auto py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-amber-100 rounded-lg">
-                        <Award className="h-4 w-4 text-amber-600" />
+            {/* Notifications */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Notifications</CardTitle>
+                <CardDescription>Latest updates</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {notifications.length > 0 ? (
+                    notifications.slice(0, 3).map((notification) => (
+                      <div key={notification.id} className={`p-3 border rounded-lg ${
+                        !notification.read ? 'bg-blue-50 border-blue-200' : ''
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`p-1 rounded-full ${
+                            notification.type === 'success' ? 'bg-green-100' :
+                            notification.type === 'warning' ? 'bg-amber-100' :
+                            'bg-blue-100'
+                          }`}>
+                            {getIconComponent(notification.icon)}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-900">{notification.title}</p>
+                            <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-900">Get Verified</p>
-                        <p className="text-xs text-gray-500">Increase customer trust</p>
-                      </div>
-                    </div>
-                  </Button>
-                </Link>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">No notifications</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -489,45 +601,109 @@ const MerchantDashboard = () => {
           {/* Right Column - Analytics & Activity */}
           <div className="lg:col-span-2 space-y-8">
             {/* Analytics Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Business Overview</CardTitle>
-                <CardDescription>Your business at a glance</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="text-center p-6 bg-blue-50 rounded-lg">
-                    <Star className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">
-                      {mockAnalytics.reviews.total}
-                    </p>
-                    <p className="text-sm text-gray-600">Total Reviews</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Build your reputation
-                    </p>
+            {analytics && analytics.analytics ? (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Performance Analytics</CardTitle>
+                    <Select value={timeRange} onValueChange={(value: '7' | '30' | '90') => setTimeRange(value)}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select time range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7">Last 7 days</SelectItem>
+                        <SelectItem value="30">Last 30 days</SelectItem>
+                        <SelectItem value="90">Last 90 days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <CardDescription>
+                    {analytics.period} - Track your business performance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Reviews Analytics */}
+                    <div className="text-center p-6 bg-blue-50 rounded-lg">
+                      <Star className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-gray-900">
+                        {analytics.analytics.reviews?.recent || 0}
+                      </p>
+                      <p className="text-sm text-gray-600">New Reviews</p>
+                      <p className={`text-xs mt-1 ${
+                        analytics.analytics.reviews?.growth?.startsWith('+') 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {analytics.analytics.reviews?.growth || '0%'}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Total: {analytics.analytics.reviews?.total || 0}
+                      </p>
+                    </div>
+
+                    {/* Products Analytics - only show if data exists */}
+                    {analytics.analytics.products && (
+                      <div className="text-center p-6 bg-green-50 rounded-lg">
+                        <Package className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-gray-900">
+                          {analytics.analytics.products.active}
+                        </p>
+                        <p className="text-sm text-gray-600">Active Products</p>
+                        <p className={`text-xs mt-1 ${
+                          analytics.analytics.products.growth?.startsWith('+') 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {analytics.analytics.products.growth}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Total: {analytics.analytics.products.total}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Orders Analytics - only show if data exists */}
+                    {analytics.analytics.orders && (
+                      <div className="text-center p-6 bg-purple-50 rounded-lg">
+                        <CreditCard className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-gray-900">
+                          {analytics.analytics.orders.recent}
+                        </p>
+                        <p className="text-sm text-gray-600">Recent Orders</p>
+                        <p className={`text-xs mt-1 ${
+                          analytics.analytics.orders.growth?.startsWith('+') 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {analytics.analytics.orders.growth}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Revenue: {analytics.analytics.orders.revenue.current.toLocaleString()} {analytics.analytics.orders.revenue.currency}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="text-center p-6 bg-green-50 rounded-lg">
-                    <Package className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">
-                      {mockAnalytics.products.total}
-                    </p>
-                    <p className="text-sm text-gray-600">Products</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Showcase your offerings
-                    </p>
+                  {/* Chart Placeholder */}
+                  <div className="mt-6 bg-gray-50 rounded-lg p-4 h-48 flex items-center justify-center">
+                    <div className="text-center">
+                      <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500">Performance overview for {analytics.period.toLowerCase()}</p>
+                    </div>
                   </div>
-                </div>
-
-                {/* Chart Placeholder */}
-                <div className="mt-6 bg-gray-50 rounded-lg p-4 h-32 flex items-center justify-center">
-                  <div className="text-center">
-                    <BarChart3 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500 text-sm">Analytics coming soon</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center py-8">
+                    <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-500">Analytics data not available</p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Recent Activity */}
             <Card>
@@ -537,20 +713,41 @@ const MerchantDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {mockActivities.map((activity, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-full bg-blue-100">
-                          <MessageSquare className="h-4 w-4 text-blue-600" />
+                  {activities.length > 0 ? (
+                    activities.map((activity, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-full ${
+                            activity.type === 'review' ? 'bg-blue-100' :
+                            activity.type === 'product' ? 'bg-green-100' :
+                            activity.type === 'order' ? 'bg-purple-100' : 'bg-gray-100'
+                          }`}>
+                            {activity.type === 'review' && <Star className="h-4 w-4 text-blue-600" />}
+                            {activity.type === 'product' && <Package className="h-4 w-4 text-green-600" />}
+                            {activity.type === 'order' && <CreditCard className="h-4 w-4 text-purple-600" />}
+                          </div>
+                          <div>
+                            <span className="text-gray-900 block">{activity.description}</span>
+                            {activity.data?.rating && (
+                              <div className="flex items-center gap-1 mt-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-3 w-3 ${
+                                      i < activity.data.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-gray-900">{activity.description}</span>
+                        <span className="text-sm text-gray-500 whitespace-nowrap">{activity.timestamp}</span>
                       </div>
-                      <span className="text-sm text-gray-500 whitespace-nowrap">{activity.timestamp}</span>
-                    </div>
-                  ))}
-                  <div className="text-center py-4">
-                    <p className="text-gray-500 text-sm">More activity will appear here as you use the platform</p>
-                  </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">No recent activity</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -563,6 +760,28 @@ const MerchantDashboard = () => {
   );
 };
 
+// Helper function to get icon components
+const getIconComponent = (iconName: string) => {
+  const iconProps = { className: "h-4 w-4" };
+  switch (iconName) {
+    case 'edit': return <Edit {...iconProps} />;
+    case 'eye': return <Eye {...iconProps} />;
+    case 'check-circle': return <CheckCircle {...iconProps} />;
+    case 'calendar': return <Calendar {...iconProps} />;
+    case 'message-square': return <MessageSquare {...iconProps} />;
+    case 'package': return <Package {...iconProps} />;
+    case 'credit-card': return <CreditCard {...iconProps} />;
+    case 'settings': return <Settings {...iconProps} />;
+    case 'bell': return <Bell {...iconProps} />;
+    case 'shield': return <Shield {...iconProps} />;
+    case 'download': return <Download {...iconProps} />;
+    case 'plus': return <Plus {...iconProps} />;
+    case 'upload': return <Upload {...iconProps} />;
+    case 'image': return <Image {...iconProps} />;
+    default: return <Settings {...iconProps} />;
+  }
+};
+
 // Loading Skeleton
 const DashboardSkeleton = () => {
   return (
@@ -570,34 +789,57 @@ const DashboardSkeleton = () => {
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
+          {/* Header Skeleton */}
           <div className="flex justify-between items-center">
             <div>
               <Skeleton className="h-8 w-64 mb-2" />
               <Skeleton className="h-4 w-96" />
             </div>
             <div className="flex gap-2">
-              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-40" />
               <Skeleton className="h-10 w-24" />
             </div>
           </div>
 
-          <Skeleton className="h-24 w-full" />
+          {/* Verification Status Skeleton */}
           <Skeleton className="h-24 w-full" />
 
+          {/* Profile Completion Skeleton */}
+          <Skeleton className="h-24 w-full" />
+
+          {/* Analytics Skeleton */}
+          <div className="space-y-4">
+            <div className="flex justify-between">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+            <Skeleton className="h-48 w-full" />
+          </div>
+
+          {/* Activity & Actions Skeleton */}
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="space-y-4">
               <Skeleton className="h-6 w-32" />
               {[...Array(4)].map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
+              <div className="pt-4">
+                <Skeleton className="h-6 w-32 mb-2" />
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-full mb-2" />
+                ))}
+              </div>
             </div>
             <div className="lg:col-span-2 space-y-4">
-              <Skeleton className="h-6 w-48 mb-4" />
-              <div className="grid grid-cols-2 gap-4">
-                <Skeleton className="h-32 w-full" />
-                <Skeleton className="h-32 w-full" />
-              </div>
-              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-6 w-32" />
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
             </div>
           </div>
         </div>
@@ -607,4 +849,4 @@ const DashboardSkeleton = () => {
   );
 };
 
-export default MerchantDashboard;
+export default MerchantDashboard; 
