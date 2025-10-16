@@ -1,4 +1,4 @@
-// backend/routes/merchants.js - COMPLETE FIX
+// backend/routes/merchants.js - VERIFIED FIX
 const express = require('express');
 const {
   getMerchants,
@@ -30,7 +30,6 @@ router.use('/:merchantId/reviews', reviewRouter);
 
 // ==========================================
 // CRITICAL: Specific routes MUST come BEFORE generic /:id routes
-// This prevents "profile", "me", "admin", "setup" from being treated as IDs
 // ==========================================
 
 // Admin routes - BEFORE /:id
@@ -44,27 +43,30 @@ router.route('/setup/:token')
 // Send credentials route - BEFORE /:id
 router.post('/send-credentials', protect, isMerchant, sendCredentials);
 
-// Merchant self-management routes - BEFORE /:id
-// Route: /api/merchants/profile/me
+// ==========================================
+// MERCHANT PROFILE ROUTES - BEFORE /:id
+// These handle /api/merchants/profile/me
+// ==========================================
+
 router.get('/profile/me', protect, isMerchant, (req, res) => {
   console.log('📍 GET /merchants/profile/me - Fetching current merchant profile');
-  console.log('User:', req.user?.email, 'Merchant ID:', req.user?._id);
+  console.log('Merchant:', req.merchant?.businessName, 'Merchant ID:', req.merchant?._id);
   
-  // Set the ID parameter to the current user's ID
-  req.params.id = req.user._id;
+  // CRITICAL: Use req.merchant._id (set by isMerchant middleware)
+  req.params.id = req.merchant._id || req.user._id;
   getMerchant(req, res);
 });
 
 router.put('/profile/me', protect, isMerchant, (req, res) => {
   console.log('📍 PUT /merchants/profile/me - Updating current merchant profile');
-  console.log('User:', req.user?.email, 'Merchant ID:', req.user?._id);
+  console.log('Merchant:', req.merchant?.businessName, 'Merchant ID:', req.merchant?._id);
   
-  // Set the ID parameter to the current user's ID
-  req.params.id = req.user._id;
+  // CRITICAL: Use req.merchant._id (set by isMerchant middleware)
+  req.params.id = req.merchant._id || req.user._id;
   updateMerchant(req, res);
 });
 
-// Alternative routes: /api/merchants/me (shorter version)
+// Alternative shorter routes: /api/merchants/me
 router.get('/me', protect, isMerchant, (req, res) => {
   console.log('📍 GET /merchants/me - Fetching current merchant profile');
   console.log('User:', req.user?.email, 'Merchant ID:', req.user?._id);
