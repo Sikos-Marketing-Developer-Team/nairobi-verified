@@ -70,7 +70,7 @@ router.get('/check', (req, res) => {
 
 // Auth routes with strict limiter on sensitive endpoints
 router.post('/register', strictAuthLimiter, validateRegister, register);
-router.post('/register/merchant', strictAuthLimiter, registerMerchant);
+router.post('/register/merchant', registerMerchant);
 router.post('/login', strictAuthLimiter, validateLogin, login);
 router.post('/login/merchant', strictAuthLimiter, validateLogin, loginMerchant);
 
