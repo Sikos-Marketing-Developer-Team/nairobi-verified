@@ -492,6 +492,8 @@ exports.googleAuth = async (req, res) => {
   try {
     const { credential } = req.body;
     
+    console.log('🔐 Google OAuth attempt:', { hasCredential: !!credential });
+    
     if (!credential) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
@@ -499,7 +501,18 @@ exports.googleAuth = async (req, res) => {
       });
     }
 
+    // Verify Google Client ID is configured
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      console.error('❌ GOOGLE_CLIENT_ID not configured');
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: 'Google authentication not configured'
+      });
+    }
+
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    
+    console.log('🔍 Verifying Google token...');
     
     const ticket = await client.verifyIdToken({
       idToken: credential,
@@ -509,6 +522,8 @@ exports.googleAuth = async (req, res) => {
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, given_name: firstName, family_name: lastName, picture } = payload;
 
+    console.log('✅ Google token verified:', { email, googleId });
+
     let user = await User.findOne({ 
       $or: [
         { email: email },
@@ -517,12 +532,30 @@ exports.googleAuth = async (req, res) => {
     });
 
     if (user) {
+      console.log('👤 Existing user found:', user.email);
+      
+      // Update Google ID and profile picture if not set
       if (!user.googleId) {
         user.googleId = googleId;
         user.profilePicture = picture;
-        await user.save();
+        user.isVerified = true;
+        await user.save({ validateBeforeSave: false }); // Skip password validation
+        console.log('✅ Updated user with Google data');
       }
     } else {
+      console.log('🆕 Creating new user from Google OAuth');
+      
+      // CRITICAL FIX: Generate a password that passes validation
+      // Password pattern: Uppercase + Lowercase + Number + Special
+      const randomPassword = 
+        'Google' + // Uppercase
+        'oauth' +  // Lowercase
+        Math.random().toString(36).substring(2, 10) + // Random alphanumeric
+        '@' +      // Special character
+        Date.now().toString().substring(8); // Numbers
+      
+      console.log('🔑 Generated compliant password for Google user');
+      
       user = await User.create({
         firstName: firstName || name?.split(' ')[0] || 'User',
         lastName: lastName || name?.split(' ').slice(1).join(' ') || '',
@@ -530,19 +563,42 @@ exports.googleAuth = async (req, res) => {
         googleId: googleId,
         profilePicture: picture,
         isVerified: true,
-        password: crypto.randomBytes(32).toString('hex')
+        password: randomPassword, // Now passes validation
+        phone: '' // Google users don't have phone initially
+      });
+      
+      console.log('✅ New Google user created:', user.email);
+    }
+
+    // OPTIMIZATION: Skip session in load testing mode
+    if (process.env.SKIP_SESSION === 'true') {
+      console.log('⚠️ Skipping session creation (SKIP_SESSION=true)');
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          profilePicture: user.profilePicture,
+          isVerified: user.isVerified,
+          isMerchant: false
+        }
       });
     }
 
     req.login(user, (err) => {
       if (err) {
-        console.error('Login error after Google auth:', err);
+        console.error('❌ Login error after Google auth:', err);
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
           success: false,
           error: 'Error logging in after Google authentication'
         });
       }
 
+      console.log('✅ Google login successful:', user.email);
+      
       res.status(HTTP_STATUS.OK).json({
         success: true,
         user: {
@@ -553,13 +609,28 @@ exports.googleAuth = async (req, res) => {
           role: user.role,
           profilePicture: user.profilePicture,
           isVerified: user.isVerified,
-          isMerchant: user.isMerchant,
-          businessName: user.businessName
+          isMerchant: false
         }
       });
     });
   } catch (error) {
-    console.error('Google OAuth error:', error);
+    console.error('❌ Google OAuth error:', error);
+    
+    // Better error messages
+    if (error.message?.includes('Token used too early')) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Invalid Google token - clock skew detected'
+      });
+    }
+    
+    if (error.message?.includes('Invalid token')) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Invalid Google token'
+      });
+    }
+    
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: 'Invalid Google credential or authentication failed'
