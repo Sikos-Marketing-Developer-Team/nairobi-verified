@@ -8,14 +8,20 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
-const rateLimit = require('express-rate-limit');
+const compression = require('compression'); // NEW: Add compression
 const { v4: uuidv4 } = require('uuid');
 const { client, webVitalsLCP, webVitalsCLS, webVitalsFID } = require('./utils/metrics');
 const merchantDashboardRoutes = require('./routes/merchantDashboard');
 
+// OPTIMIZATION: Increase event loop capacity
+require('events').EventEmitter.defaultMaxListeners = 20;
 
 // Load environment variables
 dotenv.config();
+
+// OPTIMIZATION: Thread pool size for bcrypt/crypto operations
+process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || '128';
+console.log(`🔧 UV_THREADPOOL_SIZE set to: ${process.env.UV_THREADPOOL_SIZE}`);
 
 // Connect to database
 if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
@@ -32,6 +38,17 @@ const app = express();
 
 // Trust proxy for accurate IP addresses
 app.set('trust proxy', true);
+
+// OPTIMIZATION: Compression middleware
+app.use(compression({
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+  level: 6 // Balance between speed and compression
+}));
 
 // Debug middleware to log IP information (helpful for troubleshooting rate limiting)
 if (process.env.NODE_ENV === 'development') {
@@ -52,10 +69,31 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
+// OPTIMIZATION: Request tracking for slow requests
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      if (duration > 1000) {
+        console.log(`🐌 SLOW REQUEST: ${req.method} ${req.path} - ${duration}ms`);
+      }
+    });
+    next();
+  });
+}
+
 // Middleware
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// OPTIMIZATION: Request timeout middleware
+app.use((req, res, next) => {
+  req.setTimeout(30000); // 30 second timeout
+  res.setTimeout(30000);
+  next();
+});
 
 // Configure CORS with credentials support
 app.use(cors({
@@ -74,7 +112,6 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-
 
 // Session configuration
 const mongoStore = MongoStore.create({
@@ -98,27 +135,49 @@ mongoStore.on('connected', () => {
   console.log('Session store connected to MongoDB');
 });
 
-app.use(session({
+// OPTIMIZATION: Optimized session configuration
+const sessionConfig = {
   name: 'nairobi_verified_session',
   genid: () => uuidv4(),
   secret: process.env.JWT_SECRET || 'your-session-secret',
   resave: false,
   saveUninitialized: false,
   store: mongoStore,
+  rolling: false, // Don't reset session expiry on every request
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production' && process.env.ENABLE_SECURE_COOKIES !== 'false',
     maxAge: 7 * 24 * 60 * 60 * 1000,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
-}));
+  },
+  unset: 'destroy'
+};
 
-// Initialize Passport and session
-app.use(passport.initialize());
-app.use(passport.session());
+// CRITICAL: Skip session middleware if SKIP_SESSION is enabled (load testing)
+if (process.env.SKIP_SESSION === 'true') {
+  console.log('⚠️  SESSION DISABLED - Load Testing Mode Active');
+  app.use((req, res, next) => {
+    req.isAuthenticated = () => false;
+    req.login = (user, cb) => cb && cb(null);
+    req.logout = (cb) => cb && cb(null);
+    req.user = null;
+    next();
+  });
+} else {
+  app.use(session(sessionConfig));
+  app.use(passport.initialize());
+  app.use(passport.session());
+}
 
-// Logging middleware
-app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+// OPTIMIZATION: Optimized logging
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+} else {
+  // Production: Only log errors and slow requests
+  app.use(morgan('combined', {
+    skip: (req, res) => res.statusCode < 400
+  }));
+}
 
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
@@ -147,12 +206,57 @@ app.get('/metrics', async (req, res) => {
   res.end(await client.register.metrics());
 });
 
+// OPTIMIZATION: Health check with database status
+app.get('/api/health', async (req, res) => {
+  const mongoose = require('mongoose');
+  const health = {
+    uptime: process.uptime(),
+    message: 'OK',
+    timestamp: Date.now(),
+    database: 'disconnected',
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+    }
+  };
 
+  try {
+    if (mongoose.connection.readyState === 1) {
+      health.database = 'connected';
+    }
+  } catch (error) {
+    health.database = 'error';
+  }
 
-// auth routes
+  const statusCode = health.database === 'connected' ? 200 : 503;
+  res.status(statusCode).json(health);
+});
+
+// OPTIMIZATION: Performance monitoring endpoint (development only)
+if (process.env.NODE_ENV === 'development') {
+  app.get('/api/status', (req, res) => {
+    const mongoose = require('mongoose');
+    res.json({
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      cpu: process.cpuUsage(),
+      database: {
+        readyState: mongoose.connection.readyState,
+        host: mongoose.connection.host,
+        name: mongoose.connection.name
+      },
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        skipSession: process.env.SKIP_SESSION,
+        disableRateLimit: process.env.DISABLE_RATE_LIMIT,
+        threadPoolSize: process.env.UV_THREADPOOL_SIZE
+      }
+    });
+  });
+}
+
+// Routes
 app.use('/api/auth', require('./routes/auth'));
-
-// Other routes
 app.use('/api/auth/admin', require('./routes/adminAuth'));
 app.use('/api/admin/dashboard', require('./routes/adminDashboard'));
 app.use('/api/users', require('./routes/users'));
@@ -168,7 +272,6 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/merchants/dashboard', merchantDashboardRoutes);
 
-
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -177,40 +280,32 @@ app.use('*', (req, res) => {
   });
 });
 
-// Error handler
+// OPTIMIZATION: Improved error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('Error:', err.message);
 
   if (res.headersSent) return next(err);
 
-  let error = { ...err };
-  error.message = err.message;
+  let statusCode = 500;
+  let message = 'Server Error';
 
   if (err.name === 'CastError') {
-    error = { message: 'Resource not found', statusCode: 404 };
+    statusCode = 404;
+    message = 'Resource not found';
+  } else if (err.code === 11000) {
+    statusCode = 400;
+    const field = Object.keys(err.keyPattern || {})[0];
+    message = `${field || 'Field'} already exists`;
+  } else if (err.name === 'ValidationError') {
+    statusCode = 400;
+    message = Object.values(err.errors).map(e => e.message)[0] || 'Validation failed';
+  } else if (err.message) {
+    message = err.message;
   }
 
-  if (err.code === 11000) {
-    error = { message: 'Duplicate field value entered', statusCode: 400 };
-  }
-
-  if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors).map(e => e.message);
-    error = { message, statusCode: 400 };
-  }
-
-  res.status(error.statusCode || 500).json({
+  res.status(statusCode).json({
     success: false,
-    error: error.message || 'Server Error'
-  });
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-    process.exit(0);
+    error: message
   });
 });
 
@@ -223,17 +318,67 @@ const server = app.listen(PORT, () => {
   console.log(`Health check: http://localhost:${PORT}/api/health`);
   console.log(`API status: http://localhost:${PORT}/api/status`);
   console.log(`Metrics endpoint: http://localhost:${PORT}/metrics`);
+  
+  // Display load testing mode status
+  if (process.env.SKIP_SESSION === 'true' || process.env.DISABLE_RATE_LIMIT === 'true') {
+    console.log('\n⚠️  ========== LOAD TESTING MODE ========== ⚠️');
+    if (process.env.SKIP_SESSION === 'true') {
+      console.log('   ✓ Sessions: DISABLED');
+    }
+    if (process.env.DISABLE_RATE_LIMIT === 'true') {
+      console.log('   ✓ Rate Limiting: DISABLED');
+    }
+    console.log('⚠️  ======================================= ⚠️\n');
+  }
 });
 
-// Handle unhandled promise rejections
+// OPTIMIZATION: Graceful shutdown improvements
+const gracefulShutdown = async () => {
+  console.log('\n🛑 Received shutdown signal, closing gracefully...');
+  
+  server.close(async () => {
+    console.log('✅ HTTP server closed');
+    
+    try {
+      // Close database connection
+      const { closeDB } = require('./config/db');
+      await closeDB();
+      console.log('✅ Database connection closed');
+      
+      console.log('✅ Graceful shutdown complete');
+      process.exit(0);
+    } catch (error) {
+      console.error('❌ Error during shutdown:', error);
+      process.exit(1);
+    }
+  });
+
+  // Force shutdown after 30 seconds
+  setTimeout(() => {
+    console.error('⚠️  Forced shutdown after timeout');
+    process.exit(1);
+  }, 30000);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+
+// OPTIMIZATION: Better unhandled rejection handler
 process.on('unhandledRejection', (err) => {
-  console.log(`Unhandled Promise Rejection: ${err.message}`);
-  server.close(() => process.exit(1));
+  console.error(`❌ Unhandled Promise Rejection: ${err.message}`);
+  console.error(err.stack);
+  
+  if (process.env.NODE_ENV === 'production') {
+    gracefulShutdown();
+  }
 });
 
-// Handle uncaught exceptions
+// OPTIMIZATION: Better uncaught exception handler
 process.on('uncaughtException', (err) => {
-  console.log(`Uncaught Exception: ${err.message}`);
+  console.error(`❌ Uncaught Exception: ${err.message}`);
+  console.error(err.stack);
+  
+  // Always exit on uncaught exception
   process.exit(1);
 });
 

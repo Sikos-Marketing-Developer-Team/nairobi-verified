@@ -16,11 +16,11 @@ const {
 } = require('../controllers/auth');
 const { protect } = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');
-const { strictAuthLimiter } = require('../middleware/rateLimiters');
+const { strictAuthLimiter, merchantRegisterLimiter } = require('../middleware/rateLimiters');
 
 const router = express.Router();
 
-// Validation middleware for register
+// OPTIMIZED: Validation middleware for register
 const validateRegister = [
   check('firstName').trim().notEmpty().withMessage('First name is required'),
   check('lastName').trim().notEmpty().withMessage('Last name is required'),
@@ -34,11 +34,44 @@ const validateRegister = [
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res
-        .status(400)
-        .json({ success: false, error: errors.array().map(err => err.msg).join(', ') });
+      return res.status(400).json({ 
+        success: false, 
+        error: errors.array()[0].msg // Return first error only
+      });
     }
-    // normalize phone number
+    // Normalize phone number
+    req.body.phone = req.body.phone.replace(/\s|-/g, '');
+    next();
+  }
+];
+
+// OPTIMIZED: Validation middleware for merchant registration
+const validateMerchantRegister = [
+  check('businessName').trim().notEmpty().withMessage('Business name is required'),
+  check('email').isEmail().normalizeEmail().withMessage('Invalid email format'),
+  check('phone')
+    .trim()
+    .notEmpty()
+    .matches(/^\+?\d{10,15}$/)
+    .withMessage('Phone number must be 10-15 digits'),
+  check('password')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]/)
+    .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+  check('businessType').trim().notEmpty().withMessage('Business type is required'),
+  check('description').trim().notEmpty().withMessage('Description is required'),
+  check('address').trim().notEmpty().withMessage('Address is required'),
+  check('location').trim().notEmpty().withMessage('Location is required'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        error: errors.array()[0].msg // Return first error only
+      });
+    }
+    // Normalize phone number
     req.body.phone = req.body.phone.replace(/\s|-/g, '');
     next();
   }
@@ -51,9 +84,10 @@ const validateLogin = [
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res
-        .status(400)
-        .json({ success: false, error: errors.array().map(err => err.msg).join(', ') });
+      return res.status(400).json({ 
+        success: false, 
+        error: errors.array()[0].msg // Return first error only
+      });
     }
     next();
   }
@@ -68,12 +102,18 @@ router.get('/check', (req, res) => {
   }
 });
 
-// Auth routes with strict limiter on sensitive endpoints
+// Auth routes with optimized rate limiting
 router.post('/register', strictAuthLimiter, validateRegister, register);
-router.post('/register/merchant', registerMerchant);
+
+// CRITICAL: Merchant registration with dedicated rate limiter and validation
+router.post('/register/merchant', 
+  merchantRegisterLimiter,        // NEW: Dedicated merchant limiter
+  validateMerchantRegister,       // NEW: Merchant-specific validation
+  registerMerchant
+);
+
 router.post('/login', strictAuthLimiter, validateLogin, login);
 router.post('/login/merchant', strictAuthLimiter, validateLogin, loginMerchant);
-
 router.get('/me', protect, getMe);
 router.get('/logout', logout);
 

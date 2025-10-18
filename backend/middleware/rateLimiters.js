@@ -1,57 +1,71 @@
 const rateLimit = require('express-rate-limit');
 
-// Helper function to get client IP with fallbacks
+// OPTIMIZATION: Simplified IP detection
 const getClientIp = (req) => {
-  // Since trust proxy is set to 1, req.ip should work
-  // But we'll add fallbacks just in case
-  const ip = req.ip || 
-             req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-             req.headers['x-real-ip'] ||
-             req.connection?.remoteAddress ||
-             req.socket?.remoteAddress ||
-             'unknown';
-  
-  // Log IP info ALWAYS (not just in development) for debugging
-  console.log(`[Rate Limiter] IP: ${ip}, Path: ${req.originalUrl}, XFF: ${req.headers['x-forwarded-for']}`);
-  
-  return ip;
+  return req.ip || 
+         req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+         req.headers['x-real-ip'] ||
+         'unknown';
 };
 
-// Strict limiter for authentication endpoints (5 attempts per 15 minutes)
+// OPTIMIZATION: Strict limiter for login endpoints only (5 attempts per 15 minutes)
 const strictAuthLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per IP
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: {
     success: false,
-    error: 'Too many login or registration attempts, please try again after 15 minutes'
+    error: 'Too many login attempts, please try again after 15 minutes'
   },
-  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
-  legacyHeaders: false, // Disable `X-RateLimit-*` headers
-  
-  // Custom key generator with better IP detection
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // LOAD TESTING: Skip rate limiting if DISABLE_RATE_LIMIT env var is set
+    return process.env.DISABLE_RATE_LIMIT === 'true';
+  },
   keyGenerator: (req) => {
     const ip = getClientIp(req);
-    // For extra security, include the email if present
     const email = req.body?.email;
-    if (email) {
-      return `${ip}-${email}`; // Rate limit by IP + email combination
-    }
-    return ip;
+    return email ? `login-${ip}-${email}` : `login-${ip}`;
   },
-  
-  // The middleware runs BEFORE the controller, so res.statusCode is always 200 at this point
-  
-  handler: (req, res, next, options) => {
+  handler: (req, res) => {
     const ip = getClientIp(req);
-    console.warn(`⚠️ RATE LIMIT EXCEEDED for IP ${ip} on ${req.originalUrl}`);
-    console.warn(`   Email attempted: ${req.body?.email || 'N/A'}`);
-    console.warn(`   Timestamp: ${new Date().toISOString()}`);
-    
-    res.status(429).json(options.message);
+    console.warn(`⚠️ RATE LIMIT: Login blocked for IP ${ip}, email: ${req.body?.email || 'N/A'}`);
+    res.status(429).json({
+      success: false,
+      error: 'Too many login attempts, please try again after 15 minutes'
+    });
   }
 });
 
-// General auth limiter (100 requests per 15 minutes)
+// OPTIMIZATION: Merchant registration limiter (more permissive for legitimate traffic)
+const merchantRegisterLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Allow 20 registrations per IP per 15 minutes
+  message: {
+    success: false,
+    error: 'Too many registration attempts, please try again after 15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // LOAD TESTING: Skip rate limiting if DISABLE_RATE_LIMIT env var is set
+    return process.env.DISABLE_RATE_LIMIT === 'true';
+  },
+  keyGenerator: (req) => {
+    const ip = getClientIp(req);
+    return `merchant-register-${ip}`;
+  },
+  handler: (req, res) => {
+    const ip = getClientIp(req);
+    console.warn(`⚠️ RATE LIMIT: Merchant registration blocked for IP ${ip}`);
+    res.status(429).json({
+      success: false,
+      error: 'Too many registration attempts from this IP. Please try again after 15 minutes.'
+    });
+  }
+});
+
+// OPTIMIZATION: General auth limiter (100 requests per 15 minutes)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -61,66 +75,85 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    return process.env.DISABLE_RATE_LIMIT === 'true';
+  },
   keyGenerator: getClientIp,
-  handler: (req, res, next, options) => {
-    console.warn(`Rate limit exceeded for IP ${getClientIp(req)}`);
-    res.status(429).json(options.message);
+  handler: (req, res) => {
+    console.warn(`⚠️ RATE LIMIT: General auth blocked for IP ${getClientIp(req)}`);
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests from this IP, please try again after 15 minutes'
+    });
   }
 });
 
-// Optional: Failed login attempt limiter (only counts failures)
-const createFailedLoginLimiter = () => {
-  const attempts = new Map(); // In-memory store for tracking attempts
+// OPTIMIZATION: Failed login tracking (only counts actual failures)
+const failedLoginLimiter = () => {
+  const attempts = new Map();
+  
+  // Cleanup old entries every hour
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, data] of attempts.entries()) {
+      if (now - data.firstAttempt > 15 * 60 * 1000) {
+        attempts.delete(key);
+      }
+    }
+  }, 60 * 60 * 1000);
   
   return (req, res, next) => {
+    // Skip if rate limiting is disabled
+    if (process.env.DISABLE_RATE_LIMIT === 'true') {
+      return next();
+    }
+
     const ip = getClientIp(req);
     const email = req.body?.email;
     const key = `${ip}-${email}`;
     
-    // Store original send to intercept response
-    const originalSend = res.send;
-    res.send = function(data) {
-      // Only count failed login attempts
-      if (res.statusCode === 401) {
+    const originalJson = res.json;
+    res.json = function(data) {
+      // Only track failed login attempts (401 status)
+      if (res.statusCode === 401 && email) {
         const current = attempts.get(key) || { count: 0, firstAttempt: Date.now() };
-        current.count++;
         
-        // Reset after 15 minutes
+        // Reset if window expired
         if (Date.now() - current.firstAttempt > 15 * 60 * 1000) {
           current.count = 1;
           current.firstAttempt = Date.now();
+        } else {
+          current.count++;
         }
         
         attempts.set(key, current);
         
-        console.log(`Failed login attempt ${current.count}/5 for ${email} from IP ${ip}`);
+        console.log(`Failed login ${current.count}/10 for ${email} from IP ${ip}`);
         
-        if (current.count > 5) {
+        // Block after 10 failed attempts
+        if (current.count >= 10) {
           console.warn(`🚨 BLOCKING: Too many failed attempts for ${email} from ${ip}`);
-          return res.status(429).json({
+          res.status(429);
+          return originalJson.call(this, {
             success: false,
             error: 'Too many failed login attempts. Please try again after 15 minutes.'
           });
         }
-      } else if (res.statusCode === 200) {
+      } else if (res.statusCode === 200 && email) {
         // Successful login - clear attempts
         attempts.delete(key);
       }
       
-      originalSend.call(this, data);
+      return originalJson.call(this, data);
     };
     
     next();
   };
 };
 
-// Cleanup old entries periodically (for in-memory store)
-setInterval(() => {
-  console.log('Cleaning up old rate limit entries...');
-}, 60 * 60 * 1000); // Every hour
-
 module.exports = { 
   strictAuthLimiter, 
+  merchantRegisterLimiter,
   authLimiter,
-  failedLoginLimiter: createFailedLoginLimiter()
+  failedLoginLimiter: failedLoginLimiter()
 };

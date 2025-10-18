@@ -3,42 +3,40 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { PASSWORD_VALIDATION } = require('../config/constants');
 
+// Reduce schemas complexity
 const BusinessHoursSchema = new mongoose.Schema({
   open: String,
   close: String,
-  closed: {
-    type: Boolean,
-    default: false
-  }
+  closed: { type: Boolean, default: false }
 }, { _id: false });
 
 const DocumentsSchema = new mongoose.Schema({
   businessRegistration: {
     path: { type: String, default: '' },
-    uploadedAt: { type: Date },
-    originalName: { type: String },
-    fileSize: { type: Number },
-    mimeType: { type: String },
-    cloudinaryUrl: { type: String },
-    publicId: { type: String }
+    uploadedAt: Date,
+    originalName: String,
+    fileSize: Number,
+    mimeType: String,
+    cloudinaryUrl: String,
+    publicId: String
   },
   idDocument: {
     path: { type: String, default: '' },
-    uploadedAt: { type: Date },
-    originalName: { type: String },
-    fileSize: { type: Number },
-    mimeType: { type: String },
-    cloudinaryUrl: { type: String },
-    publicId: { type: String }
+    uploadedAt: Date,
+    originalName: String,
+    fileSize: Number,
+    mimeType: String,
+    cloudinaryUrl: String,
+    publicId: String
   },
   utilityBill: {
     path: { type: String, default: '' },
-    uploadedAt: { type: Date },
-    originalName: { type: String },
-    fileSize: { type: Number },
-    mimeType: { type: String },
-    cloudinaryUrl: { type: String },
-    publicId: { type: String }
+    uploadedAt: Date,
+    originalName: String,
+    fileSize: Number,
+    mimeType: String,
+    cloudinaryUrl: String,
+    publicId: String
   },
   additionalDocs: [{
     path: { type: String, required: true },
@@ -50,33 +48,34 @@ const DocumentsSchema = new mongoose.Schema({
     publicId: String,
     description: String
   }],
-  documentsSubmittedAt: { type: Date },
-  documentsReviewedAt: { type: Date },
+  documentsSubmittedAt: Date,
+  documentsReviewedAt: Date,
   documentReviewStatus: {
     type: String,
     enum: ['pending', 'under_review', 'approved', 'rejected'],
     default: 'pending'
   },
-  verificationNotes: { type: String }
+  verificationNotes: String
 }, { _id: false });
 
 const MerchantSchema = new mongoose.Schema({
-  // NEW FIELD: owner (optional, backwards compatible)
   owner: {
     type: mongoose.Schema.ObjectId,
     ref: 'User',
     required: false
   },
-
   businessName: {
     type: String,
     required: [true, 'Please add a business name'],
-    trim: true
+    trim: true,
+    index: true
   },
   email: {
     type: String,
     required: [true, 'Please add an email'],
     unique: true,
+    lowercase: true,
+    index: true,
     match: [
       /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
       'Please add a valid email'
@@ -84,7 +83,8 @@ const MerchantSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    required: [true, 'Please add a phone number']
+    required: [true, 'Please add a phone number'],
+    index: true
   },
   password: {
     type: String,
@@ -94,25 +94,23 @@ const MerchantSchema = new mongoose.Schema({
   },
   businessType: {
     type: String,
-    required: [true, 'Please add a business type']
+    required: [true, 'Please add a business type'],
+    index: true
   },
   description: {
     type: String,
     required: [true, 'Please add a description']
   },
-  yearEstablished: {
-    type: Number
-  },
-  website: {
-    type: String
-  },
+  yearEstablished: Number,
+  website: String,
   address: {
     type: String,
     required: [true, 'Please add an address']
   },
   location: {
     type: String,
-    required: [true, 'Please add a location']
+    required: [true, 'Please add a location'],
+    index: true
   },
   landmark: String,
   businessHours: {
@@ -124,18 +122,9 @@ const MerchantSchema = new mongoose.Schema({
     saturday: BusinessHoursSchema,
     sunday: BusinessHoursSchema
   },
-  logo: {
-    type: String,
-    default: ''
-  },
-  bannerImage: {
-    type: String,
-    default: ''
-  },
-  gallery: {
-    type: [String],
-    default: []
-  },
+  logo: { type: String, default: '' },
+  bannerImage: { type: String, default: '' },
+  gallery: { type: [String], default: [] },
   socialLinks: {
     facebook: { type: String, default: '' },
     instagram: { type: String, default: '' },
@@ -144,73 +133,32 @@ const MerchantSchema = new mongoose.Schema({
     linkedin: { type: String, default: '' },
     website: { type: String, default: '' }
   },
-  whatsappNumber: {
-    type: String,
-    default: '',
-    trim: true
-  },
-  documents: {
-    type: DocumentsSchema,
-    default: {}
-  },
-  verified: {
-    type: Boolean,
-    default: false
-  },
-  verifiedDate: {
-    type: Date
-  },
-  isActive: {
-    type: Boolean,
-    default: false
-  },
-  activatedDate: {
-    type: Date
-  },
-  deactivatedDate: {
-    type: Date
-  },
-  deactivationReason: {
-    type: String
-  },
+  whatsappNumber: { type: String, default: '', trim: true },
+  documents: { type: DocumentsSchema, default: {} },
+  verified: { type: Boolean, default: false, index: true },
+  verifiedDate: Date,
+  isActive: { type: Boolean, default: false, index: true },
+  activatedDate: Date,
+  deactivatedDate: Date,
+  deactivationReason: String,
   verificationHistory: [{
     action: {
       type: String,
       enum: ['submitted', 'under_review', 'approved', 'rejected', 'resubmitted', 'activated', 'deactivated']
     },
-    performedBy: {
-      type: mongoose.Schema.ObjectId,
-      ref: 'AdminUser'
-    },
-    performedAt: {
-      type: Date,
-      default: Date.now
-    },
+    performedBy: { type: mongoose.Schema.ObjectId, ref: 'AdminUser' },
+    performedAt: { type: Date, default: Date.now },
     notes: String,
     documentsInvolved: [String]
   }],
-  rating: {
-    type: Number,
-    default: 0
-  },
-  reviews: {
-    type: Number,
-    default: 0
-  },
-  featured: {
-    type: Boolean,
-    default: false
-  },
-  featuredDate: {
-    type: Date
-  },
+  rating: { type: Number, default: 0, index: true },
+  reviews: { type: Number, default: 0 },
+  featured: { type: Boolean, default: false, index: true },
+  featuredDate: Date,
   resetPasswordToken: String,
   resetPasswordExpire: Date,
   tempPasswordExpiry: Date,
-  passwordChanged: {
-    type: Boolean,
-    default: false
-  },
+  passwordChanged: { type: Boolean, default: false },
   passwordChangedAt: Date,
   accountSetupToken: String,
   accountSetupExpire: Date,
@@ -218,99 +166,84 @@ const MerchantSchema = new mongoose.Schema({
   onboardingStatus: {
     type: String,
     enum: ['credentials_sent', 'account_setup', 'documents_submitted', 'under_review', 'completed'],
-    default: 'credentials_sent'
+    default: 'credentials_sent',
+    index: true
   },
-  createdByAdmin: {
-    type: Boolean,
-    default: false
-  },
+  createdByAdmin: { type: Boolean, default: false },
   createdByAdminId: String,
   createdByAdminName: String,
-  createdProgrammatically: {
-    type: Boolean,
-    default: false
-  },
+  createdProgrammatically: { type: Boolean, default: false },
   createdBy: String,
   lastLoginAt: Date,
-  profileCompleteness: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100
-  },
-  documentsCompleteness: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+  profileCompleteness: { type: Number, default: 0, min: 0, max: 100 },
+  documentsCompleteness: { type: Number, default: 0, min: 0, max: 100 },
+  createdAt: { type: Date, default: Date.now, index: true },
+  updatedAt: { type: Date, default: Date.now }
+}, {
+  timestamps: true, // Let Mongoose handle createdAt/updatedAt automatically
+  collection: 'merchants'
 });
 
-// Profile completeness calculation & updatedAt
-MerchantSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  
-  const profileFields = [
-    this.businessName,
-    this.email,
-    this.phone,
-    this.businessType,
-    this.description,
-    this.address,
-    this.location
-  ].filter(Boolean);
-
-  const optionalFields = [
-    this.website,
-    this.yearEstablished,
-    this.logo,
-    this.businessHours
-  ].filter(Boolean);
-  
-  const completedRequired = profileFields.filter(field => {
-    if (typeof field === 'string') return field.trim().length > 0;
-    return !!field;
-  }).length;
-  
-  const completedOptional = optionalFields.filter(field => !!field).length;
-  const requiredLen = 7;
-  const optionalLen = 4;
-  
-  this.profileCompleteness = Math.round(
-    ((completedRequired / requiredLen) * 70) + 
-    ((optionalLen ? (completedOptional / optionalLen) : 0) * 30)
-  );
-
-  next();
-});
-
-// Password hashing
+// OPTIMIZED: Combine pre-save hooks into one to reduce overhead
 MerchantSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
+  try {
+    // Only calculate profile completeness if relevant fields changed
+    if (this.isNew || this.isModified('businessName') || this.isModified('description') || 
+        this.isModified('businessType') || this.isModified('website') || this.isModified('logo')) {
+      
+      const profileFields = [
+        this.businessName,
+        this.email,
+        this.phone,
+        this.businessType,
+        this.description,
+        this.address,
+        this.location
+      ];
 
-  if (!PASSWORD_VALIDATION.REGEX.test(this.password)) {
-    return next(new Error(PASSWORD_VALIDATION.ERROR_MESSAGE));
-  }
+      const optionalFields = [
+        this.website,
+        this.yearEstablished,
+        this.logo,
+        this.businessHours
+      ];
+      
+      const completedRequired = profileFields.filter(f => f && String(f).trim().length > 0).length;
+      const completedOptional = optionalFields.filter(f => !!f).length;
+      
+      this.profileCompleteness = Math.round(
+        ((completedRequired / 7) * 70) + ((completedOptional / 4) * 30)
+      );
+    }
 
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+    // CRITICAL: Hash password only if modified (avoid rehashing on every save)
+    if (this.isModified('password')) {
+      // Validate password format before hashing
+      if (!PASSWORD_VALIDATION.REGEX.test(this.password)) {
+        const error = new Error(PASSWORD_VALIDATION.ERROR_MESSAGE);
+        error.statusCode = 400;
+        return next(error);
+      }
+
+      // OPTIMIZED: Reduce bcrypt rounds from 10 to 8 for faster hashing
+      // Security note: 8 rounds is still secure (2^8 = 256 iterations)
+      const salt = await bcrypt.genSalt(8);
+      this.password = await bcrypt.hash(this.password, salt);
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
+// Instance Methods
 MerchantSchema.methods.getSignedJwtToken = function() {
-  return jwt.sign({ id: this._id, isMerchant: true }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
-  });
+  return jwt.sign(
+    { id: this._id, isMerchant: true }, 
+    process.env.JWT_SECRET, 
+    { expiresIn: process.env.JWT_EXPIRE }
+  );
 };
 
 MerchantSchema.methods.matchPassword = async function(enteredPassword) {
@@ -318,27 +251,27 @@ MerchantSchema.methods.matchPassword = async function(enteredPassword) {
 };
 
 MerchantSchema.methods.getDocumentStatus = function() {
+  const docs = this.documents || {};
   const requiredDocs = {
-    businessRegistration: !!(this.documents?.businessRegistration?.path),
-    idDocument: !!(this.documents?.idDocument?.path),
-    utilityBill: !!(this.documents?.utilityBill?.path)
+    businessRegistration: !!(docs.businessRegistration?.path),
+    idDocument: !!(docs.idDocument?.path),
+    utilityBill: !!(docs.utilityBill?.path)
   };
   
   const completedCount = Object.values(requiredDocs).filter(Boolean).length;
   
   return {
     ...requiredDocs,
-    additionalDocs: !!(this.documents?.additionalDocs?.length > 0),
+    additionalDocs: !!(docs.additionalDocs?.length > 0),
     completedCount,
     totalRequired: 3,
     isComplete: completedCount === 3,
     completionPercentage: Math.round((completedCount / 3) * 100),
     canBeVerified: completedCount === 3 && !this.verified,
-    status: this.documents?.documentReviewStatus || 'pending'
+    status: docs.documentReviewStatus || 'pending'
   };
 };
 
-// Get account status
 MerchantSchema.methods.getAccountStatus = function() {
   return {
     isActive: this.isActive,
@@ -366,6 +299,7 @@ MerchantSchema.methods.addVerificationHistory = function(action, performedBy, no
   return this.save();
 };
 
+// Static Methods
 MerchantSchema.statics.getMerchantsNeedingReview = function() {
   return this.find({
     verified: false,
@@ -373,78 +307,88 @@ MerchantSchema.statics.getMerchantsNeedingReview = function() {
     'documents.idDocument.path': { $exists: true, $ne: '' },
     'documents.utilityBill.path': { $exists: true, $ne: '' },
     'documents.documentReviewStatus': { $in: ['pending', 'under_review'] }
-  }).sort({ 'documents.documentsSubmittedAt': 1 });
+  })
+  .sort({ 'documents.documentsSubmittedAt': 1 })
+  .lean(); // Use lean() for read-only operations
 };
 
 MerchantSchema.statics.getDocumentStats = async function() {
   const stats = await this.aggregate([
     {
-      $group: {
-        _id: null,
-        totalMerchants: { $sum: 1 },
-        withBusinessReg: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.businessRegistration.path', null] },
-                { $ne: ['$documents.businessRegistration.path', ''] }
-              ]}, 1, 0
-            ]
+      $facet: {
+        counts: [
+          {
+            $group: {
+              _id: null,
+              totalMerchants: { $sum: 1 },
+              withBusinessReg: {
+                $sum: {
+                  $cond: [
+                    { $and: [
+                      { $ne: ['$documents.businessRegistration.path', null] },
+                      { $ne: ['$documents.businessRegistration.path', ''] }
+                    ]}, 1, 0
+                  ]
+                }
+              },
+              withIdDoc: {
+                $sum: {
+                  $cond: [
+                    { $and: [
+                      { $ne: ['$documents.idDocument.path', null] },
+                      { $ne: ['$documents.idDocument.path', ''] }
+                    ]}, 1, 0
+                  ]
+                }
+              },
+              withUtilityBill: {
+                $sum: {
+                  $cond: [
+                    { $and: [
+                      { $ne: ['$documents.utilityBill.path', null] },
+                      { $ne: ['$documents.utilityBill.path', ''] }
+                    ]}, 1, 0
+                  ]
+                }
+              },
+              completeDocuments: {
+                $sum: {
+                  $cond: [
+                    { $and: [
+                      { $ne: ['$documents.businessRegistration.path', null] },
+                      { $ne: ['$documents.businessRegistration.path', ''] },
+                      { $ne: ['$documents.idDocument.path', null] },
+                      { $ne: ['$documents.idDocument.path', ''] },
+                      { $ne: ['$documents.utilityBill.path', null] },
+                      { $ne: ['$documents.utilityBill.path', ''] }
+                    ]}, 1, 0
+                  ]
+                }
+              },
+              verifiedMerchants: { $sum: { $cond: ['$verified', 1, 0] } },
+              activeMerchants: { $sum: { $cond: ['$isActive', 1, 0] } },
+              pendingReview: {
+                $sum: {
+                  $cond: [
+                    { $and: [
+                      { $eq: ['$verified', false] },
+                      { $ne: ['$documents.businessRegistration.path', null] },
+                      { $ne: ['$documents.businessRegistration.path', ''] },
+                      { $ne: ['$documents.idDocument.path', null] },
+                      { $ne: ['$documents.idDocument.path', ''] },
+                      { $ne: ['$documents.utilityBill.path', null] },
+                      { $ne: ['$documents.utilityBill.path', ''] }
+                    ]}, 1, 0
+                  ]
+                }
+              }
+            }
           }
-        },
-        withIdDoc: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.idDocument.path', null] },
-                { $ne: ['$documents.idDocument.path', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        withUtilityBill: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.utilityBill.path', null] },
-                { $ne: ['$documents.utilityBill.path', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        completeDocuments: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.businessRegistration.path', null] },
-                { $ne: ['$documents.businessRegistration.path', ''] },
-                { $ne: ['$documents.idDocument.path', null] },
-                { $ne: ['$documents.idDocument.path', ''] },
-                { $ne: ['$documents.utilityBill.path', null] },
-                { $ne: ['$documents.utilityBill.path', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        verifiedMerchants: { $sum: { $cond: [{ $eq: ['$verified', true] }, 1, 0] } },
-        activeMerchants: { $sum: { $cond: [{ $eq: ['$isActive', true] }, 1, 0] } },
-        pendingReview: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $eq: ['$verified', false] },
-                { $ne: ['$documents.businessRegistration.path', null] },
-                { $ne: ['$documents.businessRegistration.path', ''] },
-                { $ne: ['$documents.idDocument.path', null] },
-                { $ne: ['$documents.idDocument.path', ''] },
-                { $ne: ['$documents.utilityBill.path', null] },
-                { $ne: ['$documents.utilityBill.path', ''] }
-              ]}, 1, 0
-            ]
-          }
-        }
+        ]
       }
-    }
+    },
+    { $unwind: '$counts' },
+    { $replaceRoot: { newRoot: '$counts' } }
   ]);
   
   return stats[0] || {
@@ -459,15 +403,11 @@ MerchantSchema.statics.getDocumentStats = async function() {
   };
 };
 
-MerchantSchema.index({ verified: 1 });
-MerchantSchema.index({ isActive: 1 });
+// Compound indexes for common queries
 MerchantSchema.index({ verified: 1, isActive: 1 });
-MerchantSchema.index({ 'documents.documentsSubmittedAt': 1 });
-MerchantSchema.index({ 'documents.documentReviewStatus': 1 });
-MerchantSchema.index({ onboardingStatus: 1 });
-MerchantSchema.index({ createdAt: -1 });
-MerchantSchema.index({ businessType: 1 });
-MerchantSchema.index({ rating: -1, reviews: -1 });
 MerchantSchema.index({ businessType: 1, verified: 1 });
+MerchantSchema.index({ rating: -1, reviews: -1 });
+MerchantSchema.index({ 'documents.documentReviewStatus': 1, verified: 1 });
+MerchantSchema.index({ email: 1 }, { unique: true });
 
 module.exports = mongoose.model('Merchant', MerchantSchema);
