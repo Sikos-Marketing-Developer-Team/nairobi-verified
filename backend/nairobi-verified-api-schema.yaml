@@ -7,9 +7,6 @@ info:
     name: Nairobi Verified Support
     url: https://nairobiverified.co.ke
     email: support@nairobiverified.co.ke
-  license:
-    name: Proprietary
-    url: https://nairobiverified.co.ke/terms
 
 servers:
   - url: https://nairobi-verified-zkl3.onrender.com/api
@@ -31,21 +28,12 @@ tags:
   - name: Reviews
     description: Product and merchant reviews
 
-security:
-  - cookieAuth: []
-  - bearerAuth: []
-
 paths:
-  # ==========================================
-  # AUTHENTICATION ENDPOINTS
-  # ==========================================
-  
   /auth/register:
     post:
       tags:
         - Authentication
       summary: Register new user
-      description: Create a new user account
       operationId: registerUser
       requestBody:
         required: true
@@ -64,46 +52,49 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 50
-                  example: John
                 lastName:
                   type: string
                   minLength: 1
                   maxLength: 50
-                  example: Doe
                 email:
                   type: string
                   format: email
-                  example: john.doe@example.com
                 phone:
                   type: string
                   pattern: '^\+?\d{10,15}$'
-                  example: "+254700000000"
                 password:
                   type: string
                   minLength: 6
                   maxLength: 100
-                  example: "SecurePass123!"
       responses:
         '201':
           description: User registered successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthSuccessResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    type: object
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-      x-rate-limit:
-        limit: 5
-        window: 900
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
 
   /auth/register/merchant:
     post:
       tags:
         - Authentication
       summary: Register new merchant
-      description: Create a new merchant account
       operationId: registerMerchant
       requestBody:
         required: true
@@ -125,71 +116,49 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 100
-                  example: "Nairobi Electronics Store"
                 email:
                   type: string
                   format: email
-                  example: merchant@example.com
                 phone:
                   type: string
                   pattern: '^\+?\d{10,15}$'
-                  example: "+254700000000"
                 password:
                   type: string
                   minLength: 8
                   maxLength: 100
-                  pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$'
-                  example: "SecurePass123!"
                 businessType:
                   type: string
                   minLength: 1
-                  example: "Retail"
                 description:
                   type: string
                   minLength: 1
                   maxLength: 1000
-                  example: "Leading electronics retailer in Nairobi"
                 address:
                   type: string
                   minLength: 1
-                  example: "123 Kenyatta Avenue"
                 location:
                   type: string
                   minLength: 1
-                  example: "Nairobi CBD"
                 yearEstablished:
                   type: integer
                   minimum: 1900
                   maximum: 2100
-                  example: 2020
                 website:
                   type: string
                   format: uri
-                  example: "https://example.com"
                 landmark:
                   type: string
-                  example: "Near Nation Centre"
       responses:
         '201':
           description: Merchant registered successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MerchantAuthResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-      x-rate-limit:
-        limit: 20
-        window: 900
+          description: Bad request
 
   /auth/login:
     post:
       tags:
         - Authentication
       summary: User login
-      description: Authenticate user and create session
       operationId: loginUser
       requestBody:
         required: true
@@ -204,32 +173,20 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: john.doe@example.com
                 password:
                   type: string
                   minLength: 6
-                  example: "SecurePass123!"
       responses:
         '200':
           description: Login successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthSuccessResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-      x-rate-limit:
-        limit: 5
-        window: 900
+          description: Unauthorized
 
   /auth/login/merchant:
     post:
       tags:
         - Authentication
       summary: Merchant login
-      description: Authenticate merchant and create session
       operationId: loginMerchant
       requestBody:
         required: true
@@ -244,82 +201,42 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: merchant@example.com
                 password:
                   type: string
                   minLength: 8
-                  example: "SecurePass123!"
       responses:
         '200':
           description: Login successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MerchantAuthResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-      x-rate-limit:
-        limit: 5
-        window: 900
+          description: Unauthorized
 
   /auth/me:
     get:
       tags:
         - Authentication
       summary: Get current user
-      description: Get authenticated user information
       operationId: getCurrentUser
-      security:
-        - cookieAuth: []
       responses:
         '200':
           description: User information retrieved
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    oneOf:
-                      - $ref: '#/components/schemas/User'
-                      - $ref: '#/components/schemas/Merchant'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized
 
   /auth/logout:
     get:
       tags:
         - Authentication
       summary: Logout user
-      description: Destroy user session
       operationId: logoutUser
-      security:
-        - cookieAuth: []
       responses:
         '200':
           description: Logout successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    type: object
 
   /auth/forgot-password:
     post:
       tags:
         - Authentication
       summary: Request password reset
-      description: Send password reset email
       operationId: forgotPassword
       requestBody:
         required: true
@@ -333,30 +250,17 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: user@example.com
       responses:
         '200':
           description: Reset email sent
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: "Password reset email sent successfully"
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request
 
   /auth/reset-password/{resetToken}:
     post:
       tags:
         - Authentication
       summary: Reset password
-      description: Reset password using token
       operationId: resetPassword
       parameters:
         - name: resetToken
@@ -376,34 +280,17 @@ paths:
                 password:
                   type: string
                   minLength: 8
-                  pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$'
-                  example: "NewSecurePass123!"
       responses:
         '200':
           description: Password reset successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
         '400':
-          $ref: '#/components/responses/BadRequest'
-
-  # ==========================================
-  # MERCHANT ENDPOINTS
-  # ==========================================
+          description: Bad request
 
   /merchants:
     get:
       tags:
         - Merchants
       summary: Get all merchants
-      description: Retrieve list of merchants with filters
       operationId: getMerchants
       parameters:
         - name: page
@@ -419,37 +306,9 @@ paths:
             minimum: 1
             maximum: 100
             default: 20
-        - name: businessType
-          in: query
-          schema:
-            type: string
-        - name: location
-          in: query
-          schema:
-            type: string
-        - name: verified
-          in: query
-          schema:
-            type: boolean
       responses:
         '200':
           description: Merchants retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  count:
-                    type: integer
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Merchant'
 
   /merchants/{id}:
     get:
@@ -467,25 +326,14 @@ paths:
       responses:
         '200':
           description: Merchant found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Merchant'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Not found
 
     put:
       tags:
         - Merchants
       summary: Update merchant
       operationId: updateMerchant
-      security:
-        - cookieAuth: []
       parameters:
         - name: id
           in: path
@@ -498,23 +346,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MerchantUpdate'
+              type: object
+              properties:
+                businessName:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 1000
+                address:
+                  type: string
+                location:
+                  type: string
       responses:
         '200':
           description: Merchant updated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Merchant'
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+          description: Unauthorized
 
   /merchants/me:
     get:
@@ -522,33 +370,17 @@ paths:
         - Merchants
       summary: Get current merchant profile
       operationId: getCurrentMerchant
-      security:
-        - cookieAuth: []
       responses:
         '200':
           description: Merchant profile retrieved
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Merchant'
         '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  # ==========================================
-  # PRODUCT ENDPOINTS
-  # ==========================================
+          description: Unauthorized
 
   /products:
     get:
       tags:
         - Products
       summary: Get all products
-      description: Retrieve list of products with filters
       operationId: getProducts
       parameters:
         - name: page
@@ -568,7 +400,6 @@ paths:
           in: query
           schema:
             type: string
-            enum: [Electronics, Fashion, "Home & Garden", Sports, Books, Beauty, Automotive, "Food & Beverages"]
         - name: minPrice
           in: query
           schema:
@@ -579,56 +410,55 @@ paths:
           schema:
             type: number
             minimum: 0
-        - name: search
-          in: query
-          schema:
-            type: string
       responses:
         '200':
           description: Products retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  count:
-                    type: integer
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Product'
 
     post:
       tags:
         - Products
       summary: Create product
       operationId: createProduct
-      security:
-        - cookieAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProductCreate'
+              type: object
+              required:
+                - name
+                - description
+                - price
+                - originalPrice
+                - category
+                - subcategory
+                - stockQuantity
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                description:
+                  type: string
+                  minLength: 1
+                price:
+                  type: number
+                  minimum: 0
+                originalPrice:
+                  type: number
+                  minimum: 0
+                category:
+                  type: string
+                subcategory:
+                  type: string
+                stockQuantity:
+                  type: integer
+                  minimum: 0
       responses:
         '201':
           description: Product created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Product'
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Bad request
 
   /products/{id}:
     get:
@@ -646,25 +476,14 @@ paths:
       responses:
         '200':
           description: Product found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Product'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Not found
 
     put:
       tags:
         - Products
       summary: Update product
       operationId: updateProduct
-      security:
-        - cookieAuth: []
       parameters:
         - name: id
           in: path
@@ -677,22 +496,30 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProductUpdate'
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 200
+                description:
+                  type: string
+                price:
+                  type: number
+                  minimum: 0
+                stockQuantity:
+                  type: integer
+                  minimum: 0
       responses:
         '200':
           description: Product updated
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+          description: Unauthorized
 
     delete:
       tags:
         - Products
       summary: Delete product
       operationId: deleteProduct
-      security:
-        - cookieAuth: []
       parameters:
         - name: id
           in: path
@@ -704,13 +531,7 @@ paths:
         '200':
           description: Product deleted
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  # ==========================================
-  # ORDER ENDPOINTS
-  # ==========================================
+          description: Unauthorized
 
   /orders:
     get:
@@ -718,54 +539,73 @@ paths:
         - Orders
       summary: Get user orders
       operationId: getUserOrders
-      security:
-        - cookieAuth: []
       responses:
         '200':
           description: Orders retrieved
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Order'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized
 
     post:
       tags:
         - Orders
       summary: Create order
       operationId: createOrder
-      security:
-        - cookieAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrderCreate'
+              type: object
+              required:
+                - items
+                - paymentMethod
+                - shippingAddress
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required:
+                      - product
+                      - quantity
+                    properties:
+                      product:
+                        type: string
+                        pattern: '^[0-9a-fA-F]{24}$'
+                      quantity:
+                        type: integer
+                        minimum: 1
+                paymentMethod:
+                  type: string
+                  enum:
+                    - mpesa
+                    - card
+                    - cash_on_delivery
+                shippingAddress:
+                  type: object
+                  required:
+                    - fullName
+                    - phone
+                    - address
+                    - city
+                    - county
+                  properties:
+                    fullName:
+                      type: string
+                    phone:
+                      type: string
+                    address:
+                      type: string
+                    city:
+                      type: string
+                    county:
+                      type: string
       responses:
         '201':
           description: Order created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Order'
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Bad request
 
   /orders/{id}:
     get:
@@ -773,8 +613,6 @@ paths:
         - Orders
       summary: Get order by ID
       operationId: getOrderById
-      security:
-        - cookieAuth: []
       parameters:
         - name: id
           in: path
@@ -785,25 +623,14 @@ paths:
       responses:
         '200':
           description: Order found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Order'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Not found
 
     delete:
       tags:
         - Orders
       summary: Cancel order
       operationId: cancelOrder
-      security:
-        - cookieAuth: []
       parameters:
         - name: id
           in: path
@@ -815,11 +642,7 @@ paths:
         '200':
           description: Order cancelled
         '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  # ==========================================
-  # CART ENDPOINTS
-  # ==========================================
+          description: Unauthorized
 
   /cart:
     get:
@@ -827,35 +650,22 @@ paths:
         - Cart
       summary: Get user cart
       operationId: getCart
-      security:
-        - cookieAuth: []
       responses:
         '200':
           description: Cart retrieved
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Cart'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized
 
     delete:
       tags:
         - Cart
       summary: Clear cart
       operationId: clearCart
-      security:
-        - cookieAuth: []
       responses:
         '200':
           description: Cart cleared
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized
 
   /cart/items:
     post:
@@ -863,8 +673,6 @@ paths:
         - Cart
       summary: Add item to cart
       operationId: addToCart
-      security:
-        - cookieAuth: []
       requestBody:
         required: true
         content:
@@ -886,9 +694,7 @@ paths:
         '200':
           description: Item added
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Bad request
 
   /cart/items/{itemId}:
     put:
@@ -896,8 +702,6 @@ paths:
         - Cart
       summary: Update cart item
       operationId: updateCartItem
-      security:
-        - cookieAuth: []
       parameters:
         - name: itemId
           in: path
@@ -922,15 +726,13 @@ paths:
         '200':
           description: Item updated
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized
 
     delete:
       tags:
         - Cart
       summary: Remove item from cart
       operationId: removeFromCart
-      security:
-        - cookieAuth: []
       parameters:
         - name: itemId
           in: path
@@ -942,11 +744,7 @@ paths:
         '200':
           description: Item removed
         '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  # ==========================================
-  # REVIEW ENDPOINTS
-  # ==========================================
+          description: Unauthorized
 
   /reviews:
     get:
@@ -971,38 +769,39 @@ paths:
       responses:
         '200':
           description: Reviews retrieved
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Review'
 
     post:
       tags:
         - Reviews
       summary: Create review
       operationId: createReview
-      security:
-        - cookieAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReviewCreate'
+              type: object
+              required:
+                - merchant
+                - rating
+                - content
+              properties:
+                merchant:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                content:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
       responses:
         '201':
           description: Review created
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Bad request
 
   /reviews/{id}:
     get:
@@ -1020,23 +819,12 @@ paths:
       responses:
         '200':
           description: Review found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Review'
 
     put:
       tags:
         - Reviews
       summary: Update review
       operationId: updateReview
-      security:
-        - cookieAuth: []
       parameters:
         - name: id
           in: path
@@ -1049,20 +837,27 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReviewUpdate'
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                content:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
       responses:
         '200':
           description: Review updated
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized
 
     delete:
       tags:
         - Reviews
       summary: Delete review
       operationId: deleteReview
-      security:
-        - cookieAuth: []
       parameters:
         - name: id
           in: path
@@ -1074,473 +869,14 @@ paths:
         '200':
           description: Review deleted
         '401':
-          $ref: '#/components/responses/Unauthorized'
-
-# ==========================================
-# COMPONENTS
-# ==========================================
+          description: Unauthorized
 
 components:
-  securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: nairobi_verified_session
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
   schemas:
-    User:
-      type: object
-      properties:
-        id:
-          type: string
-        firstName:
-          type: string
-        lastName:
-          type: string
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-        role:
-          type: string
-          enum: [user, admin]
-        isVerified:
-          type: boolean
-        createdAt:
-          type: string
-          format: date-time
-
-    Merchant:
-      type: object
-      properties:
-        id:
-          type: string
-        businessName:
-          type: string
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-        businessType:
-          type: string
-        description:
-          type: string
-        address:
-          type: string
-        location:
-          type: string
-        verified:
-          type: boolean
-        isActive:
-          type: boolean
-        rating:
-          type: number
-        reviews:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-
-    MerchantUpdate:
-      type: object
-      properties:
-        businessName:
-          type: string
-          maxLength: 100
-        description:
-          type: string
-          maxLength: 1000
-        address:
-          type: string
-        location:
-          type: string
-        website:
-          type: string
-          format: uri
-
-    Product:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        price:
-          type: number
-        originalPrice:
-          type: number
-        category:
-          type: string
-        stockQuantity:
-          type: integer
-        merchant:
-          type: string
-        rating:
-          type: number
-        images:
-          type: array
-          items:
-            type: string
-
-    ProductCreate:
-      type: object
-      required:
-        - name
-        - description
-        - price
-        - originalPrice
-        - category
-        - subcategory
-        - stockQuantity
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-        description:
-          type: string
-          minLength: 1
-        price:
-          type: number
-          minimum: 0
-        originalPrice:
-          type: number
-          minimum: 0
-        category:
-          type: string
-          enum: [Electronics, Fashion, "Home & Garden", Sports, Books, Beauty, Automotive, "Food & Beverages"]
-        subcategory:
-          type: string
-        stockQuantity:
-          type: integer
-          minimum: 0
-
-    ProductUpdate:
-      type: object
-      properties:
-        name:
-          type: string
-          maxLength: 200
-        description:
-          type: string
-        price:
-          type: number
-          minimum: 0
-        stockQuantity:
-          type: integer
-          minimum: 0
-
-    Order:
-      type: object
-      properties:
-        id:
-          type: string
-        orderNumber:
-          type: string
-        totalAmount:
-          type: number
-        status:
-          type: string
-          enum: [pending, confirmed, processing, shipped, delivered, cancelled]
-        paymentStatus:
-          type: string
-          enum: [pending, paid, failed, refunded]
-        items:
-          type: array
-          items:
-            type: object
-        createdAt:
-          type: string
-          format: date-time
-
-    OrderCreate:
-      type: object
-      required:
-        - items
-        - paymentMethod
-        - shippingAddress
-      properties:
-        items:
-          type: array
-          minItems: 1
-          items:
-            type: object
-            required:
-              - product
-              - quantity
-            properties:
-              product:
-                type: string
-                pattern: '^[0-9a-fA-F]{24}$'
-              quantity:
-                type: integer
-                minimum: 1
-        paymentMethod:
-          type: string
-          enum: [mpesa, card, cash_on_delivery]
-        shippingAddress:
-          type: object
-          required:
-            - fullName
-            - phone
-            - address
-            - city
-            - county
-          properties:
-            fullName:
-              type: string
-            phone:
-              type: string
-            address:
-              type: string
-            city:
-              type: string
-            county:
-              type: string
-
-    Cart:
-      type: object
-      properties:
-        id:
-          type: string
-        items:
-          type: array
-          items:
-            type: object
-        totalAmount:
-          type: number
-        totalItems:
-          type: integer
-
-    Review:
-      type: object
-      properties:
-        id:
-          type: string
-        merchant:
-          type: string
-        user:
-          type: string
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-        content:
-          type: string
-        helpful:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-
-    ReviewCreate:
-      type: object
-      required:
-        - merchant
-        - rating
-        - content
-      properties:
-        merchant:
-          type: string
-          pattern: '^[0-9a-fA-F]{24}
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-        content:
-          type: string
-          minLength: 10
-          maxLength: 1000
-
-    ReviewUpdate:
-      type: object
-      properties:
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-        content:
-          type: string
-          minLength: 10
-          maxLength: 1000
-
-    AuthSuccessResponse:
+    Error:
       type: object
       properties:
         success:
           type: boolean
-          example: true
-        user:
-          type: object
-          properties:
-            id:
-              type: string
-            firstName:
-              type: string
-            lastName:
-              type: string
-            email:
-              type: string
-            phone:
-              type: string
-            role:
-              type: string
-            isMerchant:
-              type: boolean
-
-    MerchantAuthResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        user:
-          type: object
-          properties:
-            id:
-              type: string
-            businessName:
-              type: string
-            email:
-              type: string
-            phone:
-              type: string
-            businessType:
-              type: string
-            verified:
-              type: boolean
-            isMerchant:
-              type: boolean
-
-    Pagination:
-      type: object
-      properties:
-        page:
-          type: integer
-        limit:
-          type: integer
-        total:
-          type: integer
-        pages:
-          type: integer
-
-    ErrorResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: false
         error:
           type: string
-
-  responses:
-    BadRequest:
-      description: Bad request - validation error
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            success: false
-            error: "Invalid input data"
-
-    Unauthorized:
-      description: Unauthorized - authentication required
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            success: false
-            error: "Not authorized to access this route"
-
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            success: false
-            error: "Resource not found"
-
-    TooManyRequests:
-      description: Too many requests - rate limit exceeded
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            success: false
-            error: "Too many requests, please try again later"
-
-  parameters:
-    PageParam:
-      name: page
-      in: query
-      description: Page number for pagination
-      schema:
-        type: integer
-        minimum: 1
-        default: 1
-
-    LimitParam:
-      name: limit
-      in: query
-      description: Number of items per page
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 100
-        default: 20
-
-    IdParam:
-      name: id
-      in: path
-      description: MongoDB ObjectId
-      required: true
-      schema:
-        type: string
-        pattern: '^[0-9a-fA-F]{24}
-
-x-cloudflare-settings:
-  rate-limiting:
-    enabled: true
-    rules:
-      - path: /auth/register
-        limit: 5
-        window: 900
-      - path: /auth/register/merchant
-        limit: 20
-        window: 900
-      - path: /auth/login
-        limit: 5
-        window: 900
-      - path: /auth/login/merchant
-        limit: 5
-        window: 900
-  
-  schema-validation:
-    enabled: true
-    action: log  # Options: log, block, challenge
-    log-only-mode: true  # Set to false for production blocking
-    
-  security-level: high
-  
-  waf-rules:
-    - rule: XSS Protection
-      enabled: true
-    - rule: SQL Injection
-      enabled: true
-    - rule: Command Injection
-      enabled: true
-    - rule: JSON Validation
-      enabled: true
