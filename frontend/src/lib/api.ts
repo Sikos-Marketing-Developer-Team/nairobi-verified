@@ -65,7 +65,18 @@ export const authAPI = {
   registerMerchant: (merchantData: any) => api.post('/auth/register/merchant', merchantData),
   login: (email: string, password: string) => api.post('/auth/login', { email, password }),
   loginMerchant: (email: string, password: string) => api.post('/auth/login/merchant', { email, password }),
-  googleAuth: (credential: string) => api.post('/auth/google', { credential }),
+  googleAuth: async (credential: string) => {
+    console.log('🚀 API Request: Google OAuth');
+    const response = await api.post('/auth/google', { credential });
+    
+    console.log('✅ API Response: Google OAuth', {
+      hasUser: !!response.data.user,
+      isMerchant: response.data.user?.isMerchant,
+      redirectTo: response.data.redirectTo
+    });
+    
+    return response;
+  },
   getMe: () => api.get('/auth/me'),
   logout: () => api.get('/auth/logout'),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
