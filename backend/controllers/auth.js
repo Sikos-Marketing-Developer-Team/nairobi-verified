@@ -6,6 +6,17 @@ const { OAuth2Client } = require('google-auth-library');
 const { HTTP_STATUS, PASSWORD_VALIDATION } = require('../config/constants');
 const { emailService } = require('../utils/emailService');
 
+async function isEmailTaken(email) {
+  const [user, merchant] = await Promise.all([
+    User.findOne({ email }).lean().select('_id'),
+    Merchant.findOne({ email }).lean().select('_id')
+  ]);
+  
+  if (user) return { taken: true, type: 'user' };
+  if (merchant) return { taken: true, type: 'merchant' };
+  return { taken: false, type: null };
+}
+
 // OPTIMIZATION: Email queue for async processing (fire-and-forget)
 const emailQueue = [];
 let isProcessingQueue = false;
@@ -40,16 +51,12 @@ exports.register = async (req, res) => {
   try {
     const { firstName, lastName, email, phone, password } = req.body;
 
-    // OPTIMIZATION: Skip password validation here (already done in route middleware)
-    // Model will validate on save anyway
-
-    // OPTIMIZATION: Use lean() for existence check
-    const userExists = await User.findOne({ email }).lean().select('_id');
-
-    if (userExists) {
+    // CRITICAL FIX: Check BOTH collections
+    const emailCheck = await isEmailTaken(email);
+    if (emailCheck.taken) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'Email already registered'
+        error: `Email already registered as ${emailCheck.type}`
       });
     }
 
@@ -61,7 +68,6 @@ exports.register = async (req, res) => {
       password
     });
 
-    // OPTIMIZATION: Queue welcome email (non-blocking)
     queueEmail(async () => {
       await emailService.sendUserWelcome({
         firstName: user.firstName,
@@ -71,8 +77,6 @@ exports.register = async (req, res) => {
       console.log(`Welcome email sent to: ${user.email}`);
     });
 
-    // OPTIMIZATION: Skip req.login for faster response in load testing
-    // For production with sessions, keep req.login but optimize session store
     if (process.env.SKIP_SESSION === 'true') {
       return res.status(HTTP_STATUS.CREATED).json({
         success: true,
@@ -113,7 +117,6 @@ exports.register = async (req, res) => {
   } catch (error) {
     console.error('Registration error:', error);
     
-    // OPTIMIZATION: Better error messages
     if (error.code === 11000) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
@@ -145,19 +148,15 @@ exports.registerMerchant = async (req, res) => {
       businessHours
     } = req.body;
 
-    // OPTIMIZATION: Password validation already done in route middleware
-
-    // OPTIMIZATION: Use lean() for faster existence check
-    const merchantExists = await Merchant.findOne({ email }).lean().select('_id');
-
-    if (merchantExists) {
+    // CRITICAL FIX: Check BOTH collections
+    const emailCheck = await isEmailTaken(email);
+    if (emailCheck.taken) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'Email already registered'
+        error: `Email already registered as ${emailCheck.type}`
       });
     }
 
-    // OPTIMIZATION: Create merchant with minimal required fields
     const merchant = await Merchant.create({
       businessName,
       email,
@@ -173,7 +172,6 @@ exports.registerMerchant = async (req, res) => {
       ...(businessHours && { businessHours })
     });
 
-    // OPTIMIZATION: Queue both emails asynchronously (non-blocking)
     queueEmail(async () => {
       try {
         await emailService.sendMerchantRegistrationConfirmation({
@@ -205,7 +203,6 @@ exports.registerMerchant = async (req, res) => {
       }
     });
 
-    // OPTIMIZATION: For load testing, skip session creation
     if (process.env.SKIP_SESSION === 'true') {
       return res.status(HTTP_STATUS.CREATED).json({
         success: true,
@@ -221,11 +218,9 @@ exports.registerMerchant = async (req, res) => {
       });
     }
 
-    // OPTIMIZATION: Use callback-based req.login for better error handling
     req.login(merchant, (err) => {
       if (err) {
         console.error('Login error after registration:', err);
-        // Still return success - merchant was created
         return res.status(HTTP_STATUS.CREATED).json({
           success: true,
           sessionWarning: 'Account created but session failed. Please login manually.',
@@ -257,7 +252,6 @@ exports.registerMerchant = async (req, res) => {
   } catch (error) {
     console.error('Merchant registration error:', error);
     
-    // OPTIMIZATION: Handle duplicate key errors specifically
     if (error.code === 11000) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
@@ -265,7 +259,6 @@ exports.registerMerchant = async (req, res) => {
       });
     }
 
-    // OPTIMIZATION: Handle validation errors
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(e => e.message);
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -487,12 +480,12 @@ exports.logout = async (req, res) => {
   }
 };
 
-// Keep other exports unchanged
+
 exports.googleAuth = async (req, res) => {
   try {
     const { credential } = req.body;
     
-    console.log('🔐 Google OAuth attempt:', { hasCredential: !!credential });
+    console.log('🔐 Google OAuth attempt');
     
     if (!credential) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -501,7 +494,6 @@ exports.googleAuth = async (req, res) => {
       });
     }
 
-    // Verify Google Client ID is configured
     if (!process.env.GOOGLE_CLIENT_ID) {
       console.error('❌ GOOGLE_CLIENT_ID not configured');
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
@@ -512,8 +504,6 @@ exports.googleAuth = async (req, res) => {
 
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
     
-    console.log('🔍 Verifying Google token...');
-    
     const ticket = await client.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -522,8 +512,74 @@ exports.googleAuth = async (req, res) => {
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, given_name: firstName, family_name: lastName, picture } = payload;
 
-    console.log('✅ Google token verified:', { email, googleId });
+    console.log('✅ Google token verified:', email);
 
+    // CRITICAL FIX: Check Merchant FIRST
+    let merchant = await Merchant.findOne({ 
+      $or: [
+        { email: email },
+        { googleId: googleId }
+      ]
+    });
+
+    if (merchant) {
+      console.log('🏪 Found existing MERCHANT:', merchant.businessName);
+      
+      // Update Google ID if not set
+      if (!merchant.googleId) {
+        merchant.googleId = googleId;
+        merchant.logo = merchant.logo || picture;
+        await merchant.save({ validateBeforeSave: false });
+        console.log('✅ Updated merchant with Google data');
+      }
+
+      // OPTIMIZATION: Skip session in load testing
+      if (process.env.SKIP_SESSION === 'true') {
+        return res.status(HTTP_STATUS.OK).json({
+          success: true,
+          user: {
+            id: merchant._id,
+            businessName: merchant.businessName,
+            email: merchant.email,
+            phone: merchant.phone,
+            businessType: merchant.businessType,
+            verified: merchant.verified,
+            isMerchant: true
+          },
+          redirectTo: '/merchant/dashboard' // Frontend should handle this
+        });
+      }
+
+      req.login(merchant, (err) => {
+        if (err) {
+          console.error('❌ Login error after Google auth:', err);
+          return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            error: 'Error logging in after Google authentication'
+          });
+        }
+
+        console.log('✅ Merchant Google login successful');
+        
+        return res.status(HTTP_STATUS.OK).json({
+          success: true,
+          user: {
+            id: merchant._id,
+            businessName: merchant.businessName,
+            email: merchant.email,
+            phone: merchant.phone,
+            businessType: merchant.businessType,
+            verified: merchant.verified,
+            isMerchant: true
+          },
+          redirectTo: '/merchant/dashboard' // CRITICAL: Tell frontend where to go
+        });
+      });
+      
+      return; // Exit early - don't check User
+    }
+
+    // Only check User if no Merchant found
     let user = await User.findOne({ 
       $or: [
         { email: email },
@@ -532,29 +588,25 @@ exports.googleAuth = async (req, res) => {
     });
 
     if (user) {
-      console.log('👤 Existing user found:', user.email);
+      console.log('👤 Found existing USER:', user.email);
       
-      // Update Google ID and profile picture if not set
       if (!user.googleId) {
         user.googleId = googleId;
         user.profilePicture = picture;
         user.isVerified = true;
-        await user.save({ validateBeforeSave: false }); // Skip password validation
+        await user.save({ validateBeforeSave: false });
         console.log('✅ Updated user with Google data');
       }
     } else {
-      console.log('🆕 Creating new user from Google OAuth');
+      console.log('🆕 Creating new USER from Google OAuth');
       
-      // CRITICAL FIX: Generate a password that passes validation
-      // Password pattern: Uppercase + Lowercase + Number + Special
+      // Generate compliant password
       const randomPassword = 
-        'Google' + // Uppercase
-        'oauth' +  // Lowercase
-        Math.random().toString(36).substring(2, 10) + // Random alphanumeric
-        '@' +      // Special character
-        Date.now().toString().substring(8); // Numbers
-      
-      console.log('🔑 Generated compliant password for Google user');
+        'Google' + 
+        'oauth' +  
+        Math.random().toString(36).substring(2, 10) + 
+        '@' +      
+        Date.now().toString().substring(8);
       
       user = await User.create({
         firstName: firstName || name?.split(' ')[0] || 'User',
@@ -563,16 +615,14 @@ exports.googleAuth = async (req, res) => {
         googleId: googleId,
         profilePicture: picture,
         isVerified: true,
-        password: randomPassword, // Now passes validation
-        phone: '' // Google users don't have phone initially
+        password: randomPassword,
+        phone: ''
       });
       
       console.log('✅ New Google user created:', user.email);
     }
 
-    // OPTIMIZATION: Skip session in load testing mode
     if (process.env.SKIP_SESSION === 'true') {
-      console.log('⚠️ Skipping session creation (SKIP_SESSION=true)');
       return res.status(HTTP_STATUS.OK).json({
         success: true,
         user: {
@@ -584,7 +634,8 @@ exports.googleAuth = async (req, res) => {
           profilePicture: user.profilePicture,
           isVerified: user.isVerified,
           isMerchant: false
-        }
+        },
+        redirectTo: '/dashboard' // User dashboard
       });
     }
 
@@ -597,7 +648,7 @@ exports.googleAuth = async (req, res) => {
         });
       }
 
-      console.log('✅ Google login successful:', user.email);
+      console.log('✅ User Google login successful');
       
       res.status(HTTP_STATUS.OK).json({
         success: true,
@@ -610,13 +661,13 @@ exports.googleAuth = async (req, res) => {
           profilePicture: user.profilePicture,
           isVerified: user.isVerified,
           isMerchant: false
-        }
+        },
+        redirectTo: '/dashboard' // CRITICAL: User dashboard
       });
     });
   } catch (error) {
     console.error('❌ Google OAuth error:', error);
     
-    // Better error messages
     if (error.message?.includes('Token used too early')) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
