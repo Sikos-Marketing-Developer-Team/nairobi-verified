@@ -1110,7 +1110,7 @@ const createMerchant = asyncHandler(async (req, res) => {
   res.status(201).json({
     success: true,
     merchant: {
-      id: merchant._id,
+      id: merchantObject._id,
       businessName: merchant.businessName,
       email: merchant.email,
       phone: merchant.phone,
