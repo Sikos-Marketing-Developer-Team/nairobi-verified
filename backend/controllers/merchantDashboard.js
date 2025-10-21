@@ -968,3 +968,179 @@ exports.deleteProductImage = async (req, res) => {
     });
   }
 };
+
+// ==================== REVIEW MANAGEMENT ====================
+
+exports.getMerchantReviews = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { page = 1, limit = 10, responded } = req.query;
+
+    const query = { merchant: merchantId };
+    if (responded !== undefined) {
+      query.merchantResponse = responded === 'true' ? { $exists: true } : { $exists: false };
+    }
+
+    const reviews = await Review.find(query)
+      .sort('-createdAt')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .populate('user', 'name')
+      .lean();
+
+    const total = await Review.countDocuments(query);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      count: reviews.length,
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: parseInt(page),
+      data: reviews
+    });
+  } catch (error) {
+    console.error('getMerchantReviews error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch reviews'
+    });
+  }
+};
+
+exports.respondToReview = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { reviewId } = req.params;
+    const { response } = req.body;
+
+    if (!response || response.trim().length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Response text is required'
+      });
+    }
+
+    const review = await Review.findOne({ _id: reviewId, merchant: merchantId });
+
+    if (!review) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Review not found'
+      });
+    }
+
+    review.merchantResponse = {
+      text: response,
+      respondedAt: new Date()
+    };
+
+    await review.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Response added successfully',
+      data: review
+    });
+  } catch (error) {
+    console.error('respondToReview error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to respond to review'
+    });
+  }
+};
+
+exports.flagReview = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { reviewId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Flag reason is required'
+      });
+    }
+
+    const review = await Review.findOne({ _id: reviewId, merchant: merchantId });
+
+    if (!review) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Review not found'
+      });
+    }
+
+    review.flagged = true;
+    review.flagReason = reason;
+    review.flaggedAt = new Date();
+
+    await review.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Review flagged successfully. Our team will review it.',
+      data: review
+    });
+  } catch (error) {
+    console.error('flagReview error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to flag review'
+    });
+  }
+};
+
+exports.getReviewStats = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    const stats = await Review.aggregate([
+      { $match: { merchant: merchantId } },
+      {
+        $group: {
+          _id: null,
+          totalReviews: { $sum: 1 },
+          averageRating: { $avg: '$rating' },
+          fiveStars: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
+          fourStars: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
+          threeStars: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
+          twoStars: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
+          oneStar: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } }
+        }
+      }
+    ]);
+
+    const responded = await Review.countDocuments({
+      merchant: merchantId,
+      merchantResponse: { $exists: true }
+    });
+
+    const result = stats[0] || {
+      totalReviews: 0,
+      averageRating: 0,
+      fiveStars: 0,
+      fourStars: 0,
+      threeStars: 0,
+      twoStars: 0,
+      oneStar: 0
+    };
+
+    result.respondedCount = responded;
+    result.responseRate = result.totalReviews > 0 
+      ? ((responded / result.totalReviews) * 100).toFixed(1) 
+      : 0;
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('getReviewStats error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch review statistics'
+    });
+  }
+};
