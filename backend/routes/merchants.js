@@ -20,6 +20,11 @@ const {
 const { protect, authorize, isMerchant } = require('../middleware/auth');
 const { uploadImage, uploadDocs } = require('../middleware/upload');
 
+const { 
+  merchantCreationLimiter, 
+  bulkUploadLimiter 
+} = require('../middleware/rateLimiters');
+
 // Include other resource routers
 const reviewRouter = require('./reviews');
 
@@ -33,7 +38,87 @@ router.use('/:merchantId/reviews', reviewRouter);
 // ==========================================
 
 // Admin routes - BEFORE /:id
-router.post('/admin/create', protect, authorize('admin'), createMerchantByAdmin);
+router.post(
+  '/admin/create', 
+  protect, 
+  authorize('admin'), 
+  merchantCreationLimiter, // Rate limit: 200/hour per admin
+  createMerchantByAdmin
+);
+
+
+router.post(
+  '/admin/bulk-create',
+  protect,
+  authorize('admin'),
+  bulkUploadLimiter, // Rate limit: 10/hour per admin
+  async (req, res) => {
+    try {
+      const { merchants } = req.body;
+      
+      if (!Array.isArray(merchants) || merchants.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid merchants array'
+        });
+      }
+
+      // Limit batch size
+      if (merchants.length > 100) {
+        return res.status(400).json({
+          success: false,
+          error: 'Maximum 100 merchants per batch. Please split into smaller batches.'
+        });
+      }
+
+      const results = {
+        total: merchants.length,
+        successful: [],
+        failed: []
+      };
+
+      // Process in parallel with Promise.allSettled
+      const promises = merchants.map(async (merchantData) => {
+        try {
+          // Reuse createMerchantByAdmin logic
+          const merchant = await createMerchantByAdminLogic(merchantData, req.user);
+          return { success: true, merchant };
+        } catch (error) {
+          return { 
+            success: false, 
+            error: error.message,
+            merchantData 
+          };
+        }
+      });
+
+      const settled = await Promise.allSettled(promises);
+
+      settled.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value.success) {
+          results.successful.push(result.value.merchant);
+        } else {
+          results.failed.push({
+            ...merchants[index],
+            error: result.value?.error || result.reason?.message || 'Unknown error'
+          });
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        results
+      });
+
+    } catch (error) {
+      console.error('Bulk create error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Bulk creation failed'
+      });
+    }
+  }
+);
 
 // Setup routes (public) - BEFORE /:id
 router.route('/setup/:token')

@@ -151,9 +151,43 @@ const failedLoginLimiter = () => {
   };
 };
 
+const merchantCreationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 200, // 200 merchant creations per hour per admin
+  message: {
+    success: false,
+    error: 'Merchant creation limit reached. Please wait before adding more merchants.'
+  },
+  keyGenerator: (req) => {
+    // Rate limit per admin user ID
+    return `merchant-create:${req.user?.id || req.ip}`;
+  },
+  skip: (req) => {
+    // Skip for super admins or in development
+    return process.env.NODE_ENV === 'development' || req.user?.role === 'super_admin';
+  }
+});
+
+const bulkUploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 bulk uploads per hour (assuming 50+ merchants per upload)
+  message: {
+    success: false,
+    error: 'Bulk upload limit reached. Please wait before uploading another batch.'
+  },
+  keyGenerator: (req) => {
+    return `bulk-upload:${req.user?.id || req.ip}`;
+  },
+  skip: (req) => {
+    return process.env.NODE_ENV === 'development' || req.user?.role === 'super_admin';
+  }
+});
+
 module.exports = { 
   strictAuthLimiter, 
   merchantRegisterLimiter,
   authLimiter,
+  merchantCreationLimiter,
+  bulkUploadLimiter,
   failedLoginLimiter: failedLoginLimiter()
 };

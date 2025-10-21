@@ -694,15 +694,26 @@ exports.uploadDocuments = async (req, res) => {
   }
 };
 
-// @desc    Create merchant by admin (ENHANCED)
+// @desc    Create merchant by admin (OPTIMIZED WITH SERVICE)
+// @route   POST /api/merchants/admin/create
+// @access  Private/Admin
 exports.createMerchantByAdmin = async (req, res) => {
   try {
+    // ✅ AUTHORIZATION CHECK
     if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Access denied. Admin privileges required.' });
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ 
+        success: false, 
+        error: 'Access denied. Admin privileges required.' 
+      });
     }
 
-    const result = await MerchantOnboardingService.createMerchantByAdmin(req.body, req.user);
+    // ✅ USE OPTIMIZED SERVICE: All validation, duplicate checks, and email sending handled
+    const result = await MerchantOnboardingService.createMerchantByAdmin(
+      req.body, 
+      req.user
+    );
 
+    // ✅ RETURN SUCCESS IMMEDIATELY (email sent in background)
     res.status(201).json({
       success: true,
       data: result.merchant,
@@ -712,12 +723,80 @@ exports.createMerchantByAdmin = async (req, res) => {
         required: true,
         submitted: false,
         completionPercentage: 0,
-        nextStep: 'Upload verification documents'
+        nextStep: result.merchant.verified 
+          ? 'Complete business profile' 
+          : 'Upload verification documents'
       }
     });
+
   } catch (error) {
-    console.error('createMerchantByAdmin error:', error);
-    res.status(400).json({ success: false, error: error.message });
+    console.error('❌ createMerchantByAdmin error:', error);
+    
+    // ✅ RETURN USER-FRIENDLY ERROR
+    res.status(400).json({ 
+      success: false, 
+      error: error.message || 'Failed to create merchant account'
+    });
+  }
+};
+
+// @desc    Bulk create merchants (OPTIMIZED WITH SERVICE)
+// @route   POST /api/merchants/admin/bulk-create
+// @access  Private/Admin
+exports.bulkCreateMerchants = async (req, res) => {
+  try {
+    // ✅ AUTHORIZATION CHECK
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ 
+        success: false, 
+        error: 'Access denied. Admin privileges required.' 
+      });
+    }
+
+    const { merchants } = req.body;
+
+    // ✅ VALIDATION
+    if (!Array.isArray(merchants) || merchants.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid merchants array. Provide an array of merchant data.'
+      });
+    }
+
+    // ✅ LIMIT BATCH SIZE
+    if (merchants.length > 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Maximum 100 merchants per batch. Please split into smaller batches.'
+      });
+    }
+
+    // ✅ USE OPTIMIZED BULK SERVICE
+    const results = await MerchantOnboardingService.bulkCreateMerchants(
+      merchants,
+      req.user
+    );
+
+    // ✅ RETURN DETAILED RESULTS
+    res.status(200).json({
+      success: true,
+      results: {
+        total: results.total,
+        successful: results.successful.length,
+        failed: results.failed.length,
+        successRate: `${Math.round((results.successful.length / results.total) * 100)}%`,
+        successfulMerchants: results.successful,
+        failedMerchants: results.failed
+      },
+      message: `Bulk creation complete: ${results.successful.length}/${results.total} successful`
+    });
+
+  } catch (error) {
+    console.error('❌ bulkCreateMerchants error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Bulk creation failed'
+    });
   }
 };
 
