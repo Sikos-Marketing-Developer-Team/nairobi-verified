@@ -1,5 +1,5 @@
 import React from 'react';
-import { HelmetProvider } from 'react-helmet-async'; 
+import { Helmet, HelmetProvider } from 'react-helmet-async'; 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -91,7 +91,29 @@ const App = () => (
            <FavoritesProvider>
           <CartProvider>
             <Routes>
-              <Route path="/" element={<Index />} />
+               {/* Add Helmet to your homepage route */}
+                    <Route path="/" element={
+                      <>
+                        <Helmet>
+                          <script type="application/ld+json">
+                           {JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Nairobi Verified",
+  "url": "https://www.nairobiverified.co.ke/",
+  "logo": "https://www.nairobiverified.co.ke/logo.png",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://www.nairobiverified.co.ke/search?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+})}
+                          </script>
+                        </Helmet>
+                         <Index />
+                      </>
+                    } />
+              
               <Route path="/merchants" element={<Merchants />} />
               <Route path="/merchant/:id" element={<MerchantDetail />} />
               <Route path="/auth" element={<Auth />} />
