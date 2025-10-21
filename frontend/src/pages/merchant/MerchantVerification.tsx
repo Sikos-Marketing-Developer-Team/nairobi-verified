@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { 
   Upload, 
   FileText, 
@@ -307,8 +309,15 @@ const MerchantVerification = () => {
 
   if (loading && !verificationStatus) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading verification status...</p>
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -323,7 +332,11 @@ const MerchantVerification = () => {
     verificationStatus?.verificationStatus === "pending";
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto space-y-6">{/* Header */}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -522,6 +535,10 @@ const MerchantVerification = () => {
           </div>
         </CardContent>
       </Card>
+        </div>
+      </main>
+      
+      <Footer />
     </div>
   );
 };
