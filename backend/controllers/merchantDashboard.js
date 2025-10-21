@@ -782,10 +782,48 @@ exports.getProductById = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const merchantId = req.user._id;
-    const product = await Product.create({
-      ...req.body,
-      merchant: merchantId
-    });
+    console.log('📦 Creating product for merchant:', merchantId);
+    console.log('Product data:', req.body);
+    
+    // Validate required fields
+    if (!req.body.name || !req.body.category || !req.body.description) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Name, category, and description are required'
+      });
+    }
+
+    // Get merchant details for merchantName
+    const merchant = await Merchant.findById(merchantId).select('businessName');
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Prepare product data with defaults for required fields
+    const productData = {
+      name: req.body.name,
+      description: req.body.description,
+      category: req.body.category,
+      price: req.body.price || 0,
+      originalPrice: req.body.originalPrice || req.body.price || 0,
+      subcategory: req.body.subcategory || 'General',
+      merchant: merchantId,
+      merchantName: merchant.businessName,
+      images: req.body.images || [],
+      primaryImage: req.body.primaryImage || (req.body.images && req.body.images[0]) || '/placeholder-product.jpg',
+      stockQuantity: req.body.stockQuantity || 0,
+      featured: req.body.featured || false,
+      isActive: req.body.available !== undefined ? req.body.available : true,
+      tags: req.body.tags || [],
+      brand: req.body.brand || merchant.businessName
+    };
+
+    const product = await Product.create(productData);
+
+    console.log('✅ Product created successfully:', product._id);
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -793,10 +831,10 @@ exports.createProduct = async (req, res) => {
       data: product
     });
   } catch (error) {
-    console.error('createProduct error:', error);
+    console.error('❌ createProduct error:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: 'Failed to create product'
+      error: error.message || 'Failed to create product'
     });
   }
 };

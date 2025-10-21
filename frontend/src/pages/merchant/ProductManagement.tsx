@@ -243,10 +243,12 @@ const ProductManagement = () => {
 
     try {
       setUploading(true);
+      console.log('📦 Submitting product:', formData);
 
       if (editingProduct) {
         // Update existing product
-        await axios.put(`/api/merchants/dashboard/products/${editingProduct._id}`, formData);
+        const updateResponse = await axios.put(`/api/merchants/dashboard/products/${editingProduct._id}`, formData);
+        console.log('✅ Product updated:', updateResponse.data);
         
         // Upload new images if any
         if (productImages.length > 0) {
@@ -255,35 +257,44 @@ const ProductManagement = () => {
             imageFormData.append("images", file);
           });
           
-          await axios.post(
+          const imageResponse = await axios.post(
             `/api/merchants/dashboard/products/${editingProduct._id}/images`,
             imageFormData,
             {
               headers: { "Content-Type": "multipart/form-data" }
             }
           );
+          console.log('✅ Images uploaded:', imageResponse.data);
         }
 
         setSuccess("Product updated successfully");
       } else {
         // Create new product
+        console.log('🔄 Creating new product...');
         const response = await axios.post("/api/merchants/dashboard/products", formData);
+        console.log('✅ Product created:', response.data);
         const newProduct = response.data.data;
+        
+        if (!newProduct || !newProduct._id) {
+          throw new Error("Product created but no product ID returned");
+        }
         
         // Upload images if any
         if (productImages.length > 0) {
+          console.log('🔄 Uploading images...');
           const imageFormData = new FormData();
           productImages.forEach(file => {
             imageFormData.append("images", file);
           });
           
-          await axios.post(
+          const imageResponse = await axios.post(
             `/api/merchants/dashboard/products/${newProduct._id}/images`,
             imageFormData,
             {
               headers: { "Content-Type": "multipart/form-data" }
             }
           );
+          console.log('✅ Images uploaded:', imageResponse.data);
         }
 
         setSuccess("Product created successfully");
@@ -293,7 +304,9 @@ const ProductManagement = () => {
       handleCloseProductModal();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to save product");
+      console.error('❌ Product submission error:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to save product";
+      setError(errorMessage);
     } finally {
       setUploading(false);
     }
