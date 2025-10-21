@@ -319,7 +319,7 @@ exports.login = async (req, res) => {
           lastName: user.lastName,
           email: user.email,
           phone: user.phone,
-          role: user.role,
+          role: user.role || 'user',  // CRITICAL FIX: Ensure role is always set
           isMerchant: false
         }
       });
@@ -411,6 +411,7 @@ exports.loginMerchant = async (req, res) => {
           phone: merchant.phone,
           businessType: merchant.businessType,
           verified: merchant.verified,
+          role: 'merchant',  // CRITICAL FIX: Add role field
           isMerchant: true
         }
       });
