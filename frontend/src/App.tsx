@@ -1,4 +1,5 @@
 import React from 'react';
+import { HelmetProvider } from 'react-helmet-async'; 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -79,7 +80,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -167,6 +169,7 @@ const App = () => (
       </GoogleOAuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;
