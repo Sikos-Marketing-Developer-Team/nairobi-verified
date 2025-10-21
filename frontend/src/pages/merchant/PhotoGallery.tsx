@@ -56,9 +56,13 @@ const PhotoGallery = () => {
   const fetchGallery = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Fetching gallery...');
       const response = await axios.get("/api/merchants/dashboard/gallery");
+      console.log('✅ Gallery fetched:', response.data);
+      console.log('Photos count:', response.data.data?.length || 0);
       setGallery(response.data.data || []);
     } catch (err: any) {
+      console.error('❌ Failed to fetch gallery:', err);
       setError(err.response?.data?.message || "Failed to load gallery");
     } finally {
       setLoading(false);
