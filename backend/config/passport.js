@@ -88,9 +88,13 @@ passport.serializeUser((user, done) => {
                      user.collection?.collectionName === 'merchants' ||
                      !!user.businessName;
   
+  // CRITICAL FIX: Include role in serialization
+  const role = isMerchant ? 'merchant' : (user.role || 'user');
+  
   console.log('🔐 Serializing user:', {
     id: String(userId),
     isMerchant,
+    role,
     email: user.email,
     modelName: user.constructor?.modelName
   });
@@ -98,6 +102,7 @@ passport.serializeUser((user, done) => {
   done(null, { 
     id: String(userId), 
     isMerchant,
+    role,
     email: user.email
   });
 });
@@ -112,19 +117,30 @@ passport.deserializeUser(async (sessionData, done) => {
     if (sessionData.isMerchant) {
       user = await Merchant.findById(sessionData.id).select('-password');
       if (user) {
+        // CRITICAL FIX: Attach role to user object
+        user.role = 'merchant';
+        user.isMerchant = true;
+        
         console.log('📦 Found merchant:', {
           id: user._id,
           email: user.email,
-          businessName: user.businessName
+          businessName: user.businessName,
+          role: user.role
         });
       }
     } else {
       user = await User.findById(sessionData.id).select('-password');
       if (user) {
+        // CRITICAL FIX: Ensure role is set from session or default to 'user'
+        if (!user.role) {
+          user.role = sessionData.role || 'user';
+        }
+        
         console.log('👤 Found user:', {
           id: user._id,
           email: user.email,
-          name: `${user.firstName} ${user.lastName}`
+          name: `${user.firstName} ${user.lastName}`,
+          role: user.role
         });
       }
     }
@@ -146,6 +162,7 @@ passport.deserializeUser(async (sessionData, done) => {
     console.log('✅ Successfully deserialized:', {
       id: user._id,
       email: user.email,
+      role: user.role,
       isMerchant: sessionData.isMerchant
     });
     
