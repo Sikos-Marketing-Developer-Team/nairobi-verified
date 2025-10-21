@@ -243,34 +243,50 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const googleAuth = async (credential: string) => {
-    return handleAuthAction(async () => {
-      const response = await authAPI.googleAuth(credential);
-      const { user: userData } = response.data;
-      
-      if (userData.role === 'admin') {
-        showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
-        throw new Error('Admin access restricted');
-      }
-      
-      // CRITICAL FIX: Set user state WITH role persistence
-      setUserWithPersistence({
-        ...userData,
-        role: userData.role || 'user'
-      });
-      
-      sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
-      
-      const targetPath = userData.role === 'merchant' || userData.isMerchant || userData.businessName 
-        ? '/merchant/dashboard' 
-        : '/dashboard';
-      
-      console.log('🚀 Navigating to:', targetPath);
-      navigate(targetPath, { replace: true });
-      
-      showToast('Google Login Successful', 'You have been logged in with Google');
-      return response;
-    }, 'Google Login', 'Google Authentication');
-  };
+  return handleAuthAction(async () => {
+    console.log('Google OAuth initiated');
+    const response = await authAPI.googleAuth(credential);
+    const { user: userData, redirectTo } = response.data;
+    
+    console.log('Google OAuth response:', {
+      email: userData.email,
+      isMerchant: userData.isMerchant,
+      role: userData.role,
+      redirectTo: redirectTo
+    });
+    
+    if (userData.role === 'admin') {
+      showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
+      throw new Error('Admin access restricted');
+    }
+    
+    // CRITICAL FIX: Use redirectTo from backend response
+    const targetPath = redirectTo || (userData.role === 'merchant' || userData.isMerchant || userData.businessName 
+      ? '/merchant/dashboard' 
+      : '/dashboard');
+    
+    console.log('Target path:', targetPath);
+    
+    // Set user state WITH role persistence
+    setUserWithPersistence({
+      ...userData,
+      role: userData.role || (userData.isMerchant ? 'merchant' : 'user')
+    });
+    
+    sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
+    
+    console.log('Navigating to:', targetPath);
+    navigate(targetPath, { replace: true });
+    
+    const accountType = userData.isMerchant ? 'merchant' : 'user';
+    showToast(
+      'Google Login Successful', 
+      `Logged in as ${accountType}. Redirecting to ${accountType === 'merchant' ? 'merchant dashboard' : 'dashboard'}`
+    );
+    
+    return response;
+  }, 'Google Login', 'Google Authentication');
+};
 
   const register = async (userData: any) => {
     return handleAuthAction(async () => {

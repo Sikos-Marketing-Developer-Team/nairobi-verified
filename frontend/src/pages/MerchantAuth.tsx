@@ -116,28 +116,46 @@ const MerchantAuth = () => {
   };
 
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) {
+  if (!credentialResponse.credential) {
+    toast({
+      title: 'Google Authentication Failed',
+      description: 'No credential received from Google',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  setGoogleLoading(true);
+  setErrors({});
+
+  try {
+    console.log('🏪 Merchant Auth: Calling Google OAuth');
+    await googleAuth(credentialResponse.credential);
+    
+    // Success - toast is shown in AuthContext
+  } catch (error: any) {
+    console.error('Google auth error:', error);
+    
+    // Check if this is a "wrong account type" error
+    if (error.response?.data?.redirectTo === '/dashboard' ||
+        error.response?.data?.error?.includes('user')) {
       toast({
-        title: 'Google Authentication Failed',
-        description: 'No credential received from Google',
+        title: 'User Account Detected',
+        description: 'This email is registered as a user account, not a merchant. Redirecting to user login...',
         variant: 'destructive',
       });
-      return;
-    }
-
-    setGoogleLoading(true);
-    setErrors({});
-
-    try {
-      await googleAuth(credentialResponse.credential);
       
+      // Redirect to user login after 2 seconds
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 2000);
+    } else if (error.response?.data?.error?.includes('not verified')) {
       toast({
-        title: 'Merchant Login Successful',
-        description: 'You have been logged in with Google',
+        title: 'Merchant Account Not Verified',
+        description: 'Your merchant account needs to be verified before you can log in.',
+        variant: 'destructive',
       });
-    } catch (error: any) {
-      console.error('Google auth error:', error);
-      
+    } else {
       const errorMessage = error.response?.data?.error || 
                           error.message || 
                           'Failed to authenticate with Google';
@@ -149,10 +167,11 @@ const MerchantAuth = () => {
         description: errorMessage,
         variant: 'destructive',
       });
-    } finally {
-      setGoogleLoading(false);
     }
-  };
+  } finally {
+    setGoogleLoading(false);
+  }
+};
 
   const handleGoogleError = () => {
     toast({

@@ -70,30 +70,50 @@ const Auth = () => {
   };
 
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) {
-      toast({
-        title: 'Google Authentication Failed',
-        description: 'No credential received from Google',
-        variant: 'destructive',
-      });
-      return;
-    }
+  if (!credentialResponse.credential) {
+    toast({
+      title: 'Google Authentication Failed',
+      description: 'No credential received from Google',
+      variant: 'destructive',
+    });
+    return;
+  }
 
-    setGoogleLoading(true);
-    try {
-      await googleAuth(credentialResponse.credential);
-      // REMOVED: Don't show toast here - it's already handled in AuthContext
-    } catch (error: any) {
-      console.error('Google auth error:', error);
+  setGoogleLoading(true);
+  try {
+    console.log('👤 User Auth: Calling Google OAuth');
+    await googleAuth(credentialResponse.credential);
+    // Success handling is in AuthContext now
+  } catch (error: any) {
+    console.error('Google auth error:', error);
+    
+    // Check if this is a "wrong account type" error
+    if (error.response?.data?.error?.includes('merchant') || 
+        error.response?.data?.redirectTo === '/merchant/dashboard') {
+      toast({
+        title: 'Merchant Account Detected',
+        description: 'This email is registered as a merchant. Please use the merchant login page.',
+        variant: 'destructive',
+        action: (
+          <a 
+            href="/merchant/sign-in" 
+            className="text-white underline"
+          >
+            Go to Merchant Login
+          </a>
+        ),
+      });
+    } else {
       toast({
         title: 'Google Authentication Failed',
         description: error.response?.data?.error || 'Failed to authenticate with Google',
         variant: 'destructive',
       });
-    } finally {
-      setGoogleLoading(false);
     }
-  };
+  } finally {
+    setGoogleLoading(false);
+  }
+};
 
   const handleGoogleError = () => {
     toast({
