@@ -286,3 +286,225 @@ exports.getQuickActions = async (req, res) => {
     });
   }
 };
+
+// ==================== BUSINESS PROFILE MANAGEMENT ====================
+
+exports.getBusinessProfile = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('-password').lean();
+    
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({ success: true, data: merchant });
+  } catch (error) {
+    console.error('getBusinessProfile error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch business profile'
+    });
+  }
+};
+
+exports.updateBusinessProfile = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const allowedUpdates = [
+      'businessName', 'description', 'businessType', 'phone', 'whatsappNumber',
+      'email', 'website', 'address', 'location', 'landmark', 'yearEstablished'
+    ];
+    
+    const updates = {};
+    allowedUpdates.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
+
+    const merchant = await Merchant.findByIdAndUpdate(
+      merchantId,
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: merchant
+    });
+  } catch (error) {
+    console.error('updateBusinessProfile error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to update profile'
+    });
+  }
+};
+
+exports.updateBusinessHours = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { businessHours } = req.body;
+
+    const merchant = await Merchant.findByIdAndUpdate(
+      merchantId,
+      { businessHours },
+      { new: true, runValidators: true }
+    );
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Business hours updated successfully',
+      data: merchant.businessHours
+    });
+  } catch (error) {
+    console.error('updateBusinessHours error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to update business hours'
+    });
+  }
+};
+
+exports.updateSocialLinks = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { socialLinks } = req.body;
+
+    const merchant = await Merchant.findByIdAndUpdate(
+      merchantId,
+      { socialLinks },
+      { new: true, runValidators: true }
+    );
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Social links updated successfully',
+      data: merchant.socialLinks
+    });
+  } catch (error) {
+    console.error('updateSocialLinks error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to update social links'
+    });
+  }
+};
+
+exports.uploadBusinessLogo = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    if (!req.file) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No logo file provided'
+      });
+    }
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Delete old logo if exists
+    if (merchant.logo && merchant.logo.includes('cloudinary')) {
+      const publicId = merchant.logo.split('/').pop().split('.')[0];
+      try {
+        await cloudinary.uploader.destroy(`nairobi-verified/merchants/${publicId}`);
+      } catch (err) {
+        console.warn('Failed to delete old logo:', err);
+      }
+    }
+
+    merchant.logo = req.file.path;
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Logo uploaded successfully',
+      data: { logo: merchant.logo }
+    });
+  } catch (error) {
+    console.error('uploadBusinessLogo error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload logo'
+    });
+  }
+};
+
+exports.uploadBusinessBanner = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    if (!req.file) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No banner file provided'
+      });
+    }
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Delete old banner if exists
+    if (merchant.bannerImage && merchant.bannerImage.includes('cloudinary')) {
+      const publicId = merchant.bannerImage.split('/').pop().split('.')[0];
+      try {
+        await cloudinary.uploader.destroy(`nairobi-verified/merchants/${publicId}`);
+      } catch (err) {
+        console.warn('Failed to delete old banner:', err);
+      }
+    }
+
+    merchant.bannerImage = req.file.path;
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Banner uploaded successfully',
+      data: { banner: merchant.bannerImage }
+    });
+  } catch (error) {
+    console.error('uploadBusinessBanner error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload banner'
+    });
+  }
+};
