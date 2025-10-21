@@ -141,7 +141,7 @@ const MerchantVerification = () => {
       setError("");
       setSuccess("");
 
-      await axios.post("/api/merchants/dashboard/verification/request");
+      await api.post("/merchants/dashboard/verification/request");
       
       setSuccess("Verification request submitted successfully! Our team will review your documents within 24-48 hours.");
       await fetchVerificationStatus();
