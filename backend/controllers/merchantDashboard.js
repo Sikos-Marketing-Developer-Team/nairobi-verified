@@ -508,3 +508,199 @@ exports.uploadBusinessBanner = async (req, res) => {
     });
   }
 };
+
+// ==================== PHOTO GALLERY MANAGEMENT ====================
+
+exports.getPhotoGallery = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('gallery').lean();
+    
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: merchant.gallery || []
+    });
+  } catch (error) {
+    console.error('getPhotoGallery error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch photo gallery'
+    });
+  }
+};
+
+exports.uploadPhotos = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No photos provided'
+      });
+    }
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    if (!merchant.gallery) {
+      merchant.gallery = [];
+    }
+
+    const newPhotos = req.files.map(file => file.path);
+    merchant.gallery.push(...newPhotos);
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: `${newPhotos.length} photo(s) uploaded successfully`,
+      data: newPhotos
+    });
+  } catch (error) {
+    console.error('uploadPhotos error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload photos'
+    });
+  }
+};
+
+exports.deletePhoto = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { photoId } = req.params;
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const photoIndex = parseInt(photoId);
+    if (photoIndex < 0 || photoIndex >= merchant.gallery.length) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Photo not found'
+      });
+    }
+
+    const photoUrl = merchant.gallery[photoIndex];
+    
+    // Delete from Cloudinary
+    if (photoUrl && photoUrl.includes('cloudinary')) {
+      const publicId = photoUrl.split('/').pop().split('.')[0];
+      try {
+        await cloudinary.uploader.destroy(`nairobi-verified/merchants/${publicId}`);
+      } catch (err) {
+        console.warn('Failed to delete photo from Cloudinary:', err);
+      }
+    }
+
+    merchant.gallery.splice(photoIndex, 1);
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Photo deleted successfully'
+    });
+  } catch (error) {
+    console.error('deletePhoto error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to delete photo'
+    });
+  }
+};
+
+exports.reorderPhotos = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { photoUrls } = req.body;
+
+    if (!Array.isArray(photoUrls)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'photoUrls must be an array'
+      });
+    }
+
+    const merchant = await Merchant.findByIdAndUpdate(
+      merchantId,
+      { gallery: photoUrls },
+      { new: true }
+    );
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Photos reordered successfully',
+      data: merchant.gallery
+    });
+  } catch (error) {
+    console.error('reorderPhotos error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to reorder photos'
+    });
+  }
+};
+
+exports.setFeaturedPhoto = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { photoId } = req.params;
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const photoIndex = parseInt(photoId);
+    if (photoIndex < 0 || photoIndex >= merchant.gallery.length) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Photo not found'
+      });
+    }
+
+    // Move photo to first position
+    const [photo] = merchant.gallery.splice(photoIndex, 1);
+    merchant.gallery.unshift(photo);
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Featured photo updated successfully',
+      data: merchant.gallery
+    });
+  } catch (error) {
+    console.error('setFeaturedPhoto error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to set featured photo'
+    });
+  }
+};
