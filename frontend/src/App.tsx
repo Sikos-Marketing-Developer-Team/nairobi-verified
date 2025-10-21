@@ -20,6 +20,10 @@ import Favorites from "./pages/Favorites";
 import MerchantDashboard from "./pages/merchant/MerchantDashboard";
 import MerchantProfileEdit from "./pages/merchant/MerchantProfileEdit";
 import MerchantVerification from "./pages/merchant/MerchantVerification";
+import ProductManagement from "./pages/merchant/ProductManagement";
+import ReviewManagement from "./pages/merchant/ReviewManagement";
+import PhotoGallery from "./pages/merchant/PhotoGallery";
+import CustomerEngagement from "./pages/merchant/CustomerEngagement";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -132,6 +136,26 @@ const App = () => (
               <Route path="/merchant/verification" element={
                 <ProtectedRoute requireMerchant={true}>
                   <MerchantVerification />
+                </ProtectedRoute>
+              } />
+              <Route path="/merchant/products" element={
+                <ProtectedRoute requireMerchant={true}>
+                  <ProductManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/merchant/reviews" element={
+                <ProtectedRoute requireMerchant={true}>
+                  <ReviewManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/merchant/gallery" element={
+                <ProtectedRoute requireMerchant={true}>
+                  <PhotoGallery />
+                </ProtectedRoute>
+              } />
+              <Route path="/merchant/engagement" element={
+                <ProtectedRoute requireMerchant={true}>
+                  <CustomerEngagement />
                 </ProtectedRoute>
               } />
               
