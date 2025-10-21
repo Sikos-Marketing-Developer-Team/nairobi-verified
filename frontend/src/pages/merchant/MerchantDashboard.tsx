@@ -504,7 +504,7 @@ const MerchantDashboard = () => {
                     className="w-full justify-start"
                     onClick={() => navigate('/merchant/gallery')}
                   >
-                    <Image className="h-4 w-4 mr-2" />
+                    <ImageIcon className="h-4 w-4 mr-2" />
                     Photo Gallery
                   </Button>
                   <Button
