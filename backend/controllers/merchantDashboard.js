@@ -523,9 +523,19 @@ exports.getPhotoGallery = async (req, res) => {
       });
     }
 
+    // Transform gallery array to objects that match frontend expectations
+    const galleryPhotos = (merchant.gallery || []).map((url, index) => ({
+      _id: `photo-${index}-${Date.now()}`,
+      url: url,
+      caption: '',
+      featured: index === 0, // First photo is featured by default
+      order: index,
+      uploadedAt: new Date().toISOString()
+    }));
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: merchant.gallery || []
+      data: galleryPhotos
     });
   } catch (error) {
     console.error('getPhotoGallery error:', error);
@@ -563,10 +573,20 @@ exports.uploadPhotos = async (req, res) => {
     merchant.gallery.push(...newPhotos);
     await merchant.save();
 
+    // Transform to match frontend expectations
+    const uploadedPhotos = newPhotos.map((url, index) => ({
+      _id: `photo-${merchant.gallery.length - newPhotos.length + index}-${Date.now()}`,
+      url: url,
+      caption: '',
+      featured: false,
+      order: merchant.gallery.length - newPhotos.length + index,
+      uploadedAt: new Date().toISOString()
+    }));
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: `${newPhotos.length} photo(s) uploaded successfully`,
-      data: newPhotos
+      data: uploadedPhotos
     });
   } catch (error) {
     console.error('uploadPhotos error:', error);
@@ -714,14 +734,20 @@ exports.getProducts = async (req, res) => {
 
     const query = { merchant: merchantId };
     if (category) query.category = category;
-    if (available !== undefined) query.available = available === 'true';
+    if (available !== undefined) query.isActive = available === 'true';
 
     const products = await Product.find(query).sort(sort).lean();
 
+    // Map isActive to available for frontend compatibility
+    const mappedProducts = products.map(product => ({
+      ...product,
+      available: product.isActive
+    }));
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      count: products.length,
-      data: products
+      count: mappedProducts.length,
+      data: mappedProducts
     });
   } catch (error) {
     console.error('getProducts error:', error);
@@ -762,10 +788,48 @@ exports.getProductById = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const merchantId = req.user._id;
-    const product = await Product.create({
-      ...req.body,
-      merchant: merchantId
-    });
+    console.log('📦 Creating product for merchant:', merchantId);
+    console.log('Product data:', req.body);
+    
+    // Validate required fields
+    if (!req.body.name || !req.body.category || !req.body.description) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Name, category, and description are required'
+      });
+    }
+
+    // Get merchant details for merchantName
+    const merchant = await Merchant.findById(merchantId).select('businessName');
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Prepare product data with defaults for required fields
+    const productData = {
+      name: req.body.name,
+      description: req.body.description,
+      category: req.body.category,
+      price: req.body.price || 0,
+      originalPrice: req.body.originalPrice || req.body.price || 0,
+      subcategory: req.body.subcategory || 'General',
+      merchant: merchantId,
+      merchantName: merchant.businessName,
+      images: req.body.images || [],
+      primaryImage: req.body.primaryImage || (req.body.images && req.body.images[0]) || '/placeholder-product.jpg',
+      stockQuantity: req.body.stockQuantity || 0,
+      featured: req.body.featured || false,
+      isActive: req.body.available !== undefined ? req.body.available : true,
+      tags: req.body.tags || [],
+      brand: req.body.brand || merchant.businessName
+    };
+
+    const product = await Product.create(productData);
+
+    console.log('✅ Product created successfully:', product._id);
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -773,10 +837,10 @@ exports.createProduct = async (req, res) => {
       data: product
     });
   } catch (error) {
-    console.error('createProduct error:', error);
+    console.error('❌ createProduct error:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: 'Failed to create product'
+      error: error.message || 'Failed to create product'
     });
   }
 };
@@ -786,9 +850,16 @@ exports.updateProduct = async (req, res) => {
     const merchantId = req.user._id;
     const { productId } = req.params;
 
+    // Map frontend 'available' to backend 'isActive'
+    const updateData = { ...req.body };
+    if (updateData.available !== undefined) {
+      updateData.isActive = updateData.available;
+      delete updateData.available;
+    }
+
     const product = await Product.findOneAndUpdate(
       { _id: productId, merchant: merchantId },
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -851,7 +922,7 @@ exports.toggleProductAvailability = async (req, res) => {
 
     const product = await Product.findOneAndUpdate(
       { _id: productId, merchant: merchantId },
-      { available },
+      { isActive: available },
       { new: true }
     );
 
@@ -865,7 +936,10 @@ exports.toggleProductAvailability = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: `Product ${available ? 'activated' : 'deactivated'} successfully`,
-      data: product
+      data: {
+        ...product.toObject(),
+        available: product.isActive
+      }
     });
   } catch (error) {
     console.error('toggleProductAvailability error:', error);
