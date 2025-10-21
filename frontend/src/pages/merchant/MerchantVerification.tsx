@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { 
   Upload, 
   FileText, 
@@ -70,7 +72,7 @@ const MerchantVerification = () => {
   const fetchVerificationStatus = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("/api/merchants/dashboard/verification/status");
+      const response = await api.get("/merchants/dashboard/verification/status");
       setVerificationStatus(response.data.data);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to load verification status");
@@ -81,7 +83,7 @@ const MerchantVerification = () => {
 
   const fetchVerificationHistory = async () => {
     try {
-      const response = await axios.get("/api/merchants/dashboard/verification/history");
+      const response = await api.get("/merchants/dashboard/verification/history");
       setVerificationHistory(response.data.data || []);
     } catch (err: any) {
       console.error("Failed to load verification history:", err);
@@ -113,8 +115,8 @@ const MerchantVerification = () => {
       formData.append("documents", file);
       formData.append("documentType", documentType);
 
-      const response = await axios.post(
-        "/api/merchants/dashboard/verification/documents",
+      const response = await api.post(
+        "/merchants/dashboard/verification/documents",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" }
@@ -139,7 +141,7 @@ const MerchantVerification = () => {
       setError("");
       setSuccess("");
 
-      await axios.post("/api/merchants/dashboard/verification/request");
+      await api.post("/merchants/dashboard/verification/request");
       
       setSuccess("Verification request submitted successfully! Our team will review your documents within 24-48 hours.");
       await fetchVerificationStatus();
@@ -307,8 +309,15 @@ const MerchantVerification = () => {
 
   if (loading && !verificationStatus) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading verification status...</p>
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -323,7 +332,11 @@ const MerchantVerification = () => {
     verificationStatus?.verificationStatus === "pending";
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto space-y-6">{/* Header */}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -522,6 +535,10 @@ const MerchantVerification = () => {
           </div>
         </CardContent>
       </Card>
+        </div>
+      </main>
+      
+      <Footer />
     </div>
   );
 };
