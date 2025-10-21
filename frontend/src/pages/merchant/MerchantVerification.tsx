@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +72,7 @@ const MerchantVerification = () => {
   const fetchVerificationStatus = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("/api/merchants/dashboard/verification/status");
+      const response = await api.get("/merchants/dashboard/verification/status");
       setVerificationStatus(response.data.data);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to load verification status");
@@ -83,7 +83,7 @@ const MerchantVerification = () => {
 
   const fetchVerificationHistory = async () => {
     try {
-      const response = await axios.get("/api/merchants/dashboard/verification/history");
+      const response = await api.get("/merchants/dashboard/verification/history");
       setVerificationHistory(response.data.data || []);
     } catch (err: any) {
       console.error("Failed to load verification history:", err);
@@ -115,8 +115,8 @@ const MerchantVerification = () => {
       formData.append("documents", file);
       formData.append("documentType", documentType);
 
-      const response = await axios.post(
-        "/api/merchants/dashboard/verification/documents",
+      const response = await api.post(
+        "/merchants/dashboard/verification/documents",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" }
