@@ -347,7 +347,7 @@ const MerchantDashboard = () => {
 
           <Card
             className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-indigo-500"
-            onClick={() => window.open(`/merchants/${dashboardData.merchant._id}`, '_blank')}
+            onClick={() => window.open(`/merchants/${dashboardData.merchant.id}`, '_blank')}
           >
             <CardContent className="pt-6 text-center">
               <Eye className="h-8 w-8 mx-auto mb-3 text-indigo-600" />
