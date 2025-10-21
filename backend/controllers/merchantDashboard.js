@@ -704,3 +704,267 @@ exports.setFeaturedPhoto = async (req, res) => {
     });
   }
 };
+
+// ==================== PRODUCT/SERVICE MANAGEMENT ====================
+
+exports.getProducts = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { category, available, sort = '-createdAt' } = req.query;
+
+    const query = { merchant: merchantId };
+    if (category) query.category = category;
+    if (available !== undefined) query.available = available === 'true';
+
+    const products = await Product.find(query).sort(sort).lean();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      count: products.length,
+      data: products
+    });
+  } catch (error) {
+    console.error('getProducts error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch products'
+    });
+  }
+};
+
+exports.getProductById = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId } = req.params;
+
+    const product = await Product.findOne({ _id: productId, merchant: merchantId }).lean();
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: product
+    });
+  } catch (error) {
+    console.error('getProductById error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch product'
+    });
+  }
+};
+
+exports.createProduct = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const product = await Product.create({
+      ...req.body,
+      merchant: merchantId
+    });
+
+    res.status(HTTP_STATUS.CREATED).json({
+      success: true,
+      message: 'Product created successfully',
+      data: product
+    });
+  } catch (error) {
+    console.error('createProduct error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to create product'
+    });
+  }
+};
+
+exports.updateProduct = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId } = req.params;
+
+    const product = await Product.findOneAndUpdate(
+      { _id: productId, merchant: merchantId },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Product updated successfully',
+      data: product
+    });
+  } catch (error) {
+    console.error('updateProduct error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to update product'
+    });
+  }
+};
+
+exports.deleteProduct = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId } = req.params;
+
+    const product = await Product.findOneAndDelete({
+      _id: productId,
+      merchant: merchantId
+    });
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Product deleted successfully'
+    });
+  } catch (error) {
+    console.error('deleteProduct error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to delete product'
+    });
+  }
+};
+
+exports.toggleProductAvailability = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId } = req.params;
+    const { available } = req.body;
+
+    const product = await Product.findOneAndUpdate(
+      { _id: productId, merchant: merchantId },
+      { available },
+      { new: true }
+    );
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: `Product ${available ? 'activated' : 'deactivated'} successfully`,
+      data: product
+    });
+  } catch (error) {
+    console.error('toggleProductAvailability error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to toggle product availability'
+    });
+  }
+};
+
+exports.uploadProductImages = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId } = req.params;
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No images provided'
+      });
+    }
+
+    const product = await Product.findOne({ _id: productId, merchant: merchantId });
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    if (!product.images) {
+      product.images = [];
+    }
+
+    const newImages = req.files.map(file => file.path);
+    product.images.push(...newImages);
+    await product.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: `${newImages.length} image(s) uploaded successfully`,
+      data: newImages
+    });
+  } catch (error) {
+    console.error('uploadProductImages error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload product images'
+    });
+  }
+};
+
+exports.deleteProductImage = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId, imageId } = req.params;
+
+    const product = await Product.findOne({ _id: productId, merchant: merchantId });
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    const imageIndex = parseInt(imageId);
+    if (imageIndex < 0 || imageIndex >= product.images.length) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Image not found'
+      });
+    }
+
+    const imageUrl = product.images[imageIndex];
+    
+    // Delete from Cloudinary
+    if (imageUrl && imageUrl.includes('cloudinary')) {
+      const publicId = imageUrl.split('/').pop().split('.')[0];
+      try {
+        await cloudinary.uploader.destroy(`nairobi-verified/products/${publicId}`);
+      } catch (err) {
+        console.warn('Failed to delete image from Cloudinary:', err);
+      }
+    }
+
+    product.images.splice(imageIndex, 1);
+    await product.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Image deleted successfully'
+    });
+  } catch (error) {
+    console.error('deleteProductImage error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to delete product image'
+    });
+  }
+};
