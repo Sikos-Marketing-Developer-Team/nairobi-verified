@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Store, Edit, Eye, Plus, MessageSquare, Star, TrendingUp, 
-  Package, Image, Shield, PhoneCall, MessageCircle, BarChart3,
-  AlertCircle, CheckCircle, Clock, Users
+  Package, Image as ImageIcon, Shield, PhoneCall, MessageCircle, BarChart3,
+  AlertCircle, CheckCircle, Clock, Users, LogOut
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -285,23 +285,89 @@ const MerchantDashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {quickActions.map((action) => {
-            const IconComponent = getIconComponent(action.icon);
-            return (
-              <Card
-                key={action.id}
-                className={`cursor-pointer hover:shadow-lg transition-shadow ${
-                  !action.enabled ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                onClick={() => action.enabled && navigate(action.link)}
-              >
-                <CardContent className="pt-6 text-center">
-                  <IconComponent className="h-8 w-8 mx-auto mb-3 text-primary" />
-                  <p className="font-medium text-sm">{action.label}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-blue-500"
+            onClick={() => navigate('/merchant/profile/edit')}
+          >
+            <CardContent className="pt-6 text-center">
+              <Edit className="h-8 w-8 mx-auto mb-3 text-blue-600" />
+              <p className="font-medium text-sm">Edit Profile</p>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-green-500"
+            onClick={() => navigate('/merchant/products')}
+          >
+            <CardContent className="pt-6 text-center">
+              <Package className="h-8 w-8 mx-auto mb-3 text-green-600" />
+              <p className="font-medium text-sm">Manage Products</p>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-purple-500"
+            onClick={() => navigate('/merchant/reviews')}
+          >
+            <CardContent className="pt-6 text-center">
+              <MessageSquare className="h-8 w-8 mx-auto mb-3 text-purple-600" />
+              <p className="font-medium text-sm">Manage Reviews</p>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-pink-500"
+            onClick={() => navigate('/merchant/gallery')}
+          >
+            <CardContent className="pt-6 text-center">
+              <ImageIcon className="h-8 w-8 mx-auto mb-3 text-pink-600" />
+              <p className="font-medium text-sm">Photo Gallery</p>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-yellow-500"
+            onClick={() => navigate('/merchant/verification')}
+          >
+            <CardContent className="pt-6 text-center">
+              <Shield className="h-8 w-8 mx-auto mb-3 text-yellow-600" />
+              <p className="font-medium text-sm">Verification</p>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-orange-500"
+            onClick={() => navigate('/merchant/engagement')}
+          >
+            <CardContent className="pt-6 text-center">
+              <TrendingUp className="h-8 w-8 mx-auto mb-3 text-orange-600" />
+              <p className="font-medium text-sm">Engagement Stats</p>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-indigo-500"
+            onClick={() => window.open(`/merchants/${dashboardData.merchant._id}`, '_blank')}
+          >
+            <CardContent className="pt-6 text-center">
+              <Eye className="h-8 w-8 mx-auto mb-3 text-indigo-600" />
+              <p className="font-medium text-sm">View Public Page</p>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-red-500"
+            onClick={() => {
+              // Logout functionality
+              localStorage.removeItem('token');
+              navigate('/merchant/login');
+            }}
+          >
+            <CardContent className="pt-6 text-center">
+              <LogOut className="h-8 w-8 mx-auto mb-3 text-red-600" />
+              <p className="font-medium text-sm">Logout</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Stats Overview */}
