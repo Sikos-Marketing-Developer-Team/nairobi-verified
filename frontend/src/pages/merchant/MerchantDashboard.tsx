@@ -205,7 +205,7 @@ const MerchantDashboard = () => {
         </div>
 
         {/* Urgent Action Required - No Documents Uploaded */}
-        {dashboardData.verificationStatus.documentsCompleteness === 0 && (
+        {dashboardData.profileCompletion.documentsPercentage === 0 && (
           <Alert className="mb-6 bg-red-50 border-red-300 border-2">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <div className="ml-2">
