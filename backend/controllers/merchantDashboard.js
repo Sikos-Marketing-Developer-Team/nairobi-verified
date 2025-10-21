@@ -1144,3 +1144,352 @@ exports.getReviewStats = async (req, res) => {
     });
   }
 };
+
+// ==================== VERIFICATION STATUS ====================
+
+exports.getVerificationStatus = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId)
+      .select('verified featured verifiedDate documents profileCompleteness documentsCompleteness')
+      .lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const status = {
+      isVerified: merchant.verified,
+      isFeatured: merchant.featured || false,
+      verificationLevel: merchant.verified ? (merchant.featured ? 'Premium' : 'Standard') : 'Basic',
+      verifiedDate: merchant.verifiedDate || null,
+      profileCompleteness: merchant.profileCompleteness || 0,
+      documentsCompleteness: merchant.documentsCompleteness || 0,
+      documents: merchant.documents || {},
+      documentReviewStatus: merchant.documents?.documentReviewStatus || 'pending',
+      verificationNotes: merchant.documents?.verificationNotes || null
+    };
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: status
+    });
+  } catch (error) {
+    console.error('getVerificationStatus error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch verification status'
+    });
+  }
+};
+
+exports.requestVerification = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId);
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    if (!merchant.documents || merchant.documentsCompleteness < 100) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Please upload all required documents before requesting verification'
+      });
+    }
+
+    if (!merchant.documents.documentReviewStatus || merchant.documents.documentReviewStatus === 'pending') {
+      merchant.documents.documentReviewStatus = 'under_review';
+      merchant.documents.documentsSubmittedAt = new Date();
+      await merchant.save();
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Verification request submitted. Our team will review your documents within 2-3 business days.',
+      data: {
+        status: merchant.documents.documentReviewStatus,
+        submittedAt: merchant.documents.documentsSubmittedAt
+      }
+    });
+  } catch (error) {
+    console.error('requestVerification error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to request verification'
+    });
+  }
+};
+
+exports.uploadVerificationDocuments = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    if (!req.files || Object.keys(req.files).length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No documents provided'
+      });
+    }
+
+    const merchant = await Merchant.findById(merchantId);
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    if (!merchant.documents) {
+      merchant.documents = {};
+    }
+
+    const uploadedDocs = {};
+
+    if (req.files.businessRegistration && req.files.businessRegistration[0]) {
+      const file = req.files.businessRegistration[0];
+      merchant.documents.businessRegistration = {
+        cloudinaryUrl: file.path,
+        publicId: file.filename,
+        originalName: file.originalname,
+        uploadedAt: new Date()
+      };
+      uploadedDocs.businessRegistration = true;
+    }
+
+    if (req.files.idDocument && req.files.idDocument[0]) {
+      const file = req.files.idDocument[0];
+      merchant.documents.idDocument = {
+        cloudinaryUrl: file.path,
+        publicId: file.filename,
+        originalName: file.originalname,
+        uploadedAt: new Date()
+      };
+      uploadedDocs.idDocument = true;
+    }
+
+    if (req.files.utilityBill && req.files.utilityBill[0]) {
+      const file = req.files.utilityBill[0];
+      merchant.documents.utilityBill = {
+        cloudinaryUrl: file.path,
+        publicId: file.filename,
+        originalName: file.originalname,
+        uploadedAt: new Date()
+      };
+      uploadedDocs.utilityBill = true;
+    }
+
+    if (req.files.additionalDocs && req.files.additionalDocs.length > 0) {
+      if (!merchant.documents.additionalDocs) {
+        merchant.documents.additionalDocs = [];
+      }
+      req.files.additionalDocs.forEach(file => {
+        merchant.documents.additionalDocs.push({
+          cloudinaryUrl: file.path,
+          publicId: file.filename,
+          originalName: file.originalname,
+          uploadedAt: new Date()
+        });
+      });
+      uploadedDocs.additionalDocs = req.files.additionalDocs.length;
+    }
+
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Documents uploaded successfully',
+      data: uploadedDocs
+    });
+  } catch (error) {
+    console.error('uploadVerificationDocuments error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload documents'
+    });
+  }
+};
+
+exports.getVerificationHistory = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId)
+      .select('verified verifiedDate documents.documentsSubmittedAt documents.documentsReviewedAt documents.documentReviewStatus documents.verificationNotes createdAt')
+      .lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const history = [
+      {
+        event: 'Account Created',
+        date: merchant.createdAt || null,
+        status: 'completed'
+      }
+    ];
+
+    if (merchant.documents?.documentsSubmittedAt) {
+      history.push({
+        event: 'Documents Submitted',
+        date: merchant.documents.documentsSubmittedAt,
+        status: 'completed'
+      });
+    }
+
+    if (merchant.documents?.documentsReviewedAt) {
+      history.push({
+        event: 'Documents Reviewed',
+        date: merchant.documents.documentsReviewedAt,
+        status: merchant.verified ? 'approved' : 'rejected',
+        notes: merchant.documents.verificationNotes
+      });
+    }
+
+    if (merchant.verified && merchant.verifiedDate) {
+      history.push({
+        event: 'Verification Approved',
+        date: merchant.verifiedDate,
+        status: 'completed'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: history
+    });
+  } catch (error) {
+    console.error('getVerificationHistory error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch verification history'
+    });
+  }
+};
+
+// ==================== CUSTOMER ENGAGEMENT ====================
+
+exports.getEngagementStats = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('analytics').lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const analytics = merchant.analytics || {
+      profileViews: 0,
+      whatsappClicks: 0,
+      callClicks: 0,
+      websiteClicks: 0,
+      directionsClicks: 0
+    };
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: analytics
+    });
+  } catch (error) {
+    console.error('getEngagementStats error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch engagement statistics'
+    });
+  }
+};
+
+exports.getWhatsAppClicks = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('analytics.whatsappClicks').lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: {
+        whatsappClicks: merchant.analytics?.whatsappClicks || 0
+      }
+    });
+  } catch (error) {
+    console.error('getWhatsAppClicks error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch WhatsApp clicks'
+    });
+  }
+};
+
+exports.getCallClicks = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('analytics.callClicks').lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: {
+        callClicks: merchant.analytics?.callClicks || 0
+      }
+    });
+  } catch (error) {
+    console.error('getCallClicks error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch call clicks'
+    });
+  }
+};
+
+exports.getProfileViews = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('analytics.profileViews').lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: {
+        profileViews: merchant.analytics?.profileViews || 0
+      }
+    });
+  } catch (error) {
+    console.error('getProfileViews error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch profile views'
+    });
+  }
+};
