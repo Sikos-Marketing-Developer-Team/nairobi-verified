@@ -56,9 +56,13 @@ const PhotoGallery = () => {
   const fetchGallery = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Fetching gallery...');
       const response = await axios.get("/api/merchants/dashboard/gallery");
+      console.log('✅ Gallery fetched:', response.data);
+      console.log('Photos count:', response.data.data?.length || 0);
       setGallery(response.data.data || []);
     } catch (err: any) {
+      console.error('❌ Failed to fetch gallery:', err);
       setError(err.response?.data?.message || "Failed to load gallery");
     } finally {
       setLoading(false);
@@ -118,23 +122,37 @@ const PhotoGallery = () => {
       setError("");
       setSuccess("");
 
+      console.log('📸 Starting photo upload...');
+      console.log('Files to upload:', selectedFiles.length);
+      selectedFiles.forEach((file, index) => {
+        console.log(`  [${index + 1}] ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+      });
+
       const formData = new FormData();
       selectedFiles.forEach(file => {
         formData.append("photos", file);
       });
 
-      await axios.post("/api/merchants/dashboard/gallery", formData, {
+      console.log('🔄 Sending upload request...');
+      const response = await axios.post("/api/merchants/dashboard/gallery", formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
+
+      console.log('✅ Upload successful:', response.data);
+      console.log('Uploaded photos:', response.data.data);
 
       setSuccess(`${selectedFiles.length} photo(s) uploaded successfully`);
       setSelectedFiles([]);
       setPreviewUrls([]);
+      
+      console.log('🔄 Fetching updated gallery...');
       await fetchGallery();
       
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to upload photos");
+      console.error('❌ Upload failed:', err);
+      console.error('Error response:', err.response?.data);
+      setError(err.response?.data?.error || err.response?.data?.message || "Failed to upload photos");
     } finally {
       setUploading(false);
     }

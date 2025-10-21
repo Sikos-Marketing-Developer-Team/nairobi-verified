@@ -102,10 +102,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      // CRITICAL FIX: Ensure role is included and persisted
+      // CRITICAL FIX: Determine role intelligently based on multiple signals
+      let determinedRole: 'user' | 'merchant' | 'admin' = 'user';
+      
+      if (userData.role) {
+        // Backend explicitly provided role - trust it
+        determinedRole = userData.role;
+      } else if (userData.isMerchant || userData.businessName) {
+        // Has merchant indicators - must be a merchant
+        determinedRole = 'merchant';
+      } else {
+        // Fallback to stored role only if no other signals
+        const storedRole = sessionStorage.getItem(LS_USER_ROLE_KEY) as 'user' | 'merchant' | 'admin';
+        determinedRole = storedRole || 'user';
+      }
+      
+      console.log('🎯 Determined role:', determinedRole, {
+        fromBackend: userData.role,
+        isMerchant: userData.isMerchant,
+        hasBusinessName: !!userData.businessName,
+        stored: sessionStorage.getItem(LS_USER_ROLE_KEY)
+      });
+
       const userWithRole = {
         ...userData,
-        role: userData.role || sessionStorage.getItem(LS_USER_ROLE_KEY) as 'user' | 'merchant' | 'admin' || 'user'
+        role: determinedRole
       };
 
       setUserWithPersistence(userWithRole);

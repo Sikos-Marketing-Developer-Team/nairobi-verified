@@ -204,6 +204,28 @@ const MerchantDashboard = () => {
           </p>
         </div>
 
+        {/* Urgent Action Required - No Documents Uploaded */}
+        {dashboardData.profileCompletion.documentsPercentage === 0 && (
+          <Alert className="mb-6 bg-red-50 border-red-300 border-2">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <div className="ml-2">
+              <h3 className="font-bold text-red-800 mb-1">🚨 Urgent: Verification Documents Required</h3>
+              <AlertDescription className="text-red-700">
+                <p className="mb-2">
+                  Your account needs verification documents to unlock all features. Please upload your documents now.
+                </p>
+                <Button 
+                  onClick={() => navigate("/merchant/verification")} 
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white mt-2"
+                >
+                  Upload Documents Now →
+                </Button>
+              </AlertDescription>
+            </div>
+          </Alert>
+        )}
+
         {/* Notifications */}
         {notifications.length > 0 && (
           <div className="mb-6 space-y-2">
