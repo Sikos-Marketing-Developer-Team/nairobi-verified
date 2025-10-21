@@ -434,9 +434,28 @@ exports.getMe = async (req, res) => {
       });
     }
 
+    // CRITICAL FIX: Convert Mongoose document to plain object to add role
+    const userData = req.user.toObject ? req.user.toObject() : req.user;
+    
+    // Determine role from user type
+    const isMerchant = req.user.businessName !== undefined || 
+                       req.user.constructor?.modelName === 'Merchant';
+    
+    // Add role explicitly
+    userData.role = isMerchant ? 'merchant' : (req.user.role || 'user');
+    userData.isMerchant = isMerchant;
+    
+    console.log('🔍 getMe response:', {
+      id: userData.id || userData._id,
+      email: userData.email,
+      role: userData.role,
+      isMerchant: userData.isMerchant,
+      businessName: userData.businessName
+    });
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: req.user
+      data: userData
     });
   } catch (error) {
     console.error('GetMe error:', error);
