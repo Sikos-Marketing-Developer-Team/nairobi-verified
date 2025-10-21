@@ -3,6 +3,9 @@ const Review = require('../models/Review');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const { HTTP_STATUS } = require('../config/constants');
+const cloudinary = require('cloudinary').v2;
+
+// ==================== DASHBOARD OVERVIEW ====================
 
 /**
  * @desc    Get merchant dashboard overview
@@ -11,15 +14,10 @@ const { HTTP_STATUS } = require('../config/constants');
  */
 exports.getDashboardOverview = async (req, res) => {
   try {
-    // Use the merchant ID from the authenticated user
-    // Since you're using session auth, req.user IS the merchant when they log in
     const merchantId = req.user._id;
 
-    console.log('🔍 Fetching dashboard for merchant ID:', merchantId);
-
-    // Fetch merchant data directly using the logged-in merchant's ID
     const merchant = await Merchant.findById(merchantId)
-      .select('businessName email phone verified featured rating reviews profileCompleteness documentsCompleteness createdAt verifiedDate')
+      .select('businessName email phone verified featured rating reviews profileCompleteness documentsCompleteness createdAt verifiedDate logo banner')
       .lean();
 
     if (!merchant) {
@@ -33,6 +31,7 @@ exports.getDashboardOverview = async (req, res) => {
     const verificationStatus = {
       isVerified: merchant.verified,
       isFeatured: merchant.featured || false,
+      verificationLevel: merchant.verified ? (merchant.featured ? 'Premium' : 'Standard') : 'Basic',
       verificationBadge: merchant.verified ? 'Verified Business' : 'Pending Verification',
       statusMessage: merchant.verified 
         ? 'Your business is verified and visible to customers' 
@@ -40,12 +39,7 @@ exports.getDashboardOverview = async (req, res) => {
       verifiedDate: merchant.verifiedDate || null
     };
 
-    // Get profile completion with real calculation
-    const documentStatus = merchant.getDocumentStatus ? merchant.getDocumentStatus() : {
-      isComplete: false,
-      completionPercentage: 0
-    };
-
+    // Get profile completion
     const profileCompletion = {
       percentage: merchant.profileCompleteness || 0,
       documentsPercentage: merchant.documentsCompleteness || 0,
@@ -62,6 +56,12 @@ exports.getDashboardOverview = async (req, res) => {
       profileCompletion.nextSteps.push('Documents under review');
     }
 
+    // Get quick stats
+    const [reviewCount, productCount] = await Promise.all([
+      Review.countDocuments({ merchant: merchantId }),
+      Product.countDocuments({ merchant: merchantId })
+    ]);
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: {
@@ -71,8 +71,11 @@ exports.getDashboardOverview = async (req, res) => {
           email: merchant.email,
           phone: merchant.phone,
           rating: merchant.rating || 0,
-          totalReviews: merchant.reviews || 0,
-          memberSince: merchant.createdAt
+          totalReviews: reviewCount,
+          totalProducts: productCount,
+          memberSince: merchant.createdAt,
+          logo: merchant.logo,
+          banner: merchant.banner
         },
         verificationStatus,
         profileCompletion
@@ -89,165 +92,48 @@ exports.getDashboardOverview = async (req, res) => {
 };
 
 /**
- * @desc    Get merchant performance analytics (REAL DATA ONLY)
+ * @desc    Get merchant performance analytics
  * @route   GET /api/merchants/dashboard/analytics
  * @access  Private/Merchant
  */
 exports.getPerformanceAnalytics = async (req, res) => {
   try {
     const merchantId = req.user._id;
-    const { period = '30' } = req.query; // days
+    const { period = '30' } = req.query;
+    const days = parseInt(period);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
 
-    const daysAgo = new Date();
-    daysAgo.setDate(daysAgo.getDate() - parseInt(period));
-
-    // Calculate previous period for growth comparison
-    const previousPeriodStart = new Date(daysAgo);
-    previousPeriodStart.setDate(previousPeriodStart.getDate() - parseInt(period));
-
-    // Get reviews data
-    const [totalReviews, recentReviews, previousPeriodReviews] = await Promise.all([
+    const [totalReviews, recentReviews, averageRating] = await Promise.all([
       Review.countDocuments({ merchant: merchantId }),
-      Review.countDocuments({
-        merchant: merchantId,
-        createdAt: { $gte: daysAgo }
-      }),
-      Review.countDocuments({
-        merchant: merchantId,
-        createdAt: { $gte: previousPeriodStart, $lt: daysAgo }
-      })
+      Review.countDocuments({ merchant: merchantId, createdAt: { $gte: startDate } }),
+      Review.aggregate([
+        { $match: { merchant: merchantId } },
+        { $group: { _id: null, avgRating: { $avg: '$rating' } } }
+      ])
     ]);
 
-    // Calculate reviews growth
-    const reviewsGrowth = previousPeriodReviews > 0 
-      ? ((recentReviews - previousPeriodReviews) / previousPeriodReviews * 100).toFixed(1)
-      : recentReviews > 0 ? '100' : '0';
-
-    // Get products data
-    let productsData = null;
-    try {
-      const [totalProducts, activeProducts, recentProducts, previousProducts] = await Promise.all([
-        Product.countDocuments({ merchant: merchantId }),
-        Product.countDocuments({ merchant: merchantId, isActive: true }),
-        Product.countDocuments({
-          merchant: merchantId,
-          createdAt: { $gte: daysAgo }
-        }),
-        Product.countDocuments({
-          merchant: merchantId,
-          createdAt: { $gte: previousPeriodStart, $lt: daysAgo }
-        })
-      ]);
-
-      const productsGrowth = previousProducts > 0
-        ? ((recentProducts - previousProducts) / previousProducts * 100).toFixed(1)
-        : recentProducts > 0 ? '100' : '0';
-
-      productsData = {
-        total: totalProducts,
-        active: activeProducts,
-        inactive: totalProducts - activeProducts,
-        recent: recentProducts,
-        growth: `${productsGrowth >= 0 ? '+' : ''}${productsGrowth}%`
-      };
-    } catch (error) {
-      console.log('Product model not available:', error.message);
-    }
-
-    // Get orders data
-    let ordersData = null;
-    try {
-      const [totalOrders, recentOrders, previousOrders] = await Promise.all([
-        Order.countDocuments({ 'items.merchant': merchantId }),
-        Order.countDocuments({
-          'items.merchant': merchantId,
-          createdAt: { $gte: daysAgo }
-        }),
-        Order.countDocuments({
-          'items.merchant': merchantId,
-          createdAt: { $gte: previousPeriodStart, $lt: daysAgo }
-        })
-      ]);
-
-      const ordersGrowth = previousOrders > 0
-        ? ((recentOrders - previousOrders) / previousOrders * 100).toFixed(1)
-        : recentOrders > 0 ? '100' : '0';
-
-      // Calculate revenue
-      const revenueData = await Order.aggregate([
-        {
-          $match: {
-            'items.merchant': merchantId,
-            paymentStatus: 'paid',
-            createdAt: { $gte: daysAgo }
-          }
-        },
-        { $unwind: '$items' },
-        { $match: { 'items.merchant': merchantId } },
-        {
-          $group: {
-            _id: null,
-            totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
-          }
-        }
-      ]);
-
-      const previousRevenue = await Order.aggregate([
-        {
-          $match: {
-            'items.merchant': merchantId,
-            paymentStatus: 'paid',
-            createdAt: { $gte: previousPeriodStart, $lt: daysAgo }
-          }
-        },
-        { $unwind: '$items' },
-        { $match: { 'items.merchant': merchantId } },
-        {
-          $group: {
-            _id: null,
-            totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
-          }
-        }
-      ]);
-
-      const currentRevenue = revenueData[0]?.totalRevenue || 0;
-      const prevRevenue = previousRevenue[0]?.totalRevenue || 0;
-      
-      const revenueGrowth = prevRevenue > 0
-        ? ((currentRevenue - prevRevenue) / prevRevenue * 100).toFixed(1)
-        : currentRevenue > 0 ? '100' : '0';
-
-      ordersData = {
-        total: totalOrders,
-        recent: recentOrders,
-        growth: `${ordersGrowth >= 0 ? '+' : ''}${ordersGrowth}%`,
-        revenue: {
-          current: currentRevenue,
-          previous: prevRevenue,
-          growth: `${revenueGrowth >= 0 ? '+' : ''}${revenueGrowth}%`,
-          currency: 'KES'
-        }
-      };
-    } catch (error) {
-      console.log('Order model not available:', error.message);
-    }
+    const [totalProducts, activeProducts] = await Promise.all([
+      Product.countDocuments({ merchant: merchantId }),
+      Product.countDocuments({ merchant: merchantId, available: true })
+    ]);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: {
-        period: `Last ${period} days`,
-        analytics: {
-          reviews: {
-            total: totalReviews,
-            recent: recentReviews,
-            growth: `${reviewsGrowth >= 0 ? '+' : ''}${reviewsGrowth}%`
-          }
+        period: `${days} days`,
+        reviews: {
+          total: totalReviews,
+          recent: recentReviews,
+          averageRating: averageRating[0]?.avgRating || 0
         },
-        products: productsData,
-        orders: ordersData
+        products: {
+          total: totalProducts,
+          active: activeProducts,
+          inactive: totalProducts - activeProducts
+        }
       }
     });
-
   } catch (error) {
     console.error('getPerformanceAnalytics error:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
@@ -258,103 +144,47 @@ exports.getPerformanceAnalytics = async (req, res) => {
 };
 
 /**
- * @desc    Get merchant recent activity
+ * @desc    Get recent activity
  * @route   GET /api/merchants/dashboard/activity
  * @access  Private/Merchant
  */
 exports.getRecentActivity = async (req, res) => {
   try {
     const merchantId = req.user._id;
-    const { limit = 10 } = req.query;
+    const limit = parseInt(req.query.limit) || 10;
 
-    const activities = [];
+    const [recentReviews, recentProducts] = await Promise.all([
+      Review.find({ merchant: merchantId })
+        .sort('-createdAt')
+        .limit(5)
+        .select('rating comment userName createdAt')
+        .lean(),
+      Product.find({ merchant: merchantId })
+        .sort('-createdAt')
+        .limit(5)
+        .select('name createdAt')
+        .lean()
+    ]);
 
-    // Get recent reviews
-    const recentReviews = await Review.find({ merchant: merchantId })
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .populate('user', 'firstName lastName')
-      .select('rating content createdAt user')
-      .lean();
-
-    recentReviews.forEach(review => {
-      const timeAgo = getTimeAgo(review.createdAt);
-      const userName = review.user ? 
-        `${review.user.firstName || ''} ${review.user.lastName || ''}`.trim() : 
-        'Customer';
-      
-      activities.push({
+    const activities = [
+      ...recentReviews.map(r => ({
         type: 'review',
-        description: `New ${review.rating}-star review from ${userName}`,
-        timestamp: timeAgo,
-        date: review.createdAt,
-        data: {
-          rating: review.rating,
-          content: review.content.substring(0, 100) + (review.content.length > 100 ? '...' : '')
-        }
-      });
-    });
-
-    // Get recent products
-    try {
-      const recentProducts = await Product.find({ merchant: merchantId })
-        .sort({ createdAt: -1 })
-        .limit(parseInt(limit))
-        .select('name createdAt isActive')
-        .lean();
-
-      recentProducts.forEach(product => {
-        activities.push({
-          type: 'product',
-          description: `Product "${product.name}" ${product.isActive ? 'published' : 'created'}`,
-          timestamp: getTimeAgo(product.createdAt),
-          date: product.createdAt,
-          data: {
-            productName: product.name,
-            status: product.isActive ? 'active' : 'inactive'
-          }
-        });
-      });
-    } catch (error) {
-      console.log('No products found or Product model unavailable');
-    }
-
-    // Get recent orders
-    try {
-      const recentOrders = await Order.find({ 'items.merchant': merchantId })
-        .sort({ createdAt: -1 })
-        .limit(parseInt(limit))
-        .select('orderNumber status createdAt totalAmount')
-        .lean();
-
-      recentOrders.forEach(order => {
-        activities.push({
-          type: 'order',
-          description: `New order #${order.orderNumber}`,
-          timestamp: getTimeAgo(order.createdAt),
-          date: order.createdAt,
-          data: {
-            orderNumber: order.orderNumber,
-            status: order.status,
-            amount: order.totalAmount
-          }
-        });
-      });
-    } catch (error) {
-      console.log('No orders found or Order model unavailable');
-    }
-
-    // Sort all activities by date and limit
-    const sortedActivities = activities
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, parseInt(limit));
+        description: `New ${r.rating}-star review from ${r.userName}`,
+        timestamp: r.createdAt,
+        data: r
+      })),
+      ...recentProducts.map(p => ({
+        type: 'product',
+        description: `Added new product: ${p.name}`,
+        timestamp: p.createdAt,
+        data: p
+      }))
+    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, limit);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      count: sortedActivities.length,
-      data: sortedActivities
+      data: activities
     });
-
   } catch (error) {
     console.error('getRecentActivity error:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
@@ -365,122 +195,35 @@ exports.getRecentActivity = async (req, res) => {
 };
 
 /**
- * @desc    Get merchant notifications
+ * @desc    Get notifications
  * @route   GET /api/merchants/dashboard/notifications
  * @access  Private/Merchant
  */
 exports.getNotifications = async (req, res) => {
   try {
     const merchantId = req.user._id;
-
-    const merchant = await Merchant.findById(merchantId)
-      .select('verified profileCompleteness documentsCompleteness verifiedDate createdAt documents onboardingStatus')
-      .lean();
-
-    const notifications = [];
-
-    // Verification status notification
-    if (merchant.verified && merchant.verifiedDate) {
-      const daysSinceVerification = Math.floor(
-        (Date.now() - new Date(merchant.verifiedDate).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      
-      if (daysSinceVerification < 7) {
-        notifications.push({
-          id: `notif_verified_${merchant._id}`,
-          type: 'success',
-          icon: 'check-circle',
-          title: 'Verification completed successfully!',
-          timestamp: getTimeAgo(merchant.verifiedDate),
-          date: merchant.verifiedDate,
-          read: daysSinceVerification > 1
-        });
-      }
-    } else if (!merchant.verified) {
-      const hasAllDocuments = 
-        merchant.documents?.businessRegistration?.path &&
-        merchant.documents?.idDocument?.path &&
-        merchant.documents?.utilityBill?.path;
-
-      if (hasAllDocuments) {
-        notifications.push({
-          id: `notif_pending_verification_${merchant._id}`,
-          type: 'warning',
-          icon: 'clock',
-          title: 'Documents submitted - Awaiting admin verification',
-          timestamp: merchant.documents.documentsSubmittedAt ? 
-            getTimeAgo(merchant.documents.documentsSubmittedAt) : 'Recently',
-          date: merchant.documents.documentsSubmittedAt || merchant.createdAt,
-          read: false
-        });
-      } else {
-        notifications.push({
-          id: `notif_incomplete_docs_${merchant._id}`,
-          type: 'warning',
-          icon: 'alert-circle',
-          title: 'Complete document upload to get verified',
-          timestamp: getTimeAgo(merchant.createdAt),
-          date: merchant.createdAt,
-          read: false
-        });
-      }
-    }
-
-    // Profile completion notification
-    if (merchant.profileCompleteness < 100) {
-      notifications.push({
-        id: `notif_profile_incomplete_${merchant._id}`,
-        type: 'info',
-        icon: 'info',
-        title: `Profile ${merchant.profileCompleteness}% complete - Add more details`,
-        timestamp: getTimeAgo(merchant.createdAt),
-        date: merchant.createdAt,
-        read: merchant.profileCompleteness > 70
-      });
-    }
-
-    // Recent review notifications
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const recentReviews = await Review.find({
+    
+    const unreadReviews = await Review.countDocuments({
       merchant: merchantId,
-      createdAt: { $gte: sevenDaysAgo }
-    })
-    .sort({ createdAt: -1 })
-    .limit(5)
-    .populate('user', 'firstName lastName')
-    .select('rating createdAt user')
-    .lean();
-
-    recentReviews.forEach(review => {
-      const userName = review.user ?
-        `${review.user.firstName || ''} ${review.user.lastName || ''}`.trim() :
-        'A customer';
-
-      notifications.push({
-        id: `notif_review_${review._id}`,
-        type: 'info',
-        icon: 'star',
-        title: `${userName} left a ${review.rating}-star review`,
-        timestamp: getTimeAgo(review.createdAt),
-        date: review.createdAt,
-        read: false
-      });
+      merchantResponse: { $exists: false }
     });
 
-    // Sort by date and calculate unread
-    const sortedNotifications = notifications
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 20); // Limit to 20 most recent
+    const notifications = [];
+    
+    if (unreadReviews > 0) {
+      notifications.push({
+        id: 'new-reviews',
+        type: 'review',
+        title: `You have ${unreadReviews} new review${unreadReviews > 1 ? 's' : ''} to respond to`,
+        timestamp: new Date(),
+        read: false
+      });
+    }
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      count: sortedNotifications.length,
-      unreadCount: sortedNotifications.filter(n => !n.read).length,
-      data: sortedNotifications
+      data: notifications
     });
-
   } catch (error) {
     console.error('getNotifications error:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
@@ -491,157 +234,50 @@ exports.getNotifications = async (req, res) => {
 };
 
 /**
- * @desc    Get merchant reviews with stats
- * @route   GET /api/merchants/dashboard/reviews
- * @access  Private/Merchant
- */
-exports.getMerchantReviews = async (req, res) => {
-  try {
-    const merchantId = req.user._id;
-    const { 
-      page = 1, 
-      limit = 10, 
-      sortBy = 'createdAt', 
-      order = 'desc',
-      rating = null 
-    } = req.query;
-
-    const query = { merchant: merchantId };
-    
-    if (rating && rating !== 'all') {
-      query.rating = parseInt(rating);
-    }
-
-    const sort = {};
-    sort[sortBy] = order === 'desc' ? -1 : 1;
-
-    const reviews = await Review.find(query)
-      .populate('user', 'firstName lastName profilePicture')
-      .sort(sort)
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit))
-      .lean();
-
-    const totalReviews = await Review.countDocuments(query);
-
-    const ratingDistribution = await Review.aggregate([
-      { $match: { merchant: merchantId } },
-      { $group: { _id: '$rating', count: { $sum: 1 } } },
-      { $sort: { _id: -1 } }
-    ]);
-
-    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    ratingDistribution.forEach(item => {
-      distribution[item._id] = item.count;
-    });
-
-    const avgResult = await Review.aggregate([
-      { $match: { merchant: merchantId } },
-      { $group: { _id: null, avgRating: { $avg: '$rating' } } }
-    ]);
-    const averageRating = avgResult[0]?.avgRating || 0;
-
-    const formattedReviews = reviews.map(review => ({
-      id: review._id,
-      rating: review.rating,
-      content: review.content,
-      customerName: review.user ? 
-        `${review.user.firstName || ''} ${review.user.lastName || ''}`.trim() : 
-        'Anonymous',
-      customerImage: review.user?.profilePicture || null,
-      date: review.createdAt,
-      timeAgo: getTimeAgo(review.createdAt),
-      helpful: review.helpful || 0,
-      reply: review.reply || null
-    }));
-
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      data: {
-        reviews: formattedReviews,
-        stats: {
-          totalReviews: await Review.countDocuments({ merchant: merchantId }),
-          averageRating: Math.round(averageRating * 10) / 10,
-          distribution
-        },
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: totalReviews,
-          pages: Math.ceil(totalReviews / parseInt(limit))
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('getMerchantReviews error:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      error: 'Failed to fetch reviews'
-    });
-  }
-};
-
-/**
- * @desc    Get quick actions status
+ * @desc    Get quick actions
  * @route   GET /api/merchants/dashboard/quick-actions
  * @access  Private/Merchant
  */
 exports.getQuickActions = async (req, res) => {
   try {
     const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('verified');
 
-    const merchant = await Merchant.findById(merchantId)
-      .select('verified profileCompleteness documentsCompleteness businessName')
-      .lean();
-
-    const actions = [
+    const quickActions = [
       {
-        id: 'edit_profile',
+        id: 'edit-profile',
         label: 'Edit Profile',
         icon: 'edit',
-        link: `/merchant/profile/edit`,
+        link: '/merchant/profile',
         enabled: true
       },
       {
-        id: 'view_profile',
+        id: 'add-product',
+        label: 'Add Product',
+        icon: 'plus',
+        link: '/merchant/products/new',
+        enabled: true
+      },
+      {
+        id: 'view-public-profile',
         label: 'View Public Profile',
         icon: 'eye',
-        link: `/merchants/${merchantId}`,
-        enabled: true
+        link: `/merchant/${merchantId}`,
+        enabled: merchant.verified
       },
       {
-        id: 'verification',
-        label: 'Verification Status',
-        icon: merchant.verified ? 'check-circle' : 'clock',
-        link: '/merchant/verification',
-        enabled: true,
-        badge: merchant.verified ? 'Verified' : 'Pending',
-        badgeColor: merchant.verified ? 'green' : 'orange'
-      },
-      {
-        id: 'manage_documents',
-        label: 'Manage Documents',
-        icon: 'file-text',
-        link: '/merchant/documents',
-        enabled: true,
-        badge: merchant.documentsCompleteness === 100 ? 'Complete' : 'Incomplete',
-        badgeColor: merchant.documentsCompleteness === 100 ? 'green' : 'red'
-      },
-      {
-        id: 'support',
-        label: 'Contact Support',
-        icon: 'help-circle',
-        link: '/merchant/support',
+        id: 'manage-reviews',
+        label: 'Manage Reviews',
+        icon: 'message',
+        link: '/merchant/reviews',
         enabled: true
       }
     ];
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: actions
+      data: quickActions
     });
-
   } catch (error) {
     console.error('getQuickActions error:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
@@ -651,19 +287,1209 @@ exports.getQuickActions = async (req, res) => {
   }
 };
 
-// Helper: time ago
-function getTimeAgo(date) {
-  const now = new Date();
-  const diffMs = now - new Date(date);
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+// ==================== BUSINESS PROFILE MANAGEMENT ====================
 
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
-  return `${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) > 1 ? 's' : ''} ago`;
-}
+exports.getBusinessProfile = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('-password').lean();
+    
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({ success: true, data: merchant });
+  } catch (error) {
+    console.error('getBusinessProfile error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch business profile'
+    });
+  }
+};
+
+exports.updateBusinessProfile = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const allowedUpdates = [
+      'businessName', 'description', 'businessType', 'phone', 'whatsappNumber',
+      'email', 'website', 'address', 'location', 'landmark', 'yearEstablished'
+    ];
+    
+    const updates = {};
+    allowedUpdates.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
+
+    const merchant = await Merchant.findByIdAndUpdate(
+      merchantId,
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: merchant
+    });
+  } catch (error) {
+    console.error('updateBusinessProfile error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to update profile'
+    });
+  }
+};
+
+exports.updateBusinessHours = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { businessHours } = req.body;
+
+    const merchant = await Merchant.findByIdAndUpdate(
+      merchantId,
+      { businessHours },
+      { new: true, runValidators: true }
+    );
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Business hours updated successfully',
+      data: merchant.businessHours
+    });
+  } catch (error) {
+    console.error('updateBusinessHours error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to update business hours'
+    });
+  }
+};
+
+exports.updateSocialLinks = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { socialLinks } = req.body;
+
+    const merchant = await Merchant.findByIdAndUpdate(
+      merchantId,
+      { socialLinks },
+      { new: true, runValidators: true }
+    );
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Social links updated successfully',
+      data: merchant.socialLinks
+    });
+  } catch (error) {
+    console.error('updateSocialLinks error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to update social links'
+    });
+  }
+};
+
+exports.uploadBusinessLogo = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    if (!req.file) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No logo file provided'
+      });
+    }
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Delete old logo if exists
+    if (merchant.logo && merchant.logo.includes('cloudinary')) {
+      const publicId = merchant.logo.split('/').pop().split('.')[0];
+      try {
+        await cloudinary.uploader.destroy(`nairobi-verified/merchants/${publicId}`);
+      } catch (err) {
+        console.warn('Failed to delete old logo:', err);
+      }
+    }
+
+    merchant.logo = req.file.path;
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Logo uploaded successfully',
+      data: { logo: merchant.logo }
+    });
+  } catch (error) {
+    console.error('uploadBusinessLogo error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload logo'
+    });
+  }
+};
+
+exports.uploadBusinessBanner = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    if (!req.file) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No banner file provided'
+      });
+    }
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Delete old banner if exists
+    if (merchant.bannerImage && merchant.bannerImage.includes('cloudinary')) {
+      const publicId = merchant.bannerImage.split('/').pop().split('.')[0];
+      try {
+        await cloudinary.uploader.destroy(`nairobi-verified/merchants/${publicId}`);
+      } catch (err) {
+        console.warn('Failed to delete old banner:', err);
+      }
+    }
+
+    merchant.bannerImage = req.file.path;
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Banner uploaded successfully',
+      data: { banner: merchant.bannerImage }
+    });
+  } catch (error) {
+    console.error('uploadBusinessBanner error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload banner'
+    });
+  }
+};
+
+// ==================== PHOTO GALLERY MANAGEMENT ====================
+
+exports.getPhotoGallery = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('gallery').lean();
+    
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: merchant.gallery || []
+    });
+  } catch (error) {
+    console.error('getPhotoGallery error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch photo gallery'
+    });
+  }
+};
+
+exports.uploadPhotos = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No photos provided'
+      });
+    }
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    if (!merchant.gallery) {
+      merchant.gallery = [];
+    }
+
+    const newPhotos = req.files.map(file => file.path);
+    merchant.gallery.push(...newPhotos);
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: `${newPhotos.length} photo(s) uploaded successfully`,
+      data: newPhotos
+    });
+  } catch (error) {
+    console.error('uploadPhotos error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload photos'
+    });
+  }
+};
+
+exports.deletePhoto = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { photoId } = req.params;
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const photoIndex = parseInt(photoId);
+    if (photoIndex < 0 || photoIndex >= merchant.gallery.length) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Photo not found'
+      });
+    }
+
+    const photoUrl = merchant.gallery[photoIndex];
+    
+    // Delete from Cloudinary
+    if (photoUrl && photoUrl.includes('cloudinary')) {
+      const publicId = photoUrl.split('/').pop().split('.')[0];
+      try {
+        await cloudinary.uploader.destroy(`nairobi-verified/merchants/${publicId}`);
+      } catch (err) {
+        console.warn('Failed to delete photo from Cloudinary:', err);
+      }
+    }
+
+    merchant.gallery.splice(photoIndex, 1);
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Photo deleted successfully'
+    });
+  } catch (error) {
+    console.error('deletePhoto error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to delete photo'
+    });
+  }
+};
+
+exports.reorderPhotos = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { photoUrls } = req.body;
+
+    if (!Array.isArray(photoUrls)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'photoUrls must be an array'
+      });
+    }
+
+    const merchant = await Merchant.findByIdAndUpdate(
+      merchantId,
+      { gallery: photoUrls },
+      { new: true }
+    );
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Photos reordered successfully',
+      data: merchant.gallery
+    });
+  } catch (error) {
+    console.error('reorderPhotos error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to reorder photos'
+    });
+  }
+};
+
+exports.setFeaturedPhoto = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { photoId } = req.params;
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const photoIndex = parseInt(photoId);
+    if (photoIndex < 0 || photoIndex >= merchant.gallery.length) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Photo not found'
+      });
+    }
+
+    // Move photo to first position
+    const [photo] = merchant.gallery.splice(photoIndex, 1);
+    merchant.gallery.unshift(photo);
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Featured photo updated successfully',
+      data: merchant.gallery
+    });
+  } catch (error) {
+    console.error('setFeaturedPhoto error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to set featured photo'
+    });
+  }
+};
+
+// ==================== PRODUCT/SERVICE MANAGEMENT ====================
+
+exports.getProducts = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { category, available, sort = '-createdAt' } = req.query;
+
+    const query = { merchant: merchantId };
+    if (category) query.category = category;
+    if (available !== undefined) query.available = available === 'true';
+
+    const products = await Product.find(query).sort(sort).lean();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      count: products.length,
+      data: products
+    });
+  } catch (error) {
+    console.error('getProducts error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch products'
+    });
+  }
+};
+
+exports.getProductById = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId } = req.params;
+
+    const product = await Product.findOne({ _id: productId, merchant: merchantId }).lean();
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: product
+    });
+  } catch (error) {
+    console.error('getProductById error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch product'
+    });
+  }
+};
+
+exports.createProduct = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const product = await Product.create({
+      ...req.body,
+      merchant: merchantId
+    });
+
+    res.status(HTTP_STATUS.CREATED).json({
+      success: true,
+      message: 'Product created successfully',
+      data: product
+    });
+  } catch (error) {
+    console.error('createProduct error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to create product'
+    });
+  }
+};
+
+exports.updateProduct = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId } = req.params;
+
+    const product = await Product.findOneAndUpdate(
+      { _id: productId, merchant: merchantId },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Product updated successfully',
+      data: product
+    });
+  } catch (error) {
+    console.error('updateProduct error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to update product'
+    });
+  }
+};
+
+exports.deleteProduct = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId } = req.params;
+
+    const product = await Product.findOneAndDelete({
+      _id: productId,
+      merchant: merchantId
+    });
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Product deleted successfully'
+    });
+  } catch (error) {
+    console.error('deleteProduct error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to delete product'
+    });
+  }
+};
+
+exports.toggleProductAvailability = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId } = req.params;
+    const { available } = req.body;
+
+    const product = await Product.findOneAndUpdate(
+      { _id: productId, merchant: merchantId },
+      { available },
+      { new: true }
+    );
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: `Product ${available ? 'activated' : 'deactivated'} successfully`,
+      data: product
+    });
+  } catch (error) {
+    console.error('toggleProductAvailability error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to toggle product availability'
+    });
+  }
+};
+
+exports.uploadProductImages = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId } = req.params;
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No images provided'
+      });
+    }
+
+    const product = await Product.findOne({ _id: productId, merchant: merchantId });
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    if (!product.images) {
+      product.images = [];
+    }
+
+    const newImages = req.files.map(file => file.path);
+    product.images.push(...newImages);
+    await product.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: `${newImages.length} image(s) uploaded successfully`,
+      data: newImages
+    });
+  } catch (error) {
+    console.error('uploadProductImages error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload product images'
+    });
+  }
+};
+
+exports.deleteProductImage = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { productId, imageId } = req.params;
+
+    const product = await Product.findOne({ _id: productId, merchant: merchantId });
+
+    if (!product) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    const imageIndex = parseInt(imageId);
+    if (imageIndex < 0 || imageIndex >= product.images.length) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Image not found'
+      });
+    }
+
+    const imageUrl = product.images[imageIndex];
+    
+    // Delete from Cloudinary
+    if (imageUrl && imageUrl.includes('cloudinary')) {
+      const publicId = imageUrl.split('/').pop().split('.')[0];
+      try {
+        await cloudinary.uploader.destroy(`nairobi-verified/products/${publicId}`);
+      } catch (err) {
+        console.warn('Failed to delete image from Cloudinary:', err);
+      }
+    }
+
+    product.images.splice(imageIndex, 1);
+    await product.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Image deleted successfully'
+    });
+  } catch (error) {
+    console.error('deleteProductImage error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to delete product image'
+    });
+  }
+};
+
+// ==================== REVIEW MANAGEMENT ====================
+
+exports.getMerchantReviews = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { page = 1, limit = 10, responded } = req.query;
+
+    const query = { merchant: merchantId };
+    if (responded !== undefined) {
+      query.merchantResponse = responded === 'true' ? { $exists: true } : { $exists: false };
+    }
+
+    const reviews = await Review.find(query)
+      .sort('-createdAt')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .populate('user', 'name')
+      .lean();
+
+    const total = await Review.countDocuments(query);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      count: reviews.length,
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: parseInt(page),
+      data: reviews
+    });
+  } catch (error) {
+    console.error('getMerchantReviews error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch reviews'
+    });
+  }
+};
+
+exports.respondToReview = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { reviewId } = req.params;
+    const { response } = req.body;
+
+    if (!response || response.trim().length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Response text is required'
+      });
+    }
+
+    const review = await Review.findOne({ _id: reviewId, merchant: merchantId });
+
+    if (!review) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Review not found'
+      });
+    }
+
+    review.merchantResponse = {
+      text: response,
+      respondedAt: new Date()
+    };
+
+    await review.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Response added successfully',
+      data: review
+    });
+  } catch (error) {
+    console.error('respondToReview error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to respond to review'
+    });
+  }
+};
+
+exports.flagReview = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { reviewId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Flag reason is required'
+      });
+    }
+
+    const review = await Review.findOne({ _id: reviewId, merchant: merchantId });
+
+    if (!review) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Review not found'
+      });
+    }
+
+    review.flagged = true;
+    review.flagReason = reason;
+    review.flaggedAt = new Date();
+
+    await review.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Review flagged successfully. Our team will review it.',
+      data: review
+    });
+  } catch (error) {
+    console.error('flagReview error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to flag review'
+    });
+  }
+};
+
+exports.getReviewStats = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    const stats = await Review.aggregate([
+      { $match: { merchant: merchantId } },
+      {
+        $group: {
+          _id: null,
+          totalReviews: { $sum: 1 },
+          averageRating: { $avg: '$rating' },
+          fiveStars: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
+          fourStars: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
+          threeStars: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
+          twoStars: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
+          oneStar: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } }
+        }
+      }
+    ]);
+
+    const responded = await Review.countDocuments({
+      merchant: merchantId,
+      merchantResponse: { $exists: true }
+    });
+
+    const result = stats[0] || {
+      totalReviews: 0,
+      averageRating: 0,
+      fiveStars: 0,
+      fourStars: 0,
+      threeStars: 0,
+      twoStars: 0,
+      oneStar: 0
+    };
+
+    result.respondedCount = responded;
+    result.responseRate = result.totalReviews > 0 
+      ? ((responded / result.totalReviews) * 100).toFixed(1) 
+      : 0;
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('getReviewStats error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch review statistics'
+    });
+  }
+};
+
+// ==================== VERIFICATION STATUS ====================
+
+exports.getVerificationStatus = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId)
+      .select('verified featured verifiedDate documents profileCompleteness documentsCompleteness')
+      .lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const status = {
+      isVerified: merchant.verified,
+      isFeatured: merchant.featured || false,
+      verificationLevel: merchant.verified ? (merchant.featured ? 'Premium' : 'Standard') : 'Basic',
+      verifiedDate: merchant.verifiedDate || null,
+      profileCompleteness: merchant.profileCompleteness || 0,
+      documentsCompleteness: merchant.documentsCompleteness || 0,
+      documents: merchant.documents || {},
+      documentReviewStatus: merchant.documents?.documentReviewStatus || 'pending',
+      verificationNotes: merchant.documents?.verificationNotes || null
+    };
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: status
+    });
+  } catch (error) {
+    console.error('getVerificationStatus error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch verification status'
+    });
+  }
+};
+
+exports.requestVerification = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId);
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    if (!merchant.documents || merchant.documentsCompleteness < 100) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Please upload all required documents before requesting verification'
+      });
+    }
+
+    if (!merchant.documents.documentReviewStatus || merchant.documents.documentReviewStatus === 'pending') {
+      merchant.documents.documentReviewStatus = 'under_review';
+      merchant.documents.documentsSubmittedAt = new Date();
+      await merchant.save();
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Verification request submitted. Our team will review your documents within 2-3 business days.',
+      data: {
+        status: merchant.documents.documentReviewStatus,
+        submittedAt: merchant.documents.documentsSubmittedAt
+      }
+    });
+  } catch (error) {
+    console.error('requestVerification error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to request verification'
+    });
+  }
+};
+
+exports.uploadVerificationDocuments = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    if (!req.files || Object.keys(req.files).length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No documents provided'
+      });
+    }
+
+    const merchant = await Merchant.findById(merchantId);
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    if (!merchant.documents) {
+      merchant.documents = {};
+    }
+
+    const uploadedDocs = {};
+
+    if (req.files.businessRegistration && req.files.businessRegistration[0]) {
+      const file = req.files.businessRegistration[0];
+      merchant.documents.businessRegistration = {
+        cloudinaryUrl: file.path,
+        publicId: file.filename,
+        originalName: file.originalname,
+        uploadedAt: new Date()
+      };
+      uploadedDocs.businessRegistration = true;
+    }
+
+    if (req.files.idDocument && req.files.idDocument[0]) {
+      const file = req.files.idDocument[0];
+      merchant.documents.idDocument = {
+        cloudinaryUrl: file.path,
+        publicId: file.filename,
+        originalName: file.originalname,
+        uploadedAt: new Date()
+      };
+      uploadedDocs.idDocument = true;
+    }
+
+    if (req.files.utilityBill && req.files.utilityBill[0]) {
+      const file = req.files.utilityBill[0];
+      merchant.documents.utilityBill = {
+        cloudinaryUrl: file.path,
+        publicId: file.filename,
+        originalName: file.originalname,
+        uploadedAt: new Date()
+      };
+      uploadedDocs.utilityBill = true;
+    }
+
+    if (req.files.additionalDocs && req.files.additionalDocs.length > 0) {
+      if (!merchant.documents.additionalDocs) {
+        merchant.documents.additionalDocs = [];
+      }
+      req.files.additionalDocs.forEach(file => {
+        merchant.documents.additionalDocs.push({
+          cloudinaryUrl: file.path,
+          publicId: file.filename,
+          originalName: file.originalname,
+          uploadedAt: new Date()
+        });
+      });
+      uploadedDocs.additionalDocs = req.files.additionalDocs.length;
+    }
+
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Documents uploaded successfully',
+      data: uploadedDocs
+    });
+  } catch (error) {
+    console.error('uploadVerificationDocuments error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload documents'
+    });
+  }
+};
+
+exports.getVerificationHistory = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId)
+      .select('verified verifiedDate documents.documentsSubmittedAt documents.documentsReviewedAt documents.documentReviewStatus documents.verificationNotes createdAt')
+      .lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const history = [
+      {
+        event: 'Account Created',
+        date: merchant.createdAt || null,
+        status: 'completed'
+      }
+    ];
+
+    if (merchant.documents?.documentsSubmittedAt) {
+      history.push({
+        event: 'Documents Submitted',
+        date: merchant.documents.documentsSubmittedAt,
+        status: 'completed'
+      });
+    }
+
+    if (merchant.documents?.documentsReviewedAt) {
+      history.push({
+        event: 'Documents Reviewed',
+        date: merchant.documents.documentsReviewedAt,
+        status: merchant.verified ? 'approved' : 'rejected',
+        notes: merchant.documents.verificationNotes
+      });
+    }
+
+    if (merchant.verified && merchant.verifiedDate) {
+      history.push({
+        event: 'Verification Approved',
+        date: merchant.verifiedDate,
+        status: 'completed'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: history
+    });
+  } catch (error) {
+    console.error('getVerificationHistory error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch verification history'
+    });
+  }
+};
+
+// ==================== CUSTOMER ENGAGEMENT ====================
+
+exports.getEngagementStats = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('analytics').lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const analytics = merchant.analytics || {
+      profileViews: 0,
+      whatsappClicks: 0,
+      callClicks: 0,
+      websiteClicks: 0,
+      directionsClicks: 0
+    };
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: analytics
+    });
+  } catch (error) {
+    console.error('getEngagementStats error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch engagement statistics'
+    });
+  }
+};
+
+exports.getWhatsAppClicks = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('analytics.whatsappClicks').lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: {
+        whatsappClicks: merchant.analytics?.whatsappClicks || 0
+      }
+    });
+  } catch (error) {
+    console.error('getWhatsAppClicks error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch WhatsApp clicks'
+    });
+  }
+};
+
+exports.getCallClicks = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('analytics.callClicks').lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: {
+        callClicks: merchant.analytics?.callClicks || 0
+      }
+    });
+  } catch (error) {
+    console.error('getCallClicks error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch call clicks'
+    });
+  }
+};
+
+exports.getProfileViews = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('analytics.profileViews').lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: {
+        profileViews: merchant.analytics?.profileViews || 0
+      }
+    });
+  } catch (error) {
+    console.error('getProfileViews error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch profile views'
+    });
+  }
+};
