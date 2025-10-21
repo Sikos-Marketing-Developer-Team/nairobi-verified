@@ -734,14 +734,20 @@ exports.getProducts = async (req, res) => {
 
     const query = { merchant: merchantId };
     if (category) query.category = category;
-    if (available !== undefined) query.available = available === 'true';
+    if (available !== undefined) query.isActive = available === 'true';
 
     const products = await Product.find(query).sort(sort).lean();
 
+    // Map isActive to available for frontend compatibility
+    const mappedProducts = products.map(product => ({
+      ...product,
+      available: product.isActive
+    }));
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      count: products.length,
-      data: products
+      count: mappedProducts.length,
+      data: mappedProducts
     });
   } catch (error) {
     console.error('getProducts error:', error);
@@ -844,9 +850,16 @@ exports.updateProduct = async (req, res) => {
     const merchantId = req.user._id;
     const { productId } = req.params;
 
+    // Map frontend 'available' to backend 'isActive'
+    const updateData = { ...req.body };
+    if (updateData.available !== undefined) {
+      updateData.isActive = updateData.available;
+      delete updateData.available;
+    }
+
     const product = await Product.findOneAndUpdate(
       { _id: productId, merchant: merchantId },
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -909,7 +922,7 @@ exports.toggleProductAvailability = async (req, res) => {
 
     const product = await Product.findOneAndUpdate(
       { _id: productId, merchant: merchantId },
-      { available },
+      { isActive: available },
       { new: true }
     );
 
@@ -923,7 +936,10 @@ exports.toggleProductAvailability = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: `Product ${available ? 'activated' : 'deactivated'} successfully`,
-      data: product
+      data: {
+        ...product.toObject(),
+        available: product.isActive
+      }
     });
   } catch (error) {
     console.error('toggleProductAvailability error:', error);
