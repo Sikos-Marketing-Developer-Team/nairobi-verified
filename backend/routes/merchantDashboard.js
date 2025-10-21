@@ -52,9 +52,7 @@ const {
 } = require('../controllers/merchantDashboard');
 const { protect, isMerchant } = require('../middleware/auth');
 const { 
-  businessLogoUpload, 
-  businessBannerUpload, 
-  galleryUpload, 
+  merchantImageUpload, 
   productImageUpload,
   documentUpload 
 } = require('../services/cloudinaryService');
@@ -77,12 +75,12 @@ router.get('/profile', getBusinessProfile);
 router.put('/profile', updateBusinessProfile);
 router.put('/profile/hours', updateBusinessHours);
 router.put('/profile/social', updateSocialLinks);
-router.post('/profile/logo', businessLogoUpload.single('logo'), uploadBusinessLogo);
-router.post('/profile/banner', businessBannerUpload.single('banner'), uploadBusinessBanner);
+router.post('/profile/logo', merchantImageUpload.single('logo'), uploadBusinessLogo);
+router.post('/profile/banner', merchantImageUpload.single('banner'), uploadBusinessBanner);
 
 // ==================== PHOTO GALLERY MANAGEMENT ====================
 router.get('/gallery', getPhotoGallery);
-router.post('/gallery', galleryUpload.array('photos', 10), uploadPhotos);
+router.post('/gallery', merchantImageUpload.array('photos', 10), uploadPhotos);
 router.delete('/gallery/:photoId', deletePhoto);
 router.put('/gallery/reorder', reorderPhotos);
 router.put('/gallery/:photoId/featured', setFeaturedPhoto);
