@@ -352,6 +352,29 @@ const MerchantVerification = () => {
         </Alert>
       )}
 
+      {/* Important Notice for Merchants Without Documents */}
+      {verificationStatus && verificationStatus.documentsCompleteness === 0 && (
+        <Alert className="border-orange-500 bg-orange-50">
+          <AlertCircle className="h-5 w-5 text-orange-600" />
+          <div className="ml-2">
+            <h3 className="font-bold text-orange-800 mb-2">⚠️ Action Required: Upload Verification Documents</h3>
+            <AlertDescription className="text-orange-700">
+              <p className="mb-2">
+                Your merchant account was created by our admin team, but we still need your verification documents to complete your profile and enable full access to all features.
+              </p>
+              <p className="font-semibold">
+                Please upload the three required documents below to get your business verified:
+              </p>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Business Registration Certificate</li>
+                <li>Valid ID Document (National ID or Passport)</li>
+                <li>Proof of Address (Recent Utility Bill)</li>
+              </ul>
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
+
       {/* Verification Status Overview */}
       {verificationStatus && (
         <Card className="border-2 border-blue-200 bg-blue-50">

@@ -549,8 +549,13 @@ exports.getPhotoGallery = async (req, res) => {
 exports.uploadPhotos = async (req, res) => {
   try {
     const merchantId = req.user._id;
+    
+    console.log('📸 Photo upload request received');
+    console.log('Merchant ID:', merchantId);
+    console.log('Files received:', req.files?.length || 0);
 
     if (!req.files || req.files.length === 0) {
+      console.log('❌ No files in request');
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'No photos provided'
@@ -559,6 +564,7 @@ exports.uploadPhotos = async (req, res) => {
 
     const merchant = await Merchant.findById(merchantId);
     if (!merchant) {
+      console.log('❌ Merchant not found:', merchantId);
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         error: 'Merchant not found'
@@ -569,9 +575,20 @@ exports.uploadPhotos = async (req, res) => {
       merchant.gallery = [];
     }
 
+    // Log Cloudinary upload details
+    console.log('📤 Files uploaded to Cloudinary:');
+    req.files.forEach((file, index) => {
+      console.log(`  [${index + 1}] ${file.originalname}`);
+      console.log(`      URL: ${file.path}`);
+      console.log(`      Public ID: ${file.filename}`);
+      console.log(`      Size: ${(file.size / 1024).toFixed(2)} KB`);
+    });
+
     const newPhotos = req.files.map(file => file.path);
     merchant.gallery.push(...newPhotos);
     await merchant.save();
+
+    console.log('✅ Gallery updated. Total photos:', merchant.gallery.length);
 
     // Transform to match frontend expectations
     const uploadedPhotos = newPhotos.map((url, index) => ({
@@ -583,13 +600,15 @@ exports.uploadPhotos = async (req, res) => {
       uploadedAt: new Date().toISOString()
     }));
 
+    console.log('✅ Responding with', uploadedPhotos.length, 'photos');
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: `${newPhotos.length} photo(s) uploaded successfully`,
       data: uploadedPhotos
     });
   } catch (error) {
-    console.error('uploadPhotos error:', error);
+    console.error('❌ uploadPhotos error:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
       error: 'Failed to upload photos'
@@ -831,10 +850,15 @@ exports.createProduct = async (req, res) => {
 
     console.log('✅ Product created successfully:', product._id);
 
+    // Convert to object and ensure both id and _id are present
+    const productResponse = product.toObject();
+    productResponse._id = product._id;
+    productResponse.id = product._id;
+
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       message: 'Product created successfully',
-      data: product
+      data: productResponse
     });
   } catch (error) {
     console.error('❌ createProduct error:', error);
