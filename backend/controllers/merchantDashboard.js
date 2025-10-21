@@ -523,9 +523,19 @@ exports.getPhotoGallery = async (req, res) => {
       });
     }
 
+    // Transform gallery array to objects that match frontend expectations
+    const galleryPhotos = (merchant.gallery || []).map((url, index) => ({
+      _id: `photo-${index}-${Date.now()}`,
+      url: url,
+      caption: '',
+      featured: index === 0, // First photo is featured by default
+      order: index,
+      uploadedAt: new Date().toISOString()
+    }));
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: merchant.gallery || []
+      data: galleryPhotos
     });
   } catch (error) {
     console.error('getPhotoGallery error:', error);
@@ -563,10 +573,20 @@ exports.uploadPhotos = async (req, res) => {
     merchant.gallery.push(...newPhotos);
     await merchant.save();
 
+    // Transform to match frontend expectations
+    const uploadedPhotos = newPhotos.map((url, index) => ({
+      _id: `photo-${merchant.gallery.length - newPhotos.length + index}-${Date.now()}`,
+      url: url,
+      caption: '',
+      featured: false,
+      order: merchant.gallery.length - newPhotos.length + index,
+      uploadedAt: new Date().toISOString()
+    }));
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: `${newPhotos.length} photo(s) uploaded successfully`,
-      data: newPhotos
+      data: uploadedPhotos
     });
   } catch (error) {
     console.error('uploadPhotos error:', error);
