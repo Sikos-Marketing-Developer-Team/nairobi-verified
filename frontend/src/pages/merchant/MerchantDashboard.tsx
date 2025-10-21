@@ -347,7 +347,7 @@ const MerchantDashboard = () => {
 
           <Card
             className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-indigo-500"
-            onClick={() => window.open(`/merchants/${dashboardData.merchant._id}`, '_blank')}
+            onClick={() => window.open(`/merchants/${dashboardData.merchant.id}`, '_blank')}
           >
             <CardContent className="pt-6 text-center">
               <Eye className="h-8 w-8 mx-auto mb-3 text-indigo-600" />
@@ -504,7 +504,7 @@ const MerchantDashboard = () => {
                     className="w-full justify-start"
                     onClick={() => navigate('/merchant/gallery')}
                   >
-                    <Image className="h-4 w-4 mr-2" />
+                    <ImageIcon className="h-4 w-4 mr-2" />
                     Photo Gallery
                   </Button>
                   <Button
