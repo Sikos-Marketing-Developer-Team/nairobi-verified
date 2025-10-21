@@ -587,7 +587,7 @@ All routes wrapped in `<ProtectedRoute requireMerchant={true}>`
 
 ---
 
-## 🎯 Ready for 27 Onboarded Businesses
+## 🎯 Ready for all Onboarded Businesses
 
 All features are production-ready and can handle:
 - ✅ Multiple concurrent merchants
