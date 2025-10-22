@@ -229,28 +229,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, 'Login', 'Login');
   };
 
-  const merchantLogin = async (email: string, password: string) => {
-    return handleAuthAction(async () => {
-      console.log('🏪 Merchant login attempt:', email);
-      const response = await authAPI.loginMerchant(email, password);
-      const { user: userData } = response.data;
+const merchantLogin = async (email: string, password: string) => {
+  return handleAuthAction(async () => {
+    console.log('🏪 Merchant login attempt:', email);
+    
+    // Step 1: Login
+    const response = await authAPI.loginMerchant(email, password);
+    const { user: userData } = response.data;
+    
+    if (userData.role === 'admin') {
+      showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
+      throw new Error('Admin access restricted');
+    }
+    
+    console.log('✅ Merchant login successful:', {
+      id: userData.id,
+      email: userData.email,
+      role: userData.role,
+      businessName: userData.businessName
+    });
+    
+    // ✅ CRITICAL FIX: Verify session works BEFORE navigating
+    console.log('🔍 Verifying session...');
+    try {
+      const meResponse = await authAPI.getMe();
+      console.log('✅ Session verified:', meResponse.data.data);
       
-      if (userData.role === 'admin') {
-        showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
-        throw new Error('Admin access restricted');
-      }
-      
-      console.log('✅ Merchant login successful:', {
-        id: userData.id,
-        email: userData.email,
-        role: userData.role,
-        businessName: userData.businessName
-      });
-      
-      // CRITICAL FIX: Set user state WITH role persistence
+      // Now we know the session works, set user state
+      const verifiedUser = meResponse.data.data;
       setUserWithPersistence({
-        ...userData,
-        role: userData.role || 'merchant'
+        ...verifiedUser,
+        role: verifiedUser.role || 'merchant'
       });
       
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
@@ -260,8 +269,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       showToast('Merchant Login Successful', 'Welcome to your merchant dashboard');
       return response;
-    }, 'Merchant Login', 'Merchant Login');
-  };
+    } catch (sessionError) {
+      console.error('❌ Session verification failed:', sessionError);
+      showToast(
+        'Session Error', 
+        'Login successful but session could not be established. Please try again.',
+        'destructive'
+      );
+      throw new Error('Session verification failed');
+    }
+  }, 'Merchant Login', 'Merchant Login');
+};
 
   const googleAuth = async (credential: string) => {
   return handleAuthAction(async () => {
