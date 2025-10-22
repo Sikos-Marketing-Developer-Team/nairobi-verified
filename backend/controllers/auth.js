@@ -384,6 +384,7 @@ exports.loginMerchant = async (req, res) => {
             phone: merchant.phone,
             businessType: merchant.businessType,
             verified: merchant.verified,
+            role: 'merchant',
             isMerchant: true,
             tempPasswordExpiry: merchant.tempPasswordExpiry
           }
