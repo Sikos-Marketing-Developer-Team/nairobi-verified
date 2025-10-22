@@ -1,3 +1,5 @@
+// backend/middleware/auth.js - CRITICAL FIX
+
 const User = require('../models/User');
 const Merchant = require('../models/Merchant');
 const { HTTP_STATUS } = require('../config/constants');
@@ -15,6 +17,7 @@ exports.protect = async (req, res, next) => {
       userEmail: req.user?.email,
       userId: req.user?._id,
       userModelName: req.user?.constructor?.modelName,
+      hasBusinessName: !!req.user?.businessName,
       method: req.method,
       url: req.url
     });
@@ -42,26 +45,60 @@ exports.protect = async (req, res, next) => {
       req.user._id = req.user.id;
     }
 
-    // CRITICAL FIX: Determine if merchant by checking model name
-    const isMerchant = req.user.constructor?.modelName === 'Merchant' ||
-                       req.user.collection?.collectionName === 'merchants' ||
-                       !!req.user.businessName;
+    // ✅ CRITICAL FIX: Determine if merchant by checking MULTIPLE signals
+    // This handles both fresh DB objects and deserialized session objects
+    const isMerchant = 
+      req.user.constructor?.modelName === 'Merchant' ||
+      req.user.collection?.collectionName === 'merchants' ||
+      !!req.user.businessName ||
+      req.user.isMerchant === true ||
+      req.user.role === 'merchant';
 
     console.log('🔍 User Type Check:', {
       userId: req.user._id,
       email: req.user.email,
       isMerchant,
       modelName: req.user.constructor?.modelName,
-      hasBusinessName: !!req.user.businessName
+      hasBusinessName: !!req.user.businessName,
+      explicitIsMerchant: req.user.isMerchant,
+      role: req.user.role
     });
+
+    // ✅ CRITICAL FIX: If determined to be merchant, refresh from DB to get full object
+    if (isMerchant && !req.user.businessName) {
+      console.log('🔄 Merchant detected but missing businessName, refreshing from DB...');
+      try {
+        const merchantFromDb = await Merchant.findById(req.user._id);
+        if (merchantFromDb) {
+          req.user = merchantFromDb;
+          req.merchant = merchantFromDb;
+          console.log('✅ Merchant refreshed from DB:', {
+            merchantId: merchantFromDb._id,
+            businessName: merchantFromDb.businessName
+          });
+        }
+      } catch (dbError) {
+        console.error('❌ Failed to refresh merchant from DB:', dbError);
+      }
+    }
 
     // Set merchant flag if this is a merchant
     if (isMerchant) {
       req.merchant = req.user;
+      // ✅ ENSURE role is set
+      if (!req.user.role) {
+        req.user.role = 'merchant';
+      }
       console.log('✅ Merchant authenticated:', {
         merchantId: req.merchant._id,
-        businessName: req.merchant.businessName
+        businessName: req.merchant.businessName,
+        role: req.user.role
       });
+    } else {
+      // ✅ ENSURE regular users have role set
+      if (!req.user.role) {
+        req.user.role = 'user';
+      }
     }
 
     next();
@@ -86,6 +123,11 @@ exports.authorize = (...roles) => {
       });
     }
 
+    // ✅ CRITICAL FIX: Ensure role is set before checking
+    if (!req.user.role) {
+      req.user.role = req.user.businessName ? 'merchant' : 'user';
+    }
+
     if (!roles.includes(req.user.role)) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
@@ -105,10 +147,18 @@ exports.isMerchant = (req, res, next) => {
     hasMerchant: !!req.merchant,
     merchantId: req.merchant?._id,
     merchantEmail: req.merchant?.email,
-    businessName: req.merchant?.businessName
+    businessName: req.merchant?.businessName,
+    userRole: req.user?.role
   });
 
-  if (!req.merchant) {
+  // ✅ CRITICAL FIX: Check BOTH req.merchant AND req.user.role
+  const isMerchantUser = 
+    !!req.merchant || 
+    req.user?.role === 'merchant' || 
+    !!req.user?.businessName ||
+    req.user?.isMerchant === true;
+
+  if (!isMerchantUser) {
     console.log('❌ Not a merchant - access denied');
     return res.status(HTTP_STATUS.FORBIDDEN).json({
       success: false,
@@ -117,6 +167,12 @@ exports.isMerchant = (req, res, next) => {
   }
 
   console.log('✅ Merchant access granted');
+  
+  // ✅ Ensure req.merchant is set even if only role was checked
+  if (!req.merchant && req.user) {
+    req.merchant = req.user;
+  }
+
   next();
 };
 
@@ -132,12 +188,22 @@ exports.optionalAuth = async (req, res, next) => {
       }
 
       // Check if user is a merchant
-      const isMerchant = req.user.constructor?.modelName === 'Merchant' ||
-                         req.user.collection?.collectionName === 'merchants' ||
-                         !!req.user.businessName;
+      const isMerchant = 
+        req.user.constructor?.modelName === 'Merchant' ||
+        req.user.collection?.collectionName === 'merchants' ||
+        !!req.user.businessName ||
+        req.user.isMerchant === true ||
+        req.user.role === 'merchant';
 
       if (isMerchant) {
         req.merchant = req.user;
+        if (!req.user.role) {
+          req.user.role = 'merchant';
+        }
+      } else {
+        if (!req.user.role) {
+          req.user.role = 'user';
+        }
       }
     }
     next();
