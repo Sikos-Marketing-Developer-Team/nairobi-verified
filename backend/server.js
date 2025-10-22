@@ -103,9 +103,11 @@ app.use(cors({
     'https://nairobi-verified-frontend.onrender.com',
     'http://localhost:3000',
     'https://nairobi-verified-admin.onrender.com/',
+    'https://www.nairobiverified.co.ke',
+    'https://nairobiverified.co.ke',
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['set-cookie']
 }));
@@ -145,15 +147,12 @@ const sessionConfig = {
   rolling: false, // Don't reset session expiry on every request
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production' && process.env.ENABLE_SECURE_COOKIES !== 'false',
+    secure: process.env.NODE_ENV === 'production',
     maxAge: 7 * 24 * 60 * 60 * 1000,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    partitioned: process.env.NODE_ENV === 'production',
     path: '/',
-    domain: process.env.NODE_ENV === 'production' 
-      ? undefined
-      : undefined
   },
+  proxy: true,
   unset: 'destroy'
 };
 
