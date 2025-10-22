@@ -303,25 +303,40 @@ exports.login = async (req, res) => {
       });
     }
 
-    req.login(user, (err) => {
-      if (err) {
-        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-          success: false,
-          error: 'Error logging in'
-        });
-      }
-      
-      return res.status(HTTP_STATUS.OK).json({
-        success: true,
-        user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role || 'user',  // CRITICAL FIX: Ensure role is always set
-          isMerchant: false
+    // ✅ CRITICAL FIX: Explicit session save
+    return new Promise((resolve, reject) => {
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            error: 'Error logging in'
+          });
         }
+        
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('❌ Session save error:', saveErr);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+              success: false,
+              error: 'Error saving session'
+            });
+          }
+          
+          console.log('✅ User logged in and session saved:', user.email);
+          
+          return res.status(HTTP_STATUS.OK).json({
+            success: true,
+            user: {
+              id: user._id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              phone: user.phone,
+              role: user.role || 'user',
+              isMerchant: false
+            }
+          });
+        });
       });
     });
   } catch (error) {
@@ -392,29 +407,45 @@ exports.loginMerchant = async (req, res) => {
       }
     }
 
-    req.login(merchant, (err) => {
-      if (err) {
-        console.error('❌ req.login error for merchant:', err);
-        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-          success: false,
-          error: 'Error logging in'
-        });
-      }
-      
-      console.log('✅ Merchant logged in:', merchant.email);
-      
-      return res.status(HTTP_STATUS.OK).json({
-        success: true,
-        user: {
-          id: merchant._id,
-          businessName: merchant.businessName,
-          email: merchant.email,
-          phone: merchant.phone,
-          businessType: merchant.businessType,
-          verified: merchant.verified,
-          role: 'merchant',  // CRITICAL FIX: Add role field
-          isMerchant: true
+    // CRITICAL FIX: Use promisified req.login with explicit session save
+    return new Promise((resolve, reject) => {
+      req.login(merchant, (err) => {
+        if (err) {
+          console.error('❌ req.login error for merchant:', err);
+          return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            error: 'Error logging in'
+          });
         }
+        
+        // CRITICAL: Explicitly save session before sending response
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('❌ Session save error:', saveErr);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+              success: false,
+              error: 'Error saving session'
+            });
+          }
+          
+          console.log('✅ Merchant logged in and session saved:', merchant.email);
+          console.log('✅ Session ID:', req.sessionID);
+          console.log('✅ Session data:', req.session);
+          
+          return res.status(HTTP_STATUS.OK).json({
+            success: true,
+            user: {
+              id: merchant._id,
+              businessName: merchant.businessName,
+              email: merchant.email,
+              phone: merchant.phone,
+              businessType: merchant.businessType,
+              verified: merchant.verified,
+              role: 'merchant',
+              isMerchant: true
+            }
+          });
+        });
       });
     });
   } catch (error) {
