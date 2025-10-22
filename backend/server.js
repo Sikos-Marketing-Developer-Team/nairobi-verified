@@ -37,7 +37,7 @@ require('./config/passport');
 const app = express();
 
 // Trust proxy for accurate IP addresses
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 // OPTIMIZATION: Compression middleware
 app.use(compression({
@@ -138,6 +138,7 @@ mongoStore.on('connected', () => {
 // OPTIMIZATION: Optimized session configuration
 const sessionConfig = {
   name: 'nairobi_verified_session',
+  proxy: true,
   genid: () => uuidv4(),
   secret: process.env.JWT_SECRET || 'your-session-secret',
   resave: false,
@@ -147,6 +148,9 @@ const sessionConfig = {
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production' && process.env.ENABLE_SECURE_COOKIES !== 'false',
+    domain: process.env.NODE_ENV === 'production' 
+      ? '.nairobiverified.co.ke'
+      : undefined,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   },
