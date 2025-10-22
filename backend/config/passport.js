@@ -32,7 +32,7 @@ passport.use(
           if (!merchant.googleId) {
             merchant.googleId = profile.id;
             merchant.logo = merchant.logo || profile.photos[0]?.value || '';
-            await merchant.save({ validateBeforeSave: false }); // Skip validation
+            await merchant.save({ validateBeforeSave: false });
             console.log('✅ Updated verified merchant with Google ID:', merchant._id);
           }
           return done(null, merchant);
@@ -43,20 +43,19 @@ passport.use(
         if (!user) {
           console.log('🆕 Creating new user from Google Strategy');
           
-          // CRITICAL FIX: Generate password that passes validation
           const randomPassword = 
-            'Google' + // Uppercase
-            'oauth' +  // Lowercase  
-            Math.random().toString(36).substring(2, 10) + // Alphanumeric
-            '@' +      // Special character
-            Date.now().toString().substring(8); // Numbers
+            'Google' +
+            'oauth' +  
+            Math.random().toString(36).substring(2, 10) +
+            '@' +
+            Date.now().toString().substring(8);
           
           user = await User.create({
             firstName: profile.name.givenName || profile.displayName.split(' ')[0],
             lastName: profile.name.familyName || profile.displayName.split(' ').slice(1).join(' ') || '',
             email: profile.emails[0].value,
-            password: randomPassword, // Now passes validation
-            phone: '', // Google users don't have phone initially
+            password: randomPassword,
+            phone: '',
             profilePicture: profile.photos[0]?.value || '',
             googleId: profile.id,
             isVerified: true
@@ -66,7 +65,7 @@ passport.use(
           user.googleId = profile.id;
           user.profilePicture = user.profilePicture || profile.photos[0]?.value || '';
           user.isVerified = true;
-          await user.save({ validateBeforeSave: false }); // Skip password validation
+          await user.save({ validateBeforeSave: false });
           console.log('✅ Updated existing user with Google ID:', user._id);
         }
 
@@ -79,16 +78,15 @@ passport.use(
   )
 );
 
-// Serialize user - determine type by checking model name
+// ✅ CRITICAL FIX: Serialize user - store type information
 passport.serializeUser((user, done) => {
   const userId = user._id || user.id;
   
-  // Determine if merchant by checking the model/collection name
+  // Determine if merchant by checking multiple signals
   const isMerchant = user.constructor.modelName === 'Merchant' || 
                      user.collection?.collectionName === 'merchants' ||
                      !!user.businessName;
   
-  // CRITICAL FIX: Include role in serialization
   const role = isMerchant ? 'merchant' : (user.role || 'user');
   
   console.log('🔐 Serializing user:', {
@@ -107,7 +105,7 @@ passport.serializeUser((user, done) => {
   });
 });
 
-// Deserialize user - use the stored type to query correct collection
+// ✅ CRITICAL FIX: Deserialize user - properly attach role
 passport.deserializeUser(async (sessionData, done) => {
   try {
     console.log('🔓 Deserializing user:', sessionData);
@@ -115,33 +113,42 @@ passport.deserializeUser(async (sessionData, done) => {
     let user;
     
     if (sessionData.isMerchant) {
+      // Fetch merchant
       user = await Merchant.findById(sessionData.id).select('-password');
+      
       if (user) {
-        // CRITICAL FIX: Attach role to user object
-        user.role = 'merchant';
-        user.isMerchant = true;
+        // ✅ CRITICAL FIX: Convert to plain object and add role
+        const merchantObj = user.toObject ? user.toObject() : user;
+        merchantObj.role = 'merchant';
+        merchantObj.isMerchant = true;
         
         console.log('📦 Found merchant:', {
-          id: user._id,
-          email: user.email,
-          businessName: user.businessName,
-          role: user.role
+          id: merchantObj._id,
+          email: merchantObj.email,
+          businessName: merchantObj.businessName,
+          role: merchantObj.role
         });
+        
+        return done(null, merchantObj);
       }
     } else {
+      // Fetch user
       user = await User.findById(sessionData.id).select('-password');
+      
       if (user) {
-        // CRITICAL FIX: Ensure role is set from session or default to 'user'
-        if (!user.role) {
-          user.role = sessionData.role || 'user';
-        }
+        // ✅ CRITICAL FIX: Convert to plain object and ensure role
+        const userObj = user.toObject ? user.toObject() : user;
+        userObj.role = userObj.role || sessionData.role || 'user';
+        userObj.isMerchant = false;
         
         console.log('👤 Found user:', {
-          id: user._id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          role: user.role
+          id: userObj._id,
+          email: userObj.email,
+          name: `${userObj.firstName} ${userObj.lastName}`,
+          role: userObj.role
         });
+        
+        return done(null, userObj);
       }
     }
 
@@ -149,24 +156,6 @@ passport.deserializeUser(async (sessionData, done) => {
       console.error('❌ No user/merchant found for session:', sessionData);
       return done(null, false);
     }
-
-    // Verify the user matches the session data
-    if (sessionData.email && user.email !== sessionData.email) {
-      console.error('❌ Email mismatch!', {
-        sessionEmail: sessionData.email,
-        dbEmail: user.email
-      });
-      return done(null, false);
-    }
-
-    console.log('✅ Successfully deserialized:', {
-      id: user._id,
-      email: user.email,
-      role: user.role,
-      isMerchant: sessionData.isMerchant
-    });
-    
-    done(null, user);
   } catch (error) {
     console.error('❌ Deserialization error:', error.message);
     done(error, null);
