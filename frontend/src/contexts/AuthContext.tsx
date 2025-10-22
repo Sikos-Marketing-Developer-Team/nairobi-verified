@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.tsx
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '@/lib/api';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -11,7 +12,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Session management keys
 const LS_AUTH_CHECKED_KEY = 'authChecked';
-const LS_USER_ROLE_KEY = 'userRole'; // NEW: Store role separately for persistence
+const LS_USER_ROLE_KEY = 'userRole';
+const LS_USER_DATA_KEY = 'userData'; // NEW: Store full user data as backup
+const LS_AUTH_TIMESTAMP_KEY = 'authTimestamp'; // NEW: Track login time
 
 // Provider component
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -20,6 +23,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+
+  // Enhanced user state setter with localStorage backup
+  const setUserWithPersistence = useCallback((userData: User | null) => {
+    if (userData && userData.role) {
+      // Store role in sessionStorage for persistence
+      sessionStorage.setItem(LS_USER_ROLE_KEY, userData.role);
+      
+      // NEW: Store full user data in localStorage as backup
+      localStorage.setItem(LS_USER_DATA_KEY, JSON.stringify(userData));
+      localStorage.setItem(LS_AUTH_TIMESTAMP_KEY, Date.now().toString());
+      
+      console.log('💾 Stored user data with backup:', {
+        email: userData.email,
+        role: userData.role,
+        timestamp: new Date().toISOString()
+      });
+    } else if (userData === null) {
+      // Clear stored data on logout
+      sessionStorage.removeItem(LS_USER_ROLE_KEY);
+      localStorage.removeItem(LS_USER_DATA_KEY);
+      localStorage.removeItem(LS_AUTH_TIMESTAMP_KEY);
+      console.log('🧹 Cleared stored auth data');
+    }
+    
+    setUser(userData);
+  }, []);
 
   // Show toast notification helper
   const showToast = useCallback((title: string, description: string, variant: 'default' | 'destructive' = 'default') => {
@@ -35,51 +64,63 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   }, [toast]);
 
-  // Enhanced user state setter that persists role
-  const setUserWithPersistence = useCallback((userData: User | null) => {
-    if (userData && userData.role) {
-      // Store role in sessionStorage for persistence
-      sessionStorage.setItem(LS_USER_ROLE_KEY, userData.role);
-      console.log('💾 Stored user role:', userData.role);
-    } else if (userData === null) {
-      // Clear stored role on logout
-      sessionStorage.removeItem(LS_USER_ROLE_KEY);
-      console.log('🧹 Cleared stored role');
-    }
-    
-    setUser(userData);
-  }, []);
-
-  // CRITICAL FIX: Enhanced auth check with role persistence
+  // CRITICAL FIX: Enhanced auth check with localStorage fallback
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('🔍 Checking authentication with role persistence...');
+      console.log('🔍 Checking authentication with fallback...');
       
       try {
         console.log('🔄 Checking session via getMe...');
         const meResponse = await authAPI.getMe();
         const userData = meResponse.data.data;
         
-        console.log('✅ getMe successful:', {
+        console.log('✅ getMe successful - backend session working:', {
           email: userData.email,
-          role: userData.role,
-          hasStoredRole: sessionStorage.getItem(LS_USER_ROLE_KEY)
+          role: userData.role
         });
 
         handleSuccessfulAuth(userData);
       } catch (getMeError) {
-        console.log('❌ No active session, user is guest');
-        // Even if session fails, try to restore from stored role if available
-        const storedRole = sessionStorage.getItem(LS_USER_ROLE_KEY);
-        if (storedRole) {
-          console.log('🔄 Restoring from stored role:', storedRole);
-          // We have a stored role but no active session - redirect to login
-          if (location.pathname.startsWith('/merchant/')) {
-            console.log('🔒 Merchant route without session, redirecting to login');
-            navigate('/auth', { replace: true });
+        console.log('❌ Backend session failed, checking localStorage backup...');
+        
+        // Check if we have backup user data in localStorage
+        const storedUserData = localStorage.getItem(LS_USER_DATA_KEY);
+        const authTimestamp = localStorage.getItem(LS_AUTH_TIMESTAMP_KEY);
+        
+        if (storedUserData && authTimestamp) {
+          const userData = JSON.parse(storedUserData);
+          const loginTime = parseInt(authTimestamp);
+          const currentTime = Date.now();
+          const hoursSinceLogin = (currentTime - loginTime) / (1000 * 60 * 60);
+          
+          // Only use backup data if it's less than 24 hours old
+          if (hoursSinceLogin < 24) {
+            console.log('🔄 Using localStorage backup (session expired):', {
+              email: userData.email,
+              role: userData.role,
+              hoursSinceLogin: hoursSinceLogin.toFixed(2)
+            });
+            
+            setUserWithPersistence(userData);
+            
+            // Show warning that we're using backup data
+            if (hoursSinceLogin > 1) { // Only show if more than 1 hour old
+              showToast(
+                'Session Restored', 
+                'Using temporary session data. Some features may be limited.',
+                'destructive'
+              );
+            }
+          } else {
+            console.log('🧹 Backup data expired, clearing...');
+            localStorage.removeItem(LS_USER_DATA_KEY);
+            localStorage.removeItem(LS_AUTH_TIMESTAMP_KEY);
+            setUserWithPersistence(null);
           }
+        } else {
+          console.log('❌ No backup data available');
+          setUserWithPersistence(null);
         }
-        setUserWithPersistence(null);
       } finally {
         setIsLoading(false);
         sessionStorage.setItem(LS_AUTH_CHECKED_KEY, 'true');
@@ -87,8 +128,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const handleSuccessfulAuth = (userData: User) => {
-      console.log('🎯 Setting user data with role persistence:', {
-        id: userData.id || userData._id,
+      console.log('🎯 Setting user data:', {
         email: userData.email,
         role: userData.role,
         isMerchant: userData.isMerchant,
@@ -102,7 +142,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      // CRITICAL FIX: Determine role intelligently based on multiple signals
+      // Determine role intelligently based on multiple signals
       let determinedRole: 'user' | 'merchant' | 'admin' = 'user';
       
       if (userData.role) {
@@ -155,7 +195,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Clear auth check flag when navigating away
     return () => {
-      // Don't clear the checked flag immediately to prevent excessive API calls
       setTimeout(() => {
         if (!location.pathname.startsWith('/merchant/')) {
           sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
@@ -209,7 +248,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       console.log('👤 User login successful:', userData.email);
       
-      // CRITICAL FIX: Set user state WITH role persistence
+      // Set user state WITH persistence
       setUserWithPersistence({
         ...userData,
         role: userData.role || 'user'
@@ -229,37 +268,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, 'Login', 'Login');
   };
 
-const merchantLogin = async (email: string, password: string) => {
-  return handleAuthAction(async () => {
-    console.log('🏪 Merchant login attempt:', email);
-    
-    // Step 1: Login
-    const response = await authAPI.loginMerchant(email, password);
-    const { user: userData } = response.data;
-    
-    if (userData.role === 'admin') {
-      showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
-      throw new Error('Admin access restricted');
-    }
-    
-    console.log('✅ Merchant login successful:', {
-      id: userData.id,
-      email: userData.email,
-      role: userData.role,
-      businessName: userData.businessName
-    });
-    
-    // ✅ CRITICAL FIX: Verify session works BEFORE navigating
-    console.log('🔍 Verifying session...');
-    try {
-      const meResponse = await authAPI.getMe();
-      console.log('✅ Session verified:', meResponse.data.data);
+  const merchantLogin = async (email: string, password: string) => {
+    return handleAuthAction(async () => {
+      console.log('🏪 Merchant login attempt:', email);
       
-      // Now we know the session works, set user state
-      const verifiedUser = meResponse.data.data;
+      // Step 1: Login
+      const response = await authAPI.loginMerchant(email, password);
+      const { user: userData } = response.data;
+      
+      if (userData.role === 'admin') {
+        showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
+        throw new Error('Admin access restricted');
+      }
+      
+      console.log('✅ Merchant login successful:', {
+        id: userData.id,
+        email: userData.email,
+        role: userData.role,
+        businessName: userData.businessName
+      });
+      
+      // Set user state WITH persistence
       setUserWithPersistence({
-        ...verifiedUser,
-        role: verifiedUser.role || 'merchant'
+        ...userData,
+        role: userData.role || 'merchant'
       });
       
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
@@ -269,68 +301,59 @@ const merchantLogin = async (email: string, password: string) => {
       
       showToast('Merchant Login Successful', 'Welcome to your merchant dashboard');
       return response;
-    } catch (sessionError) {
-      console.error('❌ Session verification failed:', sessionError);
-      showToast(
-        'Session Error', 
-        'Login successful but session could not be established. Please try again.',
-        'destructive'
-      );
-      throw new Error('Session verification failed');
-    }
-  }, 'Merchant Login', 'Merchant Login');
-};
+    }, 'Merchant Login', 'Merchant Login');
+  };
 
   const googleAuth = async (credential: string) => {
-  return handleAuthAction(async () => {
-    console.log('Google OAuth initiated');
-    const response = await authAPI.googleAuth(credential);
-    const { user: userData, redirectTo } = response.data;
-    
-    console.log('Google OAuth response:', {
-      email: userData.email,
-      isMerchant: userData.isMerchant,
-      role: userData.role,
-      redirectTo: redirectTo
-    });
-    
-    if (userData.role === 'admin') {
-      showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
-      throw new Error('Admin access restricted');
-    }
-    
-    // CRITICAL FIX: Use redirectTo from backend response
-    const targetPath = redirectTo || (userData.role === 'merchant' || userData.isMerchant || userData.businessName 
-      ? '/merchant/dashboard' 
-      : '/dashboard');
-    
-    console.log('Target path:', targetPath);
-    
-    // Set user state WITH role persistence
-    setUserWithPersistence({
-      ...userData,
-      role: userData.role || (userData.isMerchant ? 'merchant' : 'user')
-    });
-    
-    sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
-    
-    console.log('Navigating to:', targetPath);
-    navigate(targetPath, { replace: true });
-    
-    const accountType = userData.isMerchant ? 'merchant' : 'user';
-    showToast(
-      'Google Login Successful', 
-      `Logged in as ${accountType}. Redirecting to ${accountType === 'merchant' ? 'merchant dashboard' : 'dashboard'}`
-    );
-    
-    return response;
-  }, 'Google Login', 'Google Authentication');
-};
+    return handleAuthAction(async () => {
+      console.log('Google OAuth initiated');
+      const response = await authAPI.googleAuth(credential);
+      const { user: userData, redirectTo } = response.data;
+      
+      console.log('Google OAuth response:', {
+        email: userData.email,
+        isMerchant: userData.isMerchant,
+        role: userData.role,
+        redirectTo: redirectTo
+      });
+      
+      if (userData.role === 'admin') {
+        showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
+        throw new Error('Admin access restricted');
+      }
+      
+      // Use redirectTo from backend response
+      const targetPath = redirectTo || (userData.role === 'merchant' || userData.isMerchant || userData.businessName 
+        ? '/merchant/dashboard' 
+        : '/dashboard');
+      
+      console.log('Target path:', targetPath);
+      
+      // Set user state WITH persistence
+      setUserWithPersistence({
+        ...userData,
+        role: userData.role || (userData.isMerchant ? 'merchant' : 'user')
+      });
+      
+      sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
+      
+      console.log('Navigating to:', targetPath);
+      navigate(targetPath, { replace: true });
+      
+      const accountType = userData.isMerchant ? 'merchant' : 'user';
+      showToast(
+        'Google Login Successful', 
+        `Logged in as ${accountType}. Redirecting to ${accountType === 'merchant' ? 'merchant dashboard' : 'dashboard'}`
+      );
+      
+      return response;
+    }, 'Google Login', 'Google Authentication');
+  };
 
   const register = async (userData: any) => {
     return handleAuthAction(async () => {
       const response = await authAPI.register(userData);
-      // CRITICAL FIX: Set user state WITH role persistence
+      // Set user state WITH persistence
       setUserWithPersistence({
         ...response.data.user,
         role: response.data.user.role || 'user'
@@ -345,7 +368,7 @@ const merchantLogin = async (email: string, password: string) => {
   const registerMerchant = async (merchantData: any) => {
     return handleAuthAction(async () => {
       const response = await authAPI.registerMerchant(merchantData);
-      // CRITICAL FIX: Set user state WITH role persistence
+      // Set user state WITH persistence
       setUserWithPersistence({
         ...response.data.user,
         role: response.data.user.role || 'merchant'
@@ -360,10 +383,12 @@ const merchantLogin = async (email: string, password: string) => {
   const logout = async () => {
     return handleAuthAction(async () => {
       await authAPI.logout();
-      // CRITICAL FIX: Clear all persistence
+      // Clear all persistence
       setUserWithPersistence(null);
       sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
       sessionStorage.removeItem(LS_USER_ROLE_KEY);
+      localStorage.removeItem(LS_USER_DATA_KEY);
+      localStorage.removeItem(LS_AUTH_TIMESTAMP_KEY);
       navigate('/', { replace: true });
       showToast('Logout Successful', 'You have been logged out', 'destructive');
     }, 'Logout', 'Logout');
@@ -389,7 +414,7 @@ const merchantLogin = async (email: string, password: string) => {
   const updateProfile = async (userData: any) => {
     return handleAuthAction(async () => {
       const response = await authAPI.updateProfile(userData);
-      // CRITICAL FIX: Preserve role when updating profile
+      // Preserve role when updating profile
       setUserWithPersistence(user ? { ...user, ...userData, role: user.role } : null);
       showToast('Profile Updated', 'Your profile has been updated');
       return response;
@@ -401,7 +426,7 @@ const merchantLogin = async (email: string, password: string) => {
       console.log('🔄 Refreshing user data...');
       const response = await authAPI.getMe();
       console.log('✅ User data refreshed:', response.data.data.email);
-      // CRITICAL FIX: Ensure role is included when refreshing
+      // Ensure role is included when refreshing
       setUserWithPersistence({
         ...response.data.data,
         role: response.data.data.role || sessionStorage.getItem(LS_USER_ROLE_KEY) as 'user' | 'merchant' | 'admin' || 'user'
@@ -409,9 +434,17 @@ const merchantLogin = async (email: string, password: string) => {
       return true;
     } catch (error) {
       console.error('❌ Failed to refresh user data:', error);
-      // If refresh fails, log the user out
-      setUserWithPersistence(null);
-      return false;
+      // If refresh fails, maintain the user from localStorage backup
+      const storedUserData = localStorage.getItem(LS_USER_DATA_KEY);
+      if (storedUserData) {
+        console.log('🔄 Maintaining user from localStorage backup');
+        const userData = JSON.parse(storedUserData);
+        setUserWithPersistence(userData);
+        return true;
+      } else {
+        setUserWithPersistence(null);
+        return false;
+      }
     }
   };
 
