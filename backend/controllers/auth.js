@@ -434,24 +434,65 @@ exports.getMe = async (req, res) => {
       });
     }
 
-    // CRITICAL FIX: Convert Mongoose document to plain object to add role
-    const userData = req.user.toObject ? req.user.toObject() : req.user;
+    // CRITICAL FIX: Refresh user data from DB to get complete object
+    let userData;
     
-    // Determine role from user type
-    const isMerchant = req.user.businessName !== undefined || 
-                       req.user.constructor?.modelName === 'Merchant';
-    
-    // Add role explicitly
-    userData.role = isMerchant ? 'merchant' : (req.user.role || 'user');
-    userData.isMerchant = isMerchant;
-    
-    console.log('🔍 getMe response:', {
-      id: userData.id || userData._id,
-      email: userData.email,
-      role: userData.role,
-      isMerchant: userData.isMerchant,
-      businessName: userData.businessName
-    });
+    // Determine if this is a merchant
+    const isMerchant = 
+      req.user.constructor?.modelName === 'Merchant' ||
+      req.user.collection?.collectionName === 'merchants' ||
+      !!req.user.businessName ||
+      req.user.isMerchant === true ||
+      req.user.role === 'merchant';
+
+    if (isMerchant) {
+      console.log('🔄 Refreshing merchant data from DB for getMe');
+      const merchant = await Merchant.findById(req.user._id || req.user.id).lean();
+      
+      if (!merchant) {
+        console.error('❌ Merchant not found in DB:', req.user._id);
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          error: 'Merchant account not found'
+        });
+      }
+
+      userData = {
+        ...merchant,
+        role: 'merchant',
+        isMerchant: true
+      };
+      
+      console.log('✅ Merchant data refreshed:', {
+        id: userData._id,
+        email: userData.email,
+        businessName: userData.businessName,
+        role: userData.role
+      });
+    } else {
+      console.log('🔄 Refreshing user data from DB for getMe');
+      const user = await User.findById(req.user._id || req.user.id).lean();
+      
+      if (!user) {
+        console.error('❌ User not found in DB:', req.user._id);
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          error: 'User account not found'
+        });
+      }
+
+      userData = {
+        ...user,
+        role: user.role || 'user',
+        isMerchant: false
+      };
+      
+      console.log('✅ User data refreshed:', {
+        id: userData._id,
+        email: userData.email,
+        role: userData.role
+      });
+    }
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
