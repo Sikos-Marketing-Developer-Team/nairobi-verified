@@ -101,17 +101,16 @@ app.use(cors({
     process.env.FRONTEND_URL || 'http://localhost:8080',
     process.env.ADMIN_URL || 'http://localhost:3001',
     'https://nairobi-verified-frontend.onrender.com',
-    'https://nairobi-verified.onrender.com',
     'http://localhost:3000',
-    'https://nairobi-verified-frontend1-6f8g.onrender.com',
-    'https://nairobi-verified-1-rmgv.onrender.com',
     'https://nairobi-verified-admin.onrender.com/',
-    'https://nairobiverified.co.ke',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['set-cookie']
 }));
+
+app.options('*', cors());
 
 // Session configuration
 const mongoStore = MongoStore.create({
@@ -148,7 +147,12 @@ const sessionConfig = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production' && process.env.ENABLE_SECURE_COOKIES !== 'false',
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    partitioned: process.env.NODE_ENV === 'production',
+    path: '/',
+    domain: process.env.NODE_ENV === 'production' 
+      ? undefined
+      : undefined
   },
   unset: 'destroy'
 };
