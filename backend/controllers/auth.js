@@ -384,28 +384,53 @@ exports.loginMerchant = async (req, res) => {
           success: false,
           error: 'Your temporary password has expired. Please contact admin for a new password.',
           expired: true
-        });
+    });
       }
 
-      if (!merchant.passwordChanged) {
-        return res.status(HTTP_STATUS.OK).json({
-          success: true,
-          requirePasswordChange: true,
-          message: 'Please change your password to continue',
-          user: {
-            id: merchant._id,
-            businessName: merchant.businessName,
-            email: merchant.email,
-            phone: merchant.phone,
-            businessType: merchant.businessType,
-            verified: merchant.verified,
-            role: 'merchant',
-            isMerchant: true,
-            tempPasswordExpiry: merchant.tempPasswordExpiry
+  // FIX: Still create session even if password change required
+  if (!merchant.passwordChanged) {
+    return new Promise((resolve, reject) => {
+      req.login(merchant, (err) => {
+        if (err) {
+          console.error('❌ req.login error:', err);
+          return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            error: 'Error logging in'
+          });
+        }
+        
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('❌ Session save error:', saveErr);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+              success: false,
+              error: 'Error saving session'
+            });
           }
+          
+          console.log('✅ Session created for password change');
+          
+          return res.status(HTTP_STATUS.OK).json({
+            success: true,
+            requirePasswordChange: true,
+            message: 'Please change your password to continue',
+            user: {
+              id: merchant._id,
+              businessName: merchant.businessName,
+              email: merchant.email,
+              phone: merchant.phone,
+              businessType: merchant.businessType,
+              verified: merchant.verified,
+              role: 'merchant',
+              isMerchant: true,
+              tempPasswordExpiry: merchant.tempPasswordExpiry
+            }
+          });
         });
-      }
-    }
+      });
+    });
+  }
+}
 
     // CRITICAL FIX: Use promisified req.login with explicit session save
     return new Promise((resolve, reject) => {
