@@ -22,7 +22,7 @@ import { usePageLoading } from '@/hooks/use-loading';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const categories = ['All', 'Electronics', 'Fashion', 'Photography', 'Sports', 'Business Services'];
-const ITEMS_PER_PAGE = 24; // Show 24 merchants per page
+const ITEMS_PER_PAGE = 24;
 
 type ViewMode = 'grid' | 'list';
 
@@ -74,7 +74,6 @@ const Merchants = () => {
         limit: ITEMS_PER_PAGE
       };
 
-      // Add search and category filters
       if (searchTerm.trim()) {
         params.search = searchTerm.trim();
       }
@@ -82,34 +81,52 @@ const Merchants = () => {
         params.category = selectedCategory;
       }
 
-      console.log('Fetching merchants with params:', params);
+      console.log('🔍 Fetching merchants with params:', params);
       const response = await merchantsAPI.getMerchants(params);
       
-      console.log('API Response:', response.data);
+      console.log('📦 Full API Response:', response.data);
 
       const merchantsData = response.data.data || [];
       const paginationData = response.data.pagination || {};
-      const count = response.data.count || 0;
+      
+      // Try multiple possible fields for total count
+      const totalCount = response.data.total || 
+                        response.data.totalCount || 
+                        response.data.count || 
+                        merchantsData.length;
+
+      console.log('📊 Pagination Data:', {
+        merchantsCount: merchantsData.length,
+        totalCount: totalCount,
+        paginationData: paginationData,
+        currentPage: page
+      });
 
       setMerchants(merchantsData);
 
-      // Calculate total pages
-      const total = count;
-      const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
+      // Calculate pagination
+      const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+      const hasNext = page < totalPages;
+      const hasPrev = page > 1;
 
-      setPagination({
+      const paginationState = {
         currentPage: page,
         totalPages: totalPages,
-        totalItems: total,
-        hasNext: !!paginationData.next,
-        hasPrev: !!paginationData.prev
-      });
+        totalItems: totalCount,
+        hasNext: hasNext,
+        hasPrev: hasPrev
+      };
 
-      // Scroll to top when page changes
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      console.log('✅ Setting pagination state:', paginationState);
+      setPagination(paginationState);
+
+      // Scroll to top when page changes (but not on initial load)
+      if (page !== 1) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
 
     } catch (err) {
-      console.error('Fetch error:', err);
+      console.error('❌ Fetch error:', err);
       setError('Failed to load merchants. Please try again.');
       setMerchants([]);
     } finally {
@@ -117,7 +134,7 @@ const Merchants = () => {
     }
   };
 
-  // Fetch merchants when page, search, or category changes
+  // Fetch merchants when dependencies change
   useEffect(() => {
     fetchMerchants(currentPage);
   }, [currentPage, searchTerm, selectedCategory]);
@@ -126,7 +143,7 @@ const Merchants = () => {
     const params = new URLSearchParams();
     if (searchTerm.trim()) params.append('search', searchTerm.trim());
     if (selectedCategory !== 'All') params.append('category', selectedCategory);
-    params.append('page', '1'); // Reset to page 1 on new search
+    params.append('page', '1');
     setSearchParams(params);
     setCurrentPage(1);
   };
@@ -153,19 +170,16 @@ const Merchants = () => {
     const { currentPage: current, totalPages } = pagination;
 
     if (totalPages <= 7) {
-      // Show all pages if 7 or fewer
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Always show first page
       pages.push(1);
 
       if (current > 3) {
         pages.push('ellipsis-start');
       }
 
-      // Show pages around current
       const start = Math.max(2, current - 1);
       const end = Math.min(totalPages - 1, current + 1);
 
@@ -177,7 +191,6 @@ const Merchants = () => {
         pages.push('ellipsis-end');
       }
 
-      // Always show last page
       pages.push(totalPages);
     }
 
@@ -185,7 +198,7 @@ const Merchants = () => {
   };
 
   // Loading state
-  if (loading || isPageLoading) {
+  if (loading && merchants.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -243,7 +256,6 @@ const Merchants = () => {
         {/* Search and Filter Section */}
         <div className="mb-6 mt-16 sm:mt-12 pt-8">
           <div className="flex flex-col gap-3">
-            {/* Search Input and Button */}
             <div className="flex flex-row items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -267,7 +279,6 @@ const Merchants = () => {
               </Button>
             </div>
             
-            {/* Filter and View Mode */}
             <div className="flex gap-2 items-center">
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-28 h-8 text-[11px] sm:w-[140px] sm:h-10 sm:text-sm" aria-label="Filter by category">
@@ -414,7 +425,6 @@ const Merchants = () => {
                     </span>
                   </div>
                   
-                  {/* View Profile Links */}
                   <div className="block sm:hidden">
                     <Link
                       to={`/business/${merchant._id}`}
@@ -440,9 +450,9 @@ const Merchants = () => {
           ))}
         </div>
 
-        {/* Pagination */}
+        {/* Pagination - ALWAYS SHOW IF MORE THAN 1 PAGE */}
         {pagination.totalPages > 1 && (
-          <div className="mt-8 mb-4">
+          <div className="mt-8 mb-8 flex justify-center">
             <Pagination>
               <PaginationContent>
                 {/* Previous Button */}
@@ -495,6 +505,19 @@ const Merchants = () => {
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
+          </div>
+        )}
+
+        {/* Debug Info - Remove after testing */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-4 bg-gray-100 rounded text-xs">
+            <strong>Debug Info:</strong><br/>
+            Total Items: {pagination.totalItems}<br/>
+            Total Pages: {pagination.totalPages}<br/>
+            Current Page: {pagination.currentPage}<br/>
+            Has Next: {pagination.hasNext ? 'Yes' : 'No'}<br/>
+            Has Prev: {pagination.hasPrev ? 'Yes' : 'No'}<br/>
+            Merchants on Page: {merchants.length}
           </div>
         )}
       </main>
