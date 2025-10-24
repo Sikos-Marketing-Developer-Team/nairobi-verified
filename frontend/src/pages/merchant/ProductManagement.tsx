@@ -259,7 +259,8 @@ const ProductManagement = () => {
     setDeletingImage(null);
   }
 };
-  const handleSubmit = async (e: React.FormEvent) => {
+
+const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setError("");
   setSuccess("");
@@ -289,21 +290,46 @@ const ProductManagement = () => {
         imageFormData.append("images", file);
       });
 
+      console.log('📤 Sending upload request to /api/uploads/products');
       const uploadResponse = await axios.post("/api/uploads/products", imageFormData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
 
-      console.log('✅ Images uploaded:', uploadResponse.data);
-      uploadedImageUrls = uploadResponse.data.files.map((file: any) => file.url);
+      console.log('✅ Upload response:', uploadResponse.data);
+      
+      // Debug: Check the response structure
+      console.log('🔍 Upload response structure:', {
+        data: uploadResponse.data,
+        files: uploadResponse.data.files,
+        hasFiles: !!uploadResponse.data.files,
+        filesType: typeof uploadResponse.data.files
+      });
+
+      // Handle different possible response structures
+      if (uploadResponse.data.files && Array.isArray(uploadResponse.data.files)) {
+        uploadedImageUrls = uploadResponse.data.files.map((file: any) => file.url || file.path);
+      } else if (uploadResponse.data.data && Array.isArray(uploadResponse.data.data)) {
+        uploadedImageUrls = uploadResponse.data.data.map((file: any) => file.url || file.path);
+      } else {
+        console.warn('⚠️ Unexpected upload response structure:', uploadResponse.data);
+        // If no specific structure, try to extract URLs from response
+        if (uploadResponse.data.images && Array.isArray(uploadResponse.data.images)) {
+          uploadedImageUrls = uploadResponse.data.images;
+        }
+      }
+
+      console.log('📸 Extracted image URLs:', uploadedImageUrls);
     }
 
     if (editingProduct) {
       // Update existing product - combine existing images with new ones
+      const existingImages = previewImages.filter(img => img.startsWith('http'));
       const updateData = {
         ...formData,
-        images: [...previewImages.filter(img => img.startsWith('http')), ...uploadedImageUrls]
+        images: [...existingImages, ...uploadedImageUrls].slice(0, 5) // Ensure max 5 images
       };
 
+      console.log('🔄 Updating product with data:', updateData);
       const updateResponse = await axios.put(
         `/api/merchants/dashboard/products/${editingProduct._id}`, 
         updateData
@@ -318,7 +344,7 @@ const ProductManagement = () => {
         images: uploadedImageUrls
       };
 
-      console.log('🔄 Creating new product...');
+      console.log('🔄 Creating new product with data:', productData);
       const response = await axios.post("/api/merchants/dashboard/products", productData);
       console.log('✅ Product creation response:', response.data);
       

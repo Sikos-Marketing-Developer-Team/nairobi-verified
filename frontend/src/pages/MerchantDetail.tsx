@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { 
   Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, 
   Image, MessageSquare, AlertCircle, Loader2, X, Send, 
-  Facebook, Instagram, Globe, Map, Twitter, Film, Copy, Share2
+  Facebook, Instagram, Globe, Map, Twitter, Film, Copy, Share2,
+  Youtube, Linkedin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -21,13 +22,15 @@ import { useFavorites } from '../contexts/FavoritesContext';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { isBusinessCurrentlyOpen, formatBusinessHours } from '@/utils/businessHours';
 
-// Social media icon mapping
+// Enhanced social media icon mapping
 const socialIcons = {
   facebook: Facebook,
   instagram: Instagram,
   twitter: Twitter,
   tiktok: Film,
-  website: ExternalLink,
+  youtube: Youtube,
+  linkedin: Linkedin,
+  website: Globe,
   phone: Phone,
   google: Map,
   whatsapp: Send,
@@ -213,10 +216,15 @@ const MerchantDetail = () => {
   // Social media handler
   const handleSocialMediaClick = (url: string, platform: string) => {
     if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      // Ensure URL has proper protocol
+      let formattedUrl = url;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        formattedUrl = `https://${url}`;
+      }
+      window.open(formattedUrl, '_blank', 'noopener,noreferrer');
     } else {
       toast({
-        title: `${platform} Not Available`,
+        title: `${platform.charAt(0).toUpperCase() + platform.slice(1)} Not Available`,
         description: `This merchant hasn't provided their ${platform} profile`,
         variant: 'destructive',
       });
@@ -256,15 +264,22 @@ const MerchantDetail = () => {
   // Get current day for highlighting
   const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
 
-  // Social links
+  // Enhanced social links with fallbacks for different data structures
   const socialLinks = {
-    facebook: merchant?.facebookUrl,
-    instagram: merchant?.instagramUrl,
-    twitter: merchant?.twitterUrl,
-    tiktok: merchant?.tiktokUrl,
+    facebook: merchant?.facebookUrl || merchant?.socialLinks?.facebook,
+    instagram: merchant?.instagramUrl || merchant?.socialLinks?.instagram,
+    twitter: merchant?.twitterUrl || merchant?.socialLinks?.twitter,
+    tiktok: merchant?.tiktokUrl || merchant?.socialLinks?.tiktok,
+    youtube: merchant?.youtubeUrl || merchant?.socialLinks?.youtube,
+    linkedin: merchant?.linkedinUrl || merchant?.socialLinks?.linkedin,
     website: merchant?.website,
-    whatsapp: merchant?.whatsapp,
+    whatsapp: merchant?.whatsappNumber || merchant?.whatsapp,
   };
+
+  // Filter out empty social links
+  const availableSocialLinks = Object.entries(socialLinks).filter(([_, url]) => 
+    url && url.trim() !== ''
+  );
 
   if (loading || isPageLoading) {
     return (
@@ -545,13 +560,13 @@ const MerchantDetail = () => {
                       </a>
                     </div>
                   </div>
-                  {merchant.whatsapp && (
+                  {merchant.whatsappNumber && (
                     <div className="flex items-center gap-3">
                       <Send className="h-5 w-5 text-gray-400" />
                       <div>
                         <p className="text-sm text-gray-500">WhatsApp</p>
                         <a 
-                          href={`https://wa.me/${merchant.whatsapp}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
+                          href={`https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
                           className="font-medium text-primary hover:text-primary-dark"
                           aria-label={`Message ${merchant.businessName} on WhatsApp`}
                         >
@@ -560,36 +575,33 @@ const MerchantDetail = () => {
                       </div>
                     </div>
                   )}
-                  <div className="pt-4 border-t">
-                    <p className="text-sm font-medium text-gray-700 mb-3">Follow & Connect</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {Object.entries(socialLinks).map(([platform, url]) => {
-                        if (!url) return null;
-                        const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
-                        return (
-                          <Button
-                            key={platform}
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 min-w-[80px]"
-                            onClick={() => handleSocialMediaClick(url as string, platform)}
-                            aria-label={`Visit ${merchant.businessName} on ${platform}`}
-                          >
-                            <IconComponent className="h-4 w-4" />
-                          </Button>
-                        );
-                      })}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 min-w-[80px]"
-                        onClick={handleOpenGoogleBusiness}
-                        aria-label={`View ${merchant.businessName} on Google Business`}
-                      >
-                        <Map className="h-4 w-4" />
-                      </Button>
+                  
+                  {/* Enhanced Social Links Section */}
+                  {availableSocialLinks.length > 0 && (
+                    <div className="pt-4 border-t">
+                      <p className="text-sm font-medium text-gray-700 mb-3">Follow & Connect</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {availableSocialLinks.map(([platform, url]) => {
+                          const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
+                          const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
+                          
+                          return (
+                            <Button
+                              key={platform}
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center justify-start gap-2 h-auto py-2"
+                              onClick={() => handleSocialMediaClick(url as string, platform)}
+                              aria-label={`Visit ${merchant.businessName} on ${platformName}`}
+                            >
+                              <IconComponent className="h-4 w-4 flex-shrink-0" />
+                              <span className="text-xs truncate">{platformName}</span>
+                            </Button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -686,6 +698,33 @@ const MerchantDetail = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-gray-600 leading-relaxed">{merchant.description}</p>
+                    
+                    {/* Social Links in About Section */}
+                    {availableSocialLinks.length > 0 && (
+                      <div className="mt-6 pt-6 border-t">
+                        <h4 className="font-semibold text-gray-900 mb-3">Connect with {merchant.businessName}</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {availableSocialLinks.map(([platform, url]) => {
+                            const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
+                            const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
+                            
+                            return (
+                              <Button
+                                key={platform}
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-2"
+                                onClick={() => handleSocialMediaClick(url as string, platform)}
+                              >
+                                <IconComponent className="h-4 w-4" />
+                                <span>{platformName}</span>
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="mt-6 flex items-center gap-4">
                       <div className="flex items-center">
                         <Star className="h-5 w-5 text-yellow-400 fill-current" />
@@ -737,7 +776,7 @@ const MerchantDetail = () => {
                   <CardContent>
                     <Carousel className="w-full">
                       <CarouselContent>
-                        {merchant.gallery.map((image: string, index: number) => (
+                        {merchant.gallery?.map((image: string, index: number) => (
                           <CarouselItem key={index}>
                             <figure className="aspect-square overflow-hidden rounded-lg">
                               <img
@@ -823,13 +862,13 @@ const MerchantDetail = () => {
               </Button>
             </div>
             <div className="space-y-4">
-              {merchant.whatsapp && (
+              {merchant.whatsappNumber && (
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                   <Send className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium">WhatsApp</p>
                     <a 
-                      href={`https://wa.me/${merchant.whatsapp}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
+                      href={`https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
                       className="text-primary hover:underline"
                     >
                       Message on WhatsApp
@@ -861,27 +900,32 @@ const MerchantDetail = () => {
                   </a>
                 </div>
               </div>
-              <div className="pt-4 border-t">
-                <p className="font-medium mb-3">Connect on Social Media</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(socialLinks).map(([platform, url]) => {
-                    if (!url) return null;
-                    const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
-                    return (
-                      <Button
-                        key={platform}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSocialMediaClick(url as string, platform)}
-                        className="justify-start"
-                      >
-                        <IconComponent className="h-4 w-4 mr-2" />
-                        <span className="capitalize">{platform}</span>
-                      </Button>
-                    );
-                  })}
+              
+              {/* Social Links in Contact Modal */}
+              {availableSocialLinks.length > 0 && (
+                <div className="pt-4 border-t">
+                  <p className="font-medium mb-3">Connect on Social Media</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {availableSocialLinks.map(([platform, url]) => {
+                      const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
+                      const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
+                      
+                      return (
+                        <Button
+                          key={platform}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSocialMediaClick(url as string, platform)}
+                          className="justify-start"
+                        >
+                          <IconComponent className="h-4 w-4 mr-2" />
+                          <span className="capitalize">{platformName}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -919,7 +963,7 @@ const MerchantDetail = () => {
   );
 };
 
-// Review Modal Component
+// Review Modal Component (keep the same as before)
 const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
   merchant: any;
   onClose: () => void;
@@ -1060,7 +1104,7 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
   );
 };
 
-// Report Modal Component
+// Report Modal Component (keep the same as before)
 const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
   merchant: any;
   onClose: () => void;
