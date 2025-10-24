@@ -29,8 +29,61 @@ exports.getMerchants = async (req, res) => {
     let queryStr = JSON.stringify(reqQuery);
     queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
 
-    query = Merchant.find(JSON.parse(queryStr)).lean();
+    // Build base query
+    let baseQuery = JSON.parse(queryStr);
+    
+    // Add search filter
+    if (req.query.search) {
+      baseQuery.$or = [
+        { businessName: { $regex: req.query.search, $options: 'i' } },
+        { description: { $regex: req.query.search, $options: 'i' } },
+        { businessType: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
 
+    // Add category filter
+    if (req.query.category && req.query.category !== 'All') {
+      baseQuery.businessType = req.query.category;
+    }
+
+    // Add document status filter
+    if (req.query.documentStatus) {
+      switch (req.query.documentStatus) {
+        case 'complete':
+          baseQuery.$and = [
+            { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
+            { 'documents.idDocument.path': { $exists: true, $ne: '' } },
+            { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
+          ];
+          break;
+        case 'incomplete':
+          baseQuery.$or = [
+            { 'documents.businessRegistration.path': { $exists: false } },
+            { 'documents.businessRegistration.path': '' },
+            { 'documents.idDocument.path': { $exists: false } },
+            { 'documents.idDocument.path': '' },
+            { 'documents.utilityBill.path': { $exists: false } },
+            { 'documents.utilityBill.path': '' }
+          ];
+          break;
+        case 'pending_review':
+          baseQuery.$and = [
+            { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
+            { 'documents.idDocument.path': { $exists: true, $ne: '' } },
+            { 'documents.utilityBill.path': { $exists: true, $ne: '' } },
+            { verified: false }
+          ];
+          break;
+      }
+    }
+
+    // Count total documents matching the query
+    const total = await Merchant.countDocuments(baseQuery);
+
+    // Initialize query with filters
+    query = Merchant.find(baseQuery).lean();
+
+    // Select fields
     if (req.query.select) {
       const fields = req.query.select.split(',').join(' ');
       query = query.select(fields);
@@ -38,6 +91,7 @@ exports.getMerchants = async (req, res) => {
       query = query.select('-password');
     }
 
+    // Sort
     if (req.query.sort) {
       const sortBy = req.query.sort.split(',').join(' ');
       query = query.sort(sortBy);
@@ -45,74 +99,30 @@ exports.getMerchants = async (req, res) => {
       query = query.sort('-createdAt');
     }
 
+    // Pagination
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 25;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    const total = await Merchant.countDocuments(JSON.parse(queryStr));
 
     query = query.skip(startIndex).limit(limit);
 
-    if (req.query.search) {
-      query = query.where(
-        '$or',
-        [
-          { businessName: { $regex: req.query.search, $options: 'i' } },
-          { description: { $regex: req.query.search, $options: 'i' } },
-          { businessType: { $regex: req.query.search, $options: 'i' } }
-        ]
-      );
-    }
-
-    if (req.query.category && req.query.category !== 'All') {
-      query = query.where('businessType', req.query.category);
-    }
-
-    if (req.query.documentStatus) {
-      switch (req.query.documentStatus) {
-        case 'complete':
-          query = query.where({
-            $and: [
-              { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
-              { 'documents.idDocument.path': { $exists: true, $ne: '' } },
-              { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
-            ]
-          });
-          break;
-        case 'incomplete':
-          query = query.where({
-            $or: [
-              { 'documents.businessRegistration.path': { $exists: false } },
-              { 'documents.businessRegistration.path': '' },
-              { 'documents.idDocument.path': { $exists: false } },
-              { 'documents.idDocument.path': '' },
-              { 'documents.utilityBill.path': { $exists: false } },
-              { 'documents.utilityBill.path': '' }
-            ]
-          });
-          break;
-        case 'pending_review':
-          query = query.where({
-            $and: [
-              { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
-              { 'documents.idDocument.path': { $exists: true, $ne: '' } },
-              { 'documents.utilityBill.path': { $exists: true, $ne: '' } },
-              { verified: false }
-            ]
-          });
-          break;
-      }
-    }
-
+    // Execute query
     const merchants = await query;
 
+    // Build pagination response
     const pagination = {};
-    if (endIndex < total) pagination.next = { page: page + 1, limit };
-    if (startIndex > 0) pagination.prev = { page: page - 1, limit };
+    if (endIndex < total) {
+      pagination.next = { page: page + 1, limit };
+    }
+    if (startIndex > 0) {
+      pagination.prev = { page: page - 1, limit };
+    }
 
     res.status(200).json({
       success: true,
       count: merchants.length,
+      total: total, // Add total count for frontend
       pagination,
       data: merchants
     });
