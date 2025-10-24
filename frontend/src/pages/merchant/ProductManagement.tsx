@@ -200,31 +200,65 @@ const ProductManagement = () => {
     setPreviewImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  // const handleDeleteExistingImage = async (imageUrl: string, productId: string) => {
+  //   if (!confirm("Are you sure you want to delete this image?")) return;
+
+  //   try {
+  //     setDeletingImage(imageUrl);
+  //     await axios.delete(`/api/merchants/dashboard/products/${productId}/images`, {
+  //       data: { imageUrl }
+  //     });
+      
+  //     setSuccess("Image deleted successfully");
+  //     await fetchProducts();
+      
+  //     // Update preview if modal is open
+  //     if (editingProduct && editingProduct._id === productId) {
+  //       setPreviewImages(prev => prev.filter(img => img !== imageUrl));
+  //     }
+      
+  //     setTimeout(() => setSuccess(""), 3000);
+  //   } catch (err: any) {
+  //     setError(err.response?.data?.message || "Failed to delete image");
+  //   } finally {
+  //     setDeletingImage(null);
+  //   }
+  // };
+
   const handleDeleteExistingImage = async (imageUrl: string, productId: string) => {
-    if (!confirm("Are you sure you want to delete this image?")) return;
+  if (!confirm("Are you sure you want to delete this image?")) return;
 
-    try {
-      setDeletingImage(imageUrl);
-      await axios.delete(`/api/merchants/dashboard/products/${productId}/images`, {
-        data: { imageUrl }
-      });
-      
-      setSuccess("Image deleted successfully");
-      await fetchProducts();
-      
-      // Update preview if modal is open
-      if (editingProduct && editingProduct._id === productId) {
-        setPreviewImages(prev => prev.filter(img => img !== imageUrl));
-      }
-      
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to delete image");
-    } finally {
-      setDeletingImage(null);
+  try {
+    setDeletingImage(imageUrl);
+    
+    // Get the current product
+    const product = products.find(p => p._id === productId);
+    if (!product) throw new Error("Product not found");
+
+    // Remove the image from the product's images array
+    const updatedImages = product.images.filter(img => img !== imageUrl);
+    
+    // Update the product with the new images array
+    await axios.put(`/api/merchants/dashboard/products/${productId}`, {
+      ...formData,
+      images: updatedImages
+    });
+    
+    setSuccess("Image deleted successfully");
+    await fetchProducts();
+    
+    // Update preview if modal is open
+    if (editingProduct && editingProduct._id === productId) {
+      setPreviewImages(prev => prev.filter(img => img !== imageUrl));
     }
-  };
-
+    
+    setTimeout(() => setSuccess(""), 3000);
+  } catch (err: any) {
+    setError(err.response?.data?.message || "Failed to delete image");
+  } finally {
+    setDeletingImage(null);
+  }
+};
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setError("");
@@ -245,62 +279,54 @@ const ProductManagement = () => {
     setUploading(true);
     console.log('📦 Submitting product:', formData);
 
+    let uploadedImageUrls: string[] = [];
+
+    // Upload images first if there are new ones
+    if (productImages.length > 0) {
+      console.log('🔄 Uploading product images...');
+      const imageFormData = new FormData();
+      productImages.forEach(file => {
+        imageFormData.append("images", file);
+      });
+
+      const uploadResponse = await axios.post("/api/uploads/products", imageFormData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      console.log('✅ Images uploaded:', uploadResponse.data);
+      uploadedImageUrls = uploadResponse.data.files.map((file: any) => file.url);
+    }
+
     if (editingProduct) {
-      // Update existing product
-      const updateResponse = await axios.put(`/api/merchants/dashboard/products/${editingProduct._id}`, formData);
+      // Update existing product - combine existing images with new ones
+      const updateData = {
+        ...formData,
+        images: [...previewImages.filter(img => img.startsWith('http')), ...uploadedImageUrls]
+      };
+
+      const updateResponse = await axios.put(
+        `/api/merchants/dashboard/products/${editingProduct._id}`, 
+        updateData
+      );
       console.log('✅ Product updated:', updateResponse.data);
-      
-      // Upload new images if any
-      if (productImages.length > 0) {
-        const imageFormData = new FormData();
-        productImages.forEach(file => {
-          imageFormData.append("images", file);
-        });
-        
-        const imageResponse = await axios.post(
-          `/api/merchants/dashboard/products/${editingProduct._id}/images`,
-          imageFormData,
-          {
-            headers: { "Content-Type": "multipart/form-data" }
-          }
-        );
-        console.log('✅ Images uploaded:', imageResponse.data);
-      }
 
       setSuccess("Product updated successfully");
     } else {
-      // Create new product
+      // Create new product with uploaded images
+      const productData = {
+        ...formData,
+        images: uploadedImageUrls
+      };
+
       console.log('🔄 Creating new product...');
-      const response = await axios.post("/api/merchants/dashboard/products", formData);
+      const response = await axios.post("/api/merchants/dashboard/products", productData);
       console.log('✅ Product creation response:', response.data);
       
-      // FIX: Use the correct response structure
-      const newProduct = response.data.data; // This is where your product data is
+      const newProduct = response.data.data;
       
       if (!newProduct || !newProduct._id) {
         console.error('❌ Invalid response structure:', response.data);
         throw new Error("Product created but no product ID returned from server");
-      }
-      
-      const productId = newProduct._id;
-      console.log('✅ Product ID:', productId);
-      
-      // Upload images if any
-      if (productImages.length > 0) {
-        console.log('🔄 Uploading images...');
-        const imageFormData = new FormData();
-        productImages.forEach(file => {
-          imageFormData.append("images", file);
-        });
-        
-        const imageResponse = await axios.post(
-          `/api/merchants/dashboard/products/${productId}/images`,
-          imageFormData,
-          {
-            headers: { "Content-Type": "multipart/form-data" }
-          }
-        );
-        console.log('✅ Images uploaded:', imageResponse.data);
       }
 
       setSuccess("Product created successfully");
@@ -317,7 +343,6 @@ const ProductManagement = () => {
     setUploading(false);
   }
 };
-
   const handleToggleAvailability = async (productId: string, currentStatus: boolean) => {
     try {
       await axios.patch(`/api/merchants/dashboard/products/${productId}/availability`, {
