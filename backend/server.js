@@ -4,11 +4,11 @@ const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 const passport = require('passport');
+const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
-const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
-const compression = require('compression'); // NEW: Add compression
+const compression = require('compression');
 const { v4: uuidv4 } = require('uuid');
 const { client, webVitalsLCP, webVitalsCLS, webVitalsFID } = require('./utils/metrics');
 const merchantDashboardRoutes = require('./routes/merchantDashboard');
@@ -37,7 +37,7 @@ require('./config/passport');
 const app = express();
 
 // Trust proxy for accurate IP addresses
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 // OPTIMIZATION: Compression middleware
 app.use(compression({
@@ -84,7 +84,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Middleware
-app.use(cookieParser());
+app.use(cookieParser(process.env.JWT_SECRET));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -123,6 +123,9 @@ const mongoStore = MongoStore.create({
   autoRemove: 'native',
   touchAfter: 24 * 3600,
   stringify: false,
+  crypto: {
+    secret: process.env.JWT_SECRET
+  },
   writeOperationOptions: {
     upsert: true,
     retryWrites: false
