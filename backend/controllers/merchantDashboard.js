@@ -805,27 +805,64 @@ exports.getProductById = async (req, res) => {
 };
 
 exports.createProduct = async (req, res) => {
+  console.log('\n📦 ========== CREATE PRODUCT START ==========');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Request ID:', req.sessionID);
+  
   try {
+    // Log authentication info
+    console.log('🔐 Authentication Info:');
+    console.log('  - User ID:', req.user?._id);
+    console.log('  - User Email:', req.user?.email);
+    console.log('  - Business Name:', req.user?.businessName);
+    console.log('  - Is Merchant:', !!req.merchant);
+
+    // Check if user exists
+    if (!req.user || !req.user._id) {
+      console.error('❌ No authenticated user found');
+      const errorResponse = {
+        success: false,
+        error: 'User not authenticated'
+      };
+      console.log('📤 Sending error response:', errorResponse);
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json(errorResponse);
+    }
+
     const merchantId = req.user._id;
-    console.log('📦 Creating product for merchant:', merchantId);
-    console.log('Product data:', req.body);
+    console.log('📦 Merchant ID:', merchantId);
+    console.log('📥 Request Body:', JSON.stringify(req.body, null, 2));
     
     // Validate required fields
-    if (!req.body.name || !req.body.category || !req.body.description) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+    const validationErrors = [];
+    if (!req.body.name) validationErrors.push('name');
+    if (!req.body.category) validationErrors.push('category');
+    if (!req.body.description) validationErrors.push('description');
+    
+    if (validationErrors.length > 0) {
+      console.error('❌ Missing required fields:', validationErrors);
+      const errorResponse = {
         success: false,
-        error: 'Name, category, and description are required'
-      });
+        error: `Missing required fields: ${validationErrors.join(', ')}`
+      };
+      console.log('📤 Sending validation error:', errorResponse);
+      return res.status(HTTP_STATUS.BAD_REQUEST).json(errorResponse);
     }
 
     // Get merchant details for merchantName
+    console.log('🔍 Looking up merchant in database...');
     const merchant = await Merchant.findById(merchantId).select('businessName');
+    
     if (!merchant) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
+      console.error('❌ Merchant not found in database:', merchantId);
+      const errorResponse = {
         success: false,
-        error: 'Merchant not found'
-      });
+        error: 'Merchant profile not found'
+      };
+      console.log('📤 Sending merchant not found error:', errorResponse);
+      return res.status(HTTP_STATUS.NOT_FOUND).json(errorResponse);
     }
+
+    console.log('✅ Merchant found:', merchant.businessName);
 
     // Prepare product data with defaults for required fields
     const productData = {
@@ -837,35 +874,89 @@ exports.createProduct = async (req, res) => {
       subcategory: req.body.subcategory || 'General',
       merchant: merchantId,
       merchantName: merchant.businessName,
-      images: req.body.images || [],
+      images: Array.isArray(req.body.images) ? req.body.images : [],
       primaryImage: req.body.primaryImage || (req.body.images && req.body.images[0]) || '/placeholder-product.jpg',
       stockQuantity: req.body.stockQuantity || 0,
       featured: req.body.featured || false,
       isActive: req.body.available !== undefined ? req.body.available : true,
-      tags: req.body.tags || [],
+      tags: Array.isArray(req.body.tags) ? req.body.tags : [],
       brand: req.body.brand || merchant.businessName
     };
 
+    console.log('📦 Product Data to Create:');
+    console.log(JSON.stringify(productData, null, 2));
+    
+    console.log('💾 Creating product in database...');
     const product = await Product.create(productData);
+    console.log('✅ Product created with ID:', product._id);
 
-    console.log('✅ Product created successfully:', product._id);
+    // Populate merchant details
+    console.log('🔄 Populating merchant details...');
+    const populatedProduct = await Product.findById(product._id)
+      .populate('merchant', 'businessName address')
+      .lean();
 
-    // Convert to object and ensure both id and _id are present
-    const productResponse = product.toObject();
-    productResponse._id = product._id;
-    productResponse.id = product._id;
+    if (!populatedProduct) {
+      console.error('❌ Failed to retrieve created product');
+      throw new Error('Product created but could not be retrieved');
+    }
 
-    res.status(HTTP_STATUS.CREATED).json({
+    console.log('✅ Product populated successfully');
+
+    // Prepare response
+    const productResponse = {
+      ...populatedProduct,
+      _id: populatedProduct._id.toString(),
+      id: populatedProduct._id.toString(),
+      available: populatedProduct.isActive
+    };
+
+    const responseData = {
       success: true,
       message: 'Product created successfully',
       data: productResponse
-    });
+    };
+
+    console.log('✅ Product creation successful!');
+    console.log('📤 Sending response:');
+    console.log('  - Success:', responseData.success);
+    console.log('  - Product ID:', responseData.data._id);
+    console.log('  - Product Name:', responseData.data.name);
+    console.log('  - Response size:', JSON.stringify(responseData).length, 'bytes');
+    console.log('========== CREATE PRODUCT END ==========\n');
+    
+    // EXPLICITLY set headers and send response
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(HTTP_STATUS.CREATED).json(responseData);
+    
   } catch (error) {
-    console.error('❌ createProduct error:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    console.error('\n❌ ========== CREATE PRODUCT ERROR ==========');
+    console.error('Error Type:', error.constructor.name);
+    console.error('Error Name:', error.name);
+    console.error('Error Message:', error.message);
+    console.error('Error Code:', error.code);
+    
+    if (error.name === 'ValidationError') {
+      console.error('Validation Errors:', Object.keys(error.errors));
+      Object.keys(error.errors).forEach(key => {
+        console.error(`  - ${key}:`, error.errors[key].message);
+      });
+    }
+    
+    console.error('Error Stack:', error.stack);
+    console.error('===========================================\n');
+    
+    const errorResponse = {
       success: false,
-      error: error.message || 'Failed to create product'
-    });
+      error: error.message || 'Failed to create product',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    };
+    
+    console.log('📤 Sending error response:', errorResponse);
+    
+    // EXPLICITLY set headers and send error response
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json(errorResponse);
   }
 };
 

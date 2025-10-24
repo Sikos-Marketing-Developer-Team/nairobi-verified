@@ -63,6 +63,19 @@ const router = express.Router();
 router.use(protect);
 router.use(isMerchant);
 
+// DEBUG: Simple test route
+router.post('/test-response', (req, res) => {
+  console.log('🧪 Test Response Route Hit');
+  const testData = {
+    success: true,
+    message: 'Test response working',
+    timestamp: new Date().toISOString(),
+    body: req.body
+  };
+  console.log('📤 Sending test response:', testData);
+  res.json(testData);
+});
+
 // ==================== DASHBOARD OVERVIEW ====================
 router.get('/overview', getDashboardOverview);
 router.get('/analytics', getPerformanceAnalytics);
