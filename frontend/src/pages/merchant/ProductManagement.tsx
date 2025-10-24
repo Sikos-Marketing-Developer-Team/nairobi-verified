@@ -226,91 +226,97 @@ const ProductManagement = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
+  e.preventDefault();
+  setError("");
+  setSuccess("");
 
-    // Validation
-    if (!formData.name || !formData.category || !formData.description) {
-      setError("Please fill in all required fields");
-      return;
-    }
+  // Validation
+  if (!formData.name || !formData.category || !formData.description) {
+    setError("Please fill in all required fields");
+    return;
+  }
 
-    if (formData.price < 0) {
-      setError("Price must be a positive number");
-      return;
-    }
+  if (formData.price < 0) {
+    setError("Price must be a positive number");
+    return;
+  }
 
-    try {
-      setUploading(true);
-      console.log('📦 Submitting product:', formData);
+  try {
+    setUploading(true);
+    console.log('📦 Submitting product:', formData);
 
-      if (editingProduct) {
-        // Update existing product
-        const updateResponse = await axios.put(`/api/merchants/dashboard/products/${editingProduct._id}`, formData);
-        console.log('✅ Product updated:', updateResponse.data);
+    if (editingProduct) {
+      // Update existing product
+      const updateResponse = await axios.put(`/api/merchants/dashboard/products/${editingProduct._id}`, formData);
+      console.log('✅ Product updated:', updateResponse.data);
+      
+      // Upload new images if any
+      if (productImages.length > 0) {
+        const imageFormData = new FormData();
+        productImages.forEach(file => {
+          imageFormData.append("images", file);
+        });
         
-        // Upload new images if any
-        if (productImages.length > 0) {
-          const imageFormData = new FormData();
-          productImages.forEach(file => {
-            imageFormData.append("images", file);
-          });
-          
-          const imageResponse = await axios.post(
-            `/api/merchants/dashboard/products/${editingProduct._id}/images`,
-            imageFormData,
-            {
-              headers: { "Content-Type": "multipart/form-data" }
-            }
-          );
-          console.log('✅ Images uploaded:', imageResponse.data);
-        }
-
-        setSuccess("Product updated successfully");
-      } else {
-        // Create new product
-        console.log('🔄 Creating new product...');
-        const response = await axios.post("/api/merchants/dashboard/products", formData);
-        console.log('✅ Product created:', response.data);
-        const newProduct = response.data.data;
-        
-        if (!newProduct || !newProduct._id) {
-          throw new Error("Product created but no product ID returned");
-        }
-        
-        // Upload images if any
-        if (productImages.length > 0) {
-          console.log('🔄 Uploading images...');
-          const imageFormData = new FormData();
-          productImages.forEach(file => {
-            imageFormData.append("images", file);
-          });
-          
-          const imageResponse = await axios.post(
-            `/api/merchants/dashboard/products/${newProduct._id}/images`,
-            imageFormData,
-            {
-              headers: { "Content-Type": "multipart/form-data" }
-            }
-          );
-          console.log('✅ Images uploaded:', imageResponse.data);
-        }
-
-        setSuccess("Product created successfully");
+        const imageResponse = await axios.post(
+          `/api/merchants/dashboard/products/${editingProduct._id}/images`,
+          imageFormData,
+          {
+            headers: { "Content-Type": "multipart/form-data" }
+          }
+        );
+        console.log('✅ Images uploaded:', imageResponse.data);
       }
 
-      await fetchProducts();
-      handleCloseProductModal();
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: any) {
-      console.error('❌ Product submission error:', err);
-      const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to save product";
-      setError(errorMessage);
-    } finally {
-      setUploading(false);
+      setSuccess("Product updated successfully");
+    } else {
+      // Create new product
+      console.log('🔄 Creating new product...');
+      const response = await axios.post("/api/merchants/dashboard/products", formData);
+      console.log('✅ Product creation response:', response.data);
+      
+      // FIX: Use the correct response structure
+      const newProduct = response.data.data; // This is where your product data is
+      
+      if (!newProduct || !newProduct._id) {
+        console.error('❌ Invalid response structure:', response.data);
+        throw new Error("Product created but no product ID returned from server");
+      }
+      
+      const productId = newProduct._id;
+      console.log('✅ Product ID:', productId);
+      
+      // Upload images if any
+      if (productImages.length > 0) {
+        console.log('🔄 Uploading images...');
+        const imageFormData = new FormData();
+        productImages.forEach(file => {
+          imageFormData.append("images", file);
+        });
+        
+        const imageResponse = await axios.post(
+          `/api/merchants/dashboard/products/${productId}/images`,
+          imageFormData,
+          {
+            headers: { "Content-Type": "multipart/form-data" }
+          }
+        );
+        console.log('✅ Images uploaded:', imageResponse.data);
+      }
+
+      setSuccess("Product created successfully");
     }
-  };
+
+    await fetchProducts();
+    handleCloseProductModal();
+    setTimeout(() => setSuccess(""), 3000);
+  } catch (err: any) {
+    console.error('❌ Product submission error:', err);
+    const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to save product";
+    setError(errorMessage);
+  } finally {
+    setUploading(false);
+  }
+};
 
   const handleToggleAvailability = async (productId: string, currentStatus: boolean) => {
     try {
