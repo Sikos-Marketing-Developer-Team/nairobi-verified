@@ -290,46 +290,31 @@ const handleSubmit = async (e: React.FormEvent) => {
         imageFormData.append("images", file);
       });
 
-      console.log('📤 Sending upload request to /api/uploads/products');
       const uploadResponse = await axios.post("/api/uploads/products", imageFormData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
 
       console.log('✅ Upload response:', uploadResponse.data);
       
-      // Debug: Check the response structure
-      console.log('🔍 Upload response structure:', {
-        data: uploadResponse.data,
-        files: uploadResponse.data.files,
-        hasFiles: !!uploadResponse.data.files,
-        filesType: typeof uploadResponse.data.files
-      });
-
-      // Handle different possible response structures
-      if (uploadResponse.data.files && Array.isArray(uploadResponse.data.files)) {
-        uploadedImageUrls = uploadResponse.data.files.map((file: any) => file.url || file.path);
-      } else if (uploadResponse.data.data && Array.isArray(uploadResponse.data.data)) {
-        uploadedImageUrls = uploadResponse.data.data.map((file: any) => file.url || file.path);
-      } else {
-        console.warn('⚠️ Unexpected upload response structure:', uploadResponse.data);
-        // If no specific structure, try to extract URLs from response
-        if (uploadResponse.data.images && Array.isArray(uploadResponse.data.images)) {
-          uploadedImageUrls = uploadResponse.data.images;
-        }
+      // Handle different response structures
+      if (uploadResponse.data.files) {
+        uploadedImageUrls = uploadResponse.data.files.map((file: any) => file.url);
+      } else if (uploadResponse.data.data) {
+        uploadedImageUrls = uploadResponse.data.data;
       }
-
-      console.log('📸 Extracted image URLs:', uploadedImageUrls);
+      
+      console.log('✅ Images uploaded:', uploadedImageUrls);
     }
 
     if (editingProduct) {
-      // Update existing product - combine existing images with new ones
+      // Update existing product
       const existingImages = previewImages.filter(img => img.startsWith('http'));
       const updateData = {
         ...formData,
-        images: [...existingImages, ...uploadedImageUrls].slice(0, 5) // Ensure max 5 images
+        images: [...existingImages, ...uploadedImageUrls]
       };
 
-      console.log('🔄 Updating product with data:', updateData);
+      console.log('🔄 Updating product:', editingProduct._id);
       const updateResponse = await axios.put(
         `/api/merchants/dashboard/products/${editingProduct._id}`, 
         updateData
@@ -338,7 +323,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       setSuccess("Product updated successfully");
     } else {
-      // Create new product with uploaded images
+      // Create new product
       const productData = {
         ...formData,
         images: uploadedImageUrls
@@ -346,15 +331,28 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       console.log('🔄 Creating new product with data:', productData);
       const response = await axios.post("/api/merchants/dashboard/products", productData);
-      console.log('✅ Product creation response:', response.data);
+      console.log('✅ Full response:', response);
+      console.log('✅ Response data:', response.data);
       
+      // Check if response has data
+      if (!response.data) {
+        console.error('❌ Empty response received');
+        throw new Error("Server returned empty response");
+      }
+
+      if (!response.data.success) {
+        console.error('❌ Response indicates failure:', response.data);
+        throw new Error(response.data.error || "Product creation failed");
+      }
+
       const newProduct = response.data.data;
       
-      if (!newProduct || !newProduct._id) {
+      if (!newProduct || (!newProduct._id && !newProduct.id)) {
         console.error('❌ Invalid response structure:', response.data);
         throw new Error("Product created but no product ID returned from server");
       }
 
+      console.log('✅ Product created successfully:', newProduct._id || newProduct.id);
       setSuccess("Product created successfully");
     }
 
@@ -363,6 +361,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     setTimeout(() => setSuccess(""), 3000);
   } catch (err: any) {
     console.error('❌ Product submission error:', err);
+    console.error('❌ Error response:', err.response);
     const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to save product";
     setError(errorMessage);
   } finally {
