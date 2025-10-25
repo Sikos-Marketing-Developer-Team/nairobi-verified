@@ -151,9 +151,9 @@ const sessionConfig = {
   rolling: false, // Don't reset session expiry on every request
   cookie: {
     httpOnly: true,
-    secure: true,
+    ssecure: process.env.NODE_ENV === 'production',
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: 'none',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/',
     domain: undefined
   },
