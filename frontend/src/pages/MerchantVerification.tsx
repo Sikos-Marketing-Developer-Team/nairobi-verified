@@ -7,143 +7,7 @@ import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useRef, useState } from 'react';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-
-// CORRECTED API service functions for verification
-const verificationAPI = {
-  getVerificationStatus: async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/merchants/dashboard/overview`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        // Transform the overview data to match verification component expectations
-        return {
-          success: true,
-          data: {
-            status: data.data.verificationStatus?.isVerified
-              ? 'verified'
-              : (data.data.verificationStatus?.isRejected
-                ? 'rejected'
-                : 'pending') as 'verified' | 'pending' | 'rejected',
-            submittedDate: data.data.verificationStatus?.verifiedDate || new Date().toISOString().split('T')[0],
-            verificationSteps: [
-              { 
-                id: 1, 
-                title: 'Profile Completion', 
-                completed: data.data.profileCompletion?.percentage === 100,
-                date: data.data.merchant?.memberSince,
-                description: `Profile ${data.data.profileCompletion?.percentage || 0}% complete`
-              },
-              { 
-                id: 2, 
-                title: 'Document Submission', 
-                completed: data.data.profileCompletion?.documentsPercentage === 100,
-                date: null,
-                description: `Documents ${data.data.profileCompletion?.documentsPercentage || 0}% complete`
-              },
-              { 
-                id: 3, 
-                title: 'Verification Review', 
-                completed: data.data.verificationStatus?.isVerified,
-                date: data.data.verificationStatus?.verifiedDate,
-                description: data.data.verificationStatus?.isVerified ? 'Verified successfully' : 'Under review'
-              }
-            ]
-          }
-        };
-      }
-      throw new Error(data.error || 'Failed to load verification status');
-    } catch (error) {
-      console.error('Verification status error:', error);
-      throw error;
-    }
-  },
-
-  getDocuments: async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/merchants/documents`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        return data;
-      }
-      
-      // If endpoint doesn't exist, return empty array
-      return { success: true, data: [] };
-    } catch (error) {
-      console.error('Documents fetch error:', error);
-      // Return empty array if endpoint doesn't exist
-      return { success: true, data: [] };
-    }
-  },
-
-  uploadDocument: async (documentType: string, file: File) => {
-    const formData = new FormData();
-    formData.append('documentType', documentType);
-    formData.append('file', file);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/merchants/documents/upload`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        return data;
-      }
-      
-      // Fallback for demo purposes
-      return { 
-        success: true, 
-        data: { 
-          id: Date.now(),
-          fileUrl: URL.createObjectURL(file),
-          fileName: file.name
-        } 
-      };
-    } catch (error) {
-      console.error('Upload error:', error);
-      // Fallback for demo purposes
-      return { 
-        success: true, 
-        data: { 
-          id: Date.now(),
-          fileUrl: URL.createObjectURL(file),
-          fileName: file.name
-        } 
-      };
-    }
-  },
-
-  getRequiredDocuments: async () => {
-    // Return default required documents
-    return { 
-      success: true, 
-      data: [
-        'Business Registration Certificate',
-        'National ID/Passport',
-        'Business Permit',
-        'KRA Pin Certificate',
-        'Utility Bill (Recent)'
-      ]
-    };
-  }
-};
+import { merchantsAPI } from '@/lib/api';
 
 interface VerificationStep {
   id: number;
@@ -182,7 +46,13 @@ const MerchantVerification = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [verificationData, setVerificationData] = useState<VerificationData | null>(null);
-  const [requiredDocuments, setRequiredDocuments] = useState<string[]>([]);
+  const [requiredDocuments, setRequiredDocuments] = useState<string[]>([
+    'Business Registration Certificate',
+    'National ID/Passport',
+    'Business Permit',
+    'KRA Pin Certificate',
+    'Utility Bill (Recent)'
+  ]);
 
   // Load verification data from actual API
   useEffect(() => {
@@ -190,25 +60,64 @@ const MerchantVerification = () => {
       try {
         setLoading(true);
         
-        // Fetch verification status (which uses the working overview endpoint)
-        const statusResponse = await verificationAPI.getVerificationStatus();
+        // Fetch dashboard overview which contains verification status
+        const overviewResponse = await merchantsAPI.getDashboardOverview();
         
-        if (statusResponse.success) {
-          setVerificationData(statusResponse.data);
+        if (overviewResponse.data.success) {
+          const data = overviewResponse.data.data;
+          setVerificationData({
+            status: data.verificationStatus?.isVerified
+              ? 'verified'
+              : (data.verificationStatus?.isRejected
+                ? 'rejected'
+                : 'pending') as 'verified' | 'pending' | 'rejected',
+            submittedDate: data.verificationStatus?.verifiedDate || new Date().toISOString().split('T')[0],
+            verificationSteps: [
+              { 
+                id: 1, 
+                title: 'Profile Completion', 
+                completed: data.profileCompletion?.percentage === 100,
+                date: data.merchant?.memberSince,
+                description: `Profile ${data.profileCompletion?.percentage || 0}% complete`
+              },
+              { 
+                id: 2, 
+                title: 'Document Submission', 
+                completed: data.profileCompletion?.documentsPercentage === 100,
+                date: null,
+                description: `Documents ${data.profileCompletion?.documentsPercentage || 0}% complete`
+              },
+              { 
+                id: 3, 
+                title: 'Verification Review', 
+                completed: data.verificationStatus?.isVerified,
+                date: data.verificationStatus?.verifiedDate,
+                description: data.verificationStatus?.isVerified ? 'Verified successfully' : 'Under review'
+              }
+            ]
+          });
         } else {
           throw new Error('Failed to load verification status');
         }
 
-        // Try to fetch documents (will return empty array if endpoint doesn't exist)
-        const documentsResponse = await verificationAPI.getDocuments();
-        if (documentsResponse.success) {
-          setDocuments(documentsResponse.data);
-        }
-
-        // Get required documents
-        const requiredDocsResponse = await verificationAPI.getRequiredDocuments();
-        if (requiredDocsResponse.success) {
-          setRequiredDocuments(requiredDocsResponse.data);
+        // Try to get verification history for documents
+        try {
+          const historyResponse = await merchantsAPI.getVerificationHistory();
+          if (historyResponse.data.success && historyResponse.data.data) {
+            const docs = historyResponse.data.data.map((item: any, index: number) => ({
+              id: item.id || index,
+              type: item.documentType || 'Unknown Document',
+              status: item.status || 'pending',
+              uploadDate: item.uploadedAt || new Date().toISOString().split('T')[0],
+              notes: item.notes,
+              fileName: item.originalName || 'document',
+              fileUrl: item.cloudinaryUrl || '#'
+            }));
+            setDocuments(docs);
+          }
+        } catch (error) {
+          console.log('No verification history available, using empty documents');
+          setDocuments([]);
         }
 
       } catch (error) {
@@ -219,7 +128,7 @@ const MerchantVerification = () => {
           variant: "destructive",
         });
         
-        // Set fallback data based on dashboard overview structure
+        // Set fallback data
         setVerificationData({
           status: 'pending',
           submittedDate: new Date().toISOString().split('T')[0],
@@ -247,14 +156,6 @@ const MerchantVerification = () => {
             }
           ]
         });
-        
-        setRequiredDocuments([
-          'Business Registration Certificate',
-          'National ID/Passport', 
-          'Business Permit',
-          'KRA Pin Certificate',
-          'Utility Bill (Recent)'
-        ]);
       } finally {
         setLoading(false);
       }
@@ -333,18 +234,38 @@ const MerchantVerification = () => {
     try {
       setUploading(true);
       
-      const response = await verificationAPI.uploadDocument(documentType, selectedFile);
+      // Map document type to backend field name
+      let backendFieldName = 'additionalDocs'; // default
       
-      if (response.success) {
+      if (documentType.includes('Business Registration') || documentType.includes('Business Permit')) {
+        backendFieldName = 'businessRegistration';
+      } else if (documentType.includes('National ID') || documentType.includes('Passport')) {
+        backendFieldName = 'idDocument';
+      } else if (documentType.includes('Utility Bill')) {
+        backendFieldName = 'utilityBill';
+      }
+      
+      console.log('Uploading document:', {
+        documentType,
+        backendFieldName,
+        fileName: selectedFile.name
+      });
+      
+      // Use centralized API for upload
+      const response = await merchantsAPI.uploadVerificationDocuments({
+        [backendFieldName]: selectedFile
+      });
+      
+      if (response.data.success) {
         // Add the new document to the state
         const newDoc: Document = {
-          id: response.data.id || Date.now(),
+          id: Date.now(),
           type: documentType,
           status: 'pending',
           uploadDate: new Date().toISOString().split('T')[0],
           notes: 'Under review - awaiting verification',
           fileName: selectedFile.name,
-          fileUrl: response.data.fileUrl || URL.createObjectURL(selectedFile)
+          fileUrl: URL.createObjectURL(selectedFile)
         };
         
         setDocuments(prevDocs => [...prevDocs, newDoc]);
@@ -355,18 +276,24 @@ const MerchantVerification = () => {
         });
         
         // Refresh verification status
-        const statusResponse = await verificationAPI.getVerificationStatus();
-        if (statusResponse.success) {
-          setVerificationData(statusResponse.data);
+        const overviewResponse = await merchantsAPI.getDashboardOverview();
+        if (overviewResponse.data.success) {
+          const data = overviewResponse.data.data;
+          setVerificationData({
+            status: data.verificationStatus?.isVerified ? 'verified' : 'pending',
+            submittedDate: data.verificationStatus?.verifiedDate || new Date().toISOString().split('T')[0],
+            verificationSteps: verificationData?.verificationSteps || []
+          });
         }
       } else {
-        throw new Error(response.error || 'Upload failed');
+        throw new Error(response.data.error || 'Upload failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
+      const errorMessage = error.response?.data?.error || error.message || "There was an error uploading your document. Please try again.";
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your document. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -374,7 +301,6 @@ const MerchantVerification = () => {
       setUploadDialogOpen(false);
       setSelectedFile(null);
       setDocumentType('');
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -390,16 +316,31 @@ const MerchantVerification = () => {
   const handleRefresh = async () => {
     try {
       setLoading(true);
-      const [statusResponse, documentsResponse] = await Promise.all([
-        verificationAPI.getVerificationStatus(),
-        verificationAPI.getDocuments()
+      const [overviewResponse, historyResponse] = await Promise.all([
+        merchantsAPI.getDashboardOverview(),
+        merchantsAPI.getVerificationHistory()
       ]);
 
-      if (statusResponse.success) {
-        setVerificationData(statusResponse.data);
+      if (overviewResponse.data.success) {
+        const data = overviewResponse.data.data;
+        setVerificationData({
+          status: data.verificationStatus?.isVerified ? 'verified' : 'pending',
+          submittedDate: data.verificationStatus?.verifiedDate || new Date().toISOString().split('T')[0],
+          verificationSteps: verificationData?.verificationSteps || []
+        });
       }
-      if (documentsResponse.success) {
-        setDocuments(documentsResponse.data);
+
+      if (historyResponse.data.success && historyResponse.data.data) {
+        const docs = historyResponse.data.data.map((item: any, index: number) => ({
+          id: item.id || index,
+          type: item.documentType || 'Unknown Document',
+          status: item.status || 'pending',
+          uploadDate: item.uploadedAt || new Date().toISOString().split('T')[0],
+          notes: item.notes,
+          fileName: item.originalName || 'document',
+          fileUrl: item.cloudinaryUrl || '#'
+        }));
+        setDocuments(docs);
       }
 
       toast({
