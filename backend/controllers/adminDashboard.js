@@ -65,29 +65,28 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       Product.countDocuments({ isActive: true }),
       Promise.resolve(0), // Orders placeholder
       
-      // Merchants with documents
+      // CRITICAL FIX: Merchants with COMPLETE documents (all 3 required docs)
       Merchant.countDocuments({
-        $or: [
-          { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
-          { 'documents.idDocument.path': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
+        $and: [
+          { 'documents.businessRegistration.path': { $exists: true, $ne: '', $ne: null } },
+          { 'documents.idDocument.path': { $exists: true, $ne: '', $ne: null } },
+          { 'documents.utilityBill.path': { $exists: true, $ne: '', $ne: null } }
         ]
       }),
       
-      // Merchants pending documents
+      // FIXED: Merchants pending documents (missing at least one required doc)
       Merchant.countDocuments({
         verified: false,
-        $and: [
-          {
-            $or: [
-              { 'documents.businessRegistration.path': { $exists: false } },
-              { 'documents.businessRegistration.path': '' },
-              { 'documents.idDocument.path': { $exists: false } },
-              { 'documents.idDocument.path': '' },
-              { 'documents.utilityBill.path': { $exists: false } },
-              { 'documents.utilityBill.path': '' }
-            ]
-          }
+        $or: [
+          { 'documents.businessRegistration.path': { $exists: false } },
+          { 'documents.businessRegistration.path': '' },
+          { 'documents.businessRegistration.path': null },
+          { 'documents.idDocument.path': { $exists: false } },
+          { 'documents.idDocument.path': '' },
+          { 'documents.idDocument.path': null },
+          { 'documents.utilityBill.path': { $exists: false } },
+          { 'documents.utilityBill.path': '' },
+          { 'documents.utilityBill.path': null }
         ]
       }),
       
@@ -95,9 +94,9 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       Merchant.countDocuments({
         verified: false,
         $and: [
-          { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
-          { 'documents.idDocument.path': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
+          { 'documents.businessRegistration.path': { $exists: true, $ne: '', $ne: null } },
+          { 'documents.idDocument.path': { $exists: true, $ne: '', $ne: null } },
+          { 'documents.utilityBill.path': { $exists: true, $ne: '', $ne: null } }
         ]
       })
     ]);
@@ -107,6 +106,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       verified: verifiedMerchants,
       active: activeMerchants,
       pending: pendingMerchants,
+      withCompleteDocuments: merchantsWithDocuments,
       awaitingReview: documentsAwaitingReview
     });
 
@@ -158,9 +158,9 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       Merchant.find({
         verified: false,
         $and: [
-          { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
-          { 'documents.idDocument.path': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
+          { 'documents.businessRegistration.path': { $exists: true, $ne: '', $ne: null } },
+          { 'documents.idDocument.path': { $exists: true, $ne: '', $ne: null } },
+          { 'documents.utilityBill.path': { $exists: true, $ne: '', $ne: null } }
         ]
       })
         .sort({ 'documents.documentsSubmittedAt': -1 })
@@ -261,9 +261,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         recentMerchants: recentMerchants.map(merchant => ({
           ...merchant,
           hasDocuments: !!(
-            merchant.documents?.businessRegistration?.path ||
-            merchant.documents?.idDocument?.path ||
-            merchant.documents?.utilityBill?.path
+            merchant.documents?.businessRegistration?.path &&
+            merchant.documents?.businessRegistration?.path !== '' &&
+            merchant.documents?.idDocument?.path &&
+            merchant.documents?.idDocument?.path !== '' &&
+            merchant.documents?.utilityBill?.path &&
+            merchant.documents?.utilityBill?.path !== ''
           )
         })),
         recentUsers: recentUsers.map(user => ({
@@ -299,7 +302,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { getDashboardStats };
 
 // @desc    Get recent activity
 // @route   GET /api/admin/dashboard/recent-activity
