@@ -1421,7 +1421,13 @@ exports.uploadVerificationDocuments = async (req, res) => {
   try {
     const merchantId = req.user._id;
 
-    if (!req.files || Object.keys(req.files).length === 0) {
+    console.log('📎 Document upload request received');
+    console.log('Merchant ID:', merchantId);
+    console.log('Files received:', req.files);
+    console.log('Body:', req.body);
+
+    if (!req.files || req.files.length === 0) {
+      console.log('❌ No files found in request');
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'No documents provided'
@@ -1443,66 +1449,78 @@ exports.uploadVerificationDocuments = async (req, res) => {
 
     const uploadedDocs = {};
 
-    if (req.files.businessRegistration && req.files.businessRegistration[0]) {
-      const file = req.files.businessRegistration[0];
-      merchant.documents.businessRegistration = {
-        cloudinaryUrl: file.path,
-        publicId: file.filename,
+    // Process each uploaded file
+    for (const file of req.files) {
+      const docType = file.fieldname; // businessRegistration, idDocument, or utilityBill
+      
+      console.log(`📄 Processing ${docType}:`, {
         originalName: file.originalname,
-        uploadedAt: new Date()
-      };
-      uploadedDocs.businessRegistration = true;
-    }
-
-    if (req.files.idDocument && req.files.idDocument[0]) {
-      const file = req.files.idDocument[0];
-      merchant.documents.idDocument = {
-        cloudinaryUrl: file.path,
-        publicId: file.filename,
-        originalName: file.originalname,
-        uploadedAt: new Date()
-      };
-      uploadedDocs.idDocument = true;
-    }
-
-    if (req.files.utilityBill && req.files.utilityBill[0]) {
-      const file = req.files.utilityBill[0];
-      merchant.documents.utilityBill = {
-        cloudinaryUrl: file.path,
-        publicId: file.filename,
-        originalName: file.originalname,
-        uploadedAt: new Date()
-      };
-      uploadedDocs.utilityBill = true;
-    }
-
-    if (req.files.additionalDocs && req.files.additionalDocs.length > 0) {
-      if (!merchant.documents.additionalDocs) {
-        merchant.documents.additionalDocs = [];
-      }
-      req.files.additionalDocs.forEach(file => {
-        merchant.documents.additionalDocs.push({
-          cloudinaryUrl: file.path,
-          publicId: file.filename,
-          originalName: file.originalname,
-          uploadedAt: new Date()
-        });
+        path: file.path,
+        filename: file.filename
       });
-      uploadedDocs.additionalDocs = req.files.additionalDocs.length;
+
+      const docData = {
+        cloudinaryUrl: file.path,
+        publicId: file.filename,
+        originalName: file.originalname,
+        uploadedAt: new Date(),
+        fileSize: file.size,
+        mimeType: file.mimetype
+      };
+
+      if (docType === 'businessRegistration') {
+        merchant.documents.businessRegistration = docData;
+        uploadedDocs.businessRegistration = true;
+      } else if (docType === 'idDocument') {
+        merchant.documents.idDocument = docData;
+        uploadedDocs.idDocument = true;
+      } else if (docType === 'utilityBill') {
+        merchant.documents.utilityBill = docData;
+        uploadedDocs.utilityBill = true;
+      } else if (docType === 'additionalDocs') {
+        if (!merchant.documents.additionalDocs) {
+          merchant.documents.additionalDocs = [];
+        }
+        merchant.documents.additionalDocs.push(docData);
+        uploadedDocs.additionalDocs = (uploadedDocs.additionalDocs || 0) + 1;
+      }
+    }
+
+    // Calculate documents completeness
+    const requiredDocs = ['businessRegistration', 'idDocument', 'utilityBill'];
+    const completedDocs = requiredDocs.filter(doc => 
+      merchant.documents[doc] && 
+      (merchant.documents[doc].cloudinaryUrl || merchant.documents[doc].path)
+    ).length;
+    
+    merchant.documentsCompleteness = Math.round((completedDocs / requiredDocs.length) * 100);
+
+    // If all documents are uploaded, set status to pending review
+    if (merchant.documentsCompleteness === 100 && 
+        (!merchant.documents.documentReviewStatus || merchant.documents.documentReviewStatus === 'pending')) {
+      merchant.documents.documentReviewStatus = 'pending';
+      merchant.documents.documentsSubmittedAt = new Date();
     }
 
     await merchant.save();
 
+    console.log('✅ Documents saved successfully');
+    console.log('Documents completeness:', merchant.documentsCompleteness + '%');
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Documents uploaded successfully',
-      data: uploadedDocs
+      data: {
+        uploadedDocs,
+        documentsCompleteness: merchant.documentsCompleteness,
+        canRequestVerification: merchant.documentsCompleteness === 100
+      }
     });
   } catch (error) {
-    console.error('uploadVerificationDocuments error:', error);
+    console.error('❌ uploadVerificationDocuments error:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: 'Failed to upload documents'
+      error: error.message || 'Failed to upload documents'
     });
   }
 };
