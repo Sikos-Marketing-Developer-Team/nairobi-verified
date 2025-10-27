@@ -85,8 +85,10 @@ class MerchantOnboardingService {
         sunday: { open: '10:00', close: '16:00', closed: true }
       };
 
-      // ✅ CREATE MERCHANT: Single DB write with all required data
-      const merchant = await Merchant.create({
+      // ✅ CRITICAL FIX: Don't initialize documents object
+      // Documents should ONLY be counted when merchant actually uploads them
+      // Empty paths should not exist - leave documents undefined until uploaded
+      const merchantPayload = {
         businessName: merchantData.businessName.trim(),
         email: merchantData.email.toLowerCase().trim(),
         phone: merchantData.phone.trim(),
@@ -110,15 +112,16 @@ class MerchantOnboardingService {
         createdByAdminName: `${adminUser.firstName} ${adminUser.lastName}`,
         onboardingStatus: 'credentials_sent',
         
-        // ✅ DOCUMENT STRUCTURE: Initialize empty documents
-        documents: {
-          businessRegistration: { path: '', uploadedAt: null },
-          idDocument: { path: '', uploadedAt: null },
-          utilityBill: { path: '', uploadedAt: null },
-          additionalDocs: [],
-          documentsSubmittedAt: null,
-          documentReviewStatus: 'pending'
-        },
+        // ✅ CRITICAL FIX: DON'T initialize documents object
+        // Remove this entire block - it was causing the bug
+        // documents: {
+        //   businessRegistration: { path: '', uploadedAt: null },
+        //   idDocument: { path: '', uploadedAt: null },
+        //   utilityBill: { path: '', uploadedAt: null },
+        //   additionalDocs: [],
+        //   documentsSubmittedAt: null,
+        //   documentReviewStatus: 'pending'
+        // },
         
         // ✅ DEFAULT VALUES
         featured: false,
@@ -128,7 +131,10 @@ class MerchantOnboardingService {
         logo: '',
         bannerImage: '',
         gallery: []
-      });
+      };
+
+      // ✅ CREATE MERCHANT: Single DB write with all required data
+      const merchant = await Merchant.create(merchantPayload);
 
       // ✅ GENERATE ACCOUNT SETUP TOKEN (7 days validity)
       const setupToken = crypto.randomBytes(32).toString('hex');
@@ -150,7 +156,7 @@ class MerchantOnboardingService {
       });
 
       // ✅ LOG ACTION
-      console.log(`✅ Admin ${adminUser.email} created merchant: ${merchant.email}`);
+      console.log(`✅ Admin ${adminUser.email} created merchant: ${merchant.email} (documents: NOT initialized)`);
 
       // ✅ RETURN IMMEDIATELY (don't wait for email)
       return {
@@ -161,7 +167,8 @@ class MerchantOnboardingService {
           phone: merchant.phone,
           businessType: merchant.businessType,
           verified: merchant.verified,
-          createdAt: merchant.createdAt
+          createdAt: merchant.createdAt,
+          hasDocuments: false // FIXED: Explicitly false until documents are uploaded
         },
         credentials: {
           email: merchant.email,
@@ -300,9 +307,17 @@ class MerchantOnboardingService {
               <li><strong>Login</strong> with your credentials</li>
               <li><strong>Change your password</strong> immediately</li>
               <li><strong>Complete your profile</strong> with photos and details</li>
-              <li><strong>Upload verification documents</strong> (if not auto-verified)</li>
+              <li><strong>Upload verification documents</strong> (Business Registration, ID, Utility Bill)</li>
               <li><strong>Start connecting with customers!</strong></li>
             </ol>
+          </div>
+
+          <!-- Important Notice -->
+          <div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 25px;">
+            <p style="color: #e65100; margin: 0; font-size: 14px; line-height: 1.6;">
+              <strong>📄 Document Verification Required:</strong> To complete your verification and appear in customer searches, 
+              please upload your Business Registration Certificate, ID Document, and Utility Bill through your dashboard.
+            </p>
           </div>
 
           <!-- Account Info -->
@@ -310,7 +325,7 @@ class MerchantOnboardingService {
             <p style="color: #666; margin: 0; font-size: 13px; line-height: 1.5;">
               <strong>Account Created By:</strong> ${adminUser.firstName} ${adminUser.lastName}<br>
               <strong>Setup Link Valid:</strong> 7 days<br>
-              <strong>Account Status:</strong> ${merchant.verified ? '✅ Verified' : '⏳ Pending Verification'}
+              <strong>Account Status:</strong> ${merchant.verified ? '✅ Verified' : '⏳ Pending Document Upload'}
             </p>
           </div>
 
@@ -430,7 +445,7 @@ class MerchantOnboardingService {
               <li>Complete your business profile</li>
               <li>Upload high-quality photos</li>
               <li>Set your business hours</li>
-              <li>Upload verification documents</li>
+              <li>Upload verification documents (Business Registration, ID, Utility Bill)</li>
               <li>Start receiving customer reviews</li>
             </ul>
           </div>
