@@ -112,7 +112,7 @@ const MerchantVerification = () => {
       setSuccess("");
 
       const formData = new FormData();
-      formData.append(documentType, documentType);
+      formData.append(documentType, file);
 
       const response = await api.post(
         "/merchants/dashboard/verification/documents",
