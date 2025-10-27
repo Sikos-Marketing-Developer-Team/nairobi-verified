@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
       '/api': {
         target: mode === 'development' 
           ? 'http://localhost:5000'  // Local backend in development
-          : 'https://nairobi-verified-backend-4c1b.onrender.com', // Production backend
+          : 'https://nairobi-verified-zkl3.onrender.com', // Production backend
         changeOrigin: true,
         secure: false,
         withCredentials: true,
