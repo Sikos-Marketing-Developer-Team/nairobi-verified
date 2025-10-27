@@ -59,6 +59,15 @@ const {
 
 const router = express.Router();
 
+router.use((req, res, next) => {
+  // Prevent Cloudflare from caching or modifying responses
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  next();
+});
+
 // All routes require merchant authentication
 router.use(protect);
 router.use(isMerchant);
