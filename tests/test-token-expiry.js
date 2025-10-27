@@ -8,8 +8,8 @@ async function testTokenExpiration() {
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/nairobi-verified');
     console.log('Connected to database');
     
-    const User = require('./models/User');
-    const Merchant = require('./models/Merchant');
+    const User = require('../backend/models/User');
+    const Merchant = require('../backend/models/Merchant');
     
     // Create a test user with an expired token
     const testEmail = 'test-expiry@example.com';

@@ -10,8 +10,8 @@ const crypto = require('crypto');
 require('dotenv').config();
 
 // Import models
-const User = require('./models/User');
-const Merchant = require('./models/Merchant');
+const User = require('../backend/models/User');
+const Merchant = require('../backend/models/Merchant');
 
 async function testPasswordResetExpiry() {
   try {

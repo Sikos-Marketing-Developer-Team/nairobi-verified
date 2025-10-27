@@ -3,7 +3,7 @@ require('dotenv').config();
 
 (async () => {
   await mongoose.connect(process.env.MONGODB_URI);
-  const User = require('./models/User');
+  const User = require('../backend/models/User');
   
   // Clean up and create test user
   await User.deleteOne({ email: 'simple-test@example.com' });

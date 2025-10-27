@@ -24,8 +24,8 @@ async function testActualAPI() {
     console.log('\n2. Checking database for reset token...');
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/nairobi-verified');
     
-    const User = require('./models/User');
-    const Merchant = require('./models/Merchant');
+    const User = require('../backend/models/User');
+    const Merchant = require('../backend/models/Merchant');
     
     let user = await User.findOne({ email });
     if (!user) {

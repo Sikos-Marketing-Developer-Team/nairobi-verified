@@ -18,7 +18,7 @@ async function testPasswordResetExpiration() {
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/nairobi-verified');
     console.log('✅ Connected to database');
     
-    const User = require('./models/User');
+    const User = require('../backend/models/User');
     
     // Clean up any existing test user
     const testEmail = 'test-expiry@example.com';

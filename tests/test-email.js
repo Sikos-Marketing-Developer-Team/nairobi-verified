@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 require('dotenv').config();
-const { emailService } = require('./utils/emailService');
+const { emailService } = require('../backend/utils/emailService');
 
 async function testEmail() {
   try {
