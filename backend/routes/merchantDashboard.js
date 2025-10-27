@@ -117,12 +117,7 @@ router.get('/reviews/stats', getReviewStats);
 // ==================== VERIFICATION STATUS ====================
 router.get('/verification/status', getVerificationStatus);
 router.post('/verification/request', requestVerification);
-router.post('/verification/documents', documentUpload.fields([
-  { name: 'businessRegistration', maxCount: 1 },
-  { name: 'idDocument', maxCount: 1 },
-  { name: 'utilityBill', maxCount: 1 },
-  { name: 'additionalDocs', maxCount: 5 }
-]), uploadVerificationDocuments);
+router.post('/verification/documents', documentUpload.any(), uploadVerificationDocuments);
 router.get('/verification/history', getVerificationHistory);
 
 // ==================== CUSTOMER ENGAGEMENT ====================
