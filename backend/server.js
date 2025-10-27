@@ -115,6 +115,17 @@ app.use(cors({
 
 app.options('*', cors());
 
+app.use((req, res, next) => {
+  // Set headers to prevent Cloudflare from caching/modifying responses
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  next();
+});
+
 // Session configuration
 const mongoStore = MongoStore.create({
   mongoUrl: process.env.MONGODB_URI,
