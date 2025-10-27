@@ -2,8 +2,13 @@
 import axios from 'axios';
 
 // Determine base URL based on environment
+
 const getBaseURL = () => {
-  // Use environment variable in all environments
+  // Use proxy in development to maintain sessions
+  if (import.meta.env.DEV) {
+    return '/api'; // This will use the Vite proxy
+  }
+  // Use environment variable in production
   return import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
 };
 
