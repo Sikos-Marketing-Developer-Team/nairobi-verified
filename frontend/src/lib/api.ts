@@ -3,12 +3,7 @@ import axios from 'axios';
 
 // Determine base URL based on environment
 const getBaseURL = () => {
-  // Use proxy in development to avoid CORS issues
-  if (import.meta.env.DEV) {
-    return '/api'; // This will use the Vite proxy
-  }
-  
-  // Use environment variable or fallback in production
+  // Use environment variable in all environments
   return import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
 };
 
@@ -119,6 +114,20 @@ export const merchantsAPI = {
   getDashboardNotifications: () => api.get('/merchants/dashboard/notifications'),
   getDashboardReviews: (params = {}) => api.get('/merchants/dashboard/reviews', { params }),
   getDashboardQuickActions: () => api.get('/merchants/dashboard/quick-actions'),
+
+  // VERIFICATION ENDPOINTS - ADDED
+  getVerificationStatus: () => api.get('/merchants/dashboard/verification/status'),
+  getVerificationHistory: () => api.get('/merchants/dashboard/verification/history'),
+  submitVerificationRequest: () => api.post('/merchants/dashboard/verification/request'),
+  uploadVerificationDocuments: (documents: Record<string, File>) => {
+    const formData = new FormData();
+    Object.entries(documents).forEach(([fieldName, file]) => {
+      formData.append(fieldName, file);
+    });
+    return api.post('/merchants/dashboard/verification/documents', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
 
   // Image upload endpoints
   uploadLogo: (id: string, logoFile: File) => {
