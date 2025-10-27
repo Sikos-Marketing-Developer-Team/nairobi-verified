@@ -709,7 +709,7 @@ exports.uploadDocuments = async (req, res) => {
 // @access  Private/Admin
 exports.createMerchantByAdmin = async (req, res) => {
   try {
-    // ✅ AUTHORIZATION CHECK
+    // AUTHORIZATION CHECK
     if (!req.user || req.user.role !== 'admin') {
       return res.status(HTTP_STATUS.FORBIDDEN).json({ 
         success: false, 
@@ -717,32 +717,37 @@ exports.createMerchantByAdmin = async (req, res) => {
       });
     }
 
-    // ✅ USE OPTIMIZED SERVICE: All validation, duplicate checks, and email sending handled
+    // USE OPTIMIZED SERVICE: All validation, duplicate checks, and email sending handled
     const result = await MerchantOnboardingService.createMerchantByAdmin(
       req.body, 
       req.user
     );
 
-    // ✅ RETURN SUCCESS IMMEDIATELY (email sent in background)
+    // FIX: Don't initialize documents object when creating manually
+    // Documents should only be counted when actually uploaded
+    const merchant = result.merchant;
+
+    // RETURN SUCCESS IMMEDIATELY (email sent in background)
     res.status(201).json({
       success: true,
-      data: result.merchant,
+      data: merchant,
       credentials: result.credentials,
       message: result.message,
       documentStatus: {
         required: true,
         submitted: false,
         completionPercentage: 0,
-        nextStep: result.merchant.verified 
+        hasDocuments: false, // FIXED: No documents until uploaded
+        nextStep: merchant.verified 
           ? 'Complete business profile' 
           : 'Upload verification documents'
       }
     });
 
   } catch (error) {
-    console.error('❌ createMerchantByAdmin error:', error);
+    console.error('createMerchantByAdmin error:', error);
     
-    // ✅ RETURN USER-FRIENDLY ERROR
+    // RETURN USER-FRIENDLY ERROR
     res.status(400).json({ 
       success: false, 
       error: error.message || 'Failed to create merchant account'
@@ -755,7 +760,7 @@ exports.createMerchantByAdmin = async (req, res) => {
 // @access  Private/Admin
 exports.bulkCreateMerchants = async (req, res) => {
   try {
-    // ✅ AUTHORIZATION CHECK
+    // AUTHORIZATION CHECK
     if (!req.user || req.user.role !== 'admin') {
       return res.status(HTTP_STATUS.FORBIDDEN).json({ 
         success: false, 
@@ -765,7 +770,7 @@ exports.bulkCreateMerchants = async (req, res) => {
 
     const { merchants } = req.body;
 
-    // ✅ VALIDATION
+    // VALIDATION
     if (!Array.isArray(merchants) || merchants.length === 0) {
       return res.status(400).json({
         success: false,
@@ -773,7 +778,7 @@ exports.bulkCreateMerchants = async (req, res) => {
       });
     }
 
-    // ✅ LIMIT BATCH SIZE
+    // LIMIT BATCH SIZE
     if (merchants.length > 100) {
       return res.status(400).json({
         success: false,
@@ -781,13 +786,13 @@ exports.bulkCreateMerchants = async (req, res) => {
       });
     }
 
-    // ✅ USE OPTIMIZED BULK SERVICE
+    // USE OPTIMIZED BULK SERVICE
     const results = await MerchantOnboardingService.bulkCreateMerchants(
       merchants,
       req.user
     );
 
-    // ✅ RETURN DETAILED RESULTS
+    // RETURN DETAILED RESULTS
     res.status(200).json({
       success: true,
       results: {
