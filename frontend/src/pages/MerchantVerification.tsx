@@ -19,6 +19,7 @@ const MerchantVerification = () => {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [documentType, setDocumentType] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null); // NEW: File preview state
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -31,8 +32,8 @@ const MerchantVerification = () => {
     'Utility Bill (Recent)'
   ]);
 
-  // NEW STATE: Track recent uploads for visual feedback
-  const [recentlyUploaded, setRecentlyUploaded] = useState<Set<string>>(new Set());
+  // NEW STATE: Track upload success for prominent display
+  const [uploadSuccess, setUploadSuccess] = useState<{show: boolean; documentType: string; fileName: string} | null>(null);
 
   // Document type to backend field mapping
   const documentTypeMapping: { [key: string]: string } = {
@@ -106,13 +107,11 @@ const MerchantVerification = () => {
           }
         } catch (error) {
           console.log('No verification history available, using empty documents');
-           console.error(error.response.data);  
           setDocuments([]);
         }
 
       } catch (error) {
         console.error('Error loading verification data:', error);
-         console.error(error.response.data);  
         toast({
           title: "Error",
           description: "Failed to load verification data. Please try again.",
@@ -157,15 +156,15 @@ const MerchantVerification = () => {
     }
   }, [user, toast]);
 
-  // NEW: Clear recent upload highlights after 3 seconds
+  // NEW: Auto-hide success message after 5 seconds
   useEffect(() => {
-    if (recentlyUploaded.size > 0) {
+    if (uploadSuccess?.show) {
       const timer = setTimeout(() => {
-        setRecentlyUploaded(new Set());
-      }, 3000);
+        setUploadSuccess(null);
+      }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [recentlyUploaded]);
+  }, [uploadSuccess]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -192,16 +191,8 @@ const MerchantVerification = () => {
         return <Clock className="h-6 w-6 text-gray-600" />;
     }
   };
-
-  // NEW: Get document card style with highlight for recent uploads
-  const getDocumentCardStyle = (docType: string) => {
-    const baseStyle = "border rounded-lg p-4 transition-all duration-300";
-    if (recentlyUploaded.has(docType)) {
-      return `${baseStyle} border-green-500 bg-green-50 shadow-md`;
-    }
-    return baseStyle;
-  };
   
+  // NEW: Enhanced file change handler with preview
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -228,6 +219,27 @@ const MerchantVerification = () => {
       }
       
       setSelectedFile(file);
+      
+      // Create preview for images
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFilePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // For PDFs, clear any previous image preview
+        setFilePreview(null);
+      }
+    }
+  };
+
+  // NEW: Clear file selection and preview
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
   
@@ -246,14 +258,6 @@ const MerchantVerification = () => {
       
       // Map frontend document type to backend field name
       const backendFieldName = documentTypeMapping[documentType] || 'additionalDocs';
-      
-      console.log('Uploading document:', {
-        documentType,
-        backendFieldName,
-        fileName: selectedFile.name,
-        fileSize: selectedFile.size,
-        fileType: selectedFile.type
-      });
       
       // Build payload object matching the expected Record<string, File> signature
       const file = selectedFile as File;
@@ -277,8 +281,12 @@ const MerchantVerification = () => {
         
         setDocuments(prevDocs => [...prevDocs, newDoc]);
         
-        // NEW: Add to recently uploaded for visual feedback
-        setRecentlyUploaded(prev => new Set(prev).add(documentType));
+        // NEW: Show prominent success message
+        setUploadSuccess({
+          show: true,
+          documentType,
+          fileName: selectedFile.name
+        });
         
         toast({
           title: "Document uploaded successfully",
@@ -298,22 +306,12 @@ const MerchantVerification = () => {
           }
         } catch (refreshError) {
           console.error('Error refreshing status:', refreshError);
-          console.error(refreshError.response.data);
         }
       } else {
         throw new Error(response.data.error || 'Upload failed');
       }
     } catch (error: any) {
       console.error('Upload error:', error);
-       console.error(error.response.data);  
-      
-      // More detailed error logging
-      console.log('Error details:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message
-      });
-      
       const errorMessage = error.response?.data?.error 
         || error.response?.data?.message 
         || error.message 
@@ -328,6 +326,7 @@ const MerchantVerification = () => {
       setUploading(false);
       setUploadDialogOpen(false);
       setSelectedFile(null);
+      setFilePreview(null);
       setDocumentType('');
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -377,7 +376,6 @@ const MerchantVerification = () => {
       });
     } catch (error) {
       console.error('Refresh error:', error);
-       console.error(error.response.data);  
       toast({
         title: "Refresh failed",
         description: "Could not update verification data",
@@ -414,6 +412,27 @@ const MerchantVerification = () => {
       <Header />
       
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* NEW: Prominent Upload Success Banner */}
+        {uploadSuccess?.show && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-500">
+            <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-green-800">Document Uploaded Successfully!</h3>
+              <p className="text-green-700 text-sm">
+                <strong>{uploadSuccess.documentType}</strong> ({uploadSuccess.fileName}) has been uploaded and is now pending review.
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setUploadSuccess(null)}
+              className="text-green-600 hover:text-green-800 hover:bg-green-100"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -514,21 +533,11 @@ const MerchantVerification = () => {
               <div className="space-y-4">
                 {documents.length > 0 ? (
                   documents.map((doc) => (
-                    <div 
-                      key={doc.id} 
-                      className={getDocumentCardStyle(doc.type)}
-                    >
+                    <div key={doc.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <FileText className="h-5 w-5 text-gray-400" />
                           <span className="font-medium">{doc.type}</span>
-                          {/* NEW: Success indicator for recent uploads */}
-                          {recentlyUploaded.has(doc.type) && (
-                            <div className="flex items-center gap-1 text-green-600 text-sm">
-                              <CheckCircle className="h-4 w-4" />
-                              <span>Uploaded!</span>
-                            </div>
-                          )}
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           doc.status === 'approved' ? 'bg-green-100 text-green-800' :
@@ -782,23 +791,40 @@ const MerchantVerification = () => {
                   aria-label="Select document file"
                 />
                 {selectedFile ? (
-                  <div>
-                    <FileText className="h-8 w-8 text-primary mx-auto mb-2" />
-                    <p className="text-sm font-medium">{selectedFile.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
+                  <div className="space-y-3">
+                    {/* NEW: File Preview */}
+                    {filePreview ? (
+                      <div className="flex flex-col items-center">
+                        <img 
+                          src={filePreview} 
+                          alt="Document preview" 
+                          className="max-h-32 max-w-full object-contain border rounded mb-2"
+                        />
+                        <p className="text-sm font-medium">{selectedFile.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <FileText className="h-8 w-8 text-primary mx-auto mb-2" />
+                        <p className="text-sm font-medium">{selectedFile.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    )}
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="mt-2 text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedFile(null);
+                        handleRemoveFile();
                       }}
                     >
                       <X className="h-4 w-4 mr-1" />
-                      Remove
+                      Remove File
                     </Button>
                   </div>
                 ) : (
@@ -815,7 +841,10 @@ const MerchantVerification = () => {
           </div>
           
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setUploadDialogOpen(false);
+              handleRemoveFile();
+            }}>
               Cancel
             </Button>
             <Button 
