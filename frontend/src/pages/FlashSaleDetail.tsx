@@ -4,7 +4,7 @@ import { ArrowLeft, Clock, Flame, Check, ShoppingCart, Eye, Share2 } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FlashSaleProduct, FlashSale } from '@/types/flashSale';
+import { FlashSaleProduct, FlashSale } from '@/interfaces/flashSale';
 
 // Mock data for testing - remove this in production
 const MOCK_FLASH_SALE = {

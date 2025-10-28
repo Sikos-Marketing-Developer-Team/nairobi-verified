@@ -5,7 +5,7 @@ import { Star, MapPin, Check, Bookmark, ArrowLeft, Phone, Mail, Shield, Truck, C
 import { FaWhatsapp, FaInstagram, FaTwitter } from 'react-icons/fa';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { merchantsAPI } from '@/lib/api';
-import { Merchant } from '@/types';
+import { Merchant } from '@/interfaces';
 import './product.css'
 
 // Mock products data with merchant IDs that match actual merchant data
@@ -386,41 +386,41 @@ const ProductPage = () => {
               </div>
 
               {/* Thumbnail Gallery */}
-              <div 
-                ref={galleryRef}
-                className="flex overflow-x-auto pb-2 space-x-2 md:grid md:grid-cols-4 md:gap-2 md:space-x-0 hide-scrollbar" 
-                role="tablist" 
-                aria-label="Product image gallery"
-              >
-                {product.gallery?.map((img, index) => (
-                  <button
-                    key={index}
-                    role="tab"
-                    aria-selected={selectedImage === index}
-                    aria-label={`View ${product.name} from angle ${index + 1}`}
-                    onClick={() => setSelectedImage(index)}
-                    className={`flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedImage === index ? 'border-[#EC5C0A] ring-2 ring-orange-200' : 'border-transparent hover:border-orange-300'
-                    }`}
-                    style={{ minWidth: '80px' }}
-                  >
-                    <img
-                      src={img}
-                      alt={`${product.name} view ${index + 1}`}
-                      className="w-full h-16 md:h-20 object-cover"
-                      loading="lazy"
-                    />
-                  </button>
-                )) || (
-                  Array.from({length: 4}, (_, index) => (
-                    <div key={index} className="flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200" style={{ minWidth: '80px' }}>
-                      <div className="w-full h-16 md:h-20 flex items-center justify-center">
-                        <Image className="h-6 w-6 text-gray-400" />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+             {/* Thumbnail Gallery - Fixed for iOS */}
+<div className="thumbnail-container" role="tablist" aria-label="Product image gallery">
+  {product.gallery?.map((img, index) => (
+    <button
+      key={index}
+      role="tab"
+      aria-selected={selectedImage === index}
+      aria-label={`View ${product.name} from angle ${index + 1}`}
+      onClick={() => setSelectedImage(index)}
+      className={`thumbnail-item bg-gray-100 rounded-lg overflow-hidden border-2 transition-all ${
+        selectedImage === index 
+          ? 'border-[#EC5C0A] ring-2 ring-orange-200' 
+          : 'border-transparent hover:border-orange-300'
+      }`}
+    >
+      <img
+        src={img}
+        alt={`${product.name} view ${index + 1}`}
+        className="w-full h-16 md:h-20 object-cover"
+        loading="lazy"
+      />
+    </button>
+  )) || (
+    Array.from({length: 4}, (_, index) => (
+      <div 
+        key={index} 
+        className="thumbnail-item bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200"
+      >
+        <div className="w-full h-16 md:h-20 flex items-center justify-center">
+          <Image className="h-6 w-6 text-gray-400" />
+        </div>
+      </div>
+    ))
+  )}
+</div>
             </div>
           </section>
 
