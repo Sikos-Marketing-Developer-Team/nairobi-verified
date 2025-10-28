@@ -276,6 +276,58 @@ const MerchantsManagement: React.FC = () => {
     }
   };
 
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if total pages is less than max visible
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+      
+      // Calculate start and end of visible pages
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
+      
+      // Adjust if we're at the beginning
+      if (currentPage <= 2) {
+        end = 4;
+      }
+      
+      // Adjust if we're at the end
+      if (currentPage >= totalPages - 1) {
+        start = totalPages - 3;
+      }
+      
+      // Add ellipsis if needed
+      if (start > 2) {
+        pages.push('...');
+      }
+      
+      // Add middle pages
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      // Add ellipsis if needed
+      if (end < totalPages - 1) {
+        pages.push('...');
+      }
+      
+      // Always show last page
+      if (totalPages > 1) {
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
   // CREATE - Add new merchant
   const handleAddMerchant = async (newMerchantData: Omit<Merchant, '_id' | 'createdAt' | 'updatedAt'>): Promise<void> => {
     try {
@@ -583,58 +635,6 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     }
   ];
 
-  // Generate page numbers for pagination
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    
-    if (totalPages <= maxVisiblePages) {
-      // Show all pages if total pages is less than max visible
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first page
-      pages.push(1);
-      
-      // Calculate start and end of visible pages
-      let start = Math.max(2, currentPage - 1);
-      let end = Math.min(totalPages - 1, currentPage + 1);
-      
-      // Adjust if we're at the beginning
-      if (currentPage <= 2) {
-        end = 4;
-      }
-      
-      // Adjust if we're at the end
-      if (currentPage >= totalPages - 1) {
-        start = totalPages - 3;
-      }
-      
-      // Add ellipsis if needed
-      if (start > 2) {
-        pages.push('...');
-      }
-      
-      // Add middle pages
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      
-      // Add ellipsis if needed
-      if (end < totalPages - 1) {
-        pages.push('...');
-      }
-      
-      // Always show last page
-      if (totalPages > 1) {
-        pages.push(totalPages);
-      }
-    }
-    
-    return pages;
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -647,11 +647,11 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
           <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500 pl-5">
             <span>Total: {merchants.length}</span>
             <span>•</span>
+            <span>Selected: {selectedMerchants.length}</span>
+            <span>•</span>
             <span>Filtered: {filteredMerchants.length}</span>
             <span>•</span>
             <span>Page {currentPage} of {totalPages}</span>
-            <span>•</span>
-            <span>Showing {currentMerchants.length} of {filteredMerchants.length} merchants</span>
           </div>
         </div>
         <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
@@ -892,7 +892,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         </button>
       </div>
 
-      {/* Merchants List */}
+      {/* Merchants List - NOW PROPERLY PAGINATED */}
       <div className="bg-white shadow overflow-hidden sm:rounded-md transition-all duration-300 ease-in-out">
         {currentMerchants.length === 0 ? (
           <div className="text-center py-12">
@@ -1047,7 +1047,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         )}
       </div>
 
-      {/* Pagination */}
+      {/* Pagination Controls */}
       {totalPages > 1 && (
         <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-b-lg">
           <div className="flex-1 flex justify-between items-center sm:hidden">
