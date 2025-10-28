@@ -8,30 +8,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useRef, useState } from 'react';
 import { merchantsAPI } from '@/lib/api';
-
-interface VerificationStep {
-  id: number;
-  title: string;
-  completed: boolean;
-  date: string | null;
-  description: string;
-}
-
-interface Document {
-  id: string | number;
-  type: string;
-  status: 'pending' | 'approved' | 'rejected';
-  uploadDate: string;
-  notes?: string;
-  fileName: string;
-  fileUrl: string;
-}
-
-interface VerificationData {
-  status: 'verified' | 'pending' | 'rejected';
-  submittedDate: string;
-  verificationSteps: VerificationStep[];
-}
+import { VerificationStep, Document, VerificationData } from '@/interfaces/verification';
 
 const MerchantVerification = () => {
   const { toast } = useToast();
@@ -53,6 +30,18 @@ const MerchantVerification = () => {
     'KRA Pin Certificate',
     'Utility Bill (Recent)'
   ]);
+
+  // NEW STATE: Track recent uploads for visual feedback
+  const [recentlyUploaded, setRecentlyUploaded] = useState<Set<string>>(new Set());
+
+  // Document type to backend field mapping
+  const documentTypeMapping: { [key: string]: string } = {
+    'Business Registration Certificate': 'businessRegistration',
+    'Business Permit': 'businessRegistration', 
+    'National ID/Passport': 'idDocument',
+    'Utility Bill (Recent)': 'utilityBill',
+    'KRA Pin Certificate': 'additionalDocs'
+  };
 
   // Load verification data from actual API
   useEffect(() => {
@@ -117,11 +106,13 @@ const MerchantVerification = () => {
           }
         } catch (error) {
           console.log('No verification history available, using empty documents');
+           console.error(error.response.data);  
           setDocuments([]);
         }
 
       } catch (error) {
         console.error('Error loading verification data:', error);
+         console.error(error.response.data);  
         toast({
           title: "Error",
           description: "Failed to load verification data. Please try again.",
@@ -166,6 +157,16 @@ const MerchantVerification = () => {
     }
   }, [user, toast]);
 
+  // NEW: Clear recent upload highlights after 3 seconds
+  useEffect(() => {
+    if (recentlyUploaded.size > 0) {
+      const timer = setTimeout(() => {
+        setRecentlyUploaded(new Set());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [recentlyUploaded]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'verified':
@@ -190,6 +191,15 @@ const MerchantVerification = () => {
       default:
         return <Clock className="h-6 w-6 text-gray-600" />;
     }
+  };
+
+  // NEW: Get document card style with highlight for recent uploads
+  const getDocumentCardStyle = (docType: string) => {
+    const baseStyle = "border rounded-lg p-4 transition-all duration-300";
+    if (recentlyUploaded.has(docType)) {
+      return `${baseStyle} border-green-500 bg-green-50 shadow-md`;
+    }
+    return baseStyle;
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,27 +244,24 @@ const MerchantVerification = () => {
     try {
       setUploading(true);
       
-      // Map document type to backend field name
-      let backendFieldName = 'additionalDocs'; // default
-      
-      if (documentType.includes('Business Registration') || documentType.includes('Business Permit')) {
-        backendFieldName = 'businessRegistration';
-      } else if (documentType.includes('National ID') || documentType.includes('Passport')) {
-        backendFieldName = 'idDocument';
-      } else if (documentType.includes('Utility Bill')) {
-        backendFieldName = 'utilityBill';
-      }
+      // Map frontend document type to backend field name
+      const backendFieldName = documentTypeMapping[documentType] || 'additionalDocs';
       
       console.log('Uploading document:', {
         documentType,
         backendFieldName,
-        fileName: selectedFile.name
+        fileName: selectedFile.name,
+        fileSize: selectedFile.size,
+        fileType: selectedFile.type
       });
       
+      // Build payload object matching the expected Record<string, File> signature
+      const file = selectedFile as File;
+      const payload: Record<string, File> = {};
+      payload[backendFieldName] = file;
+      
       // Use centralized API for upload
-      const response = await merchantsAPI.uploadVerificationDocuments({
-        [backendFieldName]: selectedFile
-      });
+      const response = await merchantsAPI.uploadVerificationDocuments(payload);
       
       if (response.data.success) {
         // Add the new document to the state
@@ -270,27 +277,48 @@ const MerchantVerification = () => {
         
         setDocuments(prevDocs => [...prevDocs, newDoc]);
         
+        // NEW: Add to recently uploaded for visual feedback
+        setRecentlyUploaded(prev => new Set(prev).add(documentType));
+        
         toast({
           title: "Document uploaded successfully",
           description: `${documentType} has been uploaded and is pending review.`,
         });
         
         // Refresh verification status
-        const overviewResponse = await merchantsAPI.getDashboardOverview();
-        if (overviewResponse.data.success) {
-          const data = overviewResponse.data.data;
-          setVerificationData({
-            status: data.verificationStatus?.isVerified ? 'verified' : 'pending',
-            submittedDate: data.verificationStatus?.verifiedDate || new Date().toISOString().split('T')[0],
-            verificationSteps: verificationData?.verificationSteps || []
-          });
+        try {
+          const overviewResponse = await merchantsAPI.getDashboardOverview();
+          if (overviewResponse.data.success) {
+            const data = overviewResponse.data.data;
+            setVerificationData({
+              status: data.verificationStatus?.isVerified ? 'verified' : 'pending',
+              submittedDate: data.verificationStatus?.verifiedDate || new Date().toISOString().split('T')[0],
+              verificationSteps: verificationData?.verificationSteps || []
+            });
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing status:', refreshError);
+          console.error(refreshError.response.data);
         }
       } else {
         throw new Error(response.data.error || 'Upload failed');
       }
     } catch (error: any) {
       console.error('Upload error:', error);
-      const errorMessage = error.response?.data?.error || error.message || "There was an error uploading your document. Please try again.";
+       console.error(error.response.data);  
+      
+      // More detailed error logging
+      console.log('Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      const errorMessage = error.response?.data?.error 
+        || error.response?.data?.message 
+        || error.message 
+        || "There was an error uploading your document. Please try again.";
+        
       toast({
         title: "Upload failed",
         description: errorMessage,
@@ -349,6 +377,7 @@ const MerchantVerification = () => {
       });
     } catch (error) {
       console.error('Refresh error:', error);
+       console.error(error.response.data);  
       toast({
         title: "Refresh failed",
         description: "Could not update verification data",
@@ -485,11 +514,21 @@ const MerchantVerification = () => {
               <div className="space-y-4">
                 {documents.length > 0 ? (
                   documents.map((doc) => (
-                    <div key={doc.id} className="border rounded-lg p-4">
+                    <div 
+                      key={doc.id} 
+                      className={getDocumentCardStyle(doc.type)}
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <FileText className="h-5 w-5 text-gray-400" />
                           <span className="font-medium">{doc.type}</span>
+                          {/* NEW: Success indicator for recent uploads */}
+                          {recentlyUploaded.has(doc.type) && (
+                            <div className="flex items-center gap-1 text-green-600 text-sm">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Uploaded!</span>
+                            </div>
+                          )}
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           doc.status === 'approved' ? 'bg-green-100 text-green-800' :

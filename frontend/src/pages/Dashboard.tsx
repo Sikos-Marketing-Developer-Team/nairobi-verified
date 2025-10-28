@@ -6,7 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { ordersAPI, favoritesAPI, addressesAPI } from '@/lib/api';
-import { Order, Merchant, Address } from '@/types';
+import { Order, Merchant, Address } from '@/interfaces';
 import { useToast } from '@/components/ui/use-toast';
 import { Link } from 'react-router-dom';
 import UserSettings from '@/components/UserSettings';

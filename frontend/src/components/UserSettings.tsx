@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { settingsAPI } from '@/lib/api';
-import { UserSettings as UserSettingsType } from '@/types'; // Renamed import to avoid conflict
+import { UserSettings as UserSettingsType } from '@/interfaces'; // Renamed import to avoid conflict
 import { Link } from 'react-router-dom';
 
 const UserSettings = () => {

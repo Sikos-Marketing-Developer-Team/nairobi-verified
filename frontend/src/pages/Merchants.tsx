@@ -15,7 +15,7 @@ import {
   PaginationPrevious 
 } from '@/components/ui/pagination';
 import { merchantsAPI } from '@/lib/api';
-import { Merchant } from '@/types';
+import { Merchant } from '@/interfaces';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';

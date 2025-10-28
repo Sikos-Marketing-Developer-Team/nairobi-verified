@@ -5,7 +5,7 @@ import { Star, MapPin, Check, Bookmark, ArrowLeft, Phone, Mail, Shield, Truck, C
 import { FaWhatsapp, FaInstagram, FaTwitter } from 'react-icons/fa';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { merchantsAPI } from '@/lib/api';
-import { Merchant } from '@/types';
+import { Merchant } from '@/interfaces';
 import './product.css'
 
 // Mock products data with merchant IDs that match actual merchant data
