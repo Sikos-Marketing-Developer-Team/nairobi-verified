@@ -167,7 +167,7 @@ const MerchantsManagement: React.FC = () => {
         setIsLoading(true);
       }
       
-      const response = await adminAPI.getMerchants({ limit: 100 });
+      const response = await adminAPI.getMerchants({ limit: 1000 }); // Get more to handle filtering
       if (response.data.success) {
         setMerchants(response.data.merchants || []);
       }
@@ -652,6 +652,8 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
             <span>Filtered: {filteredMerchants.length}</span>
             <span>•</span>
             <span>Page {currentPage} of {totalPages}</span>
+            <span>•</span>
+            <span>Showing {currentMerchants.length} merchants</span>
           </div>
         </div>
         <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
@@ -905,247 +907,248 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200">
-            {currentMerchants.map((merchant, index) => (
-              <li 
-                key={merchant._id} 
-                className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
-                style={{
-                  animationDelay: `${index * 50}ms`,
-                  animation: 'fadeInUp 0.3s ease-out forwards'
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center flex-1">
-                    {/* Selection Checkbox */}
-                    <div className="flex-shrink-0 mr-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedMerchants.includes(merchant._id)}
-                        onChange={() => handleSelectMerchant(merchant._id)}
-                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                      />
-                    </div>
-                    
-                    <div className="flex-shrink-0">
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center transition-all duration-200 hover:from-green-200 hover:to-green-300">
-                        <Store className="h-6 w-6 text-green-600" />
+          <>
+            <ul className="divide-y divide-gray-200">
+              {currentMerchants.map((merchant, index) => (
+                <li 
+                  key={merchant._id} 
+                  className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
+                  style={{
+                    animationDelay: `${index * 50}ms`,
+                    animation: 'fadeInUp 0.3s ease-out forwards'
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center flex-1">
+                      {/* Selection Checkbox */}
+                      <div className="flex-shrink-0 mr-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedMerchants.includes(merchant._id)}
+                          onChange={() => handleSelectMerchant(merchant._id)}
+                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                        />
                       </div>
-                    </div>
-                    <div className="ml-4 flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{merchant.businessName}</div>
-                          <div className="text-sm text-gray-500">{merchant.ownerName}</div>
-                          <div className="flex items-center space-x-4 mt-1">
-                            <div className="flex items-center text-xs text-gray-500">
-                              <Mail className="w-3 h-3 mr-1" />
-                              {merchant.email}
-                            </div>
-                            <div className="flex items-center text-xs text-gray-500">
-                              <Phone className="w-3 h-3 mr-1" />
-                              {merchant.phone}
-                            </div>
-                            {merchant.address && (
-                              <div className="flex items-center text-xs text-gray-500">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                {merchant.address}
-                              </div>
-                            )}
-                          </div>
+                      
+                      <div className="flex-shrink-0">
+                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center transition-all duration-200 hover:from-green-200 hover:to-green-300">
+                          <Store className="h-6 w-6 text-green-600" />
                         </div>
-                        <div className="flex items-center space-x-3">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getStatusColor(merchant)}`}>
-                            {getStatusIcon(merchant)}
-                            <span className="ml-1">{getStatusText(merchant)}</span>
-                          </span>
-                          
-                          {/* Action Buttons */}
-                          <div className="flex items-center space-x-1">
-                            <button
-                              onClick={() => {
-                                setSelectedMerchant(merchant);
-                                setShowMerchantDetails(true);
-                                scrollToTop('smooth');
-                              }}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
-                              title="View Details"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{merchant.businessName}</div>
+                            <div className="text-sm text-gray-500">{merchant.ownerName}</div>
+                            <div className="flex items-center space-x-4 mt-1">
+                              <div className="flex items-center text-xs text-gray-500">
+                                <Mail className="w-3 h-3 mr-1" />
+                                {merchant.email}
+                              </div>
+                              <div className="flex items-center text-xs text-gray-500">
+                                <Phone className="w-3 h-3 mr-1" />
+                                {merchant.phone}
+                              </div>
+                              {merchant.address && (
+                                <div className="flex items-center text-xs text-gray-500">
+                                  <MapPin className="w-3 h-3 mr-1" />
+                                  {merchant.address}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getStatusColor(merchant)}`}>
+                              {getStatusIcon(merchant)}
+                              <span className="ml-1">{getStatusText(merchant)}</span>
+                            </span>
                             
-                            <button
-                              onClick={() => handleEditMerchant(merchant)}
-                              className="p-2 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-all duration-200"
-                              title="Edit Status"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setSelectedMerchant(merchant);
-                                setShowDocumentsModal(true);
-                                scrollToTop('smooth');
-                              }}
-                              className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
-                              title="View Documents"
-                            >
-                              <FileText className="w-4 h-4" />
-                            </button>
-                            
-                            <button
-                              onClick={() => handleToggleFeatured(merchant._id, merchant.featured || false)}
-                              className={`p-2 rounded-full transition-all duration-200 ${
-                                merchant.featured 
-                                  ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50' 
-                                  : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'
-                              }`}
-                              title={merchant.featured ? 'Remove from Featured' : 'Add to Featured'}
-                            >
-                              <Star className="w-4 h-4" />
-                            </button>
-                            
-                            {!merchant.verified && (
+                            {/* Action Buttons */}
+                            <div className="flex items-center space-x-1">
                               <button
-                                onClick={() => handleVerifyMerchant(merchant._id)}
-                                className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
-                                title="Verify Merchant"
+                                onClick={() => {
+                                  setSelectedMerchant(merchant);
+                                  setShowMerchantDetails(true);
+                                  scrollToTop('smooth');
+                                }}
+                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+                                title="View Details"
                               >
-                                <CheckCircle className="w-4 h-4" />
+                                <Eye className="w-4 h-4" />
                               </button>
-                            )}
-                            
-                            <button
-                              onClick={() => handleToggleStatus(merchant._id, merchant.isActive)}
-                              className={`p-2 rounded-full transition-all duration-200 ${
-                                merchant.isActive 
-                                  ? 'text-gray-400 hover:text-red-600 hover:bg-red-50' 
-                                  : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                              }`}
-                              title={merchant.isActive ? 'Deactivate' : 'Activate'}
-                            >
-                              <UserCheck className="w-4 h-4" />
-                            </button>
+                              
+                              <button
+                                onClick={() => handleEditMerchant(merchant)}
+                                className="p-2 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-all duration-200"
+                                title="Edit Status"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              
+                              <button
+                                onClick={() => {
+                                  setSelectedMerchant(merchant);
+                                  setShowDocumentsModal(true);
+                                  scrollToTop('smooth');
+                                }}
+                                className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
+                                title="View Documents"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </button>
+                              
+                              <button
+                                onClick={() => handleToggleFeatured(merchant._id, merchant.featured || false)}
+                                className={`p-2 rounded-full transition-all duration-200 ${
+                                  merchant.featured 
+                                    ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50' 
+                                    : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'
+                                }`}
+                                title={merchant.featured ? 'Remove from Featured' : 'Add to Featured'}
+                              >
+                                <Star className="w-4 h-4" />
+                              </button>
+                              
+                              {!merchant.verified && (
+                                <button
+                                  onClick={() => handleVerifyMerchant(merchant._id)}
+                                  className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
+                                  title="Verify Merchant"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                              )}
+                              
+                              <button
+                                onClick={() => handleToggleStatus(merchant._id, merchant.isActive)}
+                                className={`p-2 rounded-full transition-all duration-200 ${
+                                  merchant.isActive 
+                                    ? 'text-gray-400 hover:text-red-600 hover:bg-red-50' 
+                                    : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                                }`}
+                                title={merchant.isActive ? 'Deactivate' : 'Activate'}
+                              >
+                                <UserCheck className="w-4 h-4" />
+                              </button>
 
-                            <button
-                              onClick={() => confirmDelete(merchant._id)}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200"
-                              title="Delete Merchant"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                              <button
+                                onClick={() => confirmDelete(merchant._id)}
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200"
+                                title="Delete Merchant"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* Pagination Controls - MOVED INSIDE the merchants list container */}
+            {totalPages > 1 && (
+              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div className="flex-1 flex justify-between items-center sm:hidden">
+                  <button
+                    onClick={goToPrevPage}
+                    disabled={currentPage === 1}
+                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                      currentPage === 1 
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </button>
+                  <div className="text-sm text-gray-700">
+                    Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
+                  </div>
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                      currentPage === totalPages 
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </button>
                 </div>
-              </li>
-            ))}
-          </ul>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                      <span className="font-medium">{Math.min(endIndex, filteredMerchants.length)}</span> of{' '}
+                      <span className="font-medium">{filteredMerchants.length}</span> results
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button
+                        onClick={goToPrevPage}
+                        disabled={currentPage === 1}
+                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${
+                          currentPage === 1 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                            : 'bg-white text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="sr-only">Previous</span>
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      
+                      {/* Page numbers */}
+                      {getPageNumbers().map((page, index) => (
+                        <button
+                          key={index}
+                          onClick={() => typeof page === 'number' ? goToPage(page) : undefined}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            page === currentPage
+                              ? 'z-10 bg-green-50 border-green-500 text-green-600'
+                              : page === '...'
+                              ? 'bg-white border-gray-300 text-gray-500 cursor-default'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                          disabled={page === '...'}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      
+                      <button
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${
+                          currentPage === totalPages 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                            : 'bg-white text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="sr-only">Next</span>
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-b-lg">
-          <div className="flex-1 flex justify-between items-center sm:hidden">
-            <button
-              onClick={goToPrevPage}
-              disabled={currentPage === 1}
-              className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                currentPage === 1 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Previous
-            </button>
-            <div className="text-sm text-gray-700">
-              Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-            </div>
-            <button
-              onClick={goToNextPage}
-              disabled={currentPage === totalPages}
-              className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                currentPage === totalPages 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Next
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </button>
-          </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-                <span className="font-medium">{Math.min(endIndex, filteredMerchants.length)}</span> of{' '}
-                <span className="font-medium">{filteredMerchants.length}</span> results
-              </p>
-            </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <button
-                  onClick={goToPrevPage}
-                  disabled={currentPage === 1}
-                  className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${
-                    currentPage === 1 
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                      : 'bg-white text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="sr-only">Previous</span>
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                
-                {/* Page numbers */}
-                {getPageNumbers().map((page, index) => (
-                  <button
-                    key={index}
-                    onClick={() => typeof page === 'number' ? goToPage(page) : undefined}
-                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                      page === currentPage
-                        ? 'z-10 bg-green-50 border-green-500 text-green-600'
-                        : page === '...'
-                        ? 'bg-white border-gray-300 text-gray-500 cursor-default'
-                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                    }`}
-                    disabled={page === '...'}
-                  >
-                    {page}
-                  </button>
-                ))}
-                
-                <button
-                  onClick={goToNextPage}
-                  disabled={currentPage === totalPages}
-                  className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${
-                    currentPage === totalPages 
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                      : 'bg-white text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="sr-only">Next</span>
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </nav>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Merchant Modal */}
+      {/* Rest of your modals remain the same */}
       <AddMerchantModal
         isOpen={showAddMerchantModal}
         onClose={() => setShowAddMerchantModal(false)}
         onAddMerchant={handleAddMerchant}
       />
 
-      {/* Edit Merchant Modal */}
       {editingMerchant && (
         <EditMerchantModal
           merchant={editingMerchant}
@@ -1155,7 +1158,6 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <DeleteConfirmationModal
           onConfirm={() => merchantToDelete && handleDeleteMerchant(merchantToDelete)}
@@ -1167,7 +1169,6 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         />
       )}
 
-      {/* Merchant Details Modal */}
       {showMerchantDetails && selectedMerchant && (
         <MerchantDetailsModal
           merchant={selectedMerchant}
@@ -1184,7 +1185,6 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         />
       )}
 
-      {/* Documents Modal */}
       {showDocumentsModal && selectedMerchant && (
         <DocumentsViewer
           merchantId={selectedMerchant._id}
