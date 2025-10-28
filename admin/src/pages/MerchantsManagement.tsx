@@ -25,7 +25,9 @@ import {
   RefreshCw,
   Edit,
   Save,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
@@ -135,6 +137,10 @@ const MerchantsManagement: React.FC = () => {
   const [showAddMerchantModal, setShowAddMerchantModal] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [merchantToDelete, setMerchantToDelete] = useState<string | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(50);
 
   // READ - Load merchants
   useEffect(() => {
@@ -143,7 +149,15 @@ const MerchantsManagement: React.FC = () => {
 
   useEffect(() => {
     filterMerchants();
+    // Reset to first page when filters change
+    setCurrentPage(1);
   }, [merchants, searchTerm, filterStatus]);
+
+  // Calculate pagination values
+  const totalPages = Math.ceil(filteredMerchants.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentMerchants = filteredMerchants.slice(startIndex, endIndex);
 
   const loadMerchants = useCallback(async (showRefreshing = false) => {
     try {
@@ -239,6 +253,28 @@ const MerchantsManagement: React.FC = () => {
 
     setFilteredMerchants(filtered);
   }, [merchants, searchTerm, filterStatus, sortBy, sortOrder]);
+
+  // Pagination handlers
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      scrollToTop('smooth');
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      scrollToTop('smooth');
+    }
+  };
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      scrollToTop('smooth');
+    }
+  };
 
   // CREATE - Add new merchant
   const handleAddMerchant = async (newMerchantData: Omit<Merchant, '_id' | 'createdAt' | 'updatedAt'>): Promise<void> => {
@@ -459,10 +495,10 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
 };
 
   const handleSelectAll = () => {
-    if (selectedMerchants.length === filteredMerchants.length) {
+    if (selectedMerchants.length === currentMerchants.length) {
       setSelectedMerchants([]);
     } else {
-      setSelectedMerchants(filteredMerchants.map(m => m._id));
+      setSelectedMerchants(currentMerchants.map(m => m._id));
     }
   };
 
@@ -547,6 +583,58 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     }
   ];
 
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if total pages is less than max visible
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+      
+      // Calculate start and end of visible pages
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
+      
+      // Adjust if we're at the beginning
+      if (currentPage <= 2) {
+        end = 4;
+      }
+      
+      // Adjust if we're at the end
+      if (currentPage >= totalPages - 1) {
+        start = totalPages - 3;
+      }
+      
+      // Add ellipsis if needed
+      if (start > 2) {
+        pages.push('...');
+      }
+      
+      // Add middle pages
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      // Add ellipsis if needed
+      if (end < totalPages - 1) {
+        pages.push('...');
+      }
+      
+      // Always show last page
+      if (totalPages > 1) {
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -559,9 +647,11 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
           <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500 pl-5">
             <span>Total: {merchants.length}</span>
             <span>•</span>
-            <span>Selected: {selectedMerchants.length}</span>
-            <span>•</span>
             <span>Filtered: {filteredMerchants.length}</span>
+            <span>•</span>
+            <span>Page {currentPage} of {totalPages}</span>
+            <span>•</span>
+            <span>Showing {currentMerchants.length} of {filteredMerchants.length} merchants</span>
           </div>
         </div>
         <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
@@ -741,7 +831,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
               <input
                 type="checkbox"
                 id="selectAll"
-                checked={selectedMerchants.length === filteredMerchants.length && filteredMerchants.length > 0}
+                checked={selectedMerchants.length === currentMerchants.length && currentMerchants.length > 0}
                 onChange={handleSelectAll}
                 className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
               />
@@ -804,7 +894,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
 
       {/* Merchants List */}
       <div className="bg-white shadow overflow-hidden sm:rounded-md transition-all duration-300 ease-in-out">
-        {filteredMerchants.length === 0 ? (
+        {currentMerchants.length === 0 ? (
           <div className="text-center py-12">
             <Store className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">
@@ -816,7 +906,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
           </div>
         ) : (
           <ul className="divide-y divide-gray-200">
-            {filteredMerchants.map((merchant, index) => (
+            {currentMerchants.map((merchant, index) => (
               <li 
                 key={merchant._id} 
                 className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
@@ -956,6 +1046,97 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
           </ul>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-b-lg">
+          <div className="flex-1 flex justify-between items-center sm:hidden">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                currentPage === 1 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Previous
+            </button>
+            <div className="text-sm text-gray-700">
+              Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
+            </div>
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                currentPage === totalPages 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(endIndex, filteredMerchants.length)}</span> of{' '}
+                <span className="font-medium">{filteredMerchants.length}</span> results
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={goToPrevPage}
+                  disabled={currentPage === 1}
+                  className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${
+                    currentPage === 1 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="sr-only">Previous</span>
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                
+                {/* Page numbers */}
+                {getPageNumbers().map((page, index) => (
+                  <button
+                    key={index}
+                    onClick={() => typeof page === 'number' ? goToPage(page) : undefined}
+                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                      page === currentPage
+                        ? 'z-10 bg-green-50 border-green-500 text-green-600'
+                        : page === '...'
+                        ? 'bg-white border-gray-300 text-gray-500 cursor-default'
+                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                    disabled={page === '...'}
+                  >
+                    {page}
+                  </button>
+                ))}
+                
+                <button
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                  className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${
+                    currentPage === totalPages 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="sr-only">Next</span>
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Merchant Modal */}
       <AddMerchantModal
