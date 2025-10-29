@@ -205,6 +205,8 @@ mongoStore.on('connected', () => {
   console.log('Session store connected to MongoDB');
 });
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 // OPTIMIZATION: Optimized session configuration
 const sessionConfig = {
   name: 'nairobi_verified_session',
@@ -216,10 +218,11 @@ const sessionConfig = {
   rolling: false, // Don't reset session expiry on every request
   cookie: {
     httpOnly: true,
-    secure: true,
+    secure: isProduction,
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: 'none',
+    sameSite: isProduction ? 'none' : 'lax',
     path: '/',
+    domain: isProduction ? undefined : undefined
   },
   proxy: true,
   unset: 'destroy'

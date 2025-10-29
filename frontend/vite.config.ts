@@ -7,17 +7,26 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    proxy: {
+    proxy: mode === 'development' ? {
       '/api': {
-        target: mode === 'development' 
-          ? 'http://localhost:5000'  // Local backend in development
-          : 'https://nairobi-verified-zkl3.onrender.com', // Production backend
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
-        withCredentials: true,
-        rewrite: (path) => path // Keep the /api prefix
+        // ❌ REMOVED: withCredentials (not a valid Vite option)
+        // Credentials are handled by axios withCredentials: true
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('❌ Proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('🔄 Proxying:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('✅ Proxy response:', proxyRes.statusCode, req.url);
+          });
+        },
       }
-    }
+    } : undefined // No proxy in production
   },
   plugins: [
     react(),

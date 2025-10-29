@@ -377,124 +377,69 @@ exports.loginMerchant = async (req, res) => {
       });
     }
 
-    // Check temporary password restrictions
+    // Handle temp password
     if (merchant.createdByAdmin && merchant.tempPasswordExpiry) {
       if (new Date() > merchant.tempPasswordExpiry) {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
-          error: 'Your temporary password has expired. Please contact admin for a new password.',
+          error: 'Your temporary password has expired.',
           expired: true
         });
       }
 
       if (!merchant.passwordChanged) {
-        // ✅ FIX: Still create session for password change flow
         return new Promise((resolve) => {
           req.login(merchant, (err) => {
             if (err) {
-              console.error('❌ req.login error:', err);
               return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 error: 'Error logging in'
               });
             }
             
-            // ✅ CRITICAL: Force session save and WAIT for it
-            req.session.save((saveErr) => {
-              if (saveErr) {
-                console.error('❌ Session save error:', saveErr);
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                  success: false,
-                  error: 'Error saving session'
-                });
+            return res.status(HTTP_STATUS.OK).json({
+              success: true,
+              requirePasswordChange: true,
+              message: 'Please change your password to continue',
+              user: {
+                id: merchant._id,
+                businessName: merchant.businessName,
+                email: merchant.email,
+                role: 'merchant',
+                isMerchant: true
               }
-              
-              console.log('✅ Session created for password change');
-              console.log('✅ Session ID:', req.sessionID);
-              
-              // ✅ CRITICAL: Explicitly set cookie header
-              res.cookie('nairobi_verified_session', req.sessionID, {
-                httpOnly: true,
-                secure: true,
-                sameSite: 'none',
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-                path: '/'
-              });
-              
-              return res.status(HTTP_STATUS.OK).json({
-                success: true,
-                requirePasswordChange: true,
-                message: 'Please change your password to continue',
-                user: {
-                  id: merchant._id,
-                  businessName: merchant.businessName,
-                  email: merchant.email,
-                  phone: merchant.phone,
-                  businessType: merchant.businessType,
-                  verified: merchant.verified,
-                  role: 'merchant',
-                  isMerchant: true,
-                  tempPasswordExpiry: merchant.tempPasswordExpiry
-                }
-              });
             });
           });
         });
       }
     }
 
-    // ✅ CRITICAL: Normal login with explicit session save
+    // ✅ Normal login - let Passport handle session
     return new Promise((resolve) => {
       req.login(merchant, (err) => {
         if (err) {
-          console.error('❌ req.login error for merchant:', err);
+          console.error('❌ Login error:', err);
           return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
             success: false,
             error: 'Error logging in'
           });
         }
         
-        // ✅ CRITICAL: Explicitly save session BEFORE responding
-        req.session.save((saveErr) => {
-          if (saveErr) {
-            console.error('❌ Session save error:', saveErr);
-            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-              success: false,
-              error: 'Error saving session'
-            });
+        console.log('✅ Merchant logged in successfully:', merchant.email);
+        console.log('✅ Session ID:', req.sessionID);
+        
+        return res.status(HTTP_STATUS.OK).json({
+          success: true,
+          user: {
+            id: merchant._id,
+            businessName: merchant.businessName,
+            email: merchant.email,
+            phone: merchant.phone,
+            businessType: merchant.businessType,
+            verified: merchant.verified,
+            role: 'merchant',
+            isMerchant: true
           }
-          
-          console.log('✅ Merchant logged in and session saved:', merchant.email);
-          console.log('✅ Session ID:', req.sessionID);
-          console.log('✅ Cookie settings:', {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-          });
-          
-          // ✅ CRITICAL: Explicitly set cookie in response
-          res.cookie('nairobi_verified_session', req.sessionID, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            path: '/'
-          });
-          
-          return res.status(HTTP_STATUS.OK).json({
-            success: true,
-            user: {
-              id: merchant._id,
-              businessName: merchant.businessName,
-              email: merchant.email,
-              phone: merchant.phone,
-              businessType: merchant.businessType,
-              verified: merchant.verified,
-              role: 'merchant',
-              isMerchant: true
-            }
-          });
         });
       });
     });
