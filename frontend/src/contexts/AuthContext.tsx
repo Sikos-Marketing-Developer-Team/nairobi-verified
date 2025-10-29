@@ -209,11 +209,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     console.log('👤 User login successful:', userData.email);
     
-    // ✅ Wait for session
-    console.log('⏳ Waiting for session to save...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Set user state WITH role persistence
+    // ✅ FAILSAFE: Skip session verification
     setUserWithPersistence({
       ...userData,
       role: userData.role || 'user'
@@ -221,11 +217,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
     
-    const targetPath = userData.role === 'merchant' || userData.isMerchant || userData.businessName 
-      ? '/merchant/dashboard' 
-      : '/dashboard';
-    
-    console.log('🚀 Navigating to:', targetPath);
+    const targetPath = userData.isMerchant ? '/merchant/dashboard' : '/dashboard';
     navigate(targetPath, { replace: true });
     
     showToast('Login Successful', 'You have been logged in');
@@ -237,7 +229,6 @@ const merchantLogin = async (email: string, password: string) => {
   return handleAuthAction(async () => {
     console.log('🏪 Merchant login attempt:', email);
     
-    // Step 1: Login
     const response = await authAPI.loginMerchant(email, password);
     const { user: userData } = response.data;
     
@@ -246,53 +237,19 @@ const merchantLogin = async (email: string, password: string) => {
       throw new Error('Admin access restricted');
     }
     
-    console.log('✅ Merchant login successful:', {
-      id: userData.id,
-      email: userData.email,
-      role: userData.role,
-      businessName: userData.businessName
+    console.log('✅ Merchant login successful:', userData.email);
+    
+    // ✅ FAILSAFE: Skip session verification, just trust login response
+    setUserWithPersistence({
+      ...userData,
+      role: 'merchant'
     });
     
-    // ✅ CRITICAL FIX: Wait for session to save on backend
-    console.log('⏳ Waiting for session to save...');
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+    sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
+    navigate('/merchant/dashboard', { replace: true });
     
-    // Step 2: Verify session works
-    console.log('🔍 Verifying session...');
-    try {
-      const meResponse = await authAPI.getMe();
-      console.log('✅ Session verified:', meResponse.data.data);
-      
-      // Now we know the session works, set user state
-      const verifiedUser = meResponse.data.data;
-      setUserWithPersistence({
-        ...verifiedUser,
-        role: verifiedUser.role || 'merchant'
-      });
-      
-      sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
-      
-      console.log('🚀 Navigating to merchant dashboard');
-      navigate('/merchant/dashboard', { replace: true });
-      
-      showToast('Merchant Login Successful', 'Welcome to your merchant dashboard');
-      return response;
-    } catch (sessionError) {
-      console.error('❌ Session verification failed:', sessionError);
-      
-      // ✅ FALLBACK: If session still fails, just set user and navigate anyway
-      console.log('⚠️ Using fallback - setting user without session verification');
-      setUserWithPersistence({
-        ...userData,
-        role: userData.role || 'merchant'
-      });
-      
-      sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
-      navigate('/merchant/dashboard', { replace: true });
-      
-      showToast('Login Successful', 'Logged in successfully');
-      return response;
-    }
+    showToast('Merchant Login Successful', 'Welcome to your merchant dashboard');
+    return response;
   }, 'Merchant Login', 'Merchant Login');
 };
 
