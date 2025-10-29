@@ -810,6 +810,12 @@ exports.createProduct = async (req, res) => {
   console.log('Request ID:', req.sessionID);
   
   try {
+    // CRITICAL: Check if headers already sent at start
+    if (res.headersSent) {
+      console.error('❌ CRITICAL: Headers already sent at function start!');
+      return;
+    }
+    
     // Log authentication info
     console.log('🔐 Authentication Info:');
     console.log('  - User ID:', req.user?._id);
@@ -825,7 +831,13 @@ exports.createProduct = async (req, res) => {
         error: 'User not authenticated'
       };
       console.log('📤 Sending error response:', errorResponse);
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json(errorResponse);
+      
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'application/json');
+        res.status(HTTP_STATUS.UNAUTHORIZED);
+        res.json(errorResponse);
+      }
+      return;
     }
 
     const merchantId = req.user._id;
@@ -845,7 +857,13 @@ exports.createProduct = async (req, res) => {
         error: `Missing required fields: ${validationErrors.join(', ')}`
       };
       console.log('📤 Sending validation error:', errorResponse);
-      return res.status(HTTP_STATUS.BAD_REQUEST).json(errorResponse);
+      
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'application/json');
+        res.status(HTTP_STATUS.BAD_REQUEST);
+        res.json(errorResponse);
+      }
+      return;
     }
 
     // Get merchant details for merchantName
@@ -859,7 +877,13 @@ exports.createProduct = async (req, res) => {
         error: 'Merchant profile not found'
       };
       console.log('📤 Sending merchant not found error:', errorResponse);
-      return res.status(HTTP_STATUS.NOT_FOUND).json(errorResponse);
+      
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'application/json');
+        res.status(HTTP_STATUS.NOT_FOUND);
+        res.json(errorResponse);
+      }
+      return;
     }
 
     console.log('✅ Merchant found:', merchant.businessName);
@@ -903,7 +927,7 @@ exports.createProduct = async (req, res) => {
 
     console.log('✅ Product populated successfully');
 
-    // Prepare response
+    // CRITICAL: Prepare response with validation
     const productResponse = {
       ...populatedProduct,
       _id: populatedProduct._id.toString(),
@@ -911,23 +935,52 @@ exports.createProduct = async (req, res) => {
       available: populatedProduct.isActive
     };
 
+    // CRITICAL: Validate response before sending
+    if (!productResponse || !productResponse._id) {
+      console.error('❌ Invalid product response structure');
+      throw new Error('Product response validation failed');
+    }
+
     const responseData = {
       success: true,
       message: 'Product created successfully',
       data: productResponse
     };
 
+    // CRITICAL: Validate response data
+    const responseString = JSON.stringify(responseData);
+    if (!responseString || responseString === '{}' || responseString.length < 10) {
+      console.error('❌ Response data is empty or invalid');
+      console.error('Response data:', responseData);
+      throw new Error('Response validation failed');
+    }
+
     console.log('✅ Product creation successful!');
     console.log('📤 Sending response:');
     console.log('  - Success:', responseData.success);
     console.log('  - Product ID:', responseData.data._id);
     console.log('  - Product Name:', responseData.data.name);
-    console.log('  - Response size:', JSON.stringify(responseData).length, 'bytes');
+    console.log('  - Response size:', responseString.length, 'bytes');
+    console.log('  - Headers sent?', res.headersSent);
+    
+    // CRITICAL: Triple check headers not sent
+    if (res.headersSent) {
+      console.error('❌ CRITICAL: Headers already sent before sending response!');
+      return;
+    }
+
     console.log('========== CREATE PRODUCT END ==========\n');
     
     // EXPLICITLY set headers and send response
     res.setHeader('Content-Type', 'application/json');
-    return res.status(HTTP_STATUS.CREATED).json(responseData);
+    res.setHeader('Content-Length', Buffer.byteLength(responseString));
+    res.status(HTTP_STATUS.CREATED);
+    
+    // Use res.send instead of res.json for more control
+    res.send(responseString);
+    
+    console.log('✅ Response sent successfully');
+    return;
     
   } catch (error) {
     console.error('\n❌ ========== CREATE PRODUCT ERROR ==========');
@@ -944,19 +997,29 @@ exports.createProduct = async (req, res) => {
     }
     
     console.error('Error Stack:', error.stack);
+    console.error('Headers sent?', res.headersSent);
     console.error('===========================================\n');
     
-    const errorResponse = {
-      success: false,
-      error: error.message || 'Failed to create product',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    };
+    // Only send error response if headers not sent
+    if (!res.headersSent) {
+      const errorResponse = {
+        success: false,
+        error: error.message || 'Failed to create product',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      };
+      
+      const errorString = JSON.stringify(errorResponse);
+      console.log('📤 Sending error response:', errorResponse);
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Length', Buffer.byteLength(errorString));
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR);
+      res.send(errorString);
+    } else {
+      console.error('❌ Cannot send error response - headers already sent');
+    }
     
-    console.log('📤 Sending error response:', errorResponse);
-    
-    // EXPLICITLY set headers and send error response
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json(errorResponse);
+    return;
   }
 };
 

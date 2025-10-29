@@ -50,6 +50,60 @@ app.use(compression({
   level: 6 // Balance between speed and compression
 }));
 
+// Log all responses to check for empty data
+app.use((req, res, next) => {
+  const originalJson = res.json;
+  
+  res.json = function(data) {
+    // Log what's being sent
+    console.log('\n🔍 RESPONSE INTERCEPTOR:');
+    console.log('Path:', req.path);
+    console.log('Method:', req.method);
+    console.log('Status:', res.statusCode);
+    console.log('Data type:', typeof data);
+    console.log('Data length:', JSON.stringify(data).length);
+    
+    // Check for empty data
+    if (!data || (typeof data === 'string' && data.trim() === '')) {
+      console.error('❌ EMPTY DATA DETECTED!');
+      console.error('This should not happen. Sending fallback error.');
+      return originalJson.call(this, {
+        success: false,
+        error: 'Server returned empty response'
+      });
+    }
+    
+    // Check for empty object body
+    if (typeof data === 'object' && Object.keys(data).length === 0) {
+      console.error('❌ EMPTY OBJECT DETECTED!');
+    }
+    
+    console.log('✅ Response data valid, sending...');
+    return originalJson.call(this, data);
+  };
+  
+  next();
+});
+
+// prevent double responses
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  let responseSent = false;
+  
+  res.send = function(data) {
+    if (responseSent) {
+      console.error('❌ WARNING: Response already sent! Ignoring duplicate send attempt');
+      console.error('Path:', req.path);
+      console.trace('Stack trace:');
+      return this;
+    }
+    responseSent = true;
+    return originalSend.call(this, data);
+  };
+  
+  next();
+});
+
 // Debug middleware to log IP information (helpful for troubleshooting rate limiting)
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
