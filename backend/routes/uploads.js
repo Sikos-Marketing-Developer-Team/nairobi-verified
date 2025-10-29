@@ -9,26 +9,41 @@ const asyncHandler = require('express-async-handler');
 // @route POST /api/uploads/products
 // @access Private (Merchant/Admin)
 const uploadProductImage = asyncHandler(async (req, res) => {
+  console.log('📸 Product image upload - Files received:', req.files?.length || 0);
+  
   if (!req.files || req.files.length === 0) {
+    console.log('❌ No files in request');
     return res.status(400).json({
       success: false,
       message: 'No files uploaded'
     });
   }
 
-  const uploadedFiles = req.files.map(file => ({
-    url: file.path, // Cloudinary URL
-    publicId: file.filename,
-    originalName: file.originalname,
-    size: file.size,
-    mimeType: file.mimetype
-  }));
+  const uploadedFiles = req.files.map(file => {
+    console.log(`✅ Uploaded: ${file.originalname} -> ${file.path}`);
+    return {
+      url: file.path, // Cloudinary URL
+      publicId: file.filename,
+      originalName: file.originalname,
+      size: file.size,
+      mimeType: file.mimetype
+    };
+  });
 
-  res.status(200).json({
+  console.log(`✅ Total files uploaded: ${uploadedFiles.length}`);
+
+  // ✅ CRITICAL: Match the structure your frontend expects
+  const response = {
     success: true,
     message: 'Images uploaded successfully',
-    files: uploadedFiles
-  });
+    data: uploadedFiles.map(f => f.url), // Array of URLs
+    files: uploadedFiles // Full file objects
+  };
+
+  console.log('📤 Sending response:', response);
+  
+  // ✅ CRITICAL: Explicitly return to prevent any middleware interference
+  return res.status(200).json(response);
 });
 
 // @desc Upload merchant images (logo, banner, gallery)
