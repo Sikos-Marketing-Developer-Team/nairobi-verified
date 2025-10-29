@@ -384,56 +384,67 @@ exports.loginMerchant = async (req, res) => {
           success: false,
           error: 'Your temporary password has expired. Please contact admin for a new password.',
           expired: true
-    });
+        });
       }
 
-  // FIX: Still create session even if password change required
-  if (!merchant.passwordChanged) {
-    return new Promise((resolve, reject) => {
-      req.login(merchant, (err) => {
-        if (err) {
-          console.error('❌ req.login error:', err);
-          return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            error: 'Error logging in'
-          });
-        }
-        
-        req.session.save((saveErr) => {
-          if (saveErr) {
-            console.error('❌ Session save error:', saveErr);
-            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-              success: false,
-              error: 'Error saving session'
-            });
-          }
-          
-          console.log('✅ Session created for password change');
-          
-          return res.status(HTTP_STATUS.OK).json({
-            success: true,
-            requirePasswordChange: true,
-            message: 'Please change your password to continue',
-            user: {
-              id: merchant._id,
-              businessName: merchant.businessName,
-              email: merchant.email,
-              phone: merchant.phone,
-              businessType: merchant.businessType,
-              verified: merchant.verified,
-              role: 'merchant',
-              isMerchant: true,
-              tempPasswordExpiry: merchant.tempPasswordExpiry
+      if (!merchant.passwordChanged) {
+        // ✅ FIX: Still create session for password change flow
+        return new Promise((resolve) => {
+          req.login(merchant, (err) => {
+            if (err) {
+              console.error('❌ req.login error:', err);
+              return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                error: 'Error logging in'
+              });
             }
+            
+            // ✅ CRITICAL: Force session save and WAIT for it
+            req.session.save((saveErr) => {
+              if (saveErr) {
+                console.error('❌ Session save error:', saveErr);
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                  success: false,
+                  error: 'Error saving session'
+                });
+              }
+              
+              console.log('✅ Session created for password change');
+              console.log('✅ Session ID:', req.sessionID);
+              
+              // ✅ CRITICAL: Explicitly set cookie header
+              res.cookie('nairobi_verified_session', req.sessionID, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none',
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+                path: '/'
+              });
+              
+              return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                requirePasswordChange: true,
+                message: 'Please change your password to continue',
+                user: {
+                  id: merchant._id,
+                  businessName: merchant.businessName,
+                  email: merchant.email,
+                  phone: merchant.phone,
+                  businessType: merchant.businessType,
+                  verified: merchant.verified,
+                  role: 'merchant',
+                  isMerchant: true,
+                  tempPasswordExpiry: merchant.tempPasswordExpiry
+                }
+              });
+            });
           });
         });
-      });
-    });
-  }
-}
+      }
+    }
 
-    // CRITICAL FIX: Use promisified req.login with explicit session save
-    return new Promise((resolve, reject) => {
+    // ✅ CRITICAL: Normal login with explicit session save
+    return new Promise((resolve) => {
       req.login(merchant, (err) => {
         if (err) {
           console.error('❌ req.login error for merchant:', err);
@@ -443,7 +454,7 @@ exports.loginMerchant = async (req, res) => {
           });
         }
         
-        // CRITICAL: Explicitly save session before sending response
+        // ✅ CRITICAL: Explicitly save session BEFORE responding
         req.session.save((saveErr) => {
           if (saveErr) {
             console.error('❌ Session save error:', saveErr);
@@ -455,7 +466,21 @@ exports.loginMerchant = async (req, res) => {
           
           console.log('✅ Merchant logged in and session saved:', merchant.email);
           console.log('✅ Session ID:', req.sessionID);
-          console.log('✅ Session data:', req.session);
+          console.log('✅ Cookie settings:', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+          });
+          
+          // ✅ CRITICAL: Explicitly set cookie in response
+          res.cookie('nairobi_verified_session', req.sessionID, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/'
+          });
           
           return res.status(HTTP_STATUS.OK).json({
             success: true,
@@ -475,6 +500,90 @@ exports.loginMerchant = async (req, res) => {
     });
   } catch (error) {
     console.error('Merchant login error:', error);
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      success: false,
+      error: 'Invalid input data'
+    });
+  }
+};
+
+// ✅ Also update regular user login the same way
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Please provide an email and password'
+      });
+    }
+
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
+    }
+
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
+    }
+
+    // ✅ CRITICAL: Explicit session save with cookie
+    return new Promise((resolve) => {
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            error: 'Error logging in'
+          });
+        }
+        
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('❌ Session save error:', saveErr);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+              success: false,
+              error: 'Error saving session'
+            });
+          }
+          
+          console.log('✅ User logged in and session saved:', user.email);
+          
+          // ✅ Explicitly set cookie
+          res.cookie('nairobi_verified_session', req.sessionID, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/'
+          });
+          
+          return res.status(HTTP_STATUS.OK).json({
+            success: true,
+            user: {
+              id: user._id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              phone: user.phone,
+              role: user.role || 'user',
+              isMerchant: false
+            }
+          });
+        });
+      });
+    });
+  } catch (error) {
+    console.error('Login error:', error);
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: 'Invalid input data'
