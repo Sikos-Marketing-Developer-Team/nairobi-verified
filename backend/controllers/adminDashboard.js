@@ -418,7 +418,7 @@ const getRecentActivity = asyncHandler(async (req, res) => {
 // @desc    Get all merchants with enhanced document information
 // @route   GET /api/admin/dashboard/merchants
 // @access  Private (Admin)
-exports.getMerchants = async (req, res) => {
+const getMerchants = asyncHandler(async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -533,7 +533,7 @@ exports.getMerchants = async (req, res) => {
       error: error.message
     });
   }
-};
+});
 
 // @desc    Get merchant documents for admin review
 // @route   GET /api/admin/dashboard/merchants/:id/documents
@@ -2672,6 +2672,7 @@ const formatTimeAgo = (date) => {
 module.exports = {
   getDashboardStats,
   getRecentActivity,
+  getMerchants,
   getMerchantDocuments,
   viewMerchantDocument,
   bulkVerifyMerchants,
