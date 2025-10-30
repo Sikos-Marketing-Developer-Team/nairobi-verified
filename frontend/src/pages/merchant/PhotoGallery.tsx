@@ -130,9 +130,10 @@ const PhotoGallery = () => {
 
       const formData = new FormData();
       selectedFiles.forEach(file => {
-        formData.append("photos", file);
+        formData.append("images", file);
       });
 
+  
       console.log('🔄 Sending upload request...');
       const response = await axios.post("/api/merchants/dashboard/gallery", formData, {
         headers: { "Content-Type": "multipart/form-data" }
