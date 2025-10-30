@@ -2672,7 +2672,6 @@ const formatTimeAgo = (date) => {
 module.exports = {
   getDashboardStats,
   getRecentActivity,
-  getMerchants,
   getMerchantDocuments,
   viewMerchantDocument,
   bulkVerifyMerchants,
