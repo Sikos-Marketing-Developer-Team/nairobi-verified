@@ -931,7 +931,6 @@ exports.forgotPassword = async (req, res) => {
     const resetToken = crypto.randomBytes(20).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     
-    // Update user directly
     const Model = userType === 'user' ? User : Merchant;
     await Model.findByIdAndUpdate(user._id, {
       resetPasswordToken: hashedToken,
@@ -944,15 +943,14 @@ exports.forgotPassword = async (req, res) => {
 
     const resetUrl = `${frontendUrl}/auth/reset-password/${resetToken}`;
     
-    // Queue email asynchronously
-    queueEmail(async () => {
-      try {
-        await emailService.sendPasswordReset(email, resetUrl, userType);
-        console.log(`Password reset email sent to: ${email}`);
-      } catch (emailError) {
-        console.error('Password reset email failed:', emailError.message);
-      }
-    });
+    // ✅ SEND IMMEDIATELY - Don't queue for password resets!
+    try {
+      await emailService.sendPasswordReset(email, resetUrl, userType);
+      console.log(`✅ Password reset email sent immediately to: ${email}`);
+    } catch (emailError) {
+      console.error('❌ Password reset email failed:', emailError.message);
+      // Still return success to prevent email enumeration
+    }
     
     res.status(HTTP_STATUS.OK).json({
       success: true,
