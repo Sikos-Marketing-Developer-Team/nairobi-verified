@@ -12,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAuth } from "@/contexts/AuthContext"; // ADD THIS IMPORT
 import {
   Upload,
   Trash2,
@@ -36,7 +35,6 @@ interface GalleryPhoto {
 
 const PhotoGallery = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth(); // ADD AUTH HOOK
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [gallery, setGallery] = useState<GalleryPhoto[]>([]);
@@ -51,33 +49,6 @@ const PhotoGallery = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
-  // Get auth token from localStorage
-  const getAuthToken = () => {
-    return localStorage.getItem('token') || sessionStorage.getItem('token');
-  };
-
-  // Create axios instance with auth header
-  const api = axios.create({
-    baseURL: "/api",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  // Add auth interceptor
-  api.interceptors.request.use(
-    (config) => {
-      const token = getAuthToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
-    }
-  );
-
   useEffect(() => {
     fetchGallery();
   }, []);
@@ -86,28 +57,13 @@ const PhotoGallery = () => {
     try {
       setLoading(true);
       console.log('🔄 Fetching gallery...');
-      console.log('Auth status:', { isAuthenticated, user: user?.email });
-      console.log('Token exists:', !!getAuthToken());
-      
-      const response = await api.get("/merchants/dashboard/gallery");
+      const response = await axios.get("/api/merchants/dashboard/gallery");
       console.log('✅ Gallery fetched:', response.data);
       console.log('Photos count:', response.data.data?.length || 0);
       setGallery(response.data.data || []);
     } catch (err: any) {
       console.error('❌ Failed to fetch gallery:', err);
-      console.error('Error details:', {
-        status: err.response?.status,
-        data: err.response?.data,
-        message: err.message
-      });
-      
-      if (err.response?.status === 401) {
-        setError("Session expired. Please log in again.");
-        // Redirect to login after 2 seconds
-        setTimeout(() => navigate('/auth'), 2000);
-      } else {
-        setError(err.response?.data?.message || "Failed to load gallery");
-      }
+      setError(err.response?.data?.message || "Failed to load gallery");
     } finally {
       setLoading(false);
     }
@@ -161,96 +117,43 @@ const PhotoGallery = () => {
       return;
     }
 
-    // Check authentication
-    if (!isAuthenticated || !getAuthToken()) {
-      setError("Authentication required. Please log in again.");
-      setTimeout(() => navigate('/auth'), 2000);
-      return;
-    }
-
     try {
       setUploading(true);
       setError("");
       setSuccess("");
 
       console.log('📸 Starting photo upload...');
-      console.log('Auth status:', { isAuthenticated, user: user?.email });
       console.log('Files to upload:', selectedFiles.length);
-      
       selectedFiles.forEach((file, index) => {
-        console.log(`  [${index + 1}] ${file.name} (${(file.size / 1024).toFixed(2)} KB, ${file.type})`);
+        console.log(`  [${index + 1}] ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
       });
 
       const formData = new FormData();
-      
-      // Try different field names to find what the backend expects
       selectedFiles.forEach(file => {
-        formData.append("images", file); // Most common
-        formData.append("photos", file); // Alternative
+        formData.append("images", file);
       });
 
+  
       console.log('🔄 Sending upload request...');
-      
-      // Get fresh token for this request
-      const token = getAuthToken();
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
       const response = await axios.post("/api/merchants/dashboard/gallery", formData, {
-        headers: { 
-          "Content-Type": "multipart/form-data",
-          "Authorization": `Bearer ${token}`
-        },
-        timeout: 30000,
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            console.log(`Upload Progress: ${percentCompleted}%`);
-          }
-        }
+        headers: { "Content-Type": "multipart/form-data" }
       });
 
       console.log('✅ Upload successful:', response.data);
+      console.log('Uploaded photos:', response.data.data);
+
+      setSuccess(`${selectedFiles.length} photo(s) uploaded successfully`);
+      setSelectedFiles([]);
+      setPreviewUrls([]);
       
-      if (response.data.success) {
-        setSuccess(`${selectedFiles.length} photo(s) uploaded successfully`);
-        setSelectedFiles([]);
-        setPreviewUrls([]);
-        
-        console.log('🔄 Fetching updated gallery...');
-        await fetchGallery();
-        
-        setTimeout(() => setSuccess(""), 3000);
-      } else {
-        throw new Error(response.data.message || "Upload failed");
-      }
+      console.log('🔄 Fetching updated gallery...');
+      await fetchGallery();
       
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
       console.error('❌ Upload failed:', err);
-      
-      // Detailed error logging
-      if (err.response) {
-        console.error('Error response status:', err.response.status);
-        console.error('Error response data:', err.response.data);
-        
-        if (err.response.status === 401) {
-          setError("Session expired. Please log in again.");
-          setTimeout(() => navigate('/auth'), 2000);
-        } else if (err.response.status === 413) {
-          setError("File too large. Please ensure each photo is under 5MB");
-        } else if (err.response.status === 415) {
-          setError("Unsupported file type. Please upload JPEG, PNG, or WebP images");
-        } else {
-          setError(err.response.data?.error || err.response.data?.message || `Upload failed: ${err.response.status}`);
-        }
-      } else if (err.request) {
-        console.error('No response received:', err.request);
-        setError("Network error. Please check your connection and try again");
-      } else {
-        console.error('Error message:', err.message);
-        setError(err.message || "Failed to upload photos");
-      }
+      console.error('Error response:', err.response?.data);
+      setError(err.response?.data?.error || err.response?.data?.message || "Failed to upload photos");
     } finally {
       setUploading(false);
     }
@@ -262,7 +165,7 @@ const PhotoGallery = () => {
     }
 
     try {
-      await api.delete(`/merchants/dashboard/gallery/${photoId}`);
+      await axios.delete(`/api/merchants/dashboard/gallery/${photoId}`);
       setSuccess("Photo deleted successfully");
       await fetchGallery();
       
@@ -274,7 +177,7 @@ const PhotoGallery = () => {
 
   const handleSetFeatured = async (photoId: string) => {
     try {
-      await api.patch(`/merchants/dashboard/gallery/${photoId}/featured`);
+      await axios.patch(`/api/merchants/dashboard/gallery/${photoId}/featured`);
       setSuccess("Featured photo updated");
       await fetchGallery();
       
@@ -300,7 +203,7 @@ const PhotoGallery = () => {
     const photoIds = newOrder.map(p => p._id);
 
     try {
-      await api.patch("/merchants/dashboard/gallery/reorder", {
+      await axios.patch("/api/merchants/dashboard/gallery/reorder", {
         photoIds
       });
       
@@ -435,12 +338,6 @@ const PhotoGallery = () => {
             <ImageIcon className="h-16 w-16 text-gray-400 mb-4" />
             <h3 className="text-xl font-semibold mb-2">No photos yet</h3>
             <p className="text-gray-600 mb-4">Start by uploading photos of your business</p>
-            {gallery.length < 20 && (
-              <Button onClick={() => document.getElementById('gallery-upload')?.click()}>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload First Photo
-              </Button>
-            )}
           </CardContent>
         </Card>
       ) : (
