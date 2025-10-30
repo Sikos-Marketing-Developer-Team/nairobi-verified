@@ -418,151 +418,122 @@ const getRecentActivity = asyncHandler(async (req, res) => {
 // @desc    Get all merchants with enhanced document information
 // @route   GET /api/admin/dashboard/merchants
 // @access  Private (Admin)
-const getMerchants = asyncHandler(async (req, res) => {
-  const { 
-    page = 1, 
-    limit = 100, 
-    verified, 
-    businessType, 
-    search,
-    documentStatus,
-  } = req.query;
+exports.getMerchants = async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 100, // Default limit
+      search, 
+      verified, 
+      isActive,
+      featured,
+      businessType 
+    } = req.query;
 
-  const query = {};
-  
-  if (verified !== undefined) {
-    query.verified = verified === 'true';
-  }
-  
-  if (businessType) {
-    query.businessType = businessType;
-  }
-  
-  if (search) {
-    query.$or = [
-      { businessName: { $regex: search, $options: 'i' } },
-      { email: { $regex: search, $options: 'i' } }
-    ];
-  }
-
-  if (documentStatus) {
-    switch (documentStatus) {
-      case 'complete':
-        query.$and = [
-          { 'documents.businessRegistration': { $exists: true, $ne: '' } },
-          { 'documents.idDocument': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill': { $exists: true, $ne: '' } }
-        ];
-        break;
-      case 'incomplete':
-        query.$or = [
-          { 'documents.businessRegistration': { $exists: false } },
-          { 'documents.businessRegistration': '' },
-          { 'documents.idDocument': { $exists: false } },
-          { 'documents.idDocument': '' },
-          { 'documents.utilityBill': { $exists: false } },
-          { 'documents.utilityBill': '' }
-        ];
-        break;
-      case 'pending_review':
-        query.$and = [
-          { 'documents.businessRegistration': { $exists: true, $ne: '' } },
-          { 'documents.idDocument': { $exists: true, $ne: '' } },
-          { 'documents.utilityBill': { $exists: true, $ne: '' } },
-          { verified: false }
-        ];
-        break;
-    }
-  }
-
-  const merchants = await Merchant.find(query)
-    .sort({ createdAt: -1 })
-    .limit(limit * 1)
-    .skip((page - 1) * limit)
-    .select('-password')
-    .lean();
-
-  const enhancedMerchants = merchants.map(merchant => {
-    const documentStatus = {
-      businessRegistration: !!(merchant.documents?.businessRegistration),
-      idDocument: !!(merchant.documents?.idDocument),
-      utilityBill: !!(merchant.documents?.utilityBill),
-      additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
-    };
-
-    const documentCompleteness = Object.values(documentStatus).slice(0, 3).filter(Boolean).length;
-    const isDocumentComplete = documentCompleteness === 3;
+    // Build filter query
+    const filter = {};
     
-    return {
-      ...merchant,
-      documentStatus,
-      documentCompleteness,
-      isDocumentComplete,
-      needsVerification: isDocumentComplete && !merchant.verified
-    };
-  });
+    if (search) {
+      filter.$or = [
+        { businessName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    if (verified !== undefined) {
+      filter.verified = verified === 'true';
+    }
+    
+    if (isActive !== undefined) {
+      filter.isActive = isActive === 'true';
+    }
+    
+    if (featured !== undefined) {
+      filter.featured = featured === 'true';
+    }
+    
+    if (businessType) {
+      filter.businessType = businessType;
+    }
 
-  const total = await Merchant.countDocuments(query);
+    // Calculate pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
 
-  const queryStats = await Merchant.aggregate([
-    { $match: query },
-    {
-      $group: {
-        _id: null,
-        totalMerchants: { $sum: 1 },
-        verifiedMerchants: { $sum: { $cond: [{ $eq: ['$verified', true] }, 1, 0] } },
-        withBusinessReg: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.businessRegistration', null] },
-                { $ne: ['$documents.businessRegistration', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        withIdDoc: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.idDocument', null] },
-                { $ne: ['$documents.idDocument', ''] }
-              ]}, 1, 0
-            ]
-          }
-        },
-        withUtilityBill: {
-          $sum: {
-            $cond: [
-              { $and: [
-                { $ne: ['$documents.utilityBill', null] },
-                { $ne: ['$documents.utilityBill', ''] }
-              ]}, 1, 0
-            ]
-          }
+    // Get total count for pagination metadata
+    const totalMerchants = await Merchant.countDocuments(filter);
+    
+    // Fetch merchants with pagination
+    const merchants = await Merchant.find(filter)
+      .select('-password -resetPasswordToken -resetPasswordExpire')
+      .sort({ createdAt: -1 }) // Most recent first
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    // Calculate document completeness for each merchant
+    const merchantsWithCompleteness = merchants.map(merchant => {
+      const hasBusinessReg = !!merchant.documents?.businessRegistration?.path;
+      const hasIdDoc = !!merchant.documents?.idDocument?.path;
+      const hasUtilityBill = !!merchant.documents?.utilityBill?.path;
+      
+      const docsComplete = [hasBusinessReg, hasIdDoc, hasUtilityBill].filter(Boolean).length;
+      const documentsCompleteness = Math.round((docsComplete / 3) * 100);
+      const isDocumentComplete = docsComplete === 3;
+      
+      // Profile completeness calculation
+      const profileFields = [
+        merchant.businessName,
+        merchant.email,
+        merchant.phone,
+        merchant.address,
+        merchant.businessType,
+        merchant.description,
+        merchant.logo
+      ].filter(Boolean).length;
+      
+      const profileCompleteness = Math.round((profileFields / 7) * 100);
+      
+      return {
+        ...merchant,
+        documentsCompleteness,
+        isDocumentComplete,
+        profileCompleteness,
+        needsVerification: isDocumentComplete && !merchant.verified,
+        documentStatus: {
+          businessRegistration: hasBusinessReg,
+          idDocument: hasIdDoc,
+          utilityBill: hasUtilityBill,
+          additionalDocs: !!(merchant.documents?.additionalDocs?.length > 0)
         }
-      }
-    }
-  ]);
+      };
+    });
 
-  res.status(200).json({
-    success: true,
-    merchants: enhancedMerchants,
-    pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      total,
-      pages: Math.ceil(total / limit)
-    },
-    queryStats: queryStats[0] || {
-      totalMerchants: 0,
-      verifiedMerchants: 0,
-      withBusinessReg: 0,
-      withIdDoc: 0,
-      withUtilityBill: 0
-    }
-  });
-});
+    res.status(200).json({
+      success: true,
+      merchants: merchantsWithCompleteness,
+      pagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalMerchants / limitNum),
+        totalMerchants,
+        limit: limitNum,
+        hasNextPage: pageNum < Math.ceil(totalMerchants / limitNum),
+        hasPrevPage: pageNum > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ getMerchants error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch merchants',
+      error: error.message
+    });
+  }
+};
 
 // @desc    Get merchant documents for admin review
 // @route   GET /api/admin/dashboard/merchants/:id/documents

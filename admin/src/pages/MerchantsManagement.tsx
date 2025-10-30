@@ -160,27 +160,28 @@ const MerchantsManagement: React.FC = () => {
   const currentMerchants = filteredMerchants.slice(startIndex, endIndex);
 
   const loadMerchants = useCallback(async (showRefreshing = false) => {
-    try {
-      if (showRefreshing) {
-        setRefreshing(true);
-      } else {
-        setIsLoading(true);
-      }
-      
-      const response = await adminAPI.getMerchants({ limit: 1000 }); // Get more to handle filtering
-      if (response.data.success) {
-        setMerchants(response.data.merchants || []);
-      }
-    } catch (error: any) {
-      console.error('Failed to load merchants:', error);
-      toast.error('Failed to load merchants');
-    } finally {
-      requestAnimationFrame(() => {
-        setIsLoading(false);
-        setRefreshing(false);
-      });
+  try {
+    if (showRefreshing) {
+      setRefreshing(true);
+    } else {
+      setIsLoading(true);
     }
-  }, []);
+    
+    // ✅ Remove limit - let backend return all merchants
+    const response = await adminAPI.getMerchants(); 
+    if (response.data.success) {
+      setMerchants(response.data.merchants || []);
+    }
+  } catch (error: any) {
+    console.error('Failed to load merchants:', error);
+    toast.error('Failed to load merchants');
+  } finally {
+    requestAnimationFrame(() => {
+      setIsLoading(false);
+      setRefreshing(false);
+    });
+  }
+}, []);
 
   const filterMerchants = useCallback(() => {
     let filtered = merchants;
