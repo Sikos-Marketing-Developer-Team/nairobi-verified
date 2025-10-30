@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Upload,
   Trash2,
@@ -35,6 +36,7 @@ interface GalleryPhoto {
 
 const PhotoGallery = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [gallery, setGallery] = useState<GalleryPhoto[]>([]);
@@ -49,6 +51,30 @@ const PhotoGallery = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
+  // Get auth token from localStorage
+  const getAuthToken = () => {
+    return localStorage.getItem('token') || sessionStorage.getItem('token');
+  };
+
+  // Create axios instance with auth header
+  const api = axios.create({
+    baseURL: "/api",
+  });
+
+  // Add auth interceptor
+  api.interceptors.request.use(
+    (config) => {
+      const token = getAuthToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
   useEffect(() => {
     fetchGallery();
   }, []);
@@ -57,13 +83,27 @@ const PhotoGallery = () => {
     try {
       setLoading(true);
       console.log('🔄 Fetching gallery...');
-      const response = await axios.get("/api/merchants/dashboard/gallery");
+      console.log('Auth status:', { isAuthenticated, user: user?.email });
+      console.log('Token exists:', !!getAuthToken());
+      
+      const response = await api.get("/merchants/dashboard/gallery");
       console.log('✅ Gallery fetched:', response.data);
       console.log('Photos count:', response.data.data?.length || 0);
       setGallery(response.data.data || []);
     } catch (err: any) {
       console.error('❌ Failed to fetch gallery:', err);
-      setError(err.response?.data?.message || "Failed to load gallery");
+      console.error('Error details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message
+      });
+      
+      if (err.response?.status === 401) {
+        setError("Session expired. Please log in again.");
+        setTimeout(() => navigate('/auth'), 2000);
+      } else {
+        setError(err.response?.data?.message || "Failed to load gallery");
+      }
     } finally {
       setLoading(false);
     }
@@ -71,11 +111,12 @@ const PhotoGallery = () => {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    setError("");
     
     // Validate file types and sizes
     const validFiles = files.filter(file => {
       if (!file.type.startsWith("image/")) {
-        setError("Please select only image files");
+        setError("Please select only image files (JPEG, PNG, WebP)");
         return false;
       }
       if (file.size > 5 * 1024 * 1024) {
@@ -97,10 +138,14 @@ const PhotoGallery = () => {
     setSelectedFiles([...selectedFiles, ...validFiles]);
 
     // Create preview URLs
+    const newPreviewUrls: string[] = [];
     validFiles.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreviewUrls(prev => [...prev, reader.result as string]);
+        newPreviewUrls.push(reader.result as string);
+        if (newPreviewUrls.length === validFiles.length) {
+          setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
+        }
       };
       reader.readAsDataURL(file);
     });
@@ -117,42 +162,106 @@ const PhotoGallery = () => {
       return;
     }
 
+    // Check authentication
+    if (!isAuthenticated || !getAuthToken()) {
+      setError("Authentication required. Please log in again.");
+      setTimeout(() => navigate('/auth'), 2000);
+      return;
+    }
+
     try {
       setUploading(true);
       setError("");
       setSuccess("");
 
-      console.log('📸 Starting photo upload...');
-      console.log('Files to upload:', selectedFiles.length);
+      console.log('=== 🚀 UPLOAD DEBUG START ===');
+      console.log('📸 Uploading files:', selectedFiles.length);
+      
+      // Log each file details
       selectedFiles.forEach((file, index) => {
-        console.log(`  [${index + 1}] ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+        console.log(`  File ${index + 1}:`, {
+          name: file.name,
+          size: `${(file.size / 1024).toFixed(2)} KB`,
+          type: file.type,
+          lastModified: new Date(file.lastModified).toLocaleString()
+        });
       });
 
       const formData = new FormData();
+      
+      // ✅ CRITICAL FIX: Use correct field name for backend
       selectedFiles.forEach(file => {
-        formData.append("photos", file);
+        formData.append("photos", file); // Backend expects 'photos' field
       });
 
-      console.log('🔄 Sending upload request...');
+      // Log FormData contents
+            console.log('📦 FormData contents:');
+            for (let pair of formData.entries()) {
+              const [key, value] = pair;
+              if (value instanceof File) {
+                console.log('  ', key, value.name);
+              } else {
+                console.log('  ', key, value);
+              }
+            }
+
+      const token = getAuthToken();
+      console.log('🔑 Auth token:', token ? `Exists (${token.substring(0, 20)}...)` : 'MISSING');
+
+      console.log('🔄 Making API request to:', '/api/merchants/dashboard/gallery');
+      
       const response = await axios.post("/api/merchants/dashboard/gallery", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          "Authorization": `Bearer ${token}`
+        },
+        timeout: 30000,
+        onUploadProgress: (progressEvent) => {
+          const percent = progressEvent.total ? 
+            Math.round((progressEvent.loaded * 100) / progressEvent.total) : 0;
+          console.log(`📊 Upload progress: ${percent}%`);
+        }
       });
 
-      console.log('✅ Upload successful:', response.data);
-      console.log('Uploaded photos:', response.data.data);
+      console.log('✅ UPLOAD SUCCESSFUL:', response.data);
+      console.log('=== 🎉 UPLOAD DEBUG END ===');
 
       setSuccess(`${selectedFiles.length} photo(s) uploaded successfully`);
       setSelectedFiles([]);
       setPreviewUrls([]);
-      
-      console.log('🔄 Fetching updated gallery...');
       await fetchGallery();
       
-      setTimeout(() => setSuccess(""), 3000);
+      setTimeout(() => setSuccess(""), 5000);
+      
     } catch (err: any) {
-      console.error('❌ Upload failed:', err);
-      console.error('Error response:', err.response?.data);
-      setError(err.response?.data?.error || err.response?.data?.message || "Failed to upload photos");
+      console.error('=== ❌ UPLOAD FAILED ===');
+      console.error('Error details:', err);
+      
+      if (err.response) {
+        console.error('Response status:', err.response.status);
+        console.error('Response data:', err.response.data);
+        console.error('Response headers:', err.response.headers);
+        
+        if (err.response.status === 404) {
+          setError("Upload endpoint not found. Please check backend routes.");
+        } else if (err.response.status === 401) {
+          setError("Authentication failed. Please log in again.");
+          setTimeout(() => navigate('/auth'), 2000);
+        } else if (err.response.status === 413) {
+          setError("File too large. Maximum size is 5MB per file.");
+        } else if (err.response.status === 415) {
+          setError("Unsupported file type. Please use JPEG, PNG, or WebP.");
+        } else {
+          setError(`Upload failed: ${err.response.status} - ${err.response.data?.message || 'Unknown error'}`);
+        }
+      } else if (err.request) {
+        console.error('No response received. Request details:', err.request);
+        setError("Network error. Cannot reach server. Check your connection.");
+      } else {
+        console.error('Request setup error:', err.message);
+        setError(`Upload failed: ${err.message}`);
+      }
+      console.error('=== 🛑 UPLOAD DEBUG END ===');
     } finally {
       setUploading(false);
     }
@@ -164,7 +273,7 @@ const PhotoGallery = () => {
     }
 
     try {
-      await axios.delete(`/api/merchants/dashboard/gallery/${photoId}`);
+      await api.delete(`/merchants/dashboard/gallery/${photoId}`);
       setSuccess("Photo deleted successfully");
       await fetchGallery();
       
@@ -176,7 +285,7 @@ const PhotoGallery = () => {
 
   const handleSetFeatured = async (photoId: string) => {
     try {
-      await axios.patch(`/api/merchants/dashboard/gallery/${photoId}/featured`);
+      await api.patch(`/merchants/dashboard/gallery/${photoId}/featured`);
       setSuccess("Featured photo updated");
       await fetchGallery();
       
@@ -202,7 +311,7 @@ const PhotoGallery = () => {
     const photoIds = newOrder.map(p => p._id);
 
     try {
-      await axios.patch("/api/merchants/dashboard/gallery/reorder", {
+      await api.patch("/merchants/dashboard/gallery/reorder", {
         photoIds
       });
       
@@ -220,6 +329,49 @@ const PhotoGallery = () => {
   const handleClosePreview = () => {
     setShowPreview(false);
     setPreviewPhoto(null);
+  };
+
+  // Test upload connection function
+  const testUploadConnection = async () => {
+    console.log('🧪 Testing upload connection...');
+    
+    // Test with a small fake file first
+    const blob = new Blob(['fake image content'], { type: 'image/jpeg' });
+    const testFile = new File([blob], 'test.jpg', { type: 'image/jpeg' });
+    
+    const formData = new FormData();
+    formData.append('photos', testFile);
+    
+    console.log('📤 Sending test upload...');
+    console.log('FormData entries:');
+    for (let pair of formData.entries()) {
+      console.log('  ', pair[0], pair[1]);
+    }
+    
+    try {
+      const token = getAuthToken();
+      console.log('🔑 Token exists:', !!token);
+      
+      const response = await axios.post("/api/merchants/dashboard/gallery", formData, {
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+      
+      console.log('✅ Test upload successful:', response.data);
+      setSuccess("Test upload successful! Backend is working.");
+      return true;
+    } catch (err: any) {
+      console.error('❌ Test upload failed:', err);
+      console.error('Error details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message
+      });
+      setError("Test upload failed: " + (err.response?.data?.error || err.message));
+      return false;
+    }
   };
 
   if (loading && gallery.length === 0) {
@@ -244,6 +396,36 @@ const PhotoGallery = () => {
           Back to Dashboard
         </Button>
       </div>
+
+      {/* Debug Section - Temporary */}
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardHeader>
+          <CardTitle className="text-lg">Upload Debug</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex gap-2">
+            <Button 
+              onClick={testUploadConnection}
+              variant="outline"
+              size="sm"
+            >
+              Test Upload Connection
+            </Button>
+            <Button 
+              onClick={fetchGallery}
+              variant="outline"
+              size="sm"
+            >
+              Refresh Gallery
+            </Button>
+          </div>
+          <p className="text-sm text-gray-600">
+            Selected: {selectedFiles.length} files | Gallery: {gallery.length}/20 | 
+            Auth: {isAuthenticated ? 'Yes' : 'No'} | 
+            Token: {getAuthToken() ? 'Yes' : 'No'}
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Alert Messages */}
       {error && (
@@ -337,6 +519,12 @@ const PhotoGallery = () => {
             <ImageIcon className="h-16 w-16 text-gray-400 mb-4" />
             <h3 className="text-xl font-semibold mb-2">No photos yet</h3>
             <p className="text-gray-600 mb-4">Start by uploading photos of your business</p>
+            {gallery.length < 20 && (
+              <Button onClick={() => document.getElementById('gallery-upload')?.click()}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload First Photo
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
