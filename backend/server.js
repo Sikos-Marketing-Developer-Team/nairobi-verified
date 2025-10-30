@@ -42,12 +42,16 @@ app.set('trust proxy', 1);
 // OPTIMIZATION: Compression middleware
 app.use(compression({
   filter: (req, res) => {
+    // Don't compress API responses
+    if (req.path.startsWith('/api/')) {
+      return false;
+    }
     if (req.headers['x-no-compression']) {
       return false;
     }
     return compression.filter(req, res);
   },
-  level: 6 // Balance between speed and compression
+  level: 6
 }));
 
 // Debug middleware to log IP information (helpful for troubleshooting rate limiting)
