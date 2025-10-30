@@ -40,19 +40,19 @@ const app = express();
 app.set('trust proxy', 1);
 
 // OPTIMIZATION: Compression middleware
-app.use(compression({
-  filter: (req, res) => {
-    // Don't compress API responses
-    if (req.path.startsWith('/api/')) {
-      return false;
-    }
-    if (req.headers['x-no-compression']) {
-      return false;
-    }
-    return compression.filter(req, res);
-  },
-  level: 6
-}));
+// app.use(compression({
+//   filter: (req, res) => {
+//     // Don't compress API responses
+//     if (req.path.startsWith('/api/')) {
+//       return false;
+//     }
+//     if (req.headers['x-no-compression']) {
+//       return false;
+//     }
+//     return compression.filter(req, res);
+//   },
+//   level: 6
+// }));
 
 // Debug middleware to log IP information (helpful for troubleshooting rate limiting)
 if (process.env.NODE_ENV === 'development') {
