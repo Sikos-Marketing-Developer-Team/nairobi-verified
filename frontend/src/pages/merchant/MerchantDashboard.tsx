@@ -317,7 +317,7 @@ const MerchantDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card
+          {/* <Card
             className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-green-500"
             onClick={() => navigate('/merchant/products')}
           >
@@ -325,7 +325,17 @@ const MerchantDashboard = () => {
               <Package className="h-8 w-8 mx-auto mb-3 text-green-600" />
               <p className="font-medium text-sm">Manage Products</p>
             </CardContent>
-          </Card>
+          </Card> */}
+
+         <Card
+  className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-green-500"
+  onClick={() => alert('Feature coming soon!')}
+>
+  <CardContent className="pt-6 text-center">
+    <Package className="h-8 w-8 mx-auto mb-3 text-green-600" />
+    <p className="font-medium text-sm">Manage Products</p>
+  </CardContent>
+</Card>
 
           <Card
             className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-purple-500"
