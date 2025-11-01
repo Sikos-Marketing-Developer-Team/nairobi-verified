@@ -96,11 +96,11 @@ const MerchantAuth = () => {
         title: 'Merchant Login Successful',
         description: 'Welcome to your merchant dashboard',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Merchant login error:', error);
       
-      const errorMessage = error.response?.data?.error || 
-                          error.message || 
+      const errorMessage = (error as { response?: { data?: { error?: string } }; message?: string }).response?.data?.error ||
+                          (error as { message?: string }).message || 
                           'An error occurred during login';
       
       setErrors({ general: errorMessage });
@@ -133,12 +133,14 @@ const MerchantAuth = () => {
     await googleAuth(credentialResponse.credential);
     
     // Success - toast is shown in AuthContext
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Google auth error:', error);
     
+    const err = error as { response?: { data?: { error?: string; redirectTo?: string } }; message?: string };
+    
     // Check if this is a "wrong account type" error
-    if (error.response?.data?.redirectTo === '/dashboard' ||
-        error.response?.data?.error?.includes('user')) {
+    if (err.response?.data?.redirectTo === '/dashboard' ||
+        err.response?.data?.error?.includes('user')) {
       toast({
         title: 'User Account Detected',
         description: 'This email is registered as a user account, not a merchant. Redirecting to user login...',
@@ -149,15 +151,15 @@ const MerchantAuth = () => {
       setTimeout(() => {
         window.location.href = '/auth';
       }, 2000);
-    } else if (error.response?.data?.error?.includes('not verified')) {
+    } else if (err.response?.data?.error?.includes('not verified')) {
       toast({
         title: 'Merchant Account Not Verified',
         description: 'Your merchant account needs to be verified before you can log in.',
         variant: 'destructive',
       });
     } else {
-      const errorMessage = error.response?.data?.error || 
-                          error.message || 
+      const errorMessage = err.response?.data?.error || 
+                          err.message || 
                           'Failed to authenticate with Google';
       
       setErrors({ general: errorMessage });
