@@ -12,7 +12,8 @@ const {
   googleCallback,
   forgotPassword,
   resetPassword,
-  changeMerchantPassword
+  changeMerchantPassword,
+  changeTemporaryPassword
 } = require('../controllers/auth');
 const { protect } = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');
@@ -133,7 +134,8 @@ router.get(
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:resetToken', resetPassword);
 
-// Merchant password change route (supports both authenticated and temporary password changes)
-router.post('/merchant/change-password', changeMerchantPassword);
+// Merchant password change routes
+router.post('/merchant/change-temporary-password', protect, changeTemporaryPassword); // First time login
+router.post('/merchant/change-password', changeMerchantPassword); // Subsequent changes
 
 module.exports = router;

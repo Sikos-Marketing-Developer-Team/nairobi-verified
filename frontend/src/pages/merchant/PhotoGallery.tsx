@@ -130,13 +130,18 @@ const PhotoGallery = () => {
 
       const formData = new FormData();
       selectedFiles.forEach(file => {
-        formData.append("images", file);
+        formData.append("photos", file);
       });
 
   
       console.log('🔄 Sending upload request...');
       const response = await axios.post("/api/merchants/dashboard/gallery", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        withCredentials: true,
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          "Accept": "application/json"
+        },
+        timeout: 60000, // 60 second timeout for file uploads
       });
 
       console.log('✅ Upload successful:', response.data);
@@ -153,7 +158,11 @@ const PhotoGallery = () => {
     } catch (err: any) {
       console.error('❌ Upload failed:', err);
       console.error('Error response:', err.response?.data);
-      setError(err.response?.data?.error || err.response?.data?.message || "Failed to upload photos");
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 
+                          (err.code === 'ECONNABORTED' ? 'Upload timeout. Please try again with fewer photos.' : 
+                          err.code === 'ERR_NETWORK' ? 'Network error. Please check your connection.' :
+                          "Failed to upload photos");
+      setError(errorMessage);
     } finally {
       setUploading(false);
     }

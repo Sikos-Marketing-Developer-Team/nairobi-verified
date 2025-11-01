@@ -134,6 +134,14 @@ const MerchantSchema = new mongoose.Schema({
     website: { type: String, default: '' }
   },
   whatsappNumber: { type: String, default: '', trim: true },
+  services: [{
+    name: { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    price: { type: String, trim: true }, // Stored as string to allow "Contact for pricing" or "KES 1,000"
+    duration: { type: String, trim: true }, // e.g., "1 hour", "2 days"
+    active: { type: Boolean, default: true },
+    order: { type: Number, default: 0 }
+  }],
   documents: { type: DocumentsSchema, default: {} },
   verified: { type: Boolean, default: false, index: true },
   verifiedDate: Date,

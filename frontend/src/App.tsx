@@ -21,9 +21,11 @@ import Favorites from "./pages/Favorites";
 import MerchantDashboard from "./pages/merchant/MerchantDashboard";
 import MerchantProfileEdit from "./pages/merchant/MerchantProfileEdit";
 import MerchantVerification from "./pages/merchant/MerchantVerification";
+import ChangePassword from "./pages/merchant/ChangePassword";
 import ProductManagement from "./pages/merchant/ProductManagement";
 import ReviewManagement from "./pages/merchant/ReviewManagement";
 import PhotoGallery from "./pages/merchant/PhotoGallery";
+import ServicesManagement from "./pages/merchant/ServicesManagement";
 import CustomerEngagement from "./pages/merchant/CustomerEngagement";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
@@ -147,6 +149,11 @@ const App = () => (
               } />
               
               {/* Merchant Routes */}
+              <Route path="/merchant/change-password" element={
+                <ProtectedRoute requireMerchant={true}>
+                  <ChangePassword />
+                </ProtectedRoute>
+              } />
               <Route path="/merchant/dashboard" element={
                 <ProtectedRoute requireMerchant={true}>
                   <MerchantDashboard />
@@ -175,6 +182,11 @@ const App = () => (
               <Route path="/merchant/gallery" element={
                 <ProtectedRoute requireMerchant={true}>
                   <PhotoGallery />
+                </ProtectedRoute>
+              } />
+              <Route path="/merchant/services" element={
+                <ProtectedRoute requireMerchant={true}>
+                  <ServicesManagement />
                 </ProtectedRoute>
               } />
               <Route path="/merchant/engagement" element={
