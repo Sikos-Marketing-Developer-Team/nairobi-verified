@@ -16,9 +16,25 @@ const getBaseURL = () => {
 const api = axios.create({
   baseURL: getBaseURL(),
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
   },
-  withCredentials: true // Important for sending/receiving cookies with CORS
+  withCredentials: true, // Important for sending/receiving cookies with CORS
+  timeout: 30000, // 30 second timeout
+  transformResponse: [(data) => {
+    // Handle empty response from Cloudflare
+    if (!data || data === '') {
+      console.warn('⚠️ Received empty response, returning null');
+      return null;
+    }
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.warn('⚠️ Failed to parse response as JSON:', data);
+      return data;
+    }
+  }]
 });
 
 // Request interceptor
@@ -44,8 +60,24 @@ api.interceptors.response.use(
     console.log('✅ API Response:', {
       status: response.status,
       url: response.config.url,
-      data: response.data
+      data: response.data,
+      hasData: !!response.data,
+      dataType: typeof response.data
     });
+    
+    // Check for empty response with 200 status (Cloudflare issue)
+    if (response.status === 200 && (!response.data || response.data === '')) {
+      console.error('❌ Received 200 status with empty response body');
+      console.error('This is likely a Cloudflare or proxy issue');
+      console.error('Response headers:', response.headers);
+      
+      // Return a generic error structure
+      const error: any = new Error('Server returned empty response');
+      error.response = response;
+      error.config = response.config;
+      return Promise.reject(error);
+    }
+    
     return response;
   },
   (error) => {

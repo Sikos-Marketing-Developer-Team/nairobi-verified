@@ -1045,6 +1045,14 @@ exports.resetPassword = async (req, res) => {
 // @access  Private (Authenticated merchant with temporary password)
 exports.changeTemporaryPassword = async (req, res) => {
   try {
+    console.log('🔑 Change temporary password request received');
+    console.log('Session info:', {
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!req.user,
+      userId: req.user?._id || req.user?.id,
+      sessionID: req.sessionID
+    });
+
     const { newPassword } = req.body;
 
     if (!newPassword) {
@@ -1061,21 +1069,32 @@ exports.changeTemporaryPassword = async (req, res) => {
       });
     }
 
-    if (!req.user || !req.user.id) {
+    if (!req.user || (!req.user._id && !req.user.id)) {
+      console.error('❌ No user in session');
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
-        error: 'Authentication required'
+        error: 'Authentication required. Please log in again.'
       });
     }
 
-    const merchant = await Merchant.findById(req.user.id).select('+password +tempPasswordExpiry +passwordChanged');
+    const userId = req.user._id || req.user.id;
+    const merchant = await Merchant.findById(userId).select('+password +tempPasswordExpiry +passwordChanged');
 
     if (!merchant) {
+      console.error('❌ Merchant not found:', userId);
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         error: 'Merchant not found'
       });
     }
+
+    console.log('✅ Merchant found:', {
+      merchantId: merchant._id,
+      email: merchant.email,
+      createdByAdmin: merchant.createdByAdmin,
+      hasTempPassword: !!merchant.tempPasswordExpiry,
+      passwordChanged: merchant.passwordChanged
+    });
 
     // Verify this merchant was created by admin and has temporary password
     if (!merchant.createdByAdmin || !merchant.tempPasswordExpiry) {

@@ -5,14 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, Shield } from "lucide-react";
-import axios from "axios";
+import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const ChangePassword = () => {
   const navigate = useNavigate();
@@ -108,13 +105,10 @@ const ChangePassword = () => {
     try {
       setLoading(true);
 
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/merchant/change-temporary-password`,
+      const response = await api.post(
+        '/auth/merchant/change-temporary-password',
         {
           newPassword: formData.newPassword
-        },
-        {
-          withCredentials: true
         }
       );
 
