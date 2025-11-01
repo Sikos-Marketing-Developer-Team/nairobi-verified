@@ -127,6 +127,16 @@ app.use((req, res, next) => {
   res.setHeader('CDN-Cache-Control', 'no-store');
   res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-No-Transform', '1');
+  
+  // Prevent response body modification
+  const originalJson = res.json;
+  res.json = function(data) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Length', JSON.stringify(data).length.toString());
+    return originalJson.call(this, data);
+  };
+  
   next();
 });
 
