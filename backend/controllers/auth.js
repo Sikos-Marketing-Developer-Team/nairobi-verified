@@ -697,12 +697,33 @@ exports.googleAuth = async (req, res) => {
     if (merchant) {
       console.log('🏪 Found existing MERCHANT:', merchant.businessName);
       
+      // Check if this is first time Google login
+      const isFirstGoogleLogin = !merchant.googleId;
+      
       // Update Google ID if not set
       if (!merchant.googleId) {
         merchant.googleId = googleId;
         merchant.logo = merchant.logo || picture;
         await merchant.save({ validateBeforeSave: false });
         console.log('✅ Updated merchant with Google data');
+      }
+
+      // Send welcome email on first Google login (non-blocking)
+      if (isFirstGoogleLogin) {
+        setImmediate(async () => {
+          try {
+            const EmailService = require('../utils/emailService');
+            const emailService = new EmailService();
+            await emailService.sendMerchantGoogleWelcome({
+              businessName: merchant.businessName,
+              email: merchant.email
+            });
+            console.log('✅ Welcome email sent to merchant:', merchant.email);
+          } catch (emailError) {
+            console.error('❌ Failed to send welcome email:', emailError);
+            // Don't throw - email failure shouldn't affect login
+          }
+        });
       }
 
       // OPTIMIZATION: Skip session in load testing

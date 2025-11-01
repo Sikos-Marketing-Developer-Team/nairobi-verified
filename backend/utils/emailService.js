@@ -77,13 +77,26 @@ class EmailService {
   }
 
   /**
-   * Send merchant welcome email
+   * Send merchant welcome email (for admin-created accounts)
    */
   async sendMerchantWelcome(merchantData, credentials, setupUrl) {
     const emailOptions = {
       to: merchantData.email,
       subject: EMAIL_CONFIG.SUBJECTS.WELCOME,
       html: this.getMerchantWelcomeTemplate(merchantData, credentials, setupUrl)
+    };
+
+    return this.sendEmail(emailOptions);
+  }
+
+  /**
+   * Send merchant welcome email (for Google OAuth sign-ins)
+   */
+  async sendMerchantGoogleWelcome(merchantData) {
+    const emailOptions = {
+      to: merchantData.email,
+      subject: '🎉 Welcome to Nairobi Verified - Complete Your Merchant Profile',
+      html: this.getMerchantGoogleWelcomeTemplate(merchantData)
     };
 
     return this.sendEmail(emailOptions);
@@ -157,7 +170,104 @@ class EmailService {
   }
 
   /**
-   * Merchant welcome email template
+   * Merchant welcome email template (for Google OAuth sign-ins)
+   * No temporary credentials - welcomes merchant with profile completion guidelines
+   */
+  getMerchantGoogleWelcomeTemplate(merchantData) {
+    const dashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/merchant/dashboard`;
+    
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Welcome to Nairobi Verified!</h1>
+          <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Your merchant journey begins here</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+          <h2 style="color: #333; margin-top: 0;">Hello ${merchantData.businessName}!</h2>
+          <p style="color: #666; line-height: 1.6;">
+            Welcome to Nairobi Verified! We're excited to have you join our community of trusted merchants. 
+            Your account has been successfully created using Google Sign-In, making it easy and secure to access your dashboard.
+          </p>
+        </div>
+
+        <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 20px; margin-bottom: 25px;">
+          <h3 style="color: #2e7d32; margin-top: 0;">📋 Next Steps to Complete Your Profile</h3>
+          <ol style="color: #666; line-height: 1.8; padding-left: 20px; margin: 10px 0;">
+            <li><strong>Complete Business Information:</strong> Add your business description, hours of operation, and contact details</li>
+            <li><strong>Upload Business Photos:</strong> Add a logo, banner image, and gallery photos to showcase your business</li>
+            <li><strong>Submit Verification Documents:</strong> Upload your Business Registration Certificate, ID Document, and Utility Bill</li>
+            <li><strong>Set Up Your Products/Services:</strong> Add your offerings with photos and descriptions</li>
+            <li><strong>Get Verified:</strong> Once documents are reviewed, you'll receive a verified badge</li>
+          </ol>
+        </div>
+
+        <div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 20px; margin-bottom: 25px;">
+          <h3 style="color: #ef6c00; margin-top: 0;">📄 Document Requirements</h3>
+          <p style="color: #666; line-height: 1.6; margin: 10px 0;">
+            To become a verified merchant, please prepare and upload the following documents:
+          </p>
+          <ul style="color: #666; line-height: 1.8; padding-left: 20px; margin: 10px 0;">
+            <li><strong>Business Registration Certificate</strong> - Valid government-issued registration</li>
+            <li><strong>National ID or Passport</strong> - Owner's identification document</li>
+            <li><strong>Utility Bill</strong> - Recent bill (electricity, water, or internet) showing business address</li>
+          </ul>
+          <p style="color: #e65100; margin: 10px 0; font-size: 14px;">
+            <strong>Note:</strong> All documents must be clear, legible, and up-to-date.
+          </p>
+        </div>
+
+        <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+          <h3 style="color: #1976d2; margin-top: 0;">✨ What You Get as a Verified Merchant</h3>
+          <ul style="color: #666; line-height: 1.8; padding-left: 20px; margin: 10px 0;">
+            <li>🎖️ <strong>Verified Badge</strong> - Build trust with customers</li>
+            <li>🔍 <strong>Priority Listing</strong> - Appear higher in search results</li>
+            <li>📊 <strong>Analytics Dashboard</strong> - Track views, clicks, and engagement</li>
+            <li>💬 <strong>Customer Reviews</strong> - Receive and respond to customer feedback</li>
+            <li>📱 <strong>Mobile Friendly</strong> - Reach customers on any device</li>
+            <li>🌟 <strong>Featured Opportunities</strong> - Qualify for homepage features</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${dashboardUrl}" style="background: #4caf50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            🚀 Go to Your Dashboard
+          </a>
+        </div>
+
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+          <h3 style="color: #333; margin-top: 0;">💡 Tips for Success</h3>
+          <ul style="color: #666; line-height: 1.8; padding-left: 20px; margin: 10px 0;">
+            <li>Use high-quality photos that showcase your business professionally</li>
+            <li>Write detailed descriptions to help customers find you</li>
+            <li>Keep your business hours and contact information up-to-date</li>
+            <li>Respond promptly to customer inquiries and reviews</li>
+            <li>Complete verification to unlock all features and boost visibility</li>
+          </ul>
+        </div>
+
+        <div style="background: #fce4ec; border-left: 4px solid #e91e63; padding: 15px; margin-bottom: 25px;">
+          <p style="color: #c2185b; margin: 0; font-size: 14px; line-height: 1.6;">
+            <strong>📞 Need Help?</strong><br>
+            Our support team is here to assist you with any questions:<br>
+            <strong>Email:</strong> support@nairobiverified.com<br>
+            <strong>Phone:</strong> +254 700 000 000
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          <p style="color: #999; font-size: 12px; line-height: 1.5;">
+            <strong>Nairobi Verified</strong><br>
+            Connecting Businesses with Customers<br>
+            Building Trust in Local Business
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Merchant welcome email template (for admin-created accounts with credentials)
    */
   getMerchantWelcomeTemplate(merchantData, credentials, setupUrl) {
     return `
