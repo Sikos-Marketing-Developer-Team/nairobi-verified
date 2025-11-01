@@ -215,7 +215,7 @@ const Hero = () => {
                 <div className="flex items-center gap-3">
                   <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                   <div>
-                    <p className="font-semibold text-gray-900">100+ Verified</p>
+                    <p className="font-semibold text-gray-900">500+ Verified</p>
                     <p className="text-sm text-gray-600">Merchants</p>
                   </div>
                 </div>
