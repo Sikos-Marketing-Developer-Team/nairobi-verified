@@ -239,6 +239,8 @@ const MerchantRegister = () => {
           showErrorToast('Business name is required!');
           return false;
         }
+        // COMMENTED OUT: Email and password validation - Using Google OAuth
+        /*
         if (!formData.email.trim()) {
           showErrorToast('Email is required');
           return false;
@@ -260,6 +262,7 @@ const MerchantRegister = () => {
           showErrorToast('Passwords do not match');
           return false;
         }
+        */
         return true;
       
       case 2:
