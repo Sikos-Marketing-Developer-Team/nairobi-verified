@@ -1040,6 +1040,91 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+// @desc    Change merchant temporary password (first login)
+// @route   POST /api/auth/merchant/change-temporary-password
+// @access  Private (Authenticated merchant with temporary password)
+exports.changeTemporaryPassword = async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Please provide a new password'
+      });
+    }
+
+    if (!PASSWORD_VALIDATION.REGEX.test(newPassword)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: PASSWORD_VALIDATION.ERROR_MESSAGE,
+      });
+    }
+
+    if (!req.user || !req.user.id) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+
+    const merchant = await Merchant.findById(req.user.id).select('+password +tempPasswordExpiry +passwordChanged');
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Verify this merchant was created by admin and has temporary password
+    if (!merchant.createdByAdmin || !merchant.tempPasswordExpiry) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'This account does not have temporary password restrictions'
+      });
+    }
+
+    // Check if temporary password is expired
+    if (new Date() > merchant.tempPasswordExpiry) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Your temporary password has expired. Please contact admin for assistance.',
+        expired: true
+      });
+    }
+
+    // Update password
+    merchant.password = newPassword;
+    merchant.passwordChanged = true;
+    merchant.passwordChangedAt = new Date();
+    merchant.tempPasswordExpiry = undefined; // Remove temporary password restriction
+    
+    await merchant.save();
+
+    console.log('✅ Temporary password changed successfully for merchant:', merchant.email);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Password changed successfully. You can now access your dashboard.',
+      user: {
+        id: merchant._id,
+        businessName: merchant.businessName,
+        email: merchant.email,
+        role: 'merchant',
+        isMerchant: true
+      }
+    });
+
+  } catch (error) {
+    console.error('Change temporary password error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Could not change password. Please try again later.'
+    });
+  }
+};
+
 exports.changeMerchantPassword = async (req, res) => {
   try {
     const { email, currentPassword, newPassword } = req.body;

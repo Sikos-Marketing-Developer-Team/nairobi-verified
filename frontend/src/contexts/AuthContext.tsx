@@ -230,7 +230,7 @@ const merchantLogin = async (email: string, password: string) => {
     console.log('🏪 Merchant login attempt:', email);
     
     const response = await authAPI.loginMerchant(email, password);
-    const { user: userData } = response.data;
+    const { user: userData, requirePasswordChange } = response.data;
     
     if (userData.role === 'admin') {
       showToast('Admin Access Restricted', 'Admin users must use the dedicated admin dashboard.', 'destructive');
@@ -238,6 +238,22 @@ const merchantLogin = async (email: string, password: string) => {
     }
     
     console.log('✅ Merchant login successful:', userData.email);
+    
+    // Check if password change is required (for merchants with temporary passwords)
+    if (requirePasswordChange) {
+      console.log('⚠️ Password change required for merchant');
+      setUserWithPersistence({
+        ...userData,
+        role: 'merchant',
+        requirePasswordChange: true
+      });
+      
+      sessionStorage.removeItem(LS_AUTH_CHECKED_KEY);
+      navigate('/merchant/change-password', { replace: true });
+      
+      showToast('Password Change Required', 'Please change your temporary password to continue', 'default');
+      return response;
+    }
     
     // ✅ FAILSAFE: Skip session verification, just trust login response
     setUserWithPersistence({

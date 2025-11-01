@@ -1,0 +1,460 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle,
+  DollarSign,
+  Clock,
+  MoveUp,
+  MoveDown
+} from "lucide-react";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+interface Service {
+  _id: string;
+  name: string;
+  description: string;
+  price: string;
+  duration?: string;
+  active: boolean;
+  order: number;
+}
+
+const ServicesManagement = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [services, setServices] = useState<Service[]>([]);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [uploading, setUploading] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    price: "",
+    duration: "",
+    active: true
+  });
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/merchants/dashboard/services`, {
+        withCredentials: true
+      });
+      setServices(response.data.data || []);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to load services");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenServiceModal = (service?: Service) => {
+    if (service) {
+      setEditingService(service);
+      setFormData({
+        name: service.name,
+        description: service.description,
+        price: service.price,
+        duration: service.duration || "",
+        active: service.active
+      });
+    } else {
+      setEditingService(null);
+      setFormData({
+        name: "",
+        description: "",
+        price: "",
+        duration: "",
+        active: true
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseServiceModal = () => {
+    setIsModalOpen(false);
+    setEditingService(null);
+    setFormData({
+      name: "",
+      description: "",
+      price: "",
+      duration: "",
+      active: true
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!formData.name) {
+      setError("Service name is required");
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      if (editingService) {
+        // Update existing service
+        await axios.put(
+          `${API_BASE_URL}/merchants/dashboard/services/${editingService._id}`,
+          formData,
+          { withCredentials: true }
+        );
+        setSuccess("Service updated successfully");
+      } else {
+        // Create new service
+        await axios.post(
+          `${API_BASE_URL}/merchants/dashboard/services`,
+          formData,
+          { withCredentials: true }
+        );
+        setSuccess("Service created successfully");
+      }
+
+      await fetchServices();
+      handleCloseServiceModal();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.response?.data?.message || "Failed to save service");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleToggleActive = async (serviceId: string, currentStatus: boolean) => {
+    try {
+      await axios.patch(
+        `${API_BASE_URL}/merchants/dashboard/services/${serviceId}/toggle`,
+        { active: !currentStatus },
+        { withCredentials: true }
+      );
+      
+      setSuccess(`Service ${!currentStatus ? "activated" : "deactivated"} successfully`);
+      await fetchServices();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to update service");
+    }
+  };
+
+  const handleDelete = async (serviceId: string) => {
+    if (!confirm("Are you sure you want to delete this service?")) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_BASE_URL}/merchants/dashboard/services/${serviceId}`, {
+        withCredentials: true
+      });
+      setSuccess("Service deleted successfully");
+      await fetchServices();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to delete service");
+    }
+  };
+
+  const handleReorder = async (serviceId: string, direction: "up" | "down") => {
+    const currentIndex = services.findIndex(s => s._id === serviceId);
+    if (currentIndex === -1) return;
+
+    if (direction === "up" && currentIndex === 0) return;
+    if (direction === "down" && currentIndex === services.length - 1) return;
+
+    const newOrder = [...services];
+    const [movedService] = newOrder.splice(currentIndex, 1);
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    newOrder.splice(newIndex, 0, movedService);
+
+    // Update order values
+    const serviceIds = newOrder.map(s => s._id);
+
+    try {
+      await axios.patch(
+        `${API_BASE_URL}/merchants/dashboard/services/reorder`,
+        { serviceIds },
+        { withCredentials: true }
+      );
+      
+      await fetchServices();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to reorder services");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Services & Pricing</h1>
+          <p className="text-gray-600 mt-1">
+            Manage your business services and pricing
+          </p>
+        </div>
+        <Button onClick={() => handleOpenServiceModal()}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Service
+        </Button>
+      </div>
+
+      {/* Alert Messages */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="border-green-500 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-500" />
+          <AlertDescription className="text-green-700">{success}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Services List */}
+      {services.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <DollarSign className="h-16 w-16 text-gray-400 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No services yet</h3>
+            <p className="text-gray-600 mb-4">Start by adding your first service</p>
+            <Button onClick={() => handleOpenServiceModal()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Your First Service
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {services.map((service, index) => (
+            <Card key={service._id} className={!service.active ? "opacity-60" : ""}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{service.name}</CardTitle>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant={service.active ? "default" : "secondary"}>
+                        {service.active ? "Active" : "Inactive"}
+                      </Badge>
+                      {service.duration && (
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {service.duration}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    {index > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleReorder(service._id, "up")}
+                        className="h-8 w-8 p-0"
+                      >
+                        <MoveUp className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {index < services.length - 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleReorder(service._id, "down")}
+                        className="h-8 w-8 p-0"
+                      >
+                        <MoveDown className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                  {service.description || "No description provided"}
+                </p>
+                <p className="text-lg font-bold text-blue-600 mb-4">
+                  {service.price || "Contact for pricing"}
+                </p>
+                
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleOpenServiceModal(service)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleToggleActive(service._id, service.active)}
+                  >
+                    {service.active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(service._id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Add/Edit Service Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingService ? "Edit Service" : "Add New Service"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingService
+                ? "Update your service details"
+                : "Add a new service to your business profile"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Service Name */}
+            <div>
+              <Label htmlFor="name">
+                Service Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Basic Web Design, Hair Styling, Plumbing Repair"
+                disabled={uploading}
+                required
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe what this service includes..."
+                rows={3}
+                disabled={uploading}
+              />
+            </div>
+
+            {/* Price */}
+            <div>
+              <Label htmlFor="price">Price</Label>
+              <Input
+                id="price"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                placeholder="e.g., KES 5,000, $50, Contact for pricing"
+                disabled={uploading}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter price or "Contact for pricing" if varies
+              </p>
+            </div>
+
+            {/* Duration */}
+            <div>
+              <Label htmlFor="duration">Duration (Optional)</Label>
+              <Input
+                id="duration"
+                value={formData.duration}
+                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                placeholder="e.g., 1 hour, 2 days, 1 week"
+                disabled={uploading}
+              />
+            </div>
+
+            {/* Active Status */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="active"
+                checked={formData.active}
+                onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                disabled={uploading}
+                className="h-4 w-4"
+              />
+              <Label htmlFor="active" className="cursor-pointer">
+                Display this service on my public profile
+              </Label>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseServiceModal}
+                disabled={uploading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={uploading}>
+                {uploading ? "Saving..." : editingService ? "Update Service" : "Add Service"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ServicesManagement;

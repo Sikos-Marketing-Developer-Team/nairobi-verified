@@ -813,6 +813,7 @@ exports.createProduct = async (req, res) => {
 
     // Validate required fields
     if (!req.body.name || !req.body.category || !req.body.description) {
+      console.log('❌ Missing required fields');
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         error: 'Missing required fields: name, category, and description are required'
@@ -823,6 +824,7 @@ exports.createProduct = async (req, res) => {
     const merchant = await Merchant.findById(merchantId).select('businessName');
     
     if (!merchant) {
+      console.log('❌ Merchant not found');
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         error: 'Merchant profile not found'
@@ -858,18 +860,28 @@ exports.createProduct = async (req, res) => {
       .populate('merchant', 'businessName address')
       .lean();
 
-    // Return response
-    return res.status(HTTP_STATUS.CREATED).json({
+    // CRITICAL: Explicitly set content-type and disable transform
+    res.set('Content-Type', 'application/json');
+    res.set('X-No-Transform', '1');
+    
+    // Create response object
+    const responseData = {
       success: true,
       message: 'Product created successfully',
       data: {
         ...populatedProduct,
         available: populatedProduct.isActive
       }
-    });
+    };
+
+    console.log('📤 Sending response:', JSON.stringify(responseData).substring(0, 200));
+    
+    // Return response explicitly
+    return res.status(HTTP_STATUS.CREATED).json(responseData);
 
   } catch (error) {
     console.error('❌ createProduct error:', error);
+    console.error('❌ Error stack:', error.stack);
     
     // Handle validation errors
     if (error.name === 'ValidationError') {
@@ -1624,6 +1636,257 @@ exports.getProfileViews = async (req, res) => {
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
       error: 'Failed to fetch profile views'
+    });
+  }
+};
+
+// ==================== SERVICES MANAGEMENT ====================
+
+exports.getServices = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const merchant = await Merchant.findById(merchantId).select('services').lean();
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Sort services by order
+    const services = (merchant.services || []).sort((a, b) => a.order - b.order);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: services
+    });
+  } catch (error) {
+    console.error('getServices error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch services'
+    });
+  }
+};
+
+exports.createService = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { name, description, price, duration, active } = req.body;
+
+    if (!name) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Service name is required'
+      });
+    }
+
+    const merchant = await Merchant.findById(merchantId);
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    if (!merchant.services) {
+      merchant.services = [];
+    }
+
+    const newService = {
+      name: name.trim(),
+      description: description?.trim() || '',
+      price: price?.trim() || '',
+      duration: duration?.trim() || '',
+      active: active !== undefined ? active : true,
+      order: merchant.services.length
+    };
+
+    merchant.services.push(newService);
+    await merchant.save();
+
+    res.status(HTTP_STATUS.CREATED).json({
+      success: true,
+      message: 'Service created successfully',
+      data: merchant.services[merchant.services.length - 1]
+    });
+  } catch (error) {
+    console.error('createService error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to create service'
+    });
+  }
+};
+
+exports.updateService = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { serviceId } = req.params;
+    const { name, description, price, duration, active } = req.body;
+
+    const merchant = await Merchant.findById(merchantId);
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const service = merchant.services.id(serviceId);
+
+    if (!service) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Service not found'
+      });
+    }
+
+    if (name) service.name = name.trim();
+    if (description !== undefined) service.description = description.trim();
+    if (price !== undefined) service.price = price.trim();
+    if (duration !== undefined) service.duration = duration.trim();
+    if (active !== undefined) service.active = active;
+
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Service updated successfully',
+      data: service
+    });
+  } catch (error) {
+    console.error('updateService error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to update service'
+    });
+  }
+};
+
+exports.deleteService = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { serviceId } = req.params;
+
+    const merchant = await Merchant.findById(merchantId);
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const service = merchant.services.id(serviceId);
+
+    if (!service) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Service not found'
+      });
+    }
+
+    service.remove();
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Service deleted successfully'
+    });
+  } catch (error) {
+    console.error('deleteService error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to delete service'
+    });
+  }
+};
+
+exports.toggleServiceActive = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { serviceId } = req.params;
+    const { active } = req.body;
+
+    const merchant = await Merchant.findById(merchantId);
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    const service = merchant.services.id(serviceId);
+
+    if (!service) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Service not found'
+      });
+    }
+
+    service.active = active;
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: `Service ${active ? 'activated' : 'deactivated'} successfully`,
+      data: service
+    });
+  } catch (error) {
+    console.error('toggleServiceActive error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to toggle service status'
+    });
+  }
+};
+
+exports.reorderServices = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+    const { serviceIds } = req.body;
+
+    if (!Array.isArray(serviceIds)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'serviceIds must be an array'
+      });
+    }
+
+    const merchant = await Merchant.findById(merchantId);
+
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Update order for each service
+    serviceIds.forEach((id, index) => {
+      const service = merchant.services.id(id);
+      if (service) {
+        service.order = index;
+      }
+    });
+
+    await merchant.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Services reordered successfully'
+    });
+  } catch (error) {
+    console.error('reorderServices error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to reorder services'
     });
   }
 };

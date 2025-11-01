@@ -17,7 +17,9 @@ import {
   AlertCircle,
   Download,
   Trash2,
-  Eye
+  Eye,
+  TrendingUp,
+  Users
 } from "lucide-react";
 
 interface DocumentStatus {
@@ -335,19 +337,93 @@ const MerchantVerification = () => {
       <Header />
       
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-6">{/* Header */}
+        <div className="max-w-6xl mx-auto space-y-6">
+          
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Verification Center</h1>
           <p className="text-gray-600 mt-1">
-            Upload required documents to get your business verified
+            {verificationStatus?.verified 
+              ? "Your business is verified!" 
+              : "Upload required documents to get your business verified"}
           </p>
         </div>
         <Button variant="outline" onClick={() => navigate("/merchant/dashboard")}>
           Back to Dashboard
         </Button>
       </div>
+
+      {/* Verified Success Banner */}
+      {verificationStatus?.verified && (
+        <Card className="border-2 border-green-500 bg-gradient-to-r from-green-50 to-emerald-50">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-2">
+                <CheckCircle className="h-10 w-10 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-green-900 mb-2">
+                  🎉 Congratulations! Your Business is Verified
+                </h2>
+                <p className="text-green-700 text-lg mb-4">
+                  Your verification has been approved and your profile is now active on Nairobi Verified
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                  <h3 className="font-semibold text-sm mb-1">Verified Badge</h3>
+                  <p className="text-xs text-gray-600">
+                    Display the trusted verified badge on your profile
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <TrendingUp className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                  <h3 className="font-semibold text-sm mb-1">Enhanced Visibility</h3>
+                  <p className="text-xs text-gray-600">
+                    Higher ranking in search results and featured listings
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <Users className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                  <h3 className="font-semibold text-sm mb-1">Customer Trust</h3>
+                  <p className="text-xs text-gray-600">
+                    Build credibility and attract more customers
+                  </p>
+                </div>
+              </div>
+
+              {verificationStatus?.verificationStatus === "approved" && 
+               verificationStatus?.documentReviewStatus.reviewedAt && (
+                <p className="text-sm text-green-600">
+                  Verified on {new Date(verificationStatus.documentReviewStatus.reviewedAt).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
+              )}
+
+              <div className="flex gap-3 justify-center">
+                <Button 
+                  onClick={() => navigate("/merchant/dashboard")}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Go to Dashboard
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => navigate("/merchant/profile/edit")}
+                >
+                  Update Profile
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Alert Messages */}
       {error && (

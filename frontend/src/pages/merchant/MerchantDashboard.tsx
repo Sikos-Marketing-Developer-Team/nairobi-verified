@@ -96,6 +96,8 @@ const MerchantDashboard = () => {
   const [quickActions, setQuickActions] = useState<QuickAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('30');
+  const [showProfileCompletion, setShowProfileCompletion] = useState(true);
+  const [hasShownCompletionToast, setHasShownCompletionToast] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'merchant') {
@@ -104,6 +106,21 @@ const MerchantDashboard = () => {
     }
     fetchDashboardData();
   }, [isAuthenticated, user, timeRange]);
+
+  useEffect(() => {
+    // Show completion toast when profile is 100% complete
+    if (dashboardData && 
+        dashboardData.profileCompletion.percentage === 100 && 
+        !hasShownCompletionToast) {
+      toast({
+        title: '🎉 Profile Complete!',
+        description: 'Congratulations! Your merchant profile is now 100% complete. You can now access all platform features.',
+        duration: 5000,
+      });
+      setHasShownCompletionToast(true);
+      setShowProfileCompletion(false);
+    }
+  }, [dashboardData, hasShownCompletionToast, toast]);
 
   const fetchDashboardData = async () => {
     try {
@@ -240,6 +257,73 @@ const MerchantDashboard = () => {
           </div>
         )}
 
+        {/* Profile Completion Notification - Dismissible */}
+        {showProfileCompletion && dashboardData.profileCompletion.percentage < 100 && (
+          <Alert className="mb-6 bg-blue-50 border-blue-300 relative">
+            <button
+              onClick={() => setShowProfileCompletion(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              aria-label="Dismiss"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <AlertCircle className="h-5 w-5 text-blue-600" />
+            <div className="ml-2 pr-8">
+              <h3 className="font-bold text-blue-800 mb-2">Complete Your Profile</h3>
+              <AlertDescription>
+                <div className="flex items-center gap-3 mb-3">
+                  <Progress value={dashboardData.profileCompletion.percentage} className="flex-1" />
+                  <span className="text-sm font-medium text-blue-700">
+                    {dashboardData.profileCompletion.percentage}%
+                  </span>
+                </div>
+                {dashboardData.profileCompletion.nextSteps.length > 0 && (
+                  <div className="space-y-1 mb-3">
+                    <p className="text-sm font-medium text-blue-700">Next Steps:</p>
+                    {dashboardData.profileCompletion.nextSteps.map((step, index) => (
+                      <p key={index} className="text-sm text-blue-600 flex items-center gap-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+                        {step}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                <Button 
+                  onClick={() => navigate("/merchant/profile/edit")} 
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Complete Profile Now →
+                </Button>
+              </AlertDescription>
+            </div>
+          </Alert>
+        )}
+
+        {/* Profile 100% Complete Success Message */}
+        {showProfileCompletion && dashboardData.profileCompletion.percentage === 100 && (
+          <Alert className="mb-6 bg-green-50 border-green-300 relative">
+            <button
+              onClick={() => setShowProfileCompletion(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              aria-label="Dismiss"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <div className="ml-2 pr-8">
+              <h3 className="font-bold text-green-800 mb-1">🎉 Profile Complete!</h3>
+              <AlertDescription className="text-green-700">
+                Congratulations! Your merchant profile is 100% complete. You now have full access to all platform features including enhanced visibility and priority in search results.
+              </AlertDescription>
+            </div>
+          </Alert>
+        )}
+
         {/* Verification Status */}
         <Card className={`mb-6 ${
           dashboardData.verificationStatus.isVerified 
@@ -277,31 +361,6 @@ const MerchantDashboard = () => {
                 Manage Verification
               </Button>
             </div>
-
-            {/* Profile Completion */}
-            {dashboardData.profileCompletion.percentage < 100 && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Profile Completion</span>
-                  <span className="text-sm text-gray-600">
-                    {dashboardData.profileCompletion.percentage}%
-                  </span>
-                </div>
-                <Progress value={dashboardData.profileCompletion.percentage} className="mb-3" />
-                
-                {dashboardData.profileCompletion.nextSteps.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-700">Next Steps:</p>
-                    {dashboardData.profileCompletion.nextSteps.map((step, index) => (
-                      <p key={index} className="text-sm text-gray-600 flex items-center gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-                        {step}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -339,10 +398,20 @@ const MerchantDashboard = () => {
 
           <Card
             className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-purple-500"
+            onClick={() => navigate('/merchant/services')}
+          >
+            <CardContent className="pt-6 text-center">
+              <Package className="h-8 w-8 mx-auto mb-3 text-purple-600" />
+              <p className="font-medium text-sm">Services & Pricing</p>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-amber-500"
             onClick={() => navigate('/merchant/reviews')}
           >
             <CardContent className="pt-6 text-center">
-              <MessageSquare className="h-8 w-8 mx-auto mb-3 text-purple-600" />
+              <MessageSquare className="h-8 w-8 mx-auto mb-3 text-amber-600" />
               <p className="font-medium text-sm">Manage Reviews</p>
             </CardContent>
           </Card>

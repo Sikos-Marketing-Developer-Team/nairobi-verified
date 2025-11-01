@@ -48,7 +48,15 @@ const {
   getEngagementStats,
   getWhatsAppClicks,
   getCallClicks,
-  getProfileViews
+  getProfileViews,
+  
+  // Services Management
+  getServices,
+  createService,
+  updateService,
+  deleteService,
+  toggleServiceActive,
+  reorderServices
 } = require('../controllers/merchantDashboard');
 const { protect, isMerchant } = require('../middleware/auth');
 const { 
@@ -134,5 +142,13 @@ router.get('/engagement', getEngagementStats);
 router.get('/engagement/whatsapp', getWhatsAppClicks);
 router.get('/engagement/calls', getCallClicks);
 router.get('/engagement/views', getProfileViews);
+
+// ==================== SERVICES MANAGEMENT ====================
+router.get('/services', getServices);
+router.post('/services', createService);
+router.put('/services/:serviceId', updateService);
+router.delete('/services/:serviceId', deleteService);
+router.patch('/services/:serviceId/toggle', toggleServiceActive);
+router.patch('/services/reorder', reorderServices);
 
 module.exports = router;
