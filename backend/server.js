@@ -121,19 +121,35 @@ app.options('*', cors());
 
 app.use((req, res, next) => {
   // Set headers to prevent Cloudflare from caching/modifying responses
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
   res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
+  res.setHeader('Expires', '-1');
   res.setHeader('CDN-Cache-Control', 'no-store');
   res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-No-Transform', '1');
+  res.setHeader('CF-Cache-Status', 'BYPASS');
+  res.setHeader('X-Accel-Buffering', 'no');
   
   // Prevent response body modification
   const originalJson = res.json;
   res.json = function(data) {
+    // Ensure data is not empty
+    if (!data) {
+      console.error('⚠️  WARNING: Attempting to send empty response');
+      data = { success: false, error: 'Empty response generated' };
+    }
+    
+    const jsonString = JSON.stringify(data);
+    const contentLength = Buffer.byteLength(jsonString, 'utf8');
+    
+    // Set explicit headers to prevent Cloudflare stripping
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Content-Length', JSON.stringify(data).length.toString());
+    res.setHeader('Content-Length', contentLength.toString());
+    res.setHeader('X-Content-Length-Original', contentLength.toString());
+    res.setHeader('Transfer-Encoding', 'identity');
+    
+    console.log(`📤 Sending JSON response: ${contentLength} bytes`);
     return originalJson.call(this, data);
   };
   
