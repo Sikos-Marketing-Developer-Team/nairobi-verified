@@ -50,12 +50,11 @@ const Auth = () => {
         await login(formData.email, formData.password);
         // REMOVED: Don't show toast here - it's already handled in AuthContext
         // REMOVED: Don't navigate here - it's handled in AuthContext
-      } catch (error: unknown) {
+      } catch (error: any) {
         console.error('Login error:', error);
-        const err = error as { response?: { data?: { error?: string } } };
         toast({
           title: 'Login Failed',
-          description: err.response?.data?.error || 'An error occurred during login',
+          description: error.response?.data?.error || 'An error occurred during login',
           variant: 'destructive',
         });
       } finally {
@@ -85,14 +84,12 @@ const Auth = () => {
     console.log('👤 User Auth: Calling Google OAuth');
     await googleAuth(credentialResponse.credential);
     // Success handling is in AuthContext now
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('Google auth error:', error);
     
-    const err = error as { response?: { data?: { error?: string; redirectTo?: string } } };
-    
     // Check if this is a "wrong account type" error
-    if (err.response?.data?.error?.includes('merchant') || 
-        err.response?.data?.redirectTo === '/merchant/dashboard') {
+    if (error.response?.data?.error?.includes('merchant') || 
+        error.response?.data?.redirectTo === '/merchant/dashboard') {
       toast({
         title: 'Merchant Account Detected',
         description: 'This email is registered as a merchant. Please use the merchant login page.',
@@ -109,7 +106,7 @@ const Auth = () => {
     } else {
       toast({
         title: 'Google Authentication Failed',
-        description: err.response?.data?.error || 'Failed to authenticate with Google',
+        description: error.response?.data?.error || 'Failed to authenticate with Google',
         variant: 'destructive',
       });
     }

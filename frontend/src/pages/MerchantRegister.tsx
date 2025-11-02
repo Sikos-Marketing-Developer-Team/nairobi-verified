@@ -280,7 +280,7 @@ const MerchantRegister = () => {
         }
         return true;
       
-      case 3: {
+      case 3:
         if (!formData.address.trim()) {
           showErrorToast('Business address is required');
           return false;
@@ -295,7 +295,6 @@ const MerchantRegister = () => {
           return false;
         }
         return true;
-      }
       
       case 4:
         if (uploadedFiles.businessRegistration.length === 0) {
@@ -562,12 +561,11 @@ const MerchantRegister = () => {
           window.location.href = '/merchants';
         }, 3000);
         
-      } catch (error: unknown) {
+      } catch (error: any) {
         console.error('❌ Registration error:', error);
         
-        const err = error as { message?: string };
         toast('Registration failed!', {
-          description: err.message || 'Please try again or contact support.',
+          description: error.message || 'Please try again or contact support.',
           duration: 5000,
           position: 'top-center',
           style: {
