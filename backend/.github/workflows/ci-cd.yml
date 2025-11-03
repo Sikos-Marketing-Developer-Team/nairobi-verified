@@ -79,7 +79,7 @@ jobs:
           DISABLE_RATE_LIMIT: true
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
           flags: unittests
@@ -88,7 +88,7 @@ jobs:
 
       - name: Archive test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-node-${{ matrix.node-version }}
           path: coverage/
@@ -215,7 +215,7 @@ jobs:
           echo "🌐 API: https://nairobi-verified-zkl3.onrender.com"
           echo "🖥️  Frontend: https://www.nairobiverified.co.ke"
           echo "⚙️  Admin: https://nairobi-verified-admin.onrender.com"
-          echo "📊 Health: https://nairobi-verified-zkl3.onre3E41Ander.com/api/health"
+          echo "📊 Health: https://nairobi-verified-zkl3.onrender.com/api/health"
           echo "⏰ Completed: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           echo "════════════════════════════════════════"
           echo ""
@@ -228,7 +228,7 @@ jobs:
           echo "❌ DEPLOYMENT FAILED!"
           echo "════════════════════════════════════════"
           echo "🔍 Troubleshooting checklist:"
-          echo "   1. Check Render dashboard: https://dashboard.render.com"(Check the correct project url)
+          echo "   1. Check Render dashboard: https://dashboard.render.com"
           echo "   2. Review deployment logs in Render"
           echo "   3. Verify environment variables are set"
           echo "   4. Check MongoDB connection string"
