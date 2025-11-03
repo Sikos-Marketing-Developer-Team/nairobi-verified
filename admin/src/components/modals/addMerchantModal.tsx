@@ -1,6 +1,6 @@
-// components/modals/AddMerchantModal.tsx - FIXED VERSION
+// components/modals/AddMerchantModal.tsx - ENHANCED VERSION WITH PRODUCTS
 import { useState, ChangeEvent, FormEvent } from 'react';
-import { X, Store, MapPin, Globe, Calendar } from 'lucide-react';
+import { X, Store, MapPin, Globe, Calendar, Package, Plus, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
 
 interface Merchant {
   _id: string;
@@ -22,6 +22,18 @@ interface Merchant {
   documentsCompleteness?: number;
 }
 
+interface ProductFormData {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: string;
+  originalPrice: string;
+  stockQuantity: string;
+  images: File[];
+  imagePreviewUrls: string[];
+}
+
 interface MerchantFormData {
   businessName: string;
   email: string;
@@ -33,6 +45,7 @@ interface MerchantFormData {
   website: string;
   yearEstablished: string;
   autoVerify: boolean;
+  products: ProductFormData[];
 }
 
 interface AddMerchantModalProps {
