@@ -690,7 +690,7 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
                         />
                       </div>
 
-                      {/* Category and Prices */}
+                      {/* Category and Subcategory */}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -698,7 +698,11 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
                           </label>
                           <select
                             value={product.category}
-                            onChange={(e) => updateProduct(product.id, 'category', e.target.value)}
+                            onChange={(e) => {
+                              updateProduct(product.id, 'category', e.target.value);
+                              // Reset subcategory when category changes
+                              updateProduct(product.id, 'subcategory', '');
+                            }}
                             className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                             disabled={isLoading}
                           >
@@ -711,7 +715,27 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
 
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Stock Quantity
+                            Subcategory *
+                          </label>
+                          <select
+                            value={product.subcategory}
+                            onChange={(e) => updateProduct(product.id, 'subcategory', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            disabled={isLoading || !product.category}
+                          >
+                            <option value="">Select subcategory</option>
+                            {product.category && SUBCATEGORIES[product.category]?.map(subcat => (
+                              <option key={subcat} value={subcat}>{subcat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Stock and Prices */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Stock Quantity *
                           </label>
                           <input
                             type="number"
@@ -723,9 +747,7 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Price (KES) *
