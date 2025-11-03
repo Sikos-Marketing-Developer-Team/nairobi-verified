@@ -755,6 +755,137 @@ exports.createMerchantByAdmin = async (req, res) => {
   }
 };
 
+// @desc    Create merchant with products by admin (WITH FILE UPLOADS)
+// @route   POST /api/merchants/admin/create-with-products
+// @access  Private/Admin
+exports.createMerchantWithProducts = async (req, res) => {
+  try {
+    // AUTHORIZATION CHECK
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ 
+        success: false, 
+        error: 'Access denied. Admin privileges required.' 
+      });
+    }
+
+    const Product = require('../models/Product');
+    const { uploadToCloudinary } = require('../services/cloudinaryService');
+
+    console.log('📦 Creating merchant with products...');
+    console.log('Request body:', req.body);
+    console.log('Files received:', req.files ? Object.keys(req.files) : 'none');
+
+    // Extract merchant data
+    const merchantData = {
+      businessName: req.body.businessName,
+      email: req.body.email,
+      phone: req.body.phone,
+      businessType: req.body.businessType,
+      description: req.body.description,
+      address: req.body.address,
+      location: req.body.location,
+      website: req.body.website,
+      yearEstablished: req.body.yearEstablished,
+      autoVerify: req.body.autoVerify === 'true'
+    };
+
+    // Create merchant first
+    const result = await MerchantOnboardingService.createMerchantByAdmin(
+      merchantData, 
+      req.user
+    );
+    const merchant = result.merchant;
+
+    console.log('✅ Merchant created:', merchant._id);
+
+    // Parse products data if provided
+    let createdProducts = [];
+    if (req.body.products) {
+      const productsData = JSON.parse(req.body.products);
+      console.log(`📦 Creating ${productsData.length} products...`);
+
+      for (let i = 0; i < productsData.length; i++) {
+        const productData = productsData[i];
+        
+        // Upload product images
+        const productImages = [];
+        let imageIndex = 0;
+        
+        // Look for images with pattern: product_${i}_image_${imageIndex}
+        while (req.files && req.files[`product_${i}_image_${imageIndex}`]) {
+          const imageFile = req.files[`product_${i}_image_${imageIndex}`][0];
+          console.log(`Uploading image ${imageIndex} for product ${i}:`, imageFile.originalname);
+          
+          try {
+            const uploadResult = await uploadToCloudinary(imageFile.buffer, {
+              folder: 'products',
+              resource_type: 'image'
+            });
+            productImages.push(uploadResult.secure_url);
+            console.log(`✅ Image ${imageIndex} uploaded successfully`);
+          } catch (uploadError) {
+            console.error(`Error uploading image ${imageIndex}:`, uploadError);
+          }
+          
+          imageIndex++;
+        }
+
+        // Create product
+        const product = await Product.create({
+          name: productData.name,
+          description: productData.description,
+          category: productData.category,
+          price: productData.price,
+          originalPrice: productData.originalPrice || productData.price,
+          stockQuantity: productData.stockQuantity || 0,
+          merchant: merchant._id,
+          merchantName: merchant.businessName,
+          images: productImages,
+          primaryImage: productImages[0] || '/placeholder-product.jpg',
+          isActive: true,
+          featured: false,
+          tags: []
+        });
+
+        createdProducts.push(product);
+        console.log(`✅ Product created: ${product.name} with ${productImages.length} images`);
+      }
+    }
+
+    // RETURN SUCCESS
+    res.status(201).json({
+      success: true,
+      data: merchant,
+      products: createdProducts,
+      credentials: result.credentials,
+      message: result.message,
+      productsCreated: createdProducts.length,
+      documentStatus: {
+        required: true,
+        submitted: false,
+        completionPercentage: 0,
+        hasDocuments: false,
+        nextStep: merchant.verified 
+          ? 'Complete business profile' 
+          : 'Upload verification documents'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ createMerchantWithProducts error:', error);
+    res.status(400).json({ 
+      success: false, 
+      error: error.message || 'Failed to create merchant with products'
+    });
+  }
+};
+    res.status(400).json({ 
+      success: false, 
+      error: error.message || 'Failed to create merchant account'
+    });
+  }
+};
+
 // @desc    Bulk create merchants (OPTIMIZED WITH SERVICE)
 // @route   POST /api/merchants/admin/bulk-create
 // @access  Private/Admin
