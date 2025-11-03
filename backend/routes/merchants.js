@@ -1,5 +1,6 @@
 // backend/routes/merchants.js - VERIFIED FIX
 const express = require('express');
+const multer = require('multer');
 const {
   getMerchants,
   getMerchant,
@@ -12,6 +13,7 @@ const {
   uploadDocuments,
   verifyMerchant,
   createMerchantByAdmin,
+  createMerchantWithProducts,
   completeAccountSetup,
   getSetupInfo,
   sendCredentials,
@@ -24,6 +26,23 @@ const {
   merchantCreationLimiter, 
   bulkUploadLimiter 
 } = require('../middleware/rateLimiters');
+
+// Configure multer for handling multiple file uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage,
+  limits: { 
+    fileSize: 5 * 1024 * 1024, // 5MB per file
+    files: 50 // Maximum 50 files total
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
 
 // Include other resource routers
 const reviewRouter = require('./reviews');
