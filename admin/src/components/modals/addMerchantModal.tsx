@@ -246,7 +246,7 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
 
       // Add products if any
       if (formData.products.length > 0) {
-        const productsData = formData.products.map((product, index) => ({
+        const productsData = formData.products.map((product) => ({
           name: product.name,
           description: product.description,
           category: product.category,
@@ -302,7 +302,6 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
       products: []
     });
     setErrors({});
-    setShowProductSection(false);
     onClose();
   };
 
