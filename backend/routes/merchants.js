@@ -65,6 +65,16 @@ router.post(
   createMerchantByAdmin
 );
 
+// Admin route for creating merchant with products and images
+router.post(
+  '/admin/create-with-products', 
+  protect, 
+  authorize('admin'), 
+  merchantCreationLimiter,
+  upload.any(), // Accept any number of files with any field names
+  createMerchantWithProducts
+);
+
 
 router.post(
   '/admin/bulk-create',
