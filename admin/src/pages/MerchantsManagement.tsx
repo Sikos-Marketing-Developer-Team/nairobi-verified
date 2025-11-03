@@ -200,19 +200,21 @@ const MerchantsManagement: React.FC = () => {
     // Status filter
     if (filterStatus !== 'all') {
       filtered = filtered.filter(merchant => {
+        if (!merchant) return false; // Safety check
+        
         switch (filterStatus) {
           case 'verified':
-            return merchant.verified;
+            return merchant.verified === true;
           case 'pending':
-            return !merchant.verified;
+            return merchant.verified !== true;
           case 'active':
-            return merchant.isActive;
+            return merchant.isActive === true;
           case 'inactive':
-            return !merchant.isActive;
+            return merchant.isActive !== true;
           case 'needs_review':
             return merchant.needsVerification || (merchant.isDocumentComplete && !merchant.verified);
           case 'featured':
-            return merchant.featured;
+            return merchant.featured === true;
           default:
             return true;
         }
@@ -221,16 +223,19 @@ const MerchantsManagement: React.FC = () => {
 
     // Sort merchants
     filtered.sort((a, b) => {
+      // Safety checks
+      if (!a || !b) return 0;
+      
       let aValue, bValue;
       
       switch (sortBy) {
         case 'name':
-          aValue = a.businessName.toLowerCase();
-          bValue = b.businessName.toLowerCase();
+          aValue = (a.businessName || '').toLowerCase();
+          bValue = (b.businessName || '').toLowerCase();
           break;
         case 'date':
-          aValue = new Date(a.createdAt).getTime();
-          bValue = new Date(b.createdAt).getTime();
+          aValue = new Date(a.createdAt || 0).getTime();
+          bValue = new Date(b.createdAt || 0).getTime();
           break;
         case 'status':
           aValue = a.verified ? 2 : (a.isActive ? 1 : 0);
@@ -241,8 +246,8 @@ const MerchantsManagement: React.FC = () => {
           bValue = (b.profileCompleteness || 0) + (b.documentsCompleteness || 0);
           break;
         default:
-          aValue = new Date(a.createdAt).getTime();
-          bValue = new Date(b.createdAt).getTime();
+          aValue = new Date(a.createdAt || 0).getTime();
+          bValue = new Date(b.createdAt || 0).getTime();
       }
 
       if (sortOrder === 'asc') {
@@ -596,7 +601,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     },
     {
       name: 'Verified',
-      value: merchants.filter(m => m.verified).length,
+      value: merchants.filter(m => m && m.verified === true).length,
       icon: CheckCircle,
       color: 'text-green-600 bg-green-100',
       change: '+8%',
@@ -604,7 +609,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     },
     {
       name: 'Needs Review',
-      value: merchants.filter(m => m.needsVerification || (m.isDocumentComplete && !m.verified)).length,
+      value: merchants.filter(m => m && (m.needsVerification || (m.isDocumentComplete && !m.verified))).length,
       icon: Clock3,
       color: 'text-orange-600 bg-orange-100',
       change: '-5%',
@@ -612,7 +617,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     },
     {
       name: 'Featured',
-      value: merchants.filter(m => m.featured).length,
+      value: merchants.filter(m => m && m.featured === true).length,
       icon: Star,
       color: 'text-purple-600 bg-purple-100',
       change: '+3%',
@@ -620,7 +625,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     },
     {
       name: 'Active',
-      value: merchants.filter(m => m.isActive).length,
+      value: merchants.filter(m => m && m.isActive === true).length,
       icon: Activity,
       color: 'text-emerald-600 bg-emerald-100',
       change: '+15%',
@@ -628,7 +633,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     },
     {
       name: 'Documents Complete',
-      value: merchants.filter(m => m.isDocumentComplete).length,
+      value: merchants.filter(m => m && m.isDocumentComplete === true).length,
       icon: FileCheck,
       color: 'text-indigo-600 bg-indigo-100',
       change: '+22%',
