@@ -2,26 +2,6 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { X, Store, MapPin, Globe, Calendar, Package, Plus, Trash2, Upload } from 'lucide-react';
 
-interface Merchant {
-  _id: string;
-  businessName: string;
-  ownerName?: string;
-  email: string;
-  phone: string;
-  verified: boolean;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
-  address?: string;
-  location?: string;
-  businessType?: string;
-  description?: string;
-  website?: string;
-  yearEstablished?: number;
-  profileCompleteness?: number;
-  documentsCompleteness?: number;
-}
-
 interface ProductFormData {
   id: string;
   name: string;
@@ -101,7 +81,6 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [showProductSection, setShowProductSection] = useState<boolean>(false);
 
   // Add new product to list
   const addProduct = () => {
@@ -120,7 +99,6 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
       ...prev,
       products: [...prev.products, newProduct]
     }));
-    setShowProductSection(true);
   };
 
   // Remove product from list
