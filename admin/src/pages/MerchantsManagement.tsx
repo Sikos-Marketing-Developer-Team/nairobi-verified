@@ -190,13 +190,16 @@ const MerchantsManagement: React.FC = () => {
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(merchant =>
-        merchant.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (merchant.ownerName && merchant.ownerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        merchant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (merchant.businessType && merchant.businessType.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (merchant.location && merchant.location.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+      filtered = filtered.filter(merchant => {
+        if (!merchant) return false;
+        return (
+          (merchant.businessName && merchant.businessName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (merchant.ownerName && merchant.ownerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (merchant.email && merchant.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (merchant.businessType && merchant.businessType.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (merchant.location && merchant.location.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+      });
     }
 
     // Status filter
