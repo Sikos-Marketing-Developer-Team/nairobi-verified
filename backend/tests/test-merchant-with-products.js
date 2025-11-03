@@ -14,9 +14,16 @@ const BASE_URL = process.env.API_URL || 'http://localhost:5000/api';
 
 // Test admin credentials (replace with your test admin)
 const ADMIN_EMAIL = 'admin@nairobiverified.com';
-const ADMIN_PASSWORD = 'Admin123!';
+const ADMIN_PASSWORD = 'SuperAdmin123!';
 
 let adminToken = '';
+let cookies = ''; // Store cookies for authentication
+
+// Create axios instance with cookie jar
+const axiosInstance = axios.create({
+  withCredentials: true,
+  validateStatus: false // Don't throw on any status
+});
 
 // Colors for console output
 const colors = {
@@ -39,18 +46,27 @@ async function loginAdmin() {
   try {
     log('\n📝 Step 1: Logging in as Admin...', 'cyan');
     
-    const response = await axios.post(`${BASE_URL}/auth/admin/login`, {
+    const response = await axiosInstance.post(`${BASE_URL}/auth/admin/login`, {
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD
     });
+
+    // Store cookies from response
+    if (response.headers['set-cookie']) {
+      cookies = response.headers['set-cookie']
+        .map(cookie => cookie.split(';')[0])
+        .join('; ');
+    }
 
     if (response.data.success && response.data.token) {
       adminToken = response.data.token;
       log('✅ Admin login successful!', 'green');
       log(`   Token: ${adminToken.substring(0, 20)}...`, 'blue');
+      log(`   Cookies stored: ${cookies ? 'Yes' : 'No'}`, 'blue');
       return true;
     } else {
       log('❌ Login failed: No token received', 'red');
+      log(`   Response: ${JSON.stringify(response.data)}`, 'red');
       return false;
     }
   } catch (error) {
@@ -143,12 +159,13 @@ async function createMerchantWithProducts() {
     log(`   Creating merchant with ${products.length} products...`, 'blue');
     log(`   Total images: ${products.reduce((sum, p) => sum + p.imageCount, 0)}`, 'blue');
 
-    const response = await axios.post(
+    const response = await axiosInstance.post(
       `${BASE_URL}/merchants/admin/create-with-products`,
       formData,
       {
         headers: {
           ...formData.getHeaders(),
+          'Cookie': cookies,
           'Authorization': `Bearer ${adminToken}`
         },
         maxContentLength: Infinity,
@@ -214,12 +231,13 @@ async function createMerchantWithoutProducts() {
       autoVerify: true
     };
 
-    const response = await axios.post(
+    const response = await axiosInstance.post(
       `${BASE_URL}/merchants/admin/create`,
       merchantData,
       {
         headers: {
           'Authorization': `Bearer ${adminToken}`,
+          'Cookie': cookies,
           'Content-Type': 'application/json'
         }
       }
