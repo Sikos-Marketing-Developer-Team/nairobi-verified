@@ -27,7 +27,9 @@ import {
   Save,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Menu,
+  ChevronDown
 } from 'lucide-react';
 import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
@@ -57,10 +59,12 @@ const MerchantsManagement: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [merchantToDelete, setMerchantToDelete] = useState<string | null>(null);
   const [isPageChanging, setIsPageChanging] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(50);
+  const [itemsPerPage] = useState(20); // Reduced for mobile
 
   // READ - Load merchants
   useEffect(() => {
@@ -208,7 +212,7 @@ const MerchantsManagement: React.FC = () => {
   // Improved page numbers for pagination
   const getPageNumbers = () => {
     const pages = [];
-    const maxVisiblePages = 7;
+    const maxVisiblePages = window.innerWidth < 768 ? 5 : 7;
     const current = currentPage;
     const total = totalPages;
 
@@ -219,15 +223,15 @@ const MerchantsManagement: React.FC = () => {
     } else {
       pages.push(1);
 
-      let start = Math.max(2, current - 2);
-      let end = Math.min(total - 1, current + 2);
+      let start = Math.max(2, current - 1);
+      let end = Math.min(total - 1, current + 1);
 
-      if (current <= 3) {
-        end = 5;
+      if (current <= 2) {
+        end = 3;
       }
 
-      if (current >= total - 2) {
-        start = total - 4;
+      if (current >= total - 1) {
+        start = total - 2;
       }
 
       if (start > 2) {
@@ -542,238 +546,324 @@ const MerchantsManagement: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       {/* Header */}
-      <div className="sm:flex sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 p-2 pl-5">Merchants Management</h1>
-          <p className="mt-2 text-sm text-gray-700 pl-5">
-            Manage merchant accounts, verification status, and documents
-          </p>
-          <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500 pl-5">
-            <span>Total: {merchants.length}</span>
-            <span>•</span>
-            <span>Selected: {selectedMerchants.length}</span>
-            <span>•</span>
-            <span>Filtered: {filteredMerchants.length}</span>
-            <span>•</span>
-            <span className="font-medium">
-              Page {currentPage} of {totalPages} 
-              ({startIndex + 1}-{Math.min(endIndex, filteredMerchants.length)} of {filteredMerchants.length})
-            </span>
+      <div className="bg-white p-4 md:p-0 md:bg-transparent">
+        <div className="md:flex md:items-center md:justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Merchants Management</h1>
+            <p className="mt-1 md:mt-2 text-sm text-gray-700">
+              Manage merchant accounts, verification status, and documents
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-500">
+              <span>Total: {merchants.length}</span>
+              <span>•</span>
+              <span>Selected: {selectedMerchants.length}</span>
+              <span>•</span>
+              <span>Filtered: {filteredMerchants.length}</span>
+              <span>•</span>
+              <span className="font-medium">
+                Page {currentPage} of {totalPages} 
+              </span>
+            </div>
           </div>
-        </div>
-        <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-          {/* Bulk Actions */}
-          {selectedMerchants.length > 0 && (
-            <div className="flex space-x-2">
+          
+          {/* Mobile Actions Button */}
+          <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2">
+              {/* Mobile Menu Button */}
               <button
-                onClick={() => setShowBulkActions(!showBulkActions)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
+                onClick={() => setShowMobileActions(!showMobileActions)}
+                className="md:hidden inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
-                <MoreVertical className="w-4 h-4 mr-2" />
-                Bulk Actions ({selectedMerchants.length})
+                <Menu className="w-4 h-4 mr-2" />
+                Actions
               </button>
-              {showBulkActions && (
-                <div className="absolute right-0 mt-10 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                  <div className="py-1">
+
+              {/* Desktop Bulk Actions */}
+              {selectedMerchants.length > 0 && (
+                <div className="hidden md:flex relative">
+                  <button
+                    onClick={() => setShowBulkActions(!showBulkActions)}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
+                  >
+                    <MoreVertical className="w-4 h-4 mr-2" />
+                    Bulk Actions ({selectedMerchants.length})
+                  </button>
+                  {showBulkActions && (
+                    <div className="absolute right-0 mt-10 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                      <div className="py-1">
+                        <button
+                          onClick={() => handleBulkAction('verify')}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <CheckCircle className="w-4 h-4 inline mr-2" />
+                          Verify Selected
+                        </button>
+                        <button
+                          onClick={() => handleBulkAction('activate')}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <UserCheck className="w-4 h-4 inline mr-2" />
+                          Activate Selected
+                        </button>
+                        <button
+                          onClick={() => handleBulkAction('deactivate')}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <XCircle className="w-4 h-4 inline mr-2" />
+                          Deactivate Selected
+                        </button>
+                        <button
+                          onClick={() => handleBulkAction('feature')}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <Star className="w-4 h-4 inline mr-2" />
+                          Feature Selected
+                        </button>
+                        <button
+                          onClick={() => handleBulkAction('unfeature')}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <Star className="w-4 h-4 inline mr-2" />
+                          Unfeature Selected
+                        </button>
+                        <hr className="my-1" />
+                        <button
+                          onClick={() => handleBulkAction('delete')}
+                          className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 inline mr-2" />
+                          Delete Selected
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* View Mode Toggle */}
+              <div className="hidden md:flex border border-gray-300 rounded-md">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-2 text-sm font-medium ${
+                    viewMode === 'list'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  List
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-2 text-sm font-medium ${
+                    viewMode === 'grid'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Grid
+                </button>
+              </div>
+
+              {/* Export Button */}
+              <button
+                onClick={() => {
+                  scrollToTop('smooth');
+                  toast.info('Export feature coming soon');
+                }}
+                className="hidden md:inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </button>
+
+              {/* Refresh Button */}
+              <button
+                onClick={() => {
+                  scrollToTop('smooth');
+                  loadMerchants(true);
+                }}
+                disabled={refreshing}
+                className="inline-flex items-center px-3 md:px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 md:mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden md:inline">Refresh</span>
+              </button>
+            </div>
+
+            {/* Mobile Actions Dropdown */}
+            {showMobileActions && (
+              <div className="md:hidden bg-white border border-gray-200 rounded-lg shadow-lg p-2 space-y-1">
+                {selectedMerchants.length > 0 && (
+                  <>
                     <button
                       onClick={() => handleBulkAction('verify')}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center"
                     >
-                      <CheckCircle className="w-4 h-4 inline mr-2" />
+                      <CheckCircle className="w-4 h-4 mr-2" />
                       Verify Selected
                     </button>
                     <button
                       onClick={() => handleBulkAction('activate')}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center"
                     >
-                      <UserCheck className="w-4 h-4 inline mr-2" />
+                      <UserCheck className="w-4 h-4 mr-2" />
                       Activate Selected
                     </button>
                     <button
-                      onClick={() => handleBulkAction('deactivate')}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <XCircle className="w-4 h-4 inline mr-2" />
-                      Deactivate Selected
-                    </button>
-                    <button
-                      onClick={() => handleBulkAction('feature')}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <Star className="w-4 h-4 inline mr-2" />
-                      Feature Selected
-                    </button>
-                    <button
-                      onClick={() => handleBulkAction('unfeature')}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <Star className="w-4 h-4 inline mr-2" />
-                      Unfeature Selected
-                    </button>
-                    <hr className="my-1" />
-                    <button
                       onClick={() => handleBulkAction('delete')}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                      className="w-full text-left px-3 py-2 text-sm text-red-700 hover:bg-red-50 rounded-md flex items-center"
                     >
-                      <Trash2 className="w-4 h-4 inline mr-2" />
+                      <Trash2 className="w-4 h-4 mr-2" />
                       Delete Selected
                     </button>
-                  </div>
+                    <hr />
+                  </>
+                )}
+                <button
+                  onClick={() => {
+                    scrollToTop('smooth');
+                    toast.info('Export feature coming soon');
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </button>
+                <div className="flex border border-gray-300 rounded-md">
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium ${
+                      viewMode === 'list'
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    List
+                  </button>
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium ${
+                      viewMode === 'grid'
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Grid
+                  </button>
                 </div>
-              )}
-            </div>
-          )}
-          
-          {/* View Mode Toggle */}
-          <div className="flex border border-gray-300 rounded-md">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-2 text-sm font-medium ${
-                viewMode === 'list'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              List
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`px-3 py-2 text-sm font-medium ${
-                viewMode === 'grid'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Grid
-            </button>
+              </div>
+            )}
           </div>
-
-          {/* Export Button */}
-          <button
-            onClick={() => {
-              scrollToTop('smooth');
-              toast.info('Export feature coming soon');
-            }}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </button>
-
-          {/* Refresh Button */}
-          <button
-            onClick={() => {
-              scrollToTop('smooth');
-              loadMerchants(true);
-            }}
-            disabled={refreshing}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
         </div>
       </div>
 
       {/* Search and Filter */}
       <div className="bg-white p-4 rounded-lg shadow-sm border">
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col gap-4">
           {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search by business name, owner, email, type, or location..."
+              placeholder="Search merchants..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 transition-colors"
             />
           </div>
           
+          {/* Mobile Filter Toggle */}
+          <button
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+            className="md:hidden inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            Filters & Sort
+            <ChevronDown className={`w-4 h-4 ml-2 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`} />
+          </button>
+
           {/* Filters Row */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* Status Filter */}
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="pl-10 pr-8 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 bg-white min-w-[140px]"
+          <div className={`${showMobileFilters ? 'block' : 'hidden'} md:flex flex-col md:flex-row gap-3`}>
+            <div className="grid grid-cols-2 md:flex gap-2">
+              {/* Status Filter */}
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as any)}
+                  className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 bg-white text-sm"
+                >
+                  <option value="all">All Status</option>
+                  <option value="verified">Verified</option>
+                  <option value="pending">Pending</option>
+                  <option value="needs_review">Needs Review</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="featured">Featured</option>
+                </select>
+              </div>
+
+              {/* Sort By */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="w-full pl-3 pr-8 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 bg-white text-sm"
+                >
+                  <option value="date">Sort by Date</option>
+                  <option value="name">Sort by Name</option>
+                  <option value="status">Sort by Status</option>
+                  <option value="completeness">Sort by Completeness</option>
+                </select>
+              </div>
+
+              {/* Sort Order */}
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm"
+                title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
               >
-                <option value="all">All Status</option>
-                <option value="verified">Verified</option>
-                <option value="pending">Pending</option>
-                <option value="needs_review">Needs Review</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="featured">Featured</option>
-              </select>
-            </div>
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </button>
 
-            {/* Sort By */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="pl-3 pr-8 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 bg-white min-w-[120px]"
-              >
-                <option value="date">Sort by Date</option>
-                <option value="name">Sort by Name</option>
-                <option value="status">Sort by Status</option>
-                <option value="completeness">Sort by Completeness</option>
-              </select>
-            </div>
-
-            {/* Sort Order */}
-            <button
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
-            >
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </button>
-
-            {/* Select All Checkbox */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="selectAll"
-                checked={selectedMerchants.length === currentMerchants.length && currentMerchants.length > 0}
-                onChange={handleSelectAll}
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-              />
-              <label htmlFor="selectAll" className="ml-2 text-sm text-gray-700">
-                Select All
-              </label>
+              {/* Select All Checkbox */}
+              <div className="flex items-center col-span-2 md:col-span-1">
+                <input
+                  type="checkbox"
+                  id="selectAll"
+                  checked={selectedMerchants.length === currentMerchants.length && currentMerchants.length > 0}
+                  onChange={handleSelectAll}
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                />
+                <label htmlFor="selectAll" className="ml-2 text-sm text-gray-700">
+                  Select All
+                </label>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4">
         {stats.map((stat, index) => (
           <div 
             key={stat.name} 
-            className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-all duration-200 hover:scale-105"
-            style={{
-              animationDelay: `${index * 100}ms`,
-              animation: 'fadeInUp 0.4s ease-out forwards'
-            }}
+            className="bg-white p-4 md:p-6 rounded-lg shadow-sm border hover:shadow-md transition-all duration-200"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className={`p-2 rounded-lg ${stat.color}`}>
-                  <stat.icon className="w-5 h-5" />
+                  <stat.icon className="w-4 h-4 md:w-5 md:h-5" />
                 </div>
                 <div className="ml-3">
                   <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">{stat.name}</p>
-                  <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-lg md:text-xl font-bold text-gray-900">{stat.value}</p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-right hidden sm:block">
                 <div className={`flex items-center text-xs font-medium ${
                   stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
                 }`}>
@@ -792,17 +882,17 @@ const MerchantsManagement: React.FC = () => {
       </div>
 
       {/* Add Merchant Button */}
-      <div className="flex justify-end mr-7">
+      <div className="flex justify-end px-2 md:px-0">
         <button
           onClick={() => setShowAddMerchantModal(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-sm shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-sm shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-all duration-200"
         >
           + Add Merchant
         </button>
       </div>
 
       {/* Merchants List */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-md transition-all duration-300 ease-in-out">
+      <div className="bg-white shadow overflow-hidden rounded-lg md:rounded-md transition-all duration-300 ease-in-out">
         {currentMerchants.length === 0 ? (
           <div className="text-center py-12">
             <Store className="mx-auto h-12 w-12 text-gray-400" />
@@ -819,14 +909,10 @@ const MerchantsManagement: React.FC = () => {
               {currentMerchants.map((merchant, index) => (
                 <li 
                   key={merchant._id} 
-                  className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
-                  style={{
-                    animationDelay: `${index * 50}ms`,
-                    animation: 'fadeInUp 0.3s ease-out forwards'
-                  }}
+                  className="px-3 md:px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center flex-1">
+                    <div className="flex items-center flex-1 min-w-0">
                       {/* Selection Checkbox */}
                       <div className="flex-shrink-0 mr-3">
                         <input
@@ -838,40 +924,46 @@ const MerchantsManagement: React.FC = () => {
                       </div>
                       
                       <div className="flex-shrink-0">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center transition-all duration-200 hover:from-green-200 hover:to-green-300">
-                          <Store className="h-6 w-6 text-green-600" />
+                        <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
+                          <Store className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
                         </div>
                       </div>
-                      <div className="ml-4 flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{merchant.businessName}</div>
-                            <div className="text-sm text-gray-500">{merchant.ownerName}</div>
-                            <div className="flex items-center space-x-4 mt-1">
+                      
+                      <div className="ml-3 md:ml-4 flex-1 min-w-0">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">{merchant.businessName}</div>
+                            <div className="text-sm text-gray-500 truncate">{merchant.ownerName}</div>
+                            <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 mt-1">
                               <div className="flex items-center text-xs text-gray-500">
                                 <Mail className="w-3 h-3 mr-1" />
-                                {merchant.email}
+                                <span className="truncate">{merchant.email}</span>
                               </div>
                               <div className="flex items-center text-xs text-gray-500">
                                 <Phone className="w-3 h-3 mr-1" />
                                 {merchant.phone}
                               </div>
-                              {merchant.address && (
-                                <div className="flex items-center text-xs text-gray-500">
-                                  <MapPin className="w-3 h-3 mr-1" />
-                                  {merchant.address}
-                                </div>
-                              )}
                             </div>
                           </div>
-                          <div className="flex items-center space-x-3">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getStatusColor(merchant)}`}>
+                          
+                          <div className="flex items-center justify-between md:justify-end gap-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(merchant)}`}>
                               {getStatusIcon(merchant)}
-                              <span className="ml-1">{getStatusText(merchant)}</span>
+                              <span className="ml-1 hidden sm:inline">{getStatusText(merchant)}</span>
                             </span>
                             
-                            {/* Action Buttons */}
-                            <div className="flex items-center space-x-1">
+                            {/* Mobile Actions Dropdown */}
+                            <div className="relative md:hidden">
+                              <button
+                                onClick={() => setShowMobileActions(!showMobileActions)}
+                                className="p-1 text-gray-400 hover:text-gray-600"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            {/* Desktop Action Buttons */}
+                            <div className="hidden md:flex items-center space-x-1">
                               <button
                                 onClick={() => {
                                   setSelectedMerchant(merchant);
@@ -951,13 +1043,55 @@ const MerchantsManagement: React.FC = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Mobile Action Buttons */}
+                  <div className="md:hidden flex flex-wrap gap-1 mt-3 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setSelectedMerchant(merchant);
+                        setShowMerchantDetails(true);
+                      }}
+                      className="flex-1 inline-flex items-center justify-center px-2 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleEditMerchant(merchant)}
+                      className="flex-1 inline-flex items-center justify-center px-2 py-1 text-xs text-yellow-600 bg-yellow-50 rounded hover:bg-yellow-100"
+                    >
+                      <Edit className="w-3 h-3 mr-1" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedMerchant(merchant);
+                        setShowDocumentsModal(true);
+                      }}
+                      className="flex-1 inline-flex items-center justify-center px-2 py-1 text-xs text-green-600 bg-green-50 rounded hover:bg-green-100"
+                    >
+                      <FileText className="w-3 h-3 mr-1" />
+                      Docs
+                    </button>
+                    <button
+                      onClick={() => handleToggleStatus(merchant._id, merchant.isActive)}
+                      className={`flex-1 inline-flex items-center justify-center px-2 py-1 text-xs rounded ${
+                        merchant.isActive 
+                          ? 'text-red-600 bg-red-50 hover:bg-red-100' 
+                          : 'text-green-600 bg-green-50 hover:bg-green-100'
+                      }`}
+                    >
+                      <UserCheck className="w-3 h-3 mr-1" />
+                      {merchant.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+              <div className="bg-white px-3 md:px-4 py-3 flex items-center justify-between border-t border-gray-200">
                 <div className="flex-1 flex justify-between items-center sm:hidden">
                   <button
                     onClick={goToPrevPage}
@@ -1007,7 +1141,7 @@ const MerchantsManagement: React.FC = () => {
                         }`}
                       >
                         <span className="sr-only">Previous</span>
-                        <ChevronLeft className="h-5 w-5" />
+                        <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
                       </button>
                       
                       {/* Page numbers */}
@@ -1016,7 +1150,7 @@ const MerchantsManagement: React.FC = () => {
                           key={index}
                           onClick={() => typeof page === 'number' ? goToPage(page) : undefined}
                           disabled={page === '...' || isPageChanging}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          className={`relative inline-flex items-center px-3 py-2 border text-sm font-medium ${
                             page === currentPage
                               ? 'z-10 bg-green-50 border-green-500 text-green-600'
                               : page === '...'
@@ -1038,7 +1172,7 @@ const MerchantsManagement: React.FC = () => {
                         }`}
                       >
                         <span className="sr-only">Next</span>
-                        <ChevronRight className="h-5 w-5" />
+                        <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
                       </button>
                     </nav>
                   </div>
@@ -1107,7 +1241,7 @@ const MerchantsManagement: React.FC = () => {
   );
 };
 
-// Edit Merchant Modal Component
+// Edit Merchant Modal Component - Made responsive
 interface EditMerchantModalProps {
   merchant: Merchant;
   onSave: () => void;
@@ -1132,22 +1266,22 @@ const EditMerchantModal: React.FC<EditMerchantModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Edit Merchant Status</h2>
+      <div className="flex min-h-full items-center justify-center p-2 md:p-4">
+        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900">Edit Merchant Status</h2>
             <button
               onClick={onCancel}
               className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
             >
-              <XCircle className="h-6 w-6" />
+              <XCircle className="h-5 w-5 md:h-6 md:w-6" />
             </button>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4 md:space-y-6">
+            <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
+              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Business Information</h3>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Business Name</label>
                   <p className="mt-1 text-sm text-gray-900">{merchant.businessName}</p>
@@ -1167,9 +1301,9 @@ const EditMerchantModal: React.FC<EditMerchantModalProps> = ({
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Status Settings</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
+              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Status Settings</h3>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -1213,16 +1347,16 @@ const EditMerchantModal: React.FC<EditMerchantModalProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-6 border-t">
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 md:pt-6 border-t">
             <button
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200 order-2 sm:order-1"
             >
               Cancel
             </button>
             <button
               onClick={onSave}
-              className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200"
+              className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200 order-1 sm:order-2"
             >
               <Save className="w-4 h-4 inline mr-2" />
               Save Changes
@@ -1234,7 +1368,7 @@ const EditMerchantModal: React.FC<EditMerchantModalProps> = ({
   );
 };
 
-// Delete Confirmation Modal Component
+// Delete Confirmation Modal Component - Made responsive
 interface DeleteConfirmationModalProps {
   onConfirm: () => void;
   onCancel: () => void;
@@ -1257,9 +1391,9 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
+        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-md transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Confirm Deletion</h2>
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900">Confirm Deletion</h2>
             <button
               onClick={onCancel}
               className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
@@ -1269,25 +1403,25 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
           </div>
 
           <div className="text-center">
-            <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <AlertTriangle className="mx-auto h-10 w-10 md:h-12 md:w-12 text-red-500 mb-3 md:mb-4" />
+            <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2">
               Delete {merchantName}?
             </h3>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-500 mb-4 md:mb-6">
               This action cannot be undone. This will permanently delete the merchant account and all associated data.
             </p>
           </div>
 
-          <div className="flex justify-end space-x-3">
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
             <button
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200 order-2 sm:order-1"
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
+              className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200 order-1 sm:order-2"
             >
               <Trash2 className="w-4 h-4 inline mr-2" />
               Delete Merchant
@@ -1299,7 +1433,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   );
 };
 
-// Merchant Details Modal Component
+// Merchant Details Modal Component - Made responsive
 interface MerchantDetailsModalProps {
   merchant: Merchant;
   onClose: () => void;
@@ -1330,22 +1464,22 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Merchant Details</h2>
+      <div className="flex min-h-full items-center justify-center p-2 md:p-4">
+        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900">Merchant Details</h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
             >
-              <XCircle className="h-6 w-6" />
+              <XCircle className="h-5 w-5 md:h-6 md:w-6" />
             </button>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4 md:space-y-6">
+            <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
+              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Business Information</h3>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Business Name</label>
                   <p className="mt-1 text-sm text-gray-900">{merchant.businessName}</p>
@@ -1383,9 +1517,9 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Status Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
+              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Status Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Verification Status</label>
                   <div className="mt-1 flex items-center">
@@ -1455,19 +1589,19 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
             </div>
 
             {(merchant.productsCount !== undefined || merchant.totalSales !== undefined) && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Statistics</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
+                <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Statistics</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   {merchant.productsCount !== undefined && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Total Products</label>
-                      <p className="mt-1 text-2xl font-bold text-gray-900">{merchant.productsCount}</p>
+                      <p className="mt-1 text-xl md:text-2xl font-bold text-gray-900">{merchant.productsCount}</p>
                     </div>
                   )}
                   {merchant.totalSales !== undefined && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Total Sales</label>
-                      <p className="mt-1 text-2xl font-bold text-gray-900">KSh {merchant.totalSales.toLocaleString()}</p>
+                      <p className="mt-1 text-xl md:text-2xl font-bold text-gray-900">KSh {merchant.totalSales.toLocaleString()}</p>
                     </div>
                   )}
                 </div>
@@ -1475,29 +1609,29 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
             )}
           </div>
 
-          <div className="flex justify-end space-x-3 pt-6 border-t">
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 md:space-x-3 pt-4 md:pt-6 border-t">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+              className="px-3 md:px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200 order-5 sm:order-1"
             >
               Close
             </button>
             <button
               onClick={() => onEdit(merchant)}
-              className="px-4 py-2 text-white bg-yellow-600 rounded-md hover:bg-yellow-700 transition-colors duration-200"
+              className="px-3 md:px-4 py-2 text-white bg-yellow-600 rounded-md hover:bg-yellow-700 transition-colors duration-200 order-1 sm:order-2"
             >
-              <Edit className="w-4 h-4 inline mr-2" />
-              Edit Status
+              <Edit className="w-4 h-4 inline mr-1 md:mr-2" />
+              Edit
             </button>
             <button
               onClick={() => onToggleFeatured(merchant._id, merchant.featured || false)}
-              className={`px-4 py-2 text-white rounded-md transition-colors duration-200 ${
+              className={`px-3 md:px-4 py-2 text-white rounded-md transition-colors duration-200 order-2 sm:order-3 ${
                 merchant.featured 
                   ? 'bg-gray-600 hover:bg-gray-700' 
                   : 'bg-purple-600 hover:bg-purple-700'
               }`}
             >
-              <Star className="w-4 h-4 inline mr-2" />
+              <Star className="w-4 h-4 inline mr-1 md:mr-2" />
               {merchant.featured ? 'Unfeature' : 'Feature'}
             </button>
             {!merchant.verified && (
@@ -1506,9 +1640,9 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
                   onVerify(merchant._id);
                   onClose();
                 }}
-                className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200"
+                className="px-3 md:px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200 order-3 sm:order-4"
               >
-                Verify Merchant
+                Verify
               </button>
             )}
             <button
@@ -1516,7 +1650,7 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
                 onToggleStatus(merchant._id, merchant.isActive);
                 onClose();
               }}
-              className={`px-4 py-2 text-white rounded-md transition-colors duration-200 ${
+              className={`px-3 md:px-4 py-2 text-white rounded-md transition-colors duration-200 order-4 sm:order-5 ${
                 merchant.isActive 
                   ? 'bg-red-600 hover:bg-red-700' 
                   : 'bg-green-600 hover:bg-green-700'
@@ -1529,9 +1663,9 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
                 onDelete(merchant._id);
                 onClose();
               }}
-              className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
+              className="px-3 md:px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200 order-6"
             >
-              <Trash2 className="w-4 h-4 inline mr-2" />
+              <Trash2 className="w-4 h-4 inline mr-1 md:mr-2" />
               Delete
             </button>
           </div>
