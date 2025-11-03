@@ -78,14 +78,6 @@ jobs:
           SKIP_SESSION: false
           DISABLE_RATE_LIMIT: true
 
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage/lcov.info
-          flags: unittests
-          name: codecov-${{ matrix.node-version }}
-        continue-on-error: true
-
       - name: Archive test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -93,6 +85,7 @@ jobs:
           name: test-results-node-${{ matrix.node-version }}
           path: coverage/
           retention-days: 7
+          if-no-files-found: warn
 
   # Job 3: Build Verification
   build:
