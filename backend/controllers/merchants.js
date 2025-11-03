@@ -772,8 +772,8 @@ exports.createMerchantWithProducts = async (req, res) => {
     const { uploadToCloudinary } = require('../services/cloudinaryService');
 
     console.log('📦 Creating merchant with products...');
-    console.log('Request body:', req.body);
-    console.log('Files received:', req.files ? Object.keys(req.files) : 'none');
+    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Files received:', req.files ? req.files.length : 'none');
 
     // Extract merchant data
     const merchantData = {
@@ -804,30 +804,42 @@ exports.createMerchantWithProducts = async (req, res) => {
       const productsData = JSON.parse(req.body.products);
       console.log(`📦 Creating ${productsData.length} products...`);
 
+      // Group files by product index
+      const filesByProduct = {};
+      if (req.files && Array.isArray(req.files)) {
+        req.files.forEach(file => {
+          // Parse fieldname like "product_0_image_0"
+          const match = file.fieldname.match(/product_(\d+)_image_(\d+)/);
+          if (match) {
+            const productIndex = parseInt(match[1]);
+            if (!filesByProduct[productIndex]) {
+              filesByProduct[productIndex] = [];
+            }
+            filesByProduct[productIndex].push(file);
+          }
+        });
+      }
+
       for (let i = 0; i < productsData.length; i++) {
         const productData = productsData[i];
         
         // Upload product images
         const productImages = [];
-        let imageIndex = 0;
+        const productFiles = filesByProduct[i] || [];
         
-        // Look for images with pattern: product_${i}_image_${imageIndex}
-        while (req.files && req.files[`product_${i}_image_${imageIndex}`]) {
-          const imageFile = req.files[`product_${i}_image_${imageIndex}`][0];
-          console.log(`Uploading image ${imageIndex} for product ${i}:`, imageFile.originalname);
-          
+        console.log(`Uploading ${productFiles.length} images for product ${i}...`);
+        
+        for (const imageFile of productFiles) {
           try {
             const uploadResult = await uploadToCloudinary(imageFile.buffer, {
               folder: 'products',
               resource_type: 'image'
             });
             productImages.push(uploadResult.secure_url);
-            console.log(`✅ Image ${imageIndex} uploaded successfully`);
+            console.log(`✅ Image uploaded successfully: ${uploadResult.secure_url}`);
           } catch (uploadError) {
-            console.error(`Error uploading image ${imageIndex}:`, uploadError);
+            console.error(`Error uploading image:`, uploadError);
           }
-          
-          imageIndex++;
         }
 
         // Create product
