@@ -709,8 +709,11 @@ exports.uploadDocuments = async (req, res) => {
 // @access  Private/Admin
 exports.createMerchantByAdmin = async (req, res) => {
   try {
-    // AUTHORIZATION CHECK
-    if (!req.user || req.user.role !== 'admin') {
+    // AUTHORIZATION CHECK - Support both session (req.user) and JWT admin auth (req.admin)
+    const adminUser = req.admin || req.user;
+    const isAdmin = adminUser && (adminUser.role === 'admin' || adminUser.role === 'super_admin');
+    
+    if (!isAdmin) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({ 
         success: false, 
         error: 'Access denied. Admin privileges required.' 
@@ -720,7 +723,7 @@ exports.createMerchantByAdmin = async (req, res) => {
     // USE OPTIMIZED SERVICE: All validation, duplicate checks, and email sending handled
     const result = await MerchantOnboardingService.createMerchantByAdmin(
       req.body, 
-      req.user
+      adminUser
     );
 
     // FIX: Don't initialize documents object when creating manually
@@ -751,6 +754,158 @@ exports.createMerchantByAdmin = async (req, res) => {
     res.status(400).json({ 
       success: false, 
       error: error.message || 'Failed to create merchant account'
+    });
+  }
+};
+
+// @desc    Create merchant with products by admin (WITH FILE UPLOADS)
+// @route   POST /api/merchants/admin/create-with-products
+// @access  Private/Admin
+exports.createMerchantWithProducts = async (req, res) => {
+  try {
+    // AUTHORIZATION CHECK - Support both session (req.user) and JWT admin auth (req.admin)
+    const adminUser = req.admin || req.user;
+    const isAdmin = adminUser && (adminUser.role === 'admin' || adminUser.role === 'super_admin');
+    
+    if (!isAdmin) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ 
+        success: false, 
+        error: 'Access denied. Admin privileges required.' 
+      });
+    }
+
+    const Product = require('../models/Product');
+    const { cloudinary } = require('../services/cloudinaryService');
+
+    console.log('📦 Creating merchant with products...');
+    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Files received:', req.files ? req.files.length : 'none');
+
+    // Extract merchant data
+    const merchantData = {
+      businessName: req.body.businessName,
+      email: req.body.email,
+      phone: req.body.phone,
+      businessType: req.body.businessType,
+      description: req.body.description,
+      address: req.body.address,
+      location: req.body.location,
+      website: req.body.website,
+      yearEstablished: req.body.yearEstablished,
+      autoVerify: req.body.autoVerify === 'true'
+    };
+
+    // Create merchant first
+    const result = await MerchantOnboardingService.createMerchantByAdmin(
+      merchantData, 
+      adminUser
+    );
+    const merchant = result.merchant;
+
+    console.log('✅ Merchant created:', merchant._id);
+
+    // Parse products data if provided
+    let createdProducts = [];
+    if (req.body.products) {
+      const productsData = JSON.parse(req.body.products);
+      console.log(`📦 Creating ${productsData.length} products...`);
+
+      // Group files by product index
+      const filesByProduct = {};
+      if (req.files && Array.isArray(req.files)) {
+        req.files.forEach(file => {
+          // Parse fieldname like "product_0_image_0"
+          const match = file.fieldname.match(/product_(\d+)_image_(\d+)/);
+          if (match) {
+            const productIndex = parseInt(match[1]);
+            if (!filesByProduct[productIndex]) {
+              filesByProduct[productIndex] = [];
+            }
+            filesByProduct[productIndex].push(file);
+          }
+        });
+      }
+
+      for (let i = 0; i < productsData.length; i++) {
+        const productData = productsData[i];
+        
+        // Upload product images
+        const productImages = [];
+        const productFiles = filesByProduct[i] || [];
+        
+        console.log(`Uploading ${productFiles.length} images for product ${i}...`);
+        
+        for (const imageFile of productFiles) {
+          try {
+            // Upload buffer to Cloudinary using upload_stream
+            const uploadResult = await new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                  folder: 'nairobi-verified/products',
+                  resource_type: 'image'
+                },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              uploadStream.end(imageFile.buffer);
+            });
+            
+            productImages.push(uploadResult.secure_url);
+            console.log(`✅ Image uploaded successfully: ${uploadResult.secure_url}`);
+          } catch (uploadError) {
+            console.error(`Error uploading image:`, uploadError.message);
+          }
+        }
+
+        // Create product
+        const product = await Product.create({
+          name: productData.name,
+          description: productData.description,
+          category: productData.category,
+          subcategory: productData.subcategory,
+          price: productData.price,
+          originalPrice: productData.originalPrice || productData.price,
+          stockQuantity: productData.stockQuantity || 0,
+          merchant: merchant._id,
+          merchantName: merchant.businessName,
+          images: productImages,
+          primaryImage: productImages[0] || '/placeholder-product.jpg',
+          isActive: true,
+          featured: false,
+          tags: []
+        });
+
+        createdProducts.push(product);
+        console.log(`✅ Product created: ${product.name} with ${productImages.length} images`);
+      }
+    }
+
+    // RETURN SUCCESS
+    res.status(201).json({
+      success: true,
+      data: merchant,
+      products: createdProducts,
+      credentials: result.credentials,
+      message: result.message,
+      productsCreated: createdProducts.length,
+      documentStatus: {
+        required: true,
+        submitted: false,
+        completionPercentage: 0,
+        hasDocuments: false,
+        nextStep: merchant.verified 
+          ? 'Complete business profile' 
+          : 'Upload verification documents'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ createMerchantWithProducts error:', error);
+    res.status(400).json({ 
+      success: false, 
+      error: error.message || 'Failed to create merchant with products'
     });
   }
 };
