@@ -709,8 +709,11 @@ exports.uploadDocuments = async (req, res) => {
 // @access  Private/Admin
 exports.createMerchantByAdmin = async (req, res) => {
   try {
-    // AUTHORIZATION CHECK
-    if (!req.user || req.user.role !== 'admin') {
+    // AUTHORIZATION CHECK - Support both session (req.user) and JWT admin auth (req.admin)
+    const adminUser = req.admin || req.user;
+    const isAdmin = adminUser && (adminUser.role === 'admin' || adminUser.role === 'super_admin');
+    
+    if (!isAdmin) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({ 
         success: false, 
         error: 'Access denied. Admin privileges required.' 
@@ -720,7 +723,7 @@ exports.createMerchantByAdmin = async (req, res) => {
     // USE OPTIMIZED SERVICE: All validation, duplicate checks, and email sending handled
     const result = await MerchantOnboardingService.createMerchantByAdmin(
       req.body, 
-      req.user
+      adminUser
     );
 
     // FIX: Don't initialize documents object when creating manually
@@ -760,8 +763,11 @@ exports.createMerchantByAdmin = async (req, res) => {
 // @access  Private/Admin
 exports.createMerchantWithProducts = async (req, res) => {
   try {
-    // AUTHORIZATION CHECK
-    if (!req.user || req.user.role !== 'admin') {
+    // AUTHORIZATION CHECK - Support both session (req.user) and JWT admin auth (req.admin)
+    const adminUser = req.admin || req.user;
+    const isAdmin = adminUser && (adminUser.role === 'admin' || adminUser.role === 'super_admin');
+    
+    if (!isAdmin) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({ 
         success: false, 
         error: 'Access denied. Admin privileges required.' 
@@ -769,7 +775,7 @@ exports.createMerchantWithProducts = async (req, res) => {
     }
 
     const Product = require('../models/Product');
-    const { uploadToCloudinary } = require('../services/cloudinaryService');
+    const { cloudinary } = require('../services/cloudinaryService');
 
     console.log('📦 Creating merchant with products...');
     console.log('Request body keys:', Object.keys(req.body));
@@ -792,7 +798,7 @@ exports.createMerchantWithProducts = async (req, res) => {
     // Create merchant first
     const result = await MerchantOnboardingService.createMerchantByAdmin(
       merchantData, 
-      req.user
+      adminUser
     );
     const merchant = result.merchant;
 
@@ -831,14 +837,25 @@ exports.createMerchantWithProducts = async (req, res) => {
         
         for (const imageFile of productFiles) {
           try {
-            const uploadResult = await uploadToCloudinary(imageFile.buffer, {
-              folder: 'products',
-              resource_type: 'image'
+            // Upload buffer to Cloudinary using upload_stream
+            const uploadResult = await new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                  folder: 'nairobi-verified/products',
+                  resource_type: 'image'
+                },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              uploadStream.end(imageFile.buffer);
             });
+            
             productImages.push(uploadResult.secure_url);
             console.log(`✅ Image uploaded successfully: ${uploadResult.secure_url}`);
           } catch (uploadError) {
-            console.error(`Error uploading image:`, uploadError);
+            console.error(`Error uploading image:`, uploadError.message);
           }
         }
 
@@ -847,6 +864,7 @@ exports.createMerchantWithProducts = async (req, res) => {
           name: productData.name,
           description: productData.description,
           category: productData.category,
+          subcategory: productData.subcategory,
           price: productData.price,
           originalPrice: productData.originalPrice || productData.price,
           stockQuantity: productData.stockQuantity || 0,

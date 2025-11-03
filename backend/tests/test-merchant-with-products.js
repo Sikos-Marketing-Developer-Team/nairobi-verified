@@ -21,6 +21,7 @@ let cookies = ''; // Store cookies for authentication
 
 // Create axios instance with cookie jar
 const axiosInstance = axios.create({
+  baseURL: BASE_URL,
   withCredentials: true,
   validateStatus: false // Don't throw on any status
 });
@@ -46,31 +47,38 @@ async function loginAdmin() {
   try {
     log('\n📝 Step 1: Logging in as Admin...', 'cyan');
     
-    const response = await axiosInstance.post(`${BASE_URL}/auth/admin/login`, {
+    const response = await axios.post(`${BASE_URL}/auth/admin/login`, {
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD
+    }, {
+      withCredentials: true
     });
-
-    // Store cookies from response
-    if (response.headers['set-cookie']) {
-      cookies = response.headers['set-cookie']
-        .map(cookie => cookie.split(';')[0])
-        .join('; ');
-    }
 
     if (response.data.success && response.data.token) {
       adminToken = response.data.token;
+      
+      // Store cookies if present
+      const cookies = response.headers['set-cookie'];
+      if (cookies) {
+        axiosInstance.defaults.headers.Cookie = cookies.join('; ');
+      }
+      
+      // Set authorization header for all future requests
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${adminToken}`;
+      
       log('✅ Admin login successful!', 'green');
       log(`   Token: ${adminToken.substring(0, 20)}...`, 'blue');
-      log(`   Cookies stored: ${cookies ? 'Yes' : 'No'}`, 'blue');
+      log(`   Cookies: ${cookies ? 'Set' : 'None'}`, 'blue');
       return true;
     } else {
       log('❌ Login failed: No token received', 'red');
-      log(`   Response: ${JSON.stringify(response.data)}`, 'red');
       return false;
     }
   } catch (error) {
     log(`❌ Login error: ${error.response?.data?.error || error.message}`, 'red');
+    if (error.response?.data) {
+      log(`   Response: ${JSON.stringify(error.response.data)}`, 'red');
+    }
     return false;
   }
 }
@@ -115,6 +123,7 @@ async function createMerchantWithProducts() {
         name: 'Espresso',
         description: 'Rich and bold espresso made from premium Ethiopian beans',
         category: 'Food & Beverages',
+        subcategory: 'Coffee',
         price: 250,
         originalPrice: 300,
         stockQuantity: 100,
@@ -124,6 +133,7 @@ async function createMerchantWithProducts() {
         name: 'Croissant',
         description: 'Freshly baked butter croissant',
         category: 'Food & Beverages',
+        subcategory: 'Pastries',
         price: 150,
         originalPrice: 180,
         stockQuantity: 50,
@@ -133,6 +143,7 @@ async function createMerchantWithProducts() {
         name: 'Cappuccino',
         description: 'Creamy cappuccino with perfect foam',
         category: 'Food & Beverages',
+        subcategory: 'Coffee',
         price: 300,
         stockQuantity: 100,
         imageCount: 1
@@ -160,12 +171,11 @@ async function createMerchantWithProducts() {
     log(`   Total images: ${products.reduce((sum, p) => sum + p.imageCount, 0)}`, 'blue');
 
     const response = await axiosInstance.post(
-      `${BASE_URL}/merchants/admin/create-with-products`,
+      '/merchants/admin/create-with-products',
       formData,
       {
         headers: {
           ...formData.getHeaders(),
-          'Cookie': cookies,
           'Authorization': `Bearer ${adminToken}`
         },
         maxContentLength: Infinity,
@@ -200,13 +210,17 @@ async function createMerchantWithProducts() {
       return true;
     } else {
       log('❌ Failed to create merchant with products', 'red');
+      log(`   Response: ${JSON.stringify(response.data)}`, 'red');
       return false;
     }
   } catch (error) {
     log(`❌ Error creating merchant with products:`, 'red');
     log(`   ${error.response?.data?.error || error.message}`, 'red');
-    if (error.response?.data?.details) {
-      log(`   Details: ${JSON.stringify(error.response.data.details)}`, 'red');
+    if (error.response?.data) {
+      log(`   Full response: ${JSON.stringify(error.response.data)}`, 'red');
+    }
+    if (error.response?.status) {
+      log(`   Status: ${error.response.status}`, 'red');
     }
     return false;
   }
@@ -232,12 +246,11 @@ async function createMerchantWithoutProducts() {
     };
 
     const response = await axiosInstance.post(
-      `${BASE_URL}/merchants/admin/create`,
+      '/merchants/admin/create',
       merchantData,
       {
         headers: {
           'Authorization': `Bearer ${adminToken}`,
-          'Cookie': cookies,
           'Content-Type': 'application/json'
         }
       }
@@ -250,11 +263,18 @@ async function createMerchantWithoutProducts() {
       return true;
     } else {
       log('❌ Failed to create basic merchant', 'red');
+      log(`   Response: ${JSON.stringify(response.data)}`, 'red');
       return false;
     }
   } catch (error) {
     log(`❌ Error creating basic merchant:`, 'red');
     log(`   ${error.response?.data?.error || error.message}`, 'red');
+    if (error.response?.data) {
+      log(`   Full response: ${JSON.stringify(error.response.data)}`, 'red');
+    }
+    if (error.response?.status) {
+      log(`   Status: ${error.response.status}`, 'red');
+    }
     return false;
   }
 }

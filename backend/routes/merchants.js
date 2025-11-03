@@ -20,6 +20,7 @@ const {
   setFeatured
 } = require('../controllers/merchants');
 const { protect, authorize, isMerchant } = require('../middleware/auth');
+const { protectAdmin } = require('../middleware/adminAuth');
 const { uploadImage, uploadDocs } = require('../middleware/upload');
 
 const { 
@@ -59,8 +60,7 @@ router.use('/:merchantId/reviews', reviewRouter);
 // Admin routes - BEFORE /:id
 router.post(
   '/admin/create', 
-  protect, 
-  authorize('admin'), 
+  protectAdmin, // Use admin JWT auth instead of session auth
   merchantCreationLimiter, // Rate limit: 200/hour per admin
   createMerchantByAdmin
 );
@@ -68,8 +68,7 @@ router.post(
 // Admin route for creating merchant with products and images
 router.post(
   '/admin/create-with-products', 
-  protect, 
-  authorize('admin'), 
+  protectAdmin, // Use admin JWT auth instead of session auth
   merchantCreationLimiter,
   upload.any(), // Accept any number of files with any field names
   createMerchantWithProducts
