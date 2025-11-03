@@ -569,20 +569,23 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
   };
 
   const getStatusColor = (merchant: Merchant) => {
-    if (merchant.verified) return 'bg-green-100 text-green-800';
-    if (!merchant.isActive) return 'bg-red-100 text-red-800';
+    if (!merchant) return 'bg-gray-100 text-gray-800';
+    if (merchant.verified === true) return 'bg-green-100 text-green-800';
+    if (merchant.isActive === false) return 'bg-red-100 text-red-800';
     return 'bg-yellow-100 text-yellow-800';
   };
 
   const getStatusIcon = (merchant: Merchant) => {
-    if (merchant.verified) return <CheckCircle className="w-3 h-3" />;
-    if (!merchant.isActive) return <AlertTriangle className="w-3 h-3" />;
+    if (!merchant) return <AlertTriangle className="w-3 h-3" />;
+    if (merchant.verified === true) return <CheckCircle className="w-3 h-3" />;
+    if (merchant.isActive === false) return <AlertTriangle className="w-3 h-3" />;
     return <Clock className="w-3 h-3" />;
   };
 
   const getStatusText = (merchant: Merchant) => {
-    if (merchant.verified) return 'Verified';
-    if (!merchant.isActive) return 'Inactive';
+    if (!merchant) return 'Unknown';
+    if (merchant.verified === true) return 'Verified';
+    if (merchant.isActive === false) return 'Inactive';
     return 'Pending';
   };
 
