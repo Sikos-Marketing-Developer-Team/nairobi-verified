@@ -170,7 +170,9 @@ const MerchantsManagement: React.FC = () => {
     // ✅ Remove limit - let backend return all merchants
     const response = await adminAPI.getMerchants(); 
     if (response.data.success) {
-      setMerchants(response.data.merchants || []);
+      // Filter out any null/undefined merchants and ensure data integrity
+      const validMerchants = (response.data.merchants || []).filter(m => m && m._id);
+      setMerchants(validMerchants);
     }
   } catch (error: any) {
     console.error('Failed to load merchants:', error);
