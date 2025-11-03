@@ -404,10 +404,10 @@ const MerchantsManagement: React.FC = () => {
     try {
       // Update local state immediately for better UX
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
+        merchant && merchant._id === merchantId 
           ? { ...merchant, verified: true, updatedAt: new Date().toISOString() }
           : merchant
-      ));
+      ).filter(m => m && m._id));
 
       const response = await adminAPI.verifyMerchant(merchantId);
       if (response.data.success) {
@@ -420,10 +420,10 @@ const MerchantsManagement: React.FC = () => {
       
       // Revert the local state change if API call fails
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
+        merchant && merchant._id === merchantId 
           ? { ...merchant, verified: false }
           : merchant
-      ));
+      ).filter(m => m && m._id));
       toast.error('Failed to verify merchant. Please try again.');
     }
   };
@@ -435,10 +435,10 @@ const MerchantsManagement: React.FC = () => {
       
       // Update local state immediately
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
+        merchant && merchant._id === merchantId 
           ? { ...merchant, isActive: newStatus, updatedAt: new Date().toISOString() }
           : merchant
-      ));
+      ).filter(m => m && m._id));
 
       const response = await adminAPI.updateMerchantStatus(merchantId, newStatus);
       if (response.data.success) {
@@ -451,10 +451,10 @@ const MerchantsManagement: React.FC = () => {
       
       // Revert on error
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
+        merchant && merchant._id === merchantId 
           ? { ...merchant, isActive: currentStatus }
           : merchant
-      ));
+      ).filter(m => m && m._id));
       toast.error('Failed to update merchant status');
     }
   };
@@ -466,10 +466,10 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     
     // Optimistic update - update UI immediately
     setMerchants(prev => prev.map(merchant => 
-      merchant._id === merchantId 
+      merchant && merchant._id === merchantId 
         ? { ...merchant, featured: newFeaturedStatus, updatedAt: new Date().toISOString() }
         : merchant
-    ));
+    ).filter(m => m && m._id));
 
     // 🔑 FIXED: Call the backend API to persist the change
     const response = await adminAPI.setFeaturedStatus(merchantId, newFeaturedStatus);
@@ -484,10 +484,10 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     
     // Revert on error
     setMerchants(prev => prev.map(merchant => 
-      merchant._id === merchantId 
+      merchant && merchant._id === merchantId 
         ? { ...merchant, featured: currentFeatured }
         : merchant
-    ));
+    ).filter(m => m && m._id));
     
     toast.error('Failed to update featured status');
   }
@@ -539,20 +539,20 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         // 🔑 FIXED: Use API instead of local state only
         await adminAPI.bulkSetFeatured(selectedMerchants, true);
         setMerchants(prev => prev.map(merchant => 
-          selectedMerchants.includes(merchant._id) 
+          merchant && selectedMerchants.includes(merchant._id) 
             ? { ...merchant, featured: true, updatedAt: new Date().toISOString() }
             : merchant
-        ));
+        ).filter(m => m && m._id));
         toast.success(`${selectedMerchants.length} merchants featured successfully`);
         break;
       case 'unfeature':
         // 🔑 FIXED: Use API instead of local state only
         await adminAPI.bulkSetFeatured(selectedMerchants, false);
         setMerchants(prev => prev.map(merchant => 
-          selectedMerchants.includes(merchant._id) 
+          merchant && selectedMerchants.includes(merchant._id) 
             ? { ...merchant, featured: false, updatedAt: new Date().toISOString() }
             : merchant
-        ));
+        ).filter(m => m && m._id));
         toast.success(`${selectedMerchants.length} merchants unfeatured successfully`);
         break;
       case 'delete':
