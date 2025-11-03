@@ -37,6 +37,7 @@ import { MerchantsManagementSkeleton } from '../components/ui/loading-skeletons'
 import AddMerchantModal from '@/components/modals/addMerchantModal';
 import DocumentsViewer from '@/components/DocumentsViewer';
 import { Merchant } from '@/interfaces/MerchantsManagement';
+import '../index.css'
 
 const MerchantsManagement: React.FC = () => {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
@@ -967,7 +968,6 @@ const MerchantsManagement: React.FC = () => {
                                 onClick={() => {
                                   setSelectedMerchant(merchant);
                                   setShowMerchantDetails(true);
-                                  scrollToTop('smooth');
                                 }}
                                 className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
                                 title="View Details"
@@ -987,7 +987,6 @@ const MerchantsManagement: React.FC = () => {
                                 onClick={() => {
                                   setSelectedMerchant(merchant);
                                   setShowDocumentsModal(true);
-                                  scrollToTop('smooth');
                                 }}
                                 className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
                                 title="View Documents"
@@ -1215,7 +1214,6 @@ const MerchantsManagement: React.FC = () => {
           onClose={() => {
             setShowMerchantDetails(false);
             setSelectedMerchant(null);
-            scrollToTop('smooth');
           }}
           onVerify={handleVerifyMerchant}
           onToggleStatus={handleToggleStatus}
@@ -1226,13 +1224,11 @@ const MerchantsManagement: React.FC = () => {
       )}
 
       {showDocumentsModal && selectedMerchant && (
-        <DocumentsViewer
-          merchantId={selectedMerchant._id}
-          merchantName={selectedMerchant.businessName}
+        <DocumentsViewerModal
+          merchant={selectedMerchant}
           onClose={() => {
             setShowDocumentsModal(false);
             setSelectedMerchant(null);
-            scrollToTop('smooth');
           }}
         />
       )}
@@ -1255,7 +1251,6 @@ const EditMerchantModal: React.FC<EditMerchantModalProps> = ({
   onUpdateField 
 }) => {
   useEffect(() => {
-    scrollToTop('smooth');
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
@@ -1266,14 +1261,14 @@ const EditMerchantModal: React.FC<EditMerchantModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
       <div className="flex min-h-full items-center justify-center p-2 md:p-4">
-        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
+        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto transform transition-all">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <h2 className="text-lg md:text-xl font-semibold text-gray-900">Edit Merchant Status</h2>
             <button
               onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1"
             >
-              <XCircle className="h-5 w-5 md:h-6 md:w-6" />
+              <X className="h-5 w-5 md:h-6 md:w-6" />
             </button>
           </div>
 
@@ -1390,12 +1385,12 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-md transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
+        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-md transform transition-all">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg md:text-xl font-semibold text-gray-900">Confirm Deletion</h2>
             <button
               onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1"
             >
               <X className="h-5 w-5" />
             </button>
@@ -1453,7 +1448,6 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
   onToggleFeatured
 }) => {
   useEffect(() => {
-    scrollToTop('smooth');
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
@@ -1464,14 +1458,14 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
       <div className="flex min-h-full items-center justify-center p-2 md:p-4">
-        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
+        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto transform transition-all">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <h2 className="text-lg md:text-xl font-semibold text-gray-900">Merchant Details</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1"
             >
-              <XCircle className="h-5 w-5 md:h-6 md:w-6" />
+              <X className="h-5 w-5 md:h-6 md:w-6" />
             </button>
           </div>
 
@@ -1666,6 +1660,64 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
             >
               <Trash2 className="w-4 h-4 inline mr-1 md:mr-2" />
               Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Documents Viewer Modal Component
+interface DocumentsViewerModalProps {
+  merchant: Merchant;
+  onClose: () => void;
+}
+
+const DocumentsViewerModal: React.FC<DocumentsViewerModalProps> = ({ 
+  merchant, 
+  onClose 
+}) => {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+      <div className="flex min-h-full items-center justify-center p-2 md:p-4">
+        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-4xl max-h-[85vh] overflow-y-auto transform transition-all">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900">
+              Documents - {merchant.businessName}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1"
+            >
+              <X className="h-5 w-5 md:h-6 md:w-6" />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="text-center py-8">
+              <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Documents Viewer</h3>
+              <p className="text-gray-500">Document management interface would be displayed here.</p>
+              <p className="text-sm text-gray-400 mt-2">Business: {merchant.businessName}</p>
+              <p className="text-sm text-gray-400">Email: {merchant.email}</p>
+            </div>
+          </div>
+          
+          <div className="flex justify-end pt-4 md:pt-6 border-t mt-4 md:mt-6">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+            >
+              Close Documents
             </button>
           </div>
         </div>
