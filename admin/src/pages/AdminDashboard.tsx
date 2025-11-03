@@ -15,37 +15,13 @@ import {
   Eye,
   FileText,
   MessageSquare,
-  Zap
+  Zap,
+  ChevronRight
 } from 'lucide-react';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
-
-interface DashboardStats {
-  totalUsers: number;
-  totalMerchants: number;
-  verifiedMerchants: number;
-  activeMerchants: number;
-  pendingVerifications: number;
-  pendingMerchants: number;
-  totalProducts: number;
-  activeProducts: number;
-  totalOrders: number;
-  totalRevenue: number;
-  recentUsers: number;
-  recentMerchants: number;
-  userGrowth: number;
-  merchantGrowth: number;
-}
-
-interface RecentActivity {
-  id: string;
-  type: 'user_signup' | 'merchant_registration' | 'merchant_verified' | 'product_added' | 'review_posted' | 'verification_request';
-  description: string;
-  timestamp: string;
-  user?: string;
-  details?: any;
-}
+import { DashboardStats, RecentActivity } from '../interfaces/AdminDashboard';
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAdminAuth();
@@ -178,30 +154,30 @@ const AdminDashboard: React.FC = () => {
     color?: string;
     subtitle?: string;
   }) => (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
+          <p className="text-xs md:text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1 md:mt-2">{value}</p>
           {subtitle && (
             <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
           )}
           {growth !== undefined && (
-            <div className="flex items-center mt-2">
+            <div className="flex items-center mt-1 md:mt-2">
               {growth >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-500 mr-1" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+                <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-500 mr-1" />
               )}
-              <span className={`text-sm font-medium ${growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-xs md:text-sm font-medium ${growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {Math.abs(growth)}%
               </span>
-              <span className="text-sm text-gray-500 ml-1">vs last month</span>
+              <span className="text-xs md:text-sm text-gray-500 ml-1 hidden sm:inline">vs last month</span>
             </div>
           )}
         </div>
-        <div className={`p-3 rounded-full bg-${color}-100`}>
-          <Icon className={`h-6 w-6 text-${color}-600`} />
+        <div className={`p-2 md:p-3 rounded-full bg-${color}-100`}>
+          <Icon className={`h-4 w-4 md:h-6 md:w-6 text-${color}-600`} />
         </div>
       </div>
     </div>
@@ -211,37 +187,39 @@ const AdminDashboard: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-8 w-8 md:h-12 md:w-12 border-b-2 border-green-600"></div>
+          <p className="text-sm md:text-base text-gray-600">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
+    <div className="px-2 sm:px-4 lg:px-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">
-            Welcome back, {user?.firstName}! Here's what's happening with your platform.
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0 flex items-center gap-3">
-          <button
-            onClick={loadDashboardData}
-            disabled={refreshing}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+      <div className="bg-white p-4 rounded-lg mb-4 md:mb-8 md:bg-transparent md:p-0">
+        <div className="md:flex md:items-center md:justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Welcome back, {user?.firstName}! Here's what's happening with your platform.
+            </p>
+          </div>
+          <div className="mt-4 md:mt-0 flex items-center gap-2">
+            <button
+              onClick={loadDashboardData}
+              disabled={refreshing}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline ml-2">Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
         <StatCard
           title="Total Merchants"
           value={formatNumber(stats?.totalMerchants || 0)}
@@ -273,53 +251,53 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* More detailed breakdown */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Merchant Status Breakdown</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 mb-6 md:mb-8">
+        <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Merchant Status Breakdown</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+          <div className="text-center p-3 md:p-4 bg-green-50 rounded-lg">
+            <div className="text-lg md:text-2xl font-bold text-green-600">
               {stats?.verifiedMerchants || 0}
             </div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="text-xs md:text-sm text-gray-600 mt-1">
               Verified & Active
             </div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-500 mt-1 hidden md:block">
               Ready to operate
             </div>
           </div>
           
-          <div className="text-center p-4 bg-yellow-50 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600">
+          <div className="text-center p-3 md:p-4 bg-yellow-50 rounded-lg">
+            <div className="text-lg md:text-2xl font-bold text-yellow-600">
               {(stats?.activeMerchants || 0) - (stats?.verifiedMerchants || 0)}
             </div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="text-xs md:text-sm text-gray-600 mt-1">
               Active Unverified
             </div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-500 mt-1 hidden md:block">
               Need verification
             </div>
           </div>
           
-          <div className="text-center p-4 bg-orange-50 rounded-lg">
-            <div className="text-2xl font-bold text-orange-600">
+          <div className="text-center p-3 md:p-4 bg-orange-50 rounded-lg">
+            <div className="text-lg md:text-2xl font-bold text-orange-600">
               {stats?.pendingVerifications || 0}
             </div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="text-xs md:text-sm text-gray-600 mt-1">
               Pending Review
             </div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-500 mt-1 hidden md:block">
               Documents submitted
             </div>
           </div>
           
-          <div className="text-center p-4 bg-red-50 rounded-lg">
-            <div className="text-2xl font-bold text-red-600">
+          <div className="text-center p-3 md:p-4 bg-red-50 rounded-lg">
+            <div className="text-lg md:text-2xl font-bold text-red-600">
               {(stats?.totalMerchants || 0) - (stats?.activeMerchants || 0)}
             </div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="text-xs md:text-sm text-gray-600 mt-1">
               Inactive
             </div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-500 mt-1 hidden md:block">
               Suspended or disabled
             </div>
           </div>
@@ -327,7 +305,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
         <StatCard
           title="Total Products"
           value={formatNumber(stats?.totalProducts || 0)}
@@ -355,83 +333,95 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
         {/* Quick Actions */}
-        <div className="lg:col-span-1">
+        <div className="xl:col-span-1">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
+            <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">
+              <h3 className="text-base md:text-lg font-medium text-gray-900">Quick Actions</h3>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-4 md:p-6 space-y-3 md:space-y-4">
               <button 
                 onClick={() => handleQuickAction('view_pending_merchants')}
-                className="w-full flex items-center justify-between p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                className="w-full flex items-center justify-between p-3 md:p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
               >
                 <div className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
-                  <span className="font-medium text-green-900">Review Verifications</span>
+                  <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600 mr-2 md:mr-3" />
+                  <span className="text-sm md:text-base font-medium text-green-900">Review Verifications</span>
                 </div>
-                <span className="bg-green-200 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {stats?.pendingVerifications || 0}
-                </span>
+                <div className="flex items-center">
+                  <span className="bg-green-200 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                    {stats?.pendingVerifications || 0}
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-green-600 ml-1 md:ml-2" />
+                </div>
               </button>
               
               <button 
                 onClick={() => handleQuickAction('view_all_users')}
-                className="w-full flex items-center justify-between p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                className="w-full flex items-center justify-between p-3 md:p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
               >
                 <div className="flex items-center">
-                  <Users className="h-5 w-5 text-blue-600 mr-3" />
-                  <span className="font-medium text-blue-900">Manage Users</span>
+                  <Users className="h-4 w-4 md:h-5 md:w-5 text-blue-600 mr-2 md:mr-3" />
+                  <span className="text-sm md:text-base font-medium text-blue-900">Manage Users</span>
                 </div>
-                <span className="bg-blue-200 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {stats?.recentUsers || 0} new
-                </span>
+                <div className="flex items-center">
+                  <span className="bg-blue-200 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                    {stats?.recentUsers || 0} new
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-blue-600 ml-1 md:ml-2" />
+                </div>
               </button>
               
               <button 
                 onClick={() => handleQuickAction('view_products')}
-                className="w-full flex items-center justify-between p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                className="w-full flex items-center justify-between p-3 md:p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
               >
                 <div className="flex items-center">
-                  <Store className="h-5 w-5 text-purple-600 mr-3" />
-                  <span className="font-medium text-purple-900">Manage Products</span>
+                  <Store className="h-4 w-4 md:h-5 md:w-5 text-purple-600 mr-2 md:mr-3" />
+                  <span className="text-sm md:text-base font-medium text-purple-900">Manage Products</span>
                 </div>
-                <span className="bg-purple-200 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {stats?.totalProducts || 0}
-                </span>
+                <div className="flex items-center">
+                  <span className="bg-purple-200 text-purple-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                    {stats?.totalProducts || 0}
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-purple-600 ml-1 md:ml-2" />
+                </div>
               </button>
               
               <button 
                 onClick={() => handleQuickAction('view_analytics')}
-                className="w-full flex items-center justify-between p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+                className="w-full flex items-center justify-between p-3 md:p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
               >
                 <div className="flex items-center">
-                  <Zap className="h-5 w-5 text-orange-600 mr-3" />
-                  <span className="font-medium text-orange-900">View Analytics</span>
+                  <Zap className="h-4 w-4 md:h-5 md:w-5 text-orange-600 mr-2 md:mr-3" />
+                  <span className="text-sm md:text-base font-medium text-orange-900">View Analytics</span>
                 </div>
-                <span className="bg-orange-200 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  Live
-                </span>
+                <div className="flex items-center">
+                  <span className="bg-orange-200 text-orange-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                    Live
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-orange-600 ml-1 md:ml-2" />
+                </div>
               </button>
             </div>
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-2">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
+            <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-base md:text-lg font-medium text-gray-900">Recent Activity</h3>
               <button 
                 onClick={() => handleQuickAction('view_analytics')}
-                className="text-sm text-green-600 hover:text-green-700 font-medium"
+                className="text-xs md:text-sm text-green-600 hover:text-green-700 font-medium"
               >
                 View all
               </button>
             </div>
-            <div className="p-6">
-              <div className="space-y-4">
+            <div className="p-4 md:p-6">
+              <div className="space-y-3 md:space-y-4">
                 {recentActivity.map((activity) => (
                   <div 
                     key={activity.id} 
@@ -442,10 +432,10 @@ const AdminDashboard: React.FC = () => {
                       {getActivityIcon(activity.type)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 line-clamp-2">
                         {activity.description}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs md:text-sm text-gray-500 mt-1">
                         {activity.timestamp}
                       </p>
                     </div>
@@ -463,31 +453,31 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* System Status */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">System Status</h3>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 md:mb-8">
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">
+          <h3 className="text-base md:text-lg font-medium text-gray-900">System Status</h3>
         </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="p-4 md:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
             <div className="flex items-center">
-              <div className="h-3 w-3 bg-green-400 rounded-full mr-3"></div>
+              <div className="h-2 w-2 md:h-3 md:w-3 bg-green-400 rounded-full mr-2 md:mr-3"></div>
               <div>
                 <p className="text-sm font-medium text-gray-900">API Status</p>
-                <p className="text-sm text-gray-500">All systems operational</p>
+                <p className="text-xs md:text-sm text-gray-500">All systems operational</p>
               </div>
             </div>
             <div className="flex items-center">
-              <div className="h-3 w-3 bg-green-400 rounded-full mr-3"></div>
+              <div className="h-2 w-2 md:h-3 md:w-3 bg-green-400 rounded-full mr-2 md:mr-3"></div>
               <div>
                 <p className="text-sm font-medium text-gray-900">Database</p>
-                <p className="text-sm text-gray-500">Connected and healthy</p>
+                <p className="text-xs md:text-sm text-gray-500">Connected and healthy</p>
               </div>
             </div>
             <div className="flex items-center">
-              <div className="h-3 w-3 bg-yellow-400 rounded-full mr-3"></div>
+              <div className="h-2 w-2 md:h-3 md:w-3 bg-yellow-400 rounded-full mr-2 md:mr-3"></div>
               <div>
                 <p className="text-sm font-medium text-gray-900">Email Service</p>
-                <p className="text-sm text-gray-500">Minor delays</p>
+                <p className="text-xs md:text-sm text-gray-500">Minor delays</p>
               </div>
             </div>
           </div>

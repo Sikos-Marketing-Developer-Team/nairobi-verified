@@ -7,7 +7,6 @@ import {
   Clock,
   Phone,
   Mail,
-  MapPin,
   Eye,
   UserCheck,
   AlertTriangle,

@@ -12,8 +12,6 @@ import {
   Star,
   MapPin,
   ChevronDown,
-  Menu,
-  FileText,
   BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
