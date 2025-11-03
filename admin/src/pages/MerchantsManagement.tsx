@@ -548,7 +548,7 @@ const MerchantsManagement: React.FC = () => {
     <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       {/* Header */}
       <div className="bg-white p-4 md:p-0 md:bg-transparent">
-        <div className="md:flex md:items-center md:justify-between">
+        <div className="md:flex md:items-center md:justify-between p-2">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">Merchants Management</h1>
             <p className="mt-1 md:mt-2 text-sm text-gray-700">
@@ -846,7 +846,7 @@ const MerchantsManagement: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {stats.map((stat, index) => (
           <div 
             key={stat.name} 
