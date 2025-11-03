@@ -35,88 +35,7 @@ import { scrollToTop } from '../hooks/useScrollToTop';
 import { MerchantsManagementSkeleton } from '../components/ui/loading-skeletons';
 import AddMerchantModal from '@/components/modals/addMerchantModal';
 import DocumentsViewer from '@/components/DocumentsViewer';
-
-interface Merchant {
-  _id: string;
-  businessName: string;
-  ownerName?: string;
-  email: string;
-  phone: string;
-  verified: boolean;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
-  address?: string;
-  location?: string;
-  businessType?: string;
-  category?: string;
-  description?: string;
-  website?: string;
-  yearEstablished?: number;
-  logo?: string;
-  bannerImage?: string;
-  gallery?: string[];
-  rating?: number;
-  reviews?: number;
-  featured?: boolean;
-  productsCount?: number;
-  totalSales?: number;
-  profileCompleteness?: number;
-  documentsCompleteness?: number;
-  lastLoginAt?: string;
-  onboardingStatus?: 'credentials_sent' | 'account_setup' | 'documents_submitted' | 'under_review' | 'completed';
-  documents?: {
-    businessRegistration?: {
-      path?: string;
-      uploadedAt?: string;
-      originalName?: string;
-      fileSize?: number;
-      mimeType?: string;
-    };
-    idDocument?: {
-      path?: string;
-      uploadedAt?: string;
-      originalName?: string;
-      fileSize?: number;
-      mimeType?: string;
-    };
-    utilityBill?: {
-      path?: string;
-      uploadedAt?: string;
-      originalName?: string;
-      fileSize?: number;
-      mimeType?: string;
-    };
-    additionalDocs?: Array<{
-      path?: string;
-      uploadedAt?: string;
-      originalName?: string;
-      fileSize?: number;
-      mimeType?: string;
-      description?: string;
-    }>;
-    documentReviewStatus?: 'pending' | 'under_review' | 'approved' | 'rejected' | 'incomplete';
-    verificationNotes?: string;
-    documentsSubmittedAt?: string;
-    documentsReviewedAt?: string;
-  };
-  verificationHistory?: Array<{
-    action: 'submitted' | 'under_review' | 'approved' | 'rejected' | 'resubmitted';
-    performedBy?: string;
-    performedAt: string;
-    notes?: string;
-    documentsInvolved?: string[];
-  }>;
-  documentStatus?: {
-    businessRegistration: boolean;
-    idDocument: boolean;
-    utilityBill: boolean;
-    additionalDocs: boolean;
-  };
-  documentCompleteness?: number;
-  isDocumentComplete?: boolean;
-  needsVerification?: boolean;
-}
+import { Merchant } from '@/interfaces/MerchantsManagement';
 
 const MerchantsManagement: React.FC = () => {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
@@ -137,6 +56,7 @@ const MerchantsManagement: React.FC = () => {
   const [showAddMerchantModal, setShowAddMerchantModal] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [merchantToDelete, setMerchantToDelete] = useState<string | null>(null);
+  const [isPageChanging, setIsPageChanging] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -160,28 +80,27 @@ const MerchantsManagement: React.FC = () => {
   const currentMerchants = filteredMerchants.slice(startIndex, endIndex);
 
   const loadMerchants = useCallback(async (showRefreshing = false) => {
-  try {
-    if (showRefreshing) {
-      setRefreshing(true);
-    } else {
-      setIsLoading(true);
+    try {
+      if (showRefreshing) {
+        setRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      
+      const response = await adminAPI.getMerchants(); 
+      if (response.data.success) {
+        setMerchants(response.data.merchants || []);
+      }
+    } catch (error: any) {
+      console.error('Failed to load merchants:', error);
+      toast.error('Failed to load merchants');
+    } finally {
+      requestAnimationFrame(() => {
+        setIsLoading(false);
+        setRefreshing(false);
+      });
     }
-    
-    // ✅ Remove limit - let backend return all merchants
-    const response = await adminAPI.getMerchants(); 
-    if (response.data.success) {
-      setMerchants(response.data.merchants || []);
-    }
-  } catch (error: any) {
-    console.error('Failed to load merchants:', error);
-    toast.error('Failed to load merchants');
-  } finally {
-    requestAnimationFrame(() => {
-      setIsLoading(false);
-      setRefreshing(false);
-    });
-  }
-}, []);
+  }, []);
 
   const filterMerchants = useCallback(() => {
     let filtered = merchants;
@@ -255,77 +174,79 @@ const MerchantsManagement: React.FC = () => {
     setFilteredMerchants(filtered);
   }, [merchants, searchTerm, filterStatus, sortBy, sortOrder]);
 
-  // Pagination handlers
-  const goToNextPage = () => {
-    if (currentPage < totalPages) {
+  // Improved pagination handlers
+  const goToNextPage = async () => {
+    if (currentPage < totalPages && !isPageChanging) {
+      setIsPageChanging(true);
       setCurrentPage(currentPage + 1);
+      await new Promise(resolve => setTimeout(resolve, 200));
       scrollToTop('smooth');
+      setIsPageChanging(false);
     }
   };
 
-  const goToPrevPage = () => {
-    if (currentPage > 1) {
+  const goToPrevPage = async () => {
+    if (currentPage > 1 && !isPageChanging) {
+      setIsPageChanging(true);
       setCurrentPage(currentPage - 1);
+      await new Promise(resolve => setTimeout(resolve, 200));
       scrollToTop('smooth');
+      setIsPageChanging(false);
     }
   };
 
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
+  const goToPage = async (page: number) => {
+    if (page >= 1 && page <= totalPages && !isPageChanging) {
+      setIsPageChanging(true);
       setCurrentPage(page);
+      await new Promise(resolve => setTimeout(resolve, 200));
       scrollToTop('smooth');
+      setIsPageChanging(false);
     }
   };
 
-  // Generate page numbers for pagination
+  // Improved page numbers for pagination
   const getPageNumbers = () => {
     const pages = [];
-    const maxVisiblePages = 5;
-    
-    if (totalPages <= maxVisiblePages) {
-      // Show all pages if total pages is less than max visible
-      for (let i = 1; i <= totalPages; i++) {
+    const maxVisiblePages = 7;
+    const current = currentPage;
+    const total = totalPages;
+
+    if (total <= maxVisiblePages) {
+      for (let i = 1; i <= total; i++) {
         pages.push(i);
       }
     } else {
-      // Always show first page
       pages.push(1);
-      
-      // Calculate start and end of visible pages
-      let start = Math.max(2, currentPage - 1);
-      let end = Math.min(totalPages - 1, currentPage + 1);
-      
-      // Adjust if we're at the beginning
-      if (currentPage <= 2) {
-        end = 4;
+
+      let start = Math.max(2, current - 2);
+      let end = Math.min(total - 1, current + 2);
+
+      if (current <= 3) {
+        end = 5;
       }
-      
-      // Adjust if we're at the end
-      if (currentPage >= totalPages - 1) {
-        start = totalPages - 3;
+
+      if (current >= total - 2) {
+        start = total - 4;
       }
-      
-      // Add ellipsis if needed
+
       if (start > 2) {
         pages.push('...');
       }
-      
-      // Add middle pages
+
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-      
-      // Add ellipsis if needed
-      if (end < totalPages - 1) {
+
+      if (end < total - 1) {
         pages.push('...');
       }
-      
-      // Always show last page
-      if (totalPages > 1) {
-        pages.push(totalPages);
+
+      if (total > 1) {
+        pages.push(total);
       }
     }
-    
+
     return pages;
   };
 
@@ -353,13 +274,10 @@ const MerchantsManagement: React.FC = () => {
     if (!editingMerchant) return;
 
     try {
-      // Since backend only has status endpoints, we can only update status fields
-      // Update active status
       if (editingMerchant.isActive !== merchants.find(m => m._id === editingMerchant._id)?.isActive) {
         await adminAPI.updateMerchantStatus(editingMerchant._id, editingMerchant.isActive);
       }
 
-      // Update local state
       setMerchants(prev => prev.map(merchant => 
         merchant._id === editingMerchant._id ? editingMerchant : merchant
       ));
@@ -379,7 +297,6 @@ const MerchantsManagement: React.FC = () => {
   // UPDATE - Verify merchant
   const handleVerifyMerchant = async (merchantId: string): Promise<void> => {
     try {
-      // Update local state immediately for better UX
       setMerchants(prev => prev.map(merchant => 
         merchant._id === merchantId 
           ? { ...merchant, verified: true, updatedAt: new Date().toISOString() }
@@ -394,8 +311,6 @@ const MerchantsManagement: React.FC = () => {
       }
     } catch (error) {
       console.error('Error verifying merchant:', error);
-      
-      // Revert the local state change if API call fails
       setMerchants(prev => prev.map(merchant => 
         merchant._id === merchantId 
           ? { ...merchant, verified: false }
@@ -410,7 +325,6 @@ const MerchantsManagement: React.FC = () => {
     try {
       const newStatus = !currentStatus;
       
-      // Update local state immediately
       setMerchants(prev => prev.map(merchant => 
         merchant._id === merchantId 
           ? { ...merchant, isActive: newStatus, updatedAt: new Date().toISOString() }
@@ -425,8 +339,6 @@ const MerchantsManagement: React.FC = () => {
       }
     } catch (error) {
       console.error('Error toggling merchant status:', error);
-      
-      // Revert on error
       setMerchants(prev => prev.map(merchant => 
         merchant._id === merchantId 
           ? { ...merchant, isActive: currentStatus }
@@ -436,41 +348,36 @@ const MerchantsManagement: React.FC = () => {
     }
   };
 
-  // UPDATE - Toggle featured status (FIXED with API call)
-const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean): Promise<void> => {
-  try {
-    const newFeaturedStatus = !currentFeatured;
-    
-    // Optimistic update - update UI immediately
-    setMerchants(prev => prev.map(merchant => 
-      merchant._id === merchantId 
-        ? { ...merchant, featured: newFeaturedStatus, updatedAt: new Date().toISOString() }
-        : merchant
-    ));
+  // UPDATE - Toggle featured status
+  const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean): Promise<void> => {
+    try {
+      const newFeaturedStatus = !currentFeatured;
+      
+      setMerchants(prev => prev.map(merchant => 
+        merchant._id === merchantId 
+          ? { ...merchant, featured: newFeaturedStatus, updatedAt: new Date().toISOString() }
+          : merchant
+      ));
 
-    // 🔑 FIXED: Call the backend API to persist the change
-    const response = await adminAPI.setFeaturedStatus(merchantId, newFeaturedStatus);
-    
-    if (response.data.success) {
-      toast.success(`Merchant ${newFeaturedStatus ? 'added to' : 'removed from'} featured list`);
-    } else {
-      throw new Error('Failed to update featured status');
+      const response = await adminAPI.setFeaturedStatus(merchantId, newFeaturedStatus);
+      
+      if (response.data.success) {
+        toast.success(`Merchant ${newFeaturedStatus ? 'added to' : 'removed from'} featured list`);
+      } else {
+        throw new Error('Failed to update featured status');
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+      setMerchants(prev => prev.map(merchant => 
+        merchant._id === merchantId 
+          ? { ...merchant, featured: currentFeatured }
+          : merchant
+      ));
+      toast.error('Failed to update featured status');
     }
-  } catch (error) {
-    console.error('Error toggling featured status:', error);
-    
-    // Revert on error
-    setMerchants(prev => prev.map(merchant => 
-      merchant._id === merchantId 
-        ? { ...merchant, featured: currentFeatured }
-        : merchant
-    ));
-    
-    toast.error('Failed to update featured status');
-  }
-};
+  };
 
-  // DELETE - Single merchant (FIXED: using correct endpoint)
+  // DELETE - Single merchant
   const handleDeleteMerchant = async (merchantId: string): Promise<void> => {
     try {
       const response = await adminAPI.deleteMerchant([merchantId]);
@@ -491,61 +398,59 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     setShowDeleteConfirm(true);
   };
 
-  // Bulk Operations - FIXED to work with existing endpoints
+  // Bulk Operations
   const handleBulkAction = async (action: 'verify' | 'activate' | 'deactivate' | 'delete' | 'feature' | 'unfeature') => {
-  if (selectedMerchants.length === 0) {
-    toast.error('Please select merchants first');
-    return;
-  }
-
-  try {
-    switch (action) {
-      case 'verify':
-        await adminAPI.bulkVerifyMerchants(selectedMerchants);
-        toast.success(`${selectedMerchants.length} merchants verified successfully`);
-        break;
-      case 'activate':
-        await adminAPI.updateMerchantStatus(selectedMerchants, true);
-        toast.success(`${selectedMerchants.length} merchants activated successfully`);
-        break;
-      case 'deactivate':
-        await adminAPI.updateMerchantStatus(selectedMerchants, false);
-        toast.success(`${selectedMerchants.length} merchants deactivated successfully`);
-        break;
-      case 'feature':
-        // 🔑 FIXED: Use API instead of local state only
-        await adminAPI.bulkSetFeatured(selectedMerchants, true);
-        setMerchants(prev => prev.map(merchant => 
-          selectedMerchants.includes(merchant._id) 
-            ? { ...merchant, featured: true, updatedAt: new Date().toISOString() }
-            : merchant
-        ));
-        toast.success(`${selectedMerchants.length} merchants featured successfully`);
-        break;
-      case 'unfeature':
-        // 🔑 FIXED: Use API instead of local state only
-        await adminAPI.bulkSetFeatured(selectedMerchants, false);
-        setMerchants(prev => prev.map(merchant => 
-          selectedMerchants.includes(merchant._id) 
-            ? { ...merchant, featured: false, updatedAt: new Date().toISOString() }
-            : merchant
-        ));
-        toast.success(`${selectedMerchants.length} merchants unfeatured successfully`);
-        break;
-      case 'delete':
-        await adminAPI.deleteMerchant(selectedMerchants);
-        toast.success(`${selectedMerchants.length} merchants deleted successfully`);
-        break;
+    if (selectedMerchants.length === 0) {
+      toast.error('Please select merchants first');
+      return;
     }
-    
-    setSelectedMerchants([]);
-    setShowBulkActions(false);
-    loadMerchants(true); // Refresh data
-  } catch (error: any) {
-    console.error(`Bulk ${action} error:`, error);
-    toast.error(`Failed to ${action} merchants: ${error.response?.data?.message || error.message}`);
-  }
-};
+
+    try {
+      switch (action) {
+        case 'verify':
+          await adminAPI.bulkVerifyMerchants(selectedMerchants);
+          toast.success(`${selectedMerchants.length} merchants verified successfully`);
+          break;
+        case 'activate':
+          await adminAPI.updateMerchantStatus(selectedMerchants, true);
+          toast.success(`${selectedMerchants.length} merchants activated successfully`);
+          break;
+        case 'deactivate':
+          await adminAPI.updateMerchantStatus(selectedMerchants, false);
+          toast.success(`${selectedMerchants.length} merchants deactivated successfully`);
+          break;
+        case 'feature':
+          await adminAPI.bulkSetFeatured(selectedMerchants, true);
+          setMerchants(prev => prev.map(merchant => 
+            selectedMerchants.includes(merchant._id) 
+              ? { ...merchant, featured: true, updatedAt: new Date().toISOString() }
+              : merchant
+          ));
+          toast.success(`${selectedMerchants.length} merchants featured successfully`);
+          break;
+        case 'unfeature':
+          await adminAPI.bulkSetFeatured(selectedMerchants, false);
+          setMerchants(prev => prev.map(merchant => 
+            selectedMerchants.includes(merchant._id) 
+              ? { ...merchant, featured: false, updatedAt: new Date().toISOString() }
+              : merchant
+          ));
+          toast.success(`${selectedMerchants.length} merchants unfeatured successfully`);
+          break;
+        case 'delete':
+          await adminAPI.deleteMerchant(selectedMerchants);
+          toast.success(`${selectedMerchants.length} merchants deleted successfully`);
+          break;
+      }
+      
+      setSelectedMerchants([]);
+      setShowBulkActions(false);
+      loadMerchants(true);
+    } catch (error: any) {
+      console.error(`Bulk ${action} error:`, error);
+      toast.error(`Failed to ${action} merchants: ${error.response?.data?.message || error.message}`);
+    }
+  };
 
   const handleSelectAll = () => {
     if (selectedMerchants.length === currentMerchants.length) {
@@ -652,9 +557,10 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
             <span>•</span>
             <span>Filtered: {filteredMerchants.length}</span>
             <span>•</span>
-            <span>Page {currentPage} of {totalPages}</span>
-            <span>•</span>
-            <span>Showing {currentMerchants.length} merchants</span>
+            <span className="font-medium">
+              Page {currentPage} of {totalPages} 
+              ({startIndex + 1}-{Math.min(endIndex, filteredMerchants.length)} of {filteredMerchants.length})
+            </span>
           </div>
         </div>
         <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
@@ -895,7 +801,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         </button>
       </div>
 
-      {/* Merchants List - NOW PROPERLY PAGINATED */}
+      {/* Merchants List */}
       <div className="bg-white shadow overflow-hidden sm:rounded-md transition-all duration-300 ease-in-out">
         {currentMerchants.length === 0 ? (
           <div className="text-center py-12">
@@ -1049,30 +955,30 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
               ))}
             </ul>
 
-            {/* Pagination Controls - MOVED INSIDE the merchants list container */}
+            {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                 <div className="flex-1 flex justify-between items-center sm:hidden">
                   <button
                     onClick={goToPrevPage}
-                    disabled={currentPage === 1}
-                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                      currentPage === 1 
+                    disabled={currentPage === 1 || isPageChanging}
+                    className={`relative inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                      currentPage === 1 || isPageChanging
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                         : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     <ChevronLeft className="w-4 h-4 mr-1" />
-                    Previous
+                    Prev
                   </button>
-                  <div className="text-sm text-gray-700">
-                    Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
+                  <div className="text-sm text-gray-700 px-2">
+                    <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
                   </div>
                   <button
                     onClick={goToNextPage}
-                    disabled={currentPage === totalPages}
-                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                      currentPage === totalPages 
+                    disabled={currentPage === totalPages || isPageChanging}
+                    className={`relative inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                      currentPage === totalPages || isPageChanging
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                         : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
@@ -1093,9 +999,9 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                       <button
                         onClick={goToPrevPage}
-                        disabled={currentPage === 1}
+                        disabled={currentPage === 1 || isPageChanging}
                         className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${
-                          currentPage === 1 
+                          currentPage === 1 || isPageChanging
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                             : 'bg-white text-gray-500 hover:bg-gray-50'
                         }`}
@@ -1109,14 +1015,14 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
                         <button
                           key={index}
                           onClick={() => typeof page === 'number' ? goToPage(page) : undefined}
+                          disabled={page === '...' || isPageChanging}
                           className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                             page === currentPage
                               ? 'z-10 bg-green-50 border-green-500 text-green-600'
                               : page === '...'
                               ? 'bg-white border-gray-300 text-gray-500 cursor-default'
                               : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                          }`}
-                          disabled={page === '...'}
+                          } ${isPageChanging ? 'opacity-50' : ''}`}
                         >
                           {page}
                         </button>
@@ -1124,9 +1030,9 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
                       
                       <button
                         onClick={goToNextPage}
-                        disabled={currentPage === totalPages}
+                        disabled={currentPage === totalPages || isPageChanging}
                         className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${
-                          currentPage === totalPages 
+                          currentPage === totalPages || isPageChanging
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                             : 'bg-white text-gray-500 hover:bg-gray-50'
                         }`}
@@ -1143,7 +1049,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         )}
       </div>
 
-      {/* Rest of your modals remain the same */}
+      {/* Fixed Position Modals */}
       <AddMerchantModal
         isOpen={showAddMerchantModal}
         onClose={() => setShowAddMerchantModal(false)}
@@ -1201,7 +1107,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
   );
 };
 
-// Edit Merchant Modal Component (Limited to status fields only)
+// Edit Merchant Modal Component
 interface EditMerchantModalProps {
   merchant: Merchant;
   onSave: () => void;
@@ -1224,104 +1130,104 @@ const EditMerchantModal: React.FC<EditMerchantModalProps> = ({
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Edit Merchant Status</h2>
-          <button
-            onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
-          >
-            <XCircle className="h-6 w-6" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">Edit Merchant Status</h2>
+            <button
+              onClick={onCancel}
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+            >
+              <XCircle className="h-6 w-6" />
+            </button>
+          </div>
 
-        <div className="space-y-6">
-          {/* Basic Info Display (Read-only) */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Business Name</label>
-                <p className="mt-1 text-sm text-gray-900">{merchant.businessName}</p>
+          <div className="space-y-6">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Business Name</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.businessName}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Owner Name</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.ownerName}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.email}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Phone</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.phone}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Owner Name</label>
-                <p className="mt-1 text-sm text-gray-900">{merchant.ownerName}</p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Status Settings</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="verified"
+                    checked={merchant.verified}
+                    onChange={(e) => onUpdateField('verified', e.target.checked)}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="verified" className="ml-2 text-sm text-gray-700">
+                    Verified Merchant
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="active"
+                    checked={merchant.isActive}
+                    onChange={(e) => onUpdateField('isActive', e.target.checked)}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="active" className="ml-2 text-sm text-gray-700">
+                    Active Account
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="featured"
+                    checked={merchant.featured || false}
+                    onChange={(e) => onUpdateField('featured', e.target.checked)}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="featured" className="ml-2 text-sm text-gray-700">
+                    Featured Merchant
+                  </label>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <p className="mt-1 text-sm text-gray-900">{merchant.email}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phone</label>
-                <p className="mt-1 text-sm text-gray-900">{merchant.phone}</p>
-              </div>
+              <p className="mt-3 text-sm text-gray-500">
+                Note: Only status fields can be edited. Contact details require backend updates.
+              </p>
             </div>
           </div>
 
-          {/* Status Settings (Editable) */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Status Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="verified"
-                  checked={merchant.verified}
-                  onChange={(e) => onUpdateField('verified', e.target.checked)}
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <label htmlFor="verified" className="ml-2 text-sm text-gray-700">
-                  Verified Merchant
-                </label>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="active"
-                  checked={merchant.isActive}
-                  onChange={(e) => onUpdateField('isActive', e.target.checked)}
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <label htmlFor="active" className="ml-2 text-sm text-gray-700">
-                  Active Account
-                </label>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="featured"
-                  checked={merchant.featured || false}
-                  onChange={(e) => onUpdateField('featured', e.target.checked)}
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <label htmlFor="featured" className="ml-2 text-sm text-gray-700">
-                  Featured Merchant
-                </label>
-              </div>
-            </div>
-            <p className="mt-3 text-sm text-gray-500">
-              Note: Only status fields can be edited. Contact details require backend updates.
-            </p>
+          <div className="flex justify-end space-x-3 pt-6 border-t">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onSave}
+              className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200"
+            >
+              <Save className="w-4 h-4 inline mr-2" />
+              Save Changes
+            </button>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-6 border-t">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onSave}
-            className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200"
-          >
-            <Save className="w-4 h-4 inline mr-2" />
-            Save Changes
-          </button>
         </div>
       </div>
     </div>
@@ -1348,42 +1254,45 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Confirm Deletion</h2>
-          <button
-            onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Confirm Deletion</h2>
+            <button
+              onClick={onCancel}
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-        <div className="text-center">
-          <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Delete {merchantName}?
-          </h3>
-          <p className="text-sm text-gray-500 mb-6">
-            This action cannot be undone. This will permanently delete the merchant account and all associated data.
-          </p>
-        </div>
+          <div className="text-center">
+            <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Delete {merchantName}?
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              This action cannot be undone. This will permanently delete the merchant account and all associated data.
+            </p>
+          </div>
 
-        <div className="flex justify-end space-x-3">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
-          >
-            <Trash2 className="w-4 h-4 inline mr-2" />
-            Delete Merchant
-          </button>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
+            >
+              <Trash2 className="w-4 h-4 inline mr-2" />
+              Delete Merchant
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1419,214 +1328,213 @@ const MerchantDetailsModal: React.FC<MerchantDetailsModalProps> = ({
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Merchant Details</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
-          >
-            <XCircle className="h-6 w-6" />
-          </button>
-        </div>
-
-        <div className="space-y-6">
-          {/* Basic Info */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Business Name</label>
-                <p className="mt-1 text-sm text-gray-900">{merchant.businessName}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Owner Name</label>
-                <p className="mt-1 text-sm text-gray-900">{merchant.ownerName}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <p className="mt-1 text-sm text-gray-900">{merchant.email}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phone</label>
-                <p className="mt-1 text-sm text-gray-900">{merchant.phone}</p>
-              </div>
-              {merchant.address && (
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Address</label>
-                  <p className="mt-1 text-sm text-gray-900">{merchant.address}</p>
-                </div>
-              )}
-              {merchant.category && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Category</label>
-                  <p className="mt-1 text-sm text-gray-900">{merchant.category}</p>
-                </div>
-              )}
-              {merchant.businessType && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Business Type</label>
-                  <p className="mt-1 text-sm text-gray-900">{merchant.businessType}</p>
-                </div>
-              )}
-            </div>
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-out animate-modal-slide shadow-2xl">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">Merchant Details</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+            >
+              <XCircle className="h-6 w-6" />
+            </button>
           </div>
 
-          {/* Status Info */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Status Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Verification Status</label>
-                <div className="mt-1 flex items-center">
-                  {merchant.verified ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Verified
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                      <Clock className="w-3 h-3 mr-1" />
-                      Pending
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Account Status</label>
-                <div className="mt-1 flex items-center">
-                  {merchant.isActive ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Active
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      Inactive
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Featured</label>
-                <div className="mt-1 flex items-center">
-                  {merchant.featured ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                      <Star className="w-3 h-3 mr-1" />
-                      Featured
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      Not Featured
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Member Since</label>
-                <p className="mt-1 text-sm text-gray-900">
-                  {new Date(merchant.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Last Updated</label>
-                <p className="mt-1 text-sm text-gray-900">
-                  {merchant.updatedAt ? new Date(merchant.updatedAt).toLocaleDateString() : 'Never'}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Profile Completeness</label>
-                <p className="mt-1 text-sm text-gray-900">
-                  {merchant.profileCompleteness || 0}%
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Statistics */}
-          {(merchant.productsCount !== undefined || merchant.totalSales !== undefined) && (
+          <div className="space-y-6">
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Statistics</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {merchant.productsCount !== undefined && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Total Products</label>
-                    <p className="mt-1 text-2xl font-bold text-gray-900">{merchant.productsCount}</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Business Name</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.businessName}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Owner Name</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.ownerName}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.email}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Phone</label>
+                  <p className="mt-1 text-sm text-gray-900">{merchant.phone}</p>
+                </div>
+                {merchant.address && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">Address</label>
+                    <p className="mt-1 text-sm text-gray-900">{merchant.address}</p>
                   </div>
                 )}
-                {merchant.totalSales !== undefined && (
+                {merchant.category && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Total Sales</label>
-                    <p className="mt-1 text-2xl font-bold text-gray-900">KSh {merchant.totalSales.toLocaleString()}</p>
+                    <label className="block text-sm font-medium text-gray-700">Category</label>
+                    <p className="mt-1 text-sm text-gray-900">{merchant.category}</p>
+                  </div>
+                )}
+                {merchant.businessType && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Business Type</label>
+                    <p className="mt-1 text-sm text-gray-900">{merchant.businessType}</p>
                   </div>
                 )}
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-6 border-t">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
-          >
-            Close
-          </button>
-          <button
-            onClick={() => onEdit(merchant)}
-            className="px-4 py-2 text-white bg-yellow-600 rounded-md hover:bg-yellow-700 transition-colors duration-200"
-          >
-            <Edit className="w-4 h-4 inline mr-2" />
-            Edit Status
-          </button>
-          <button
-            onClick={() => onToggleFeatured(merchant._id, merchant.featured || false)}
-            className={`px-4 py-2 text-white rounded-md transition-colors duration-200 ${
-              merchant.featured 
-                ? 'bg-gray-600 hover:bg-gray-700' 
-                : 'bg-purple-600 hover:bg-purple-700'
-            }`}
-          >
-            <Star className="w-4 h-4 inline mr-2" />
-            {merchant.featured ? 'Unfeature' : 'Feature'}
-          </button>
-          {!merchant.verified && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Status Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Verification Status</label>
+                  <div className="mt-1 flex items-center">
+                    {merchant.verified ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Verified
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Account Status</label>
+                  <div className="mt-1 flex items-center">
+                    {merchant.isActive ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        Inactive
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Featured</label>
+                  <div className="mt-1 flex items-center">
+                    {merchant.featured ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <Star className="w-3 h-3 mr-1" />
+                        Featured
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Not Featured
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Member Since</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {new Date(merchant.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Last Updated</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {merchant.updatedAt ? new Date(merchant.updatedAt).toLocaleDateString() : 'Never'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Profile Completeness</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {merchant.profileCompleteness || 0}%
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {(merchant.productsCount !== undefined || merchant.totalSales !== undefined) && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Statistics</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {merchant.productsCount !== undefined && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Total Products</label>
+                      <p className="mt-1 text-2xl font-bold text-gray-900">{merchant.productsCount}</p>
+                    </div>
+                  )}
+                  {merchant.totalSales !== undefined && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Total Sales</label>
+                      <p className="mt-1 text-2xl font-bold text-gray-900">KSh {merchant.totalSales.toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-6 border-t">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => onEdit(merchant)}
+              className="px-4 py-2 text-white bg-yellow-600 rounded-md hover:bg-yellow-700 transition-colors duration-200"
+            >
+              <Edit className="w-4 h-4 inline mr-2" />
+              Edit Status
+            </button>
+            <button
+              onClick={() => onToggleFeatured(merchant._id, merchant.featured || false)}
+              className={`px-4 py-2 text-white rounded-md transition-colors duration-200 ${
+                merchant.featured 
+                  ? 'bg-gray-600 hover:bg-gray-700' 
+                  : 'bg-purple-600 hover:bg-purple-700'
+              }`}
+            >
+              <Star className="w-4 h-4 inline mr-2" />
+              {merchant.featured ? 'Unfeature' : 'Feature'}
+            </button>
+            {!merchant.verified && (
+              <button
+                onClick={() => {
+                  onVerify(merchant._id);
+                  onClose();
+                }}
+                className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200"
+              >
+                Verify Merchant
+              </button>
+            )}
             <button
               onClick={() => {
-                onVerify(merchant._id);
+                onToggleStatus(merchant._id, merchant.isActive);
                 onClose();
               }}
-              className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200"
+              className={`px-4 py-2 text-white rounded-md transition-colors duration-200 ${
+                merchant.isActive 
+                  ? 'bg-red-600 hover:bg-red-700' 
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
-              Verify Merchant
+              {merchant.isActive ? 'Deactivate' : 'Activate'}
             </button>
-          )}
-          <button
-            onClick={() => {
-              onToggleStatus(merchant._id, merchant.isActive);
-              onClose();
-            }}
-            className={`px-4 py-2 text-white rounded-md transition-colors duration-200 ${
-              merchant.isActive 
-                ? 'bg-red-600 hover:bg-red-700' 
-                : 'bg-green-600 hover:bg-green-700'
-            }`}
-          >
-            {merchant.isActive ? 'Deactivate' : 'Activate'}
-          </button>
-          <button
-            onClick={() => {
-              onDelete(merchant._id);
-              onClose();
-            }}
-            className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
-          >
-            <Trash2 className="w-4 h-4 inline mr-2" />
-            Delete
-          </button>
+            <button
+              onClick={() => {
+                onDelete(merchant._id);
+                onClose();
+              }}
+              className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
+            >
+              <Trash2 className="w-4 h-4 inline mr-2" />
+              Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>

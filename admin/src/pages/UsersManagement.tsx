@@ -8,23 +8,13 @@ import {
   UserCheck,
   UserX,
   Mail,
-  Phone
+  Phone,
+  MoreVertical
 } from 'lucide-react';
 import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
 import { UsersManagementSkeleton } from '../components/ui/loading-skeletons';
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: string;
-  isActive: boolean;
-  isEmailVerified: boolean;
-  createdAt: string;
-  updatedAt?: string;
-}
+import { User } from '@/interfaces/UsersManagement';
 
 const scrollToTop = (behavior: ScrollBehavior = 'auto') => {
   window.scrollTo({ top: 0, behavior });
@@ -37,6 +27,7 @@ const UsersManagement: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<string | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -67,6 +58,7 @@ const UsersManagement: React.FC = () => {
       loadUsers();
       setShowDeleteConfirm(false);
       setSelectedUser(null);
+      setMobileMenuOpen(null);
     } catch (error: any) {
       console.error('Failed to delete user:', error);
       toast.error('Failed to delete user');
@@ -78,23 +70,29 @@ const UsersManagement: React.FC = () => {
       await adminAPI.updateUserStatus(userId, !isActive);
       toast.success(`User ${!isActive ? 'activated' : 'deactivated'} successfully`);
       loadUsers();
+      setMobileMenuOpen(null);
     } catch (error: any) {
       console.error('Failed to update user status:', error);
       toast.error('Failed to update user status');
     }
   };
 
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(null);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="sm:flex sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Users Management</h1>
-          <p className="mt-2 text-sm text-gray-700">Manage user accounts and permissions</p>
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold text-gray-900 truncate">Users Management</h1>
+          <p className="mt-1 text-sm text-gray-700">Manage user accounts and permissions</p>
         </div>
-        <div className="mt-4 sm:mt-0">
+        <div className="flex-shrink-0">
           <button
             onClick={() => setShowAddUserModal(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5"
+            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5"
           >
             <UserPlus className="w-4 h-4 mr-2" />
             Add User
@@ -106,7 +104,7 @@ const UsersManagement: React.FC = () => {
       {isLoading ? (
         <UsersManagementSkeleton />
       ) : (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md transition-all duration-300 ease-in-out">
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg transition-all duration-300 ease-in-out">
           {users.length === 0 ? (
             <div className="text-center py-12 animate-fadeIn">
               <Users className="mx-auto h-12 w-12 text-gray-400" />
@@ -120,46 +118,46 @@ const UsersManagement: React.FC = () => {
               {users.map((user, index) => (
                 <li 
                   key={user._id} 
-                  className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
+                  className="p-4 sm:px-6 sm:py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
                   style={{
                     animationDelay: `${index * 50}ms`,
                     animation: 'fadeInUp 0.3s ease-out forwards'
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center flex-1">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start flex-1 min-w-0">
                       <div className="flex-shrink-0">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center transition-all duration-200 hover:from-blue-200 hover:to-blue-300">
-                          <Users className="h-6 w-6 text-blue-600" />
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center transition-all duration-200 hover:from-blue-200 hover:to-blue-300">
+                          <Users className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
                         </div>
                       </div>
-                      <div className="ml-4 flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
+                      <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">{user.name}</div>
+                            <div className="text-sm text-gray-500 truncate">{user.email}</div>
                             {user.phone && (
                               <div className="flex items-center text-xs text-gray-500 mt-1">
-                                <Phone className="w-3 h-3 mr-1" />
-                                {user.phone}
+                                <Phone className="w-3 h-3 mr-1 flex-shrink-0" />
+                                <span className="truncate">{user.phone}</span>
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                          <div className="flex items-center flex-wrap gap-1 sm:gap-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
                               user.role === 'admin' ? 'bg-red-100 text-red-800 hover:bg-red-200' :
                               user.role === 'merchant' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' :
                               'bg-gray-100 text-gray-800 hover:bg-gray-200'
                             }`}>
                               {user.role}
                             </span>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
                               user.isActive ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
                             }`}>
                               {user.isActive ? 'Active' : 'Inactive'}
                             </span>
                             {user.isEmailVerified && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 <Mail className="w-3 h-3 mr-1" />
                                 Verified
                               </span>
@@ -170,42 +168,105 @@ const UsersManagement: React.FC = () => {
                     </div>
                     
                     {/* Action Buttons */}
-                    <div className="flex items-center space-x-2 ml-4">
-                      <button
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowUserDetails(true);
-                        }}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
-                        title="View Details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      
-                      <button
-                        onClick={() => handleToggleUserStatus(user._id, user.isActive)}
-                        className={`p-2 rounded-full transition-all duration-200 ${
-                          user.isActive 
-                            ? 'text-gray-400 hover:text-red-600 hover:bg-red-50' 
-                            : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                        }`}
-                        title={user.isActive ? 'Deactivate User' : 'Activate User'}
-                      >
-                        {user.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                      </button>
-                      
-                      {user.role !== 'admin' && (
+                    <div className="flex items-center ml-2 sm:ml-4">
+                      {/* Desktop Action Buttons */}
+                      <div className="hidden sm:flex items-center space-x-1">
                         <button
                           onClick={() => {
                             setSelectedUser(user);
-                            setShowDeleteConfirm(true);
+                            setShowUserDetails(true);
                           }}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200"
-                          title="Delete User"
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+                          title="View Details"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         </button>
-                      )}
+                        
+                        <button
+                          onClick={() => handleToggleUserStatus(user._id, user.isActive)}
+                          className={`p-2 rounded-full transition-all duration-200 ${
+                            user.isActive 
+                              ? 'text-gray-400 hover:text-red-600 hover:bg-red-50' 
+                              : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                          }`}
+                          title={user.isActive ? 'Deactivate User' : 'Activate User'}
+                        >
+                          {user.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                        </button>
+                        
+                        {user.role !== 'admin' && (
+                          <button
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowDeleteConfirm(true);
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200"
+                            title="Delete User"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Mobile Menu Button */}
+                      <div className="sm:hidden relative">
+                        <button
+                          onClick={() => setMobileMenuOpen(mobileMenuOpen === user._id ? null : user._id)}
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-all duration-200"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+
+                        {/* Mobile Dropdown Menu */}
+                        {mobileMenuOpen === user._id && (
+                          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10 animate-fadeIn">
+                            <div className="py-1">
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setShowUserDetails(true);
+                                  closeMobileMenu();
+                                }}
+                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                <Eye className="w-4 h-4 mr-3" />
+                                View Details
+                              </button>
+                              
+                              <button
+                                onClick={() => handleToggleUserStatus(user._id, user.isActive)}
+                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                {user.isActive ? (
+                                  <>
+                                    <UserX className="w-4 h-4 mr-3" />
+                                    Deactivate User
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="w-4 h-4 mr-3" />
+                                    Activate User
+                                  </>
+                                )}
+                              </button>
+                              
+                              {user.role !== 'admin' && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setShowDeleteConfirm(true);
+                                    closeMobileMenu();
+                                  }}
+                                  className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-3" />
+                                  Delete User
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </li>
@@ -232,7 +293,7 @@ const UsersManagement: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">Confirm Delete</h2>
@@ -249,12 +310,12 @@ const UsersManagement: React.FC = () => {
             
             <div className="mb-6">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
                   <Trash2 className="h-6 w-6 text-red-600" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">{selectedUser.name}</h3>
-                  <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-medium text-gray-900 truncate">{selectedUser.name}</h3>
+                  <p className="text-sm text-gray-500 truncate">{selectedUser.email}</p>
                 </div>
               </div>
               
@@ -265,19 +326,19 @@ const UsersManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3">
+            <div className="flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
               <button
                 onClick={() => {
                   setShowDeleteConfirm(false);
                   setSelectedUser(null);
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors order-2 sm:order-1"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteUser(selectedUser._id)}
-                className="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
+                className="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700 transition-colors order-1 sm:order-2"
               >
                 Delete User
               </button>
@@ -288,7 +349,7 @@ const UsersManagement: React.FC = () => {
 
       {/* User Details Modal */}
       {showUserDetails && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-900">User Details</h2>
@@ -306,21 +367,21 @@ const UsersManagement: React.FC = () => {
             <div className="space-y-6">
               {/* User Header */}
               <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                  <Users className="h-8 w-8 text-blue-600" />
+                <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center flex-shrink-0">
+                  <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-gray-900">{selectedUser.name}</h3>
-                  <p className="text-sm text-gray-500">{selectedUser.email}</p>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-medium text-gray-900 truncate">{selectedUser.name}</h3>
+                  <p className="text-sm text-gray-500 truncate">{selectedUser.email}</p>
+                  <div className="flex items-center flex-wrap gap-1 mt-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       selectedUser.role === 'admin' ? 'bg-red-100 text-red-800' :
                       selectedUser.role === 'merchant' ? 'bg-blue-100 text-blue-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
                       {selectedUser.role}
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       selectedUser.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
                       {selectedUser.isActive ? 'Active' : 'Inactive'}
@@ -336,19 +397,19 @@ const UsersManagement: React.FC = () => {
                   
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
-                      <Mail className="h-5 w-5 text-gray-400" />
-                      <div>
+                      <Mail className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-900">Email</p>
-                        <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                        <p className="text-sm text-gray-500 truncate">{selectedUser.email}</p>
                       </div>
                     </div>
                     
                     {selectedUser.phone && (
                       <div className="flex items-center space-x-3">
-                        <Phone className="h-5 w-5 text-gray-400" />
-                        <div>
+                        <Phone className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900">Phone</p>
-                          <p className="text-sm text-gray-500">{selectedUser.phone}</p>
+                          <p className="text-sm text-gray-500 truncate">{selectedUser.phone}</p>
                         </div>
                       </div>
                     )}
@@ -388,7 +449,7 @@ const UsersManagement: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0 pt-4 border-t">
                 <button
                   onClick={() => handleToggleUserStatus(selectedUser._id, selectedUser.isActive)}
                   className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
@@ -468,8 +529,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onUserAdded }) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-out animate-slideInUp shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Add New User</h2>
           <button
@@ -547,25 +608,25 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onUserAdded }) => 
             </p>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors order-2 sm:order-1"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`px-4 py-2 text-white rounded transition-colors ${
+              className={`px-4 py-2 text-white rounded transition-colors order-1 sm:order-2 ${
                 isSubmitting
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700'
               }`}
             >
               {isSubmitting ? (
-                <div className="flex items-center">
+                <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Creating...
                 </div>
