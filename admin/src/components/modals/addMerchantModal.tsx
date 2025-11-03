@@ -101,6 +101,87 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showProductSection, setShowProductSection] = useState<boolean>(false);
+
+  // Add new product to list
+  const addProduct = () => {
+    const newProduct: ProductFormData = {
+      id: Date.now().toString(),
+      name: '',
+      description: '',
+      category: '',
+      price: '',
+      originalPrice: '',
+      stockQuantity: '',
+      images: [],
+      imagePreviewUrls: []
+    };
+    setFormData(prev => ({
+      ...prev,
+      products: [...prev.products, newProduct]
+    }));
+    setShowProductSection(true);
+  };
+
+  // Remove product from list
+  const removeProduct = (productId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.filter(p => p.id !== productId)
+    }));
+  };
+
+  // Update product field
+  const updateProduct = (productId: string, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.map(p => 
+        p.id === productId ? { ...p, [field]: value } : p
+      )
+    }));
+  };
+
+  // Handle product image uploads
+  const handleProductImageChange = (productId: string, e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles = Array.from(files);
+    const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file));
+
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.map(p => {
+        if (p.id === productId) {
+          return {
+            ...p,
+            images: [...p.images, ...newFiles],
+            imagePreviewUrls: [...p.imagePreviewUrls, ...newPreviewUrls]
+          };
+        }
+        return p;
+      })
+    }));
+  };
+
+  // Remove product image
+  const removeProductImage = (productId: string, index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.map(p => {
+        if (p.id === productId) {
+          // Revoke the URL to free memory
+          URL.revokeObjectURL(p.imagePreviewUrls[index]);
+          return {
+            ...p,
+            images: p.images.filter((_, i) => i !== index),
+            imagePreviewUrls: p.imagePreviewUrls.filter((_, i) => i !== index)
+          };
+        }
+        return p;
+      })
+    }));
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
