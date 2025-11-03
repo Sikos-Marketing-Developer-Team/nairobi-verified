@@ -217,7 +217,7 @@ const MerchantDashboard = () => {
             Welcome back, {dashboardData.merchant.businessName}!
           </h1>
           <p className="text-gray-600">
-            Manage your business profile, products, and customer engagement
+            {/* Manage your business profile, products, and customer engagement */}
           </p>
         </div>
 

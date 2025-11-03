@@ -239,6 +239,8 @@ const MerchantRegister = () => {
           showErrorToast('Business name is required!');
           return false;
         }
+        // COMMENTED OUT: Email and password validation - Using Google OAuth
+        /*
         if (!formData.email.trim()) {
           showErrorToast('Email is required');
           return false;
@@ -260,6 +262,7 @@ const MerchantRegister = () => {
           showErrorToast('Passwords do not match');
           return false;
         }
+        */
         return true;
       
       case 2:
@@ -732,6 +735,8 @@ const MerchantRegister = () => {
                     />
                   </div>
                   
+                  {/* COMMENTED OUT: Email and Password fields - Using Google OAuth only for merchant login */}
+                  {/* 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -761,6 +766,7 @@ const MerchantRegister = () => {
                   </div>
 
                   {/* Password Section with Requirements */}
+                  {/*
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -838,6 +844,7 @@ const MerchantRegister = () => {
                     </div>
 
                     {/* Password Requirements */}
+                    {/*
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">
                         Password Requirements:
@@ -863,6 +870,7 @@ const MerchantRegister = () => {
                       </div>
                       
                       {/* Current Errors Display */}
+                      {/*
                       {hasInteractedWithPassword && passwordErrors.length > 0 && (
                         <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded">
                           <p className="text-red-700 text-xs font-medium mb-1">
@@ -877,6 +885,7 @@ const MerchantRegister = () => {
                       )}
                       
                       {/* Password Strength Indicator */}
+                      {/*
                       {formData.password && (
                         <div className="mt-3">
                           <div className="flex justify-between items-center mb-1">
@@ -908,6 +917,26 @@ const MerchantRegister = () => {
                           </div>
                         </div>
                       )}
+                    </div>
+                  </div>
+                  */}
+
+                  {/* Google Sign In for Merchant Registration */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <div className="text-center space-y-4">
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-semibold text-blue-900">Continue with Google</h3>
+                        <p className="text-sm text-blue-700">
+                          We use Google Sign-In to secure your merchant account and streamline the registration process.
+                        </p>
+                      </div>
+                      
+                      <div className="flex justify-center">
+                        {/* Google Sign In button will be shown here */}
+                        <div className="bg-white rounded-lg p-4 shadow-sm">
+                          <p className="text-xs text-gray-600 mb-2">After completing this form, you'll sign in with Google to finalize your registration</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

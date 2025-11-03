@@ -216,6 +216,8 @@ const MerchantAuth = () => {
               </div>
             )}
 
+            {/* COMMENTED OUT: Email/Password login - Using Google OAuth only */}
+            {/* 
             <form onSubmit={handleSubmit} className="space-y-2" noValidate>
               <div className="relative">
                 <Mail className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -310,6 +312,13 @@ const MerchantAuth = () => {
                     Or continue with
                   </span>
                 </div>
+              </div>
+            */}
+
+            {/* Google Sign In - Primary merchant login method */}
+            <div className="space-y-3">
+              <div className="text-center mb-4">
+                <p className="text-sm text-gray-600">Sign in with your Google account to continue</p>
               </div>
               <div className="w-full mt-3">
                 {googleLoading ? (
