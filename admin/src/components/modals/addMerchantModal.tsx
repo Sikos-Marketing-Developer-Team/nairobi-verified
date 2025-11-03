@@ -247,23 +247,50 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
     setIsLoading(true);
     
     try {
-      // Prepare data matching backend requirements EXACTLY
-      const merchantData = {
-        businessName: formData.businessName.trim(),
-        email: formData.email.trim().toLowerCase(),
-        phone: formData.phone.trim(),
-        businessType: formData.businessType,           // REQUIRED
-        description: formData.description.trim(),      // REQUIRED
-        address: formData.address.trim(),              // REQUIRED
-        location: formData.location.trim(),            // REQUIRED
-        website: formData.website.trim() || undefined,
-        yearEstablished: formData.yearEstablished ? parseInt(formData.yearEstablished) : undefined,
-        autoVerify: formData.autoVerify
-      };
-
-      console.log('📤 Submitting merchant data:', merchantData);
+      // Prepare FormData for file uploads
+      const formDataToSend = new FormData();
       
-      await onAddMerchant(merchantData);
+      // Add merchant data
+      formDataToSend.append('businessName', formData.businessName.trim());
+      formDataToSend.append('email', formData.email.trim().toLowerCase());
+      formDataToSend.append('phone', formData.phone.trim());
+      formDataToSend.append('businessType', formData.businessType);
+      formDataToSend.append('description', formData.description.trim());
+      formDataToSend.append('address', formData.address.trim());
+      formDataToSend.append('location', formData.location.trim());
+      if (formData.website.trim()) {
+        formDataToSend.append('website', formData.website.trim());
+      }
+      if (formData.yearEstablished) {
+        formDataToSend.append('yearEstablished', formData.yearEstablished);
+      }
+      formDataToSend.append('autoVerify', formData.autoVerify.toString());
+
+      // Add products if any
+      if (formData.products.length > 0) {
+        const productsData = formData.products.map((product, index) => ({
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          price: parseFloat(product.price) || 0,
+          originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price) || 0,
+          stockQuantity: parseInt(product.stockQuantity) || 0,
+          imageCount: product.images.length
+        }));
+        
+        formDataToSend.append('products', JSON.stringify(productsData));
+
+        // Add product images
+        formData.products.forEach((product, productIndex) => {
+          product.images.forEach((image, imageIndex) => {
+            formDataToSend.append(`product_${productIndex}_image_${imageIndex}`, image);
+          });
+        });
+      }
+
+      console.log('📤 Submitting merchant with products...');
+      
+      await onAddMerchant(formDataToSend);
       handleClose();
     } catch (error: any) {
       console.error('❌ Error adding merchant:', error);
@@ -278,6 +305,11 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
   };
 
   const handleClose = (): void => {
+    // Cleanup image preview URLs
+    formData.products.forEach(product => {
+      product.imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    });
+
     setFormData({
       businessName: '',
       email: '',
@@ -288,9 +320,11 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
       location: '',
       website: '',
       yearEstablished: '',
-      autoVerify: false
+      autoVerify: false,
+      products: []
     });
     setErrors({});
+    setShowProductSection(false);
     onClose();
   };
 
