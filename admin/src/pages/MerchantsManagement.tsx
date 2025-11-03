@@ -161,6 +161,7 @@ const MerchantsManagement: React.FC = () => {
 
   const loadMerchants = useCallback(async (showRefreshing = false) => {
   try {
+    console.log('📋 Loading merchants...');
     if (showRefreshing) {
       setRefreshing(true);
     } else {
@@ -168,15 +169,25 @@ const MerchantsManagement: React.FC = () => {
     }
     
     // ✅ Remove limit - let backend return all merchants
-    const response = await adminAPI.getMerchants(); 
+    const response = await adminAPI.getMerchants();
+    console.log('📋 Response received:', response.data);
+    
     if (response.data.success) {
       // Filter out any null/undefined merchants and ensure data integrity
-      const validMerchants = (response.data.merchants || []).filter(m => m && m._id);
+      const validMerchants = (response.data.merchants || []).filter((m: any) => m && m._id);
+      console.log('📋 Valid merchants:', validMerchants.length);
       setMerchants(validMerchants);
+    } else {
+      console.warn('⚠️ Response not successful:', response.data);
     }
   } catch (error: any) {
     console.error('Failed to load merchants:', error);
-    toast.error('Failed to load merchants');
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    toast.error(error.response?.data?.message || 'Failed to load merchants');
   } finally {
     requestAnimationFrame(() => {
       setIsLoading(false);
