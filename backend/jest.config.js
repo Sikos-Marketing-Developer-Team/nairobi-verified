@@ -5,74 +5,60 @@
 
 /** @type {import('jest').Config} */
 const config = {
-  // Automatically clear mock calls, instances, contexts and results before every test
+  // Test environment
+  testEnvironment: "node",
+
+  // Automatically clear mock calls
   clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true,
 
-  // Indicates whether the coverage information should be collected while executing the test
-  collectCoverage: false, // Set to true when you want coverage reports
-
-  // The directory where Jest should output its coverage files
+  // Coverage settings
+  collectCoverage: false,
   coverageDirectory: "coverage",
-
-  // An array of regexp pattern strings used to skip coverage collection
   coveragePathIgnorePatterns: [
     "/node_modules/",
     "/tests/",
     "/coverage/"
   ],
-
-  // Indicates which provider should be used to instrument code for coverage
   coverageProvider: "v8",
 
-  // The test environment that will be used for testing
-  testEnvironment: "node",
-
-  // The glob patterns Jest uses to detect test files
+  // Test file patterns
   testMatch: [
     "**/tests/**/*.js",
     "**/?(*.)+(spec|test).js"
   ],
 
-  // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   testPathIgnorePatterns: [
     "/node_modules/",
     "/coverage/"
   ],
 
-  // Indicates whether each individual test should be reported during the run
+  // Verbose output
   verbose: true,
 
-  // Automatically detect open handles (useful for finding why tests hang)
+  // Handle detection and timeouts
   detectOpenHandles: true,
-
-  // Force exit after all tests complete (useful for cleanup issues)
   forceExit: true,
+  testTimeout: 30000,
 
-  // The maximum amount of time a test can run before being considered slow
-  testTimeout: 30000, // 30 seconds
-
-  // Setup files to run before tests
-  setupFilesAfterEnv: [],
-
-  // Transform files (if needed for ES6/TypeScript)
-  transform: {},
-
-  // Module directories to search
+  // Module resolution
   moduleDirectories: [
     "node_modules",
     "."
   ],
 
-  // Global setup/teardown (if needed)
-  // globalSetup: undefined,
-  // globalTeardown: undefined,
-
-  // Ignore patterns for watch mode
+  // Ignore watch patterns
   watchPathIgnorePatterns: [
     "/node_modules/",
     "/coverage/",
     "/.git/"
-  ]
+  ],
+
+  // Explicitly set the test environment options
+  testEnvironmentOptions: {
+    NODE_ENV: 'test'
+  }
 };
 
 module.exports = config;
