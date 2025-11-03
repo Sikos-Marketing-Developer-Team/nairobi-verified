@@ -775,7 +775,10 @@ exports.createMerchantWithProducts = async (req, res) => {
     }
 
     const Product = require('../models/Product');
-    const { cloudinary } = require('../services/cloudinaryService');
+    const { cloudinary, ensureConfigured } = require('../services/cloudinaryService');
+    
+    // Ensure Cloudinary is configured before using it
+    ensureConfigured();
 
     console.log('📦 Creating merchant with products...');
     console.log('Request body keys:', Object.keys(req.body));
@@ -855,7 +858,8 @@ exports.createMerchantWithProducts = async (req, res) => {
             productImages.push(uploadResult.secure_url);
             console.log(`✅ Image uploaded successfully: ${uploadResult.secure_url}`);
           } catch (uploadError) {
-            console.error(`Error uploading image:`, uploadError.message);
+            console.error(`Error uploading image:`, uploadError);
+            console.error('Upload error details:', JSON.stringify(uploadError, null, 2));
           }
         }
 

@@ -3,12 +3,26 @@ const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { cloudinaryUploadCounter, cloudinaryDeleteCounter, cloudinaryOperationDuration } = require('../utils/metrics'); // MONITORING: Import metrics
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Lazy configuration function
+let configured = false;
+function ensureConfigured() {
+  if (!configured) {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+    
+    // Debug: Log config (without exposing secret)
+    console.log('🔧 Cloudinary configured:', {
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY ? '✓ Set' : '✗ Missing',
+      api_secret: process.env.CLOUDINARY_API_SECRET ? '✓ Set' : '✗ Missing'
+    });
+    
+    configured = true;
+  }
+}
 
 // Create storage for different types of uploads
 const createCloudinaryStorage = (folder, allowedFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp']) => {
@@ -92,6 +106,7 @@ const documentUpload = multer({
 
 // Helper functions
 const deleteFromCloudinary = async (publicId) => {
+  ensureConfigured(); // Ensure Cloudinary is configured
   const end = cloudinaryOperationDuration.startTimer(); // MONITORING: Start timer
   try {
     const result = await cloudinary.uploader.destroy(publicId);
@@ -106,6 +121,7 @@ const deleteFromCloudinary = async (publicId) => {
 };
 
 const uploadToCloudinary = async (filePath, options = {}) => {
+  ensureConfigured(); // Ensure Cloudinary is configured
   const end = cloudinaryOperationDuration.startTimer(); // MONITORING: Start timer
   try {
     const result = await cloudinary.uploader.upload(filePath, {
@@ -133,6 +149,7 @@ const getOptimizedImageUrl = (publicId, options = {}) => {
 
 module.exports = {
   cloudinary,
+  ensureConfigured,
   productImageUpload,
   merchantImageUpload,
   documentUpload,
