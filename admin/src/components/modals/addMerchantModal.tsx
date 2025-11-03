@@ -69,6 +69,21 @@ const BUSINESS_TYPES = [
   'Other'
 ];
 
+const PRODUCT_CATEGORIES = [
+  'Electronics',
+  'Fashion & Clothing',
+  'Food & Beverages',
+  'Home & Garden',
+  'Sports & Outdoors',
+  'Beauty & Personal Care',
+  'Books & Stationery',
+  'Toys & Games',
+  'Automotive',
+  'Health & Wellness',
+  'Services',
+  'Other'
+];
+
 const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalProps) => {
   const [formData, setFormData] = useState<MerchantFormData>({
     businessName: '',
@@ -80,7 +95,8 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
     location: '',
     website: '',
     yearEstablished: '',
-    autoVerify: false
+    autoVerify: false,
+    products: []
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
