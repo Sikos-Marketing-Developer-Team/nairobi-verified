@@ -891,12 +891,6 @@ exports.createMerchantWithProducts = async (req, res) => {
     });
   }
 };
-    res.status(400).json({ 
-      success: false, 
-      error: error.message || 'Failed to create merchant account'
-    });
-  }
-};
 
 // @desc    Bulk create merchants (OPTIMIZED WITH SERVICE)
 // @route   POST /api/merchants/admin/bulk-create

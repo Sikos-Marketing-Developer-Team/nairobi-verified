@@ -1,6 +1,6 @@
 // components/modals/AddMerchantModal.tsx - ENHANCED VERSION WITH PRODUCTS
 import { useState, ChangeEvent, FormEvent } from 'react';
-import { X, Store, MapPin, Globe, Calendar, Package, Plus, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Store, MapPin, Globe, Calendar, Package, Plus, Trash2, Upload } from 'lucide-react';
 
 interface Merchant {
   _id: string;
