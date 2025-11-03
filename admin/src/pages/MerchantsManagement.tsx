@@ -273,7 +273,9 @@ const MerchantsManagement: React.FC = () => {
       }
     });
 
-    setFilteredMerchants(filtered);
+    // Final safety check: remove any null/undefined merchants before setting state
+    const safeFiltered = filtered.filter((m: any) => m && m._id);
+    setFilteredMerchants(safeFiltered);
   }, [merchants, searchTerm, filterStatus, sortBy, sortOrder]);
 
   // Pagination handlers
@@ -382,8 +384,8 @@ const MerchantsManagement: React.FC = () => {
 
       // Update local state
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === editingMerchant._id ? editingMerchant : merchant
-      ));
+        merchant && merchant._id === editingMerchant._id ? editingMerchant : merchant
+      ).filter(m => m && m._id)); // Clean up any undefined
       
       setEditingMerchant(null);
       toast.success('Merchant status updated successfully!');
@@ -572,7 +574,8 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     if (selectedMerchants.length === currentMerchants.length) {
       setSelectedMerchants([]);
     } else {
-      setSelectedMerchants(currentMerchants.map(m => m._id));
+      // Filter out any undefined merchants before mapping
+      setSelectedMerchants(currentMerchants.filter(m => m && m._id).map(m => m._id));
     }
   };
 
@@ -934,7 +937,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         ) : (
           <>
             <ul className="divide-y divide-gray-200">
-              {currentMerchants.map((merchant, index) => (
+              {currentMerchants.filter(m => m && m._id).map((merchant, index) => (
                 <li 
                   key={merchant._id} 
                   className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
