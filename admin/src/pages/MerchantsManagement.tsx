@@ -878,7 +878,7 @@ const MerchantsManagement: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        {stats.map((stat, index) => (
+        {stats.map((stat) => (
           <div 
             key={stat.name} 
             className="bg-white p-4 md:p-6 rounded-lg shadow-sm border hover:shadow-md transition-all duration-200"
