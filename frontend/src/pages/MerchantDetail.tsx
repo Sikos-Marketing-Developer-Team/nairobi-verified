@@ -1453,7 +1453,7 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
 
 // Report Modal Component (keep the same as before)
 const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
-  merchant: any;
+  merchant: Merchant;
   onClose: () => void;
   onReportSubmitted: () => void;
 }) => {
