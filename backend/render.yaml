@@ -1,0 +1,159 @@
+services:
+  - type: web
+    name: nairobi-verified-api
+    env: node
+    region: frankfurt
+    plan: starter
+    branch: main
+    buildCommand: npm ci
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    
+    envVars:
+      - key: NODE_ENV
+        value: production
+      
+      - key: PORT
+        value: 5000
+      
+      - key: JWT_EXPIRE
+        value: 7d
+      
+      - key: ENABLE_SECURE_COOKIES
+        value: true
+      
+      - key: UV_THREADPOOL_SIZE
+        value: 128
+      
+      - key: SKIP_SESSION
+        value: false
+      
+      - key: DISABLE_RATE_LIMIT
+        value: false
+      
+      # Secrets - set in Render dashboard
+      - key: MONGODB_URI
+        sync: false
+      
+      - key: JWT_SECRET
+        sync: false
+      
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      
+      - key: EMAIL_SERVICE
+        sync: false
+      
+      - key: EMAIL_USER
+        sync: false
+      
+      - key: EMAIL_PASS
+        sync: false
+      
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      
+      - key: CALLBACK_URL
+        sync: false
+      
+      - key: FRONTEND_URL
+        sync: false
+      
+      - key: ADMIN_URL
+        sync: false
+```
+
+---
+
+# 🔧 COMPLETE SETUP GUIDE
+
+## Step 1: Get Render Deploy Hook URL
+
+1. Go to [https://dashboard.render.com](https://dashboard.render.com)
+2. Click on your **nairobi-verified-zkl3** service
+3. Click **"Settings"** in the left sidebar
+4. Scroll down to **"Build & Deploy"** section
+5. Find **"Deploy Hook"**
+6. Click **"Create Deploy Hook"**
+7. Give it a name: `GitHub Actions Production Deploy`
+8. **Copy the generated URL** (looks like: `https://api.render.com/deploy/srv-xxxxx?key=yyyyy`)
+9. Save this URL - you'll need it for GitHub secrets
+
+## Step 2: (Optional) Create Staging Environment on Render
+
+If you want a staging environment:
+
+1. In Render Dashboard, click **"New +"** → **"Web Service"**
+2. Connect your GitHub repository
+3. Configure:
+   - **Name**: `nairobi-verified-api-staging`
+   - **Branch**: `develop` (create this branch if you don't have it)
+   - **Build Command**: `npm ci`
+   - **Start Command**: `node server.js`
+   - **Plan**: Free or Starter
+4. Add all the same environment variables as production
+5. Set `NODE_ENV=staging`
+6. After creation, go to Settings → Deploy Hook
+7. Create a deploy hook for staging and copy the URL
+
+## Step 3: Add GitHub Secrets
+
+1. Go to your GitHub repository
+2. Click **"Settings"** (top navigation)
+3. In left sidebar: **"Secrets and variables"** → **"Actions"**
+4. Click **"New repository secret"**
+
+### Add These Secrets:
+
+#### Secret #1: Production Deploy Hook
+```
+Name: RENDER_DEPLOY_HOOK_URL
+Value: [Paste the deploy hook URL from Step 1]
+```
+Click **"Add secret"**
+
+#### Secret #2: Test Database (Optional but Recommended)
+```
+Name: TEST_MONGODB_URI
+Value: mongodb+srv://judekimathii:Kamundis@nairobiverified.mvbwr.mongodb.net/nairobi-verified-test
+```
+**Note**: Create a separate test database or use the same one. For CI, I recommend creating `nairobi-verified-test` database in Atlas.
+
+Click **"Add secret"**
+
+#### Secret #3: Staging Deploy Hook (Only if you created staging)
+```
+Name: RENDER_STAGING_DEPLOY_HOOK_URL
+Value: [Paste the staging deploy hook URL from Step 2]
+```
+Click **"Add secret"**
+
+### Your GitHub Secrets Should Look Like:
+```
+RENDER_DEPLOY_HOOK_URL           → https://api.render.com/deploy/srv-xxxxx?key=yyyyy
+TEST_MONGODB_URI                 → mongodb+srv://...nairobi-verified-test
+RENDER_STAGING_DEPLOY_HOOK_URL   → https://api.render.com/deploy/srv-zzzzz?key=aaaaa (optional)
+```
+
+## Step 4: Create Test Database in MongoDB Atlas (Recommended)
+
+1. Go to [MongoDB Atlas](https://cloud.mongodb.com)
+2. Click **"Browse Collections"**
+3. Click **"+ Create Database"**
+4. Database name: `nairobi-verified-test`
+5. Collection name: `users`
+6. Click **"Create"**
+
+Your test connection string will be:
+```
+mongodb+srv://judekimathii:Kamundis@nairobiverified.mvbwr.mongodb.net/nairobi-verified-test

@@ -19,57 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '../lib/api';
-
-interface FlashSaleProduct {
-  productId: string;
-  name: string;
-  originalPrice: number;
-  salePrice: number;
-  discountPercentage: number;
-  image: string;
-  merchant: string;
-  merchantId: string;
-  stockQuantity: number;
-  soldQuantity: number;
-  maxQuantityPerUser: number;
-}
-
-interface FlashSale {
-  _id: string;
-  title: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-  products: FlashSaleProduct[];
-  totalViews: number;
-  totalSales: number;
-  createdAt: string;
-  updatedAt: string;
-  isCurrentlyActive?: boolean;
-}
-
-interface FlashSaleFormData {
-  title: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  products: FlashSaleProduct[];
-}
-
-interface Product {
-  _id: string;
-  name: string;
-  price: number;
-  image: string;
-  merchant: {
-    _id: string;
-    businessName: string;
-  };
-  stock: number;
-  category: string;
-  isActive: boolean;
-}
+import { FlashSaleProduct, FlashSale, FlashSaleFormData, Product } from '@/interfaces/FlashSalesManagement';
 
 const FlashSalesManagement: React.FC = () => {
   const [flashSales, setFlashSales] = useState<FlashSale[]>([]);

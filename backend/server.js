@@ -291,6 +291,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Routes
+app.use('/api/health', require('./routes/health'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/auth/admin', require('./routes/adminAuth'));
 app.use('/api/admin/dashboard', require('./routes/adminDashboard'));

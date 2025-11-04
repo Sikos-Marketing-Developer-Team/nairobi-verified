@@ -207,3 +207,31 @@ html {
   transform: translateY(-20px);
   transition: opacity 200ms ease-in, transform 200ms ease-in;
 }
+
+/* Smooth transitions for pagination */
+.pagination-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.pagination-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Modal animations */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-modal-slide {
+  animation: modalSlideIn 0.3s ease-out;
+}
