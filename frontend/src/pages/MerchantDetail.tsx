@@ -216,9 +216,9 @@ const MerchantDetail = () => {
       if (isAuthenticated && user) {
         try {
           const favoritesRes = await favoritesAPI.getFavorites();
-          const favorites = favoritesRes.data.data;
-          setIsFavorite(favorites.some((fav: any) => 
-            fav._id === id || fav.toString() === id
+          const favorites = favoritesRes.data.data as Array<{ _id: string } | string>;
+          setIsFavorite(favorites.some((fav) => 
+            (typeof fav === 'string' ? fav : fav._id) === id || fav.toString() === id
           ));
         } catch (error) {
           console.error('Error checking favorites:', error);
