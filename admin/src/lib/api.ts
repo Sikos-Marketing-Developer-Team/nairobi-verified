@@ -203,7 +203,18 @@ export const adminAPI = {
   // Merchant management
   getMerchants: (params?: any) => api.get('/admin/dashboard/merchants', { params }),
   getMerchant: (merchantId: string) => api.get(`/admin/dashboard/merchants/${merchantId}`),
-  updateMerchant: (merchantId: string, merchantData: any) => api.put(`/admin/dashboard/merchants/${merchantId}`, merchantData),
+  updateMerchant: (merchantId: string, merchantData: any) => {
+    // Check if merchantData is FormData (contains products with images)
+    if (merchantData instanceof FormData) {
+      return api.put(`/admin/dashboard/merchants/${merchantId}/with-products`, merchantData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+    }
+    // Regular merchant update without products
+    return api.put(`/admin/dashboard/merchants/${merchantId}`, merchantData);
+  },
   deleteMerchant: (merchantIdOrIds: string | string[]) => {
     // Handle both single and bulk delete
     if (Array.isArray(merchantIdOrIds)) {
