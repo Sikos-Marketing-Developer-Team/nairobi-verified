@@ -260,10 +260,11 @@ const MerchantDetail = () => {
           description: `${merchant.businessName} has been added to your favorites`,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to update favorites',
+        description: err.response?.data?.error || 'Failed to update favorites',
         variant: 'destructive',
       });
     } finally {
@@ -877,7 +878,7 @@ const MerchantDetail = () => {
                     <CardContent>
                       {merchant.services?.length > 0 ? (
                         <ul className="space-y-4">
-                          {merchant.services.map((service: any, index: number) => (
+                          {merchant.services.map((service, index: number) => (
                             <li key={index} className="flex justify-between items-center border-b pb-2">
                               <div>
                                 <p className="font-medium">{service.name}</p>
@@ -905,7 +906,7 @@ const MerchantDetail = () => {
                         </div>
                       ) : products.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {products.map((product: any) => (
+                          {products.map((product) => (
                             <div key={product._id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow group">
                               {/* Product Image - Clickable */}
                               <Link to={`/product/${product._id}`}>
