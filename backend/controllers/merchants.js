@@ -914,6 +914,169 @@ exports.createMerchantWithProducts = async (req, res) => {
   }
 };
 
+// @desc    Update merchant with products by admin (WITH FILE UPLOADS)
+// @route   PUT /api/merchants/admin/:id/update-with-products
+// @access  Private/Admin
+exports.updateMerchantWithProducts = async (req, res) => {
+  try {
+    // AUTHORIZATION CHECK - Support both session (req.user) and JWT admin auth (req.admin)
+    const adminUser = req.admin || req.user;
+    const isAdmin = adminUser && (adminUser.role === 'admin' || adminUser.role === 'super_admin');
+    
+    if (!isAdmin) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ 
+        success: false, 
+        error: 'Access denied. Admin privileges required.' 
+      });
+    }
+
+    const Product = require('../models/Product');
+    const Merchant = require('../models/Merchant');
+    const { cloudinary, ensureConfigured } = require('../services/cloudinaryService');
+    
+    // Ensure Cloudinary is configured before using it
+    ensureConfigured();
+
+    const merchantId = req.params.id;
+    console.log(`📝 Updating merchant ${merchantId} with products...`);
+    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Files received:', req.files ? req.files.length : 'none');
+
+    // Find existing merchant
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Update merchant data
+    const updateData = {
+      businessName: req.body.businessName || merchant.businessName,
+      ownerName: req.body.ownerName || merchant.ownerName,
+      email: req.body.email || merchant.email,
+      phone: req.body.phone || merchant.phone,
+      businessType: req.body.businessType || merchant.businessType,
+      description: req.body.description || merchant.description,
+      address: req.body.address || merchant.address,
+      location: req.body.location || merchant.location,
+      website: req.body.website || merchant.website,
+      yearEstablished: req.body.yearEstablished || merchant.yearEstablished
+    };
+
+    // Update status fields if provided
+    if (req.body.verified !== undefined) {
+      updateData.verified = req.body.verified === 'true' || req.body.verified === true;
+    }
+    if (req.body.isActive !== undefined) {
+      updateData.isActive = req.body.isActive === 'true' || req.body.isActive === true;
+    }
+    if (req.body.featured !== undefined) {
+      updateData.featured = req.body.featured === 'true' || req.body.featured === true;
+    }
+
+    // Update merchant
+    Object.assign(merchant, updateData);
+    await merchant.save();
+    console.log('✅ Merchant updated:', merchant._id);
+
+    // Handle products if provided
+    let createdProducts = [];
+    if (req.body.products) {
+      const productsData = JSON.parse(req.body.products);
+      console.log(`📦 Creating ${productsData.length} new products...`);
+
+      // Group files by product index
+      const filesByProduct = {};
+      if (req.files && Array.isArray(req.files)) {
+        req.files.forEach(file => {
+          // Parse fieldname like "product_0_image_0"
+          const match = file.fieldname.match(/product_(\d+)_image_(\d+)/);
+          if (match) {
+            const productIndex = parseInt(match[1]);
+            if (!filesByProduct[productIndex]) {
+              filesByProduct[productIndex] = [];
+            }
+            filesByProduct[productIndex].push(file);
+          }
+        });
+      }
+
+      for (let i = 0; i < productsData.length; i++) {
+        const productData = productsData[i];
+        
+        // Upload product images
+        const productImages = [];
+        const productFiles = filesByProduct[i] || [];
+        
+        console.log(`Uploading ${productFiles.length} images for product ${i}...`);
+        
+        for (const imageFile of productFiles) {
+          try {
+            // Upload buffer to Cloudinary using upload_stream
+            const uploadResult = await new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                  folder: 'nairobi-verified/products',
+                  resource_type: 'image'
+                },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              uploadStream.end(imageFile.buffer);
+            });
+            
+            productImages.push(uploadResult.secure_url);
+            console.log(`✅ Image uploaded successfully: ${uploadResult.secure_url}`);
+          } catch (uploadError) {
+            console.error(`Error uploading image:`, uploadError);
+          }
+        }
+
+        // Create product
+        const product = await Product.create({
+          name: productData.name,
+          description: productData.description,
+          category: productData.category,
+          subcategory: productData.subcategory,
+          price: productData.price,
+          originalPrice: productData.originalPrice || productData.price,
+          stockQuantity: productData.stockQuantity || 0,
+          merchant: merchant._id,
+          merchantName: merchant.businessName,
+          images: productImages,
+          primaryImage: productImages[0] || '/placeholder-product.jpg',
+          isActive: true,
+          featured: false,
+          tags: []
+        });
+
+        createdProducts.push(product);
+        console.log(`✅ Product created: ${product.name} with ${productImages.length} images`);
+      }
+    }
+
+    // RETURN SUCCESS
+    res.status(200).json({
+      success: true,
+      data: merchant,
+      products: createdProducts,
+      message: `Merchant updated successfully. ${createdProducts.length} new product(s) added.`,
+      productsCreated: createdProducts.length
+    });
+
+  } catch (error) {
+    console.error('❌ updateMerchantWithProducts error:', error);
+    res.status(400).json({ 
+      success: false, 
+      error: error.message || 'Failed to update merchant with products'
+    });
+  }
+};
+
 // @desc    Bulk create merchants (OPTIMIZED WITH SERVICE)
 // @route   POST /api/merchants/admin/bulk-create
 // @access  Private/Admin

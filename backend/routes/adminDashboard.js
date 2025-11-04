@@ -28,7 +28,12 @@ const {
   verifyMerchant,
   
 } = require('../controllers/adminDashboard');
+const { 
+  createMerchantWithProducts,
+  updateMerchantWithProducts
+} = require('../controllers/merchants');
 const { protectAdmin, checkPermission } = require('../middleware/adminAuth');
+const { productImageUpload } = require('../services/cloudinaryService');
 
 const router = express.Router();
 
@@ -47,6 +52,8 @@ router.get('/export/:type', exportData);
 // Merchant management routes
 router.get('/merchants', checkPermission('merchants.read'), getMerchants);
 router.post('/merchants', checkPermission('merchants.write'), createMerchant);
+router.post('/merchants/with-products', checkPermission('merchants.write'), productImageUpload.any(), createMerchantWithProducts);
+router.put('/merchants/:id/with-products', checkPermission('merchants.write'), productImageUpload.any(), updateMerchantWithProducts);
 router.put('/merchants/:id/verify', checkPermission('merchants.approve'), verifyMerchant);
 router.put('/merchants/:id/status', checkPermission('merchants.approve'), updateMerchantStatus);
 // IMPORTANT: Bulk operations MUST come before parameterized routes to avoid matching conflicts
