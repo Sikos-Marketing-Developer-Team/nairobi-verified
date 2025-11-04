@@ -8,6 +8,8 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const connectDB = require('./config/db');
+
+// Deploy trigger: Added updateMerchantWithProducts endpoint - 2025-11-04
 const compression = require('compression');
 const { v4: uuidv4 } = require('uuid');
 const { client, webVitalsLCP, webVitalsCLS, webVitalsFID } = require('./utils/metrics');
