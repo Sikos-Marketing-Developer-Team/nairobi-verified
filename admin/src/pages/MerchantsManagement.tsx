@@ -377,50 +377,18 @@ const MerchantsManagement: React.FC = () => {
   };
 
   // UPDATE - Toggle featured status (FIXED with API call)
-const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean): Promise<void> => {
-  try {
-    const newFeaturedStatus = !currentFeatured;
-    
-    // Optimistic update - update UI immediately
-    setMerchants(prev => prev.map(merchant => 
-      merchant && merchant._id === merchantId 
-        ? { ...merchant, featured: newFeaturedStatus, updatedAt: new Date().toISOString() }
-        : merchant
-    ).filter(m => m && m._id));
-
-    // 🔑 FIXED: Call the backend API to persist the change
-    const response = await adminAPI.setFeaturedStatus(merchantId, newFeaturedStatus);
-    
-    if (response.data.success) {
-      toast.success(`Merchant ${newFeaturedStatus ? 'added to' : 'removed from'} featured list`);
-    } else {
-      throw new Error('Failed to update featured status');
-    }
-  } catch (error) {
-    console.error('Error toggling featured status:', error);
-    
-    // Revert on error
-    setMerchants(prev => prev.map(merchant => 
-      merchant && merchant._id === merchantId 
-        ? { ...merchant, featured: currentFeatured }
-        : merchant
-    ).filter(m => m && m._id));
-    
-    toast.error('Failed to update featured status');
-  }
-};
-
-  // UPDATE - Toggle featured status
   const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean): Promise<void> => {
     try {
       const newFeaturedStatus = !currentFeatured;
       
+      // Optimistic update - update UI immediately
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
+        merchant && merchant._id === merchantId 
           ? { ...merchant, featured: newFeaturedStatus, updatedAt: new Date().toISOString() }
           : merchant
-      ));
+      ).filter(m => m && m._id));
 
+      // 🔑 FIXED: Call the backend API to persist the change
       const response = await adminAPI.setFeaturedStatus(merchantId, newFeaturedStatus);
       
       if (response.data.success) {
@@ -430,11 +398,14 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
       }
     } catch (error) {
       console.error('Error toggling featured status:', error);
+      
+      // Revert on error
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
+        merchant && merchant._id === merchantId 
           ? { ...merchant, featured: currentFeatured }
           : merchant
-      ));
+      ).filter(m => m && m._id));
+      
       toast.error('Failed to update featured status');
     }
   };
@@ -468,45 +439,6 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
       return;
     }
 
-
-  try {
-    switch (action) {
-      case 'verify':
-        await adminAPI.bulkVerifyMerchants(selectedMerchants);
-        toast.success(`${selectedMerchants.length} merchants verified successfully`);
-        break;
-      case 'activate':
-        await adminAPI.updateMerchantStatus(selectedMerchants, true);
-        toast.success(`${selectedMerchants.length} merchants activated successfully`);
-        break;
-      case 'deactivate':
-        await adminAPI.updateMerchantStatus(selectedMerchants, false);
-        toast.success(`${selectedMerchants.length} merchants deactivated successfully`);
-        break;
-      case 'feature':
-        // 🔑 FIXED: Use API instead of local state only
-        await adminAPI.bulkSetFeatured(selectedMerchants, true);
-        setMerchants(prev => prev.map(merchant => 
-          merchant && selectedMerchants.includes(merchant._id) 
-            ? { ...merchant, featured: true, updatedAt: new Date().toISOString() }
-            : merchant
-        ).filter(m => m && m._id));
-        toast.success(`${selectedMerchants.length} merchants featured successfully`);
-        break;
-      case 'unfeature':
-        // 🔑 FIXED: Use API instead of local state only
-        await adminAPI.bulkSetFeatured(selectedMerchants, false);
-        setMerchants(prev => prev.map(merchant => 
-          merchant && selectedMerchants.includes(merchant._id) 
-            ? { ...merchant, featured: false, updatedAt: new Date().toISOString() }
-            : merchant
-        ).filter(m => m && m._id));
-        toast.success(`${selectedMerchants.length} merchants unfeatured successfully`);
-        break;
-      case 'delete':
-        await adminAPI.deleteMerchant(selectedMerchants);
-        toast.success(`${selectedMerchants.length} merchants deleted successfully`);
-        break;
     try {
       switch (action) {
         case 'verify':
@@ -522,21 +454,23 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
           toast.success(`${selectedMerchants.length} merchants deactivated successfully`);
           break;
         case 'feature':
+          // 🔑 FIXED: Use API instead of local state only
           await adminAPI.bulkSetFeatured(selectedMerchants, true);
           setMerchants(prev => prev.map(merchant => 
-            selectedMerchants.includes(merchant._id) 
+            merchant && selectedMerchants.includes(merchant._id) 
               ? { ...merchant, featured: true, updatedAt: new Date().toISOString() }
               : merchant
-          ));
+          ).filter(m => m && m._id));
           toast.success(`${selectedMerchants.length} merchants featured successfully`);
           break;
         case 'unfeature':
+          // 🔑 FIXED: Use API instead of local state only
           await adminAPI.bulkSetFeatured(selectedMerchants, false);
           setMerchants(prev => prev.map(merchant => 
-            selectedMerchants.includes(merchant._id) 
+            merchant && selectedMerchants.includes(merchant._id) 
               ? { ...merchant, featured: false, updatedAt: new Date().toISOString() }
               : merchant
-          ));
+          ).filter(m => m && m._id));
           toast.success(`${selectedMerchants.length} merchants unfeatured successfully`);
           break;
         case 'delete':
