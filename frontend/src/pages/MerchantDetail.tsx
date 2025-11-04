@@ -4,7 +4,7 @@ import {
   Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, 
   Image, MessageSquare, AlertCircle, Loader2, X, Send, 
   Facebook, Instagram, Globe, Map, Twitter, Film, Copy, Share2,
-  Youtube, Linkedin
+  Youtube, Linkedin, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -53,6 +53,7 @@ const MerchantDetail = () => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   // SEO and Data Fetching
   useEffect(() => {
@@ -278,6 +279,27 @@ const MerchantDetail = () => {
       return;
     }
     setShowReportModal(true);
+  };
+
+  // Image gallery handlers
+  const handleImageClick = (index: number) => {
+    setSelectedImageIndex(index);
+  };
+
+  const handleNextImage = () => {
+    if (selectedImageIndex !== null && merchant?.gallery) {
+      setSelectedImageIndex((selectedImageIndex + 1) % merchant.gallery.length);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (selectedImageIndex !== null && merchant?.gallery) {
+      setSelectedImageIndex((selectedImageIndex - 1 + merchant.gallery.length) % merchant.gallery.length);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setSelectedImageIndex(null);
   };
 
   // Format business hours using utility functions
@@ -905,26 +927,88 @@ const MerchantDetail = () => {
                 <Card>
                   <CardHeader>
                     <h2 className="text-2xl font-bold text-gray-900">Photo Gallery</h2>
+                    <p className="text-gray-600 mt-2">
+                      {merchant.gallery?.length || 0} photos showcasing {merchant.businessName}'s work and premises
+                    </p>
                   </CardHeader>
                   <CardContent>
-                    <Carousel className="w-full">
-                      <CarouselContent>
-                        {merchant.gallery?.map((image: string, index: number) => (
-                          <CarouselItem key={index}>
-                            <figure className="aspect-square overflow-hidden rounded-lg">
+                    {merchant.gallery && merchant.gallery.length > 0 ? (
+                      <div className="space-y-6">
+                        {/* Horizontal Scrollable Carousel */}
+                        <div className="relative">
+                          <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide scroll-smooth">
+                            {merchant.gallery.map((image: string, index: number) => (
+                              <div
+                                key={index}
+                                className="flex-shrink-0 w-64 h-64 rounded-lg overflow-hidden cursor-pointer group relative"
+                                onClick={() => handleImageClick(index)}
+                              >
+                                <img
+                                  src={image}
+                                  alt={`${merchant.businessName} gallery image ${index + 1}`}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  loading="lazy"
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Scroll Indicators */}
+                          <div className="flex justify-center mt-4 space-x-2">
+                            {merchant.gallery.map((_, index) => (
+                              <button
+                                key={index}
+                                className="w-2 h-2 rounded-full bg-gray-300 hover:bg-gray-400 transition-colors"
+                                aria-label={`Go to image ${index + 1}`}
+                                onClick={() => {
+                                  const container = document.querySelector('.overflow-x-auto');
+                                  const item = document.querySelector(`[data-image-index="${index}"]`);
+                                  if (container && item) {
+                                    container.scrollTo({
+                                      left: (item as HTMLElement).offsetLeft - container.clientWidth / 2 + 128,
+                                      behavior: 'smooth'
+                                    });
+                                  }
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Grid View for Smaller Screens */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {merchant.gallery.slice(0, 6).map((image: string, index: number) => (
+                            <div
+                              key={index}
+                              className="aspect-square rounded-lg overflow-hidden cursor-pointer group relative"
+                              onClick={() => handleImageClick(index)}
+                            >
                               <img
                                 src={image}
                                 alt={`${merchant.businessName} gallery image ${index + 1}`}
-                                className="w-full h-full object-cover hover:scale-110 transition-transform duration-300 cursor-pointer"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 loading="lazy"
                               />
-                            </figure>
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                      <CarouselPrevious />
-                      <CarouselNext />
-                    </Carousel>
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />
+                              {index === 5 && merchant.gallery.length > 6 && (
+                                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                                  <span className="text-white font-semibold text-lg">
+                                    +{merchant.gallery.length - 6} more
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Image className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Photos Available</h3>
+                        <p className="text-gray-600">This merchant hasn't uploaded any photos yet.</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -979,6 +1063,54 @@ const MerchantDetail = () => {
           </section>
         </div>
       </main>
+
+      {/* Image Modal */}
+      {selectedImageIndex !== null && merchant?.gallery && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+          <div className="relative max-w-4xl max-h-full w-full">
+            {/* Close Button */}
+            <button
+              onClick={handleCloseModal}
+              className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2"
+              aria-label="Close image viewer"
+            >
+              <X className="h-6 w-6" />
+            </button>
+
+            {/* Navigation Buttons */}
+            {merchant.gallery.length > 1 && (
+              <>
+                <button
+                  onClick={handlePrevImage}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-3"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  onClick={handleNextImage}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-3"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              </>
+            )}
+
+            {/* Image */}
+            <img
+              src={merchant.gallery[selectedImageIndex]}
+              alt={`${merchant.businessName} gallery image ${selectedImageIndex + 1}`}
+              className="w-full h-full object-contain max-h-[80vh] rounded-lg"
+            />
+
+            {/* Image Counter */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black bg-opacity-50 px-3 py-1 rounded-full text-sm">
+              {selectedImageIndex + 1} / {merchant.gallery.length}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Enhanced Contact Modal */}
       {showContactModal && (
