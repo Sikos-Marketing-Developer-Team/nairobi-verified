@@ -182,10 +182,10 @@ const MerchantAuth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center px-4 py-4">
-      <div className="w-full max-w-[90vw] sm:max-w-sm space-y-4">
-        {/* Logo */}
-        <div className="text-center">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-4xl lg:ml-24">
+        {/* Centered Logo and Welcome Message */}
+        <div className="text-center mb-8">
           <div className="inline-block p-2 bg-white rounded-full shadow-sm mb-1">
             <div className="text-xl font-bold inter bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               NV
@@ -196,179 +196,220 @@ const MerchantAuth = () => {
             <span className="text-indigo-600"> Verified</span>
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Merchant Portal - Sign In
+            Merchant Portal - Welcome back!
           </p>
         </div>
 
-        <Card className="shadow-md border-t-2 border-blue-600">
-          <CardHeader className="space-y-0.5 py-3">
-            <CardTitle className="text-center text-lg font-semibold">
-              Merchant Sign In
-            </CardTitle>
-            <div className="text-center text-xs text-gray-500">
-              Access your business account
-            </div>
-          </CardHeader>
-          <CardContent className="px-4">
-            {errors.general && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800" role="alert">
-                {errors.general}
-              </div>
-            )}
-
-            {/* COMMENTED OUT: Email/Password login - Using Google OAuth only */}
-            {/* 
-            <form onSubmit={handleSubmit} className="space-y-2" noValidate>
-              <div className="relative">
-                <Mail className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="email"
-                  name="email"
-                  placeholder="Business Email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`pl-8 text-sm h-9 ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  required
-                  aria-describedby={errors.email ? "email-error" : undefined}
-                  aria-invalid={!!errors.email}
-                />
-                {errors.email && (
-                  <p id="email-error" className="text-red-500 text-xs mt-1" role="alert">
-                    {errors.email}
-                  </p>
-                )}
-              </div>
-
-              <div className="relative">
-                <Lock className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className={`pl-8 pr-8 text-sm h-9 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  required
-                  aria-describedby={errors.password ? "password-error" : undefined}
-                  aria-invalid={!!errors.password}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-                {errors.password && (
-                  <p id="password-error" className="text-red-500 text-xs mt-1" role="alert">
-                    {errors.password}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <label className="flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-600 h-3.5 w-3.5" 
-                  />
-                  <span className="ml-1 text-gray-600">Remember me</span>
-                </label>
-                <a 
-                  href="/auth/merchant/forgot-password" 
-                  className="text-blue-600 hover:text-blue-800 focus:outline-none focus:underline"
-                >
-                  Forgot password?
-                </a>
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm h-9"
-                disabled={localLoading || isLoading}
-                aria-live="polite"
-              >
-                {(localLoading || isLoading) ? (
-                  <>
-                    <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
-                    Signing In...
-                  </>
-                ) : (
-                  'Sign In as Merchant'
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-3">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-300" />
+        {/* Columns Container - Everything shifted right */}
+        <div className="flex flex-col lg:flex-row items-start justify-start gap-8 lg:gap-12 lg:ml-16">
+          {/* Merchant Auth Column - Primary focus */}
+          <div className="w-full max-w-sm">
+            <Card className="shadow-md border-t-2 border-blue-600">
+              <CardHeader className="space-y-0.5 py-3">
+                <CardTitle className="text-center text-lg font-semibold">
+                  Merchant Sign In
+                </CardTitle>
+                <div className="text-center text-xs text-gray-500">
+                  Access your business account
                 </div>
-                <div className="relative flex justify-center text-[10px] uppercase">
-                  <span className="bg-gradient-to-br from-blue-50 to-indigo-50 px-2 text-gray-500">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-            */}
+              </CardHeader>
+              <CardContent className="px-4">
+                {errors.general && (
+                  <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-800" role="alert">
+                    {errors.general}
+                  </div>
+                )}
 
-            {/* Google Sign In - Primary merchant login method */}
-            <div className="space-y-3">
-              <div className="text-center mb-4">
-                <p className="text-sm text-gray-600">Sign in with your Google account to continue</p>
-              </div>
-              <div className="w-full mt-3">
-                {googleLoading ? (
+                {/* Google Sign In - Primary merchant login method */}
+                <div className="space-y-3">
+                  <div className="text-center mb-2">
+                    <p className="text-xs text-gray-600">Sign in with your Google account to continue</p>
+                  </div>
+                  <div className="w-full">
+                    {googleLoading ? (
+                      <Button 
+                        variant="outline" 
+                        className="w-full bg-white hover:bg-gray-50 text-sm h-9"
+                        disabled={true}
+                      >
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
+                        Connecting...
+                      </Button>
+                    ) : (
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        useOneTap={false}
+                        theme="outline"
+                        size="large"
+                        width="100%"
+                        text="signin_with"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-gray-300" />
+                    </div>
+                    <div className="relative flex justify-center text-[10px] uppercase">
+                      <span className="bg-gradient-to-br from-blue-50 to-indigo-50 px-2 text-gray-500">
+                        Or use email
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-2 mt-3" noValidate>
+                  <div className="relative">
+                    <Mail className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      type="email"
+                      name="email"
+                      placeholder="Business Email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className={`pl-8 text-sm h-9 ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
+                      required
+                      aria-describedby={errors.email ? "email-error" : undefined}
+                      aria-invalid={!!errors.email}
+                    />
+                    {errors.email && (
+                      <p id="email-error" className="text-red-500 text-xs mt-1" role="alert">
+                        {errors.email}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <Lock className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      placeholder="Password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className={`pl-8 pr-8 text-sm h-9 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
+                      required
+                      aria-describedby={errors.password ? "password-error" : undefined}
+                      aria-invalid={!!errors.password}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                    {errors.password && (
+                      <p id="password-error" className="text-red-500 text-xs mt-1" role="alert">
+                        {errors.password}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <label className="flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-600 h-3.5 w-3.5" 
+                      />
+                      <span className="ml-1 text-gray-600">Remember me</span>
+                    </label>
+                    <a 
+                      href="/auth/merchant/forgot-password" 
+                      className="text-blue-600 hover:text-blue-800 focus:outline-none focus:underline"
+                    >
+                      Forgot password?
+                    </a>
+                  </div>
+
                   <Button 
-                    variant="outline" 
-                    className="w-full bg-white hover:bg-gray-50 text-sm h-9"
-                    disabled={true}
+                    type="submit" 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm h-9"
+                    disabled={localLoading || isLoading}
+                    aria-live="polite"
                   >
-                    <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
-                    Connecting...
+                    {(localLoading || isLoading) ? (
+                      <>
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
+                        Signing In...
+                      </>
+                    ) : (
+                      'Sign In as Merchant'
+                    )}
                   </Button>
-                ) : (
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
-                    useOneTap={false}
-                    theme="outline"
-                    size="large"
-                    width="100%"
-                    text="signin_with"
-                  />
-                )}
-              </div>
-            </div>
+                </form>
 
-            <div className="text-center mt-3 text-xs">
-              <span className="text-gray-600">
-                Don't have a merchant account?
-              </span>
-              <a
-                href="/auth/register/merchant"
-                className="ml-1 text-blue-600 hover:text-blue-800 font-medium focus:outline-none focus:underline"
-              >
-                Register your business
-              </a>
-            </div>
+                <div className="text-center mt-3 text-xs">
+                  <span className="text-gray-600">
+                    Don't have a merchant account?
+                  </span>
+                  <a
+                    href="/auth/register/merchant"
+                    className="ml-1 text-blue-600 hover:text-blue-800 font-medium focus:outline-none focus:underline"
+                  >
+                    Register your business
+                  </a>
+                </div>
 
-            <div className="text-center mt-2 text-xs">
-              <span className="text-gray-600">
-                Are you a customer?
-              </span>
-              <a
-                href="/auth"
-                className="ml-1 text-blue-600 hover:text-blue-800 font-medium focus:outline-none focus:underline"
-              >
-                Sign in as customer
-              </a>
-            </div>
-          </CardContent>
-        </Card>
+                <div className="text-center mt-2 text-xs">
+                  <span className="text-gray-600">
+                    Are you a customer?
+                  </span>
+                  <a
+                    href="/auth"
+                    className="ml-1 text-blue-600 hover:text-blue-800 font-medium focus:outline-none focus:underline"
+                  >
+                    Sign in as customer
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Customer Prompt Column - Lowered and less prominent */}
+          <div className="w-full max-w-sm lg:max-w-xs lg:mt-16">
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-600/30 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="py-4 px-4">
+                <div className="text-center space-y-2">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-blue-600/10 flex items-center justify-center">
+                      <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-sm font-semibold text-gray-800">Shopping as Customer?</h3>
+                  </div>
+                  <p className="text-xs text-gray-600">Browse and shop from verified merchants</p>
+                  <div className="flex flex-col gap-2 pt-2">
+                    <a href="/auth">
+                      <Button 
+                        variant="outline" 
+                        className="w-full bg-white hover:bg-blue-600 hover:text-white border-blue-600 text-blue-600 font-medium text-sm h-9 transition-colors"
+                      >
+                        Customer Sign In
+                      </Button>
+                    </a>
+                    <a href="/auth/register">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full text-blue-600 hover:text-blue-800 hover:bg-white/50 text-xs h-8"
+                      >
+                        Create Customer Account →
+                      </Button>
+                    </a>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
