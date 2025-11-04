@@ -881,7 +881,7 @@ const MerchantDetail = () => {
                                   )}
                                 </div>
                               </div>
-                            </div>
+                            </Link>
                           ))}
                         </div>
                       ) : (
