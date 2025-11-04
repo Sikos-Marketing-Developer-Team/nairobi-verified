@@ -804,33 +804,35 @@ const MerchantDetail = () => {
                       ) : products.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {products.map((product: any) => (
-                            <Link 
-                              key={product._id} 
-                              to={`/product/${product._id}`}
-                              className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow block group"
-                            >
-                              {/* Product Image */}
-                              <div className="aspect-square overflow-hidden bg-gray-100 relative">
-                                <img
-                                  src={product.primaryImage || product.images?.[0] || '/placeholder-product.jpg'}
-                                  alt={product.name}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                  loading="lazy"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = '/placeholder-product.jpg';
-                                  }}
-                                />
-                                {product.featured && (
-                                  <div className="absolute top-2 right-2 bg-yellow-400 text-white px-2 py-1 rounded-full text-xs font-bold">
-                                    Featured
-                                  </div>
-                                )}
-                              </div>
+                            <div key={product._id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow group">
+                              {/* Product Image - Clickable */}
+                              <Link to={`/product/${product._id}`}>
+                                <div className="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer">
+                                  <img
+                                    src={product.primaryImage || product.images?.[0] || '/placeholder-product.jpg'}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = '/placeholder-product.jpg';
+                                    }}
+                                  />
+                                  {product.featured && (
+                                    <div className="absolute top-2 right-2 bg-yellow-400 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                      Featured
+                                    </div>
+                                  )}
+                                </div>
+                              </Link>
                               
                               {/* Product Details */}
                               <div className="p-4">
-                                <h3 className="font-semibold text-lg mb-1 line-clamp-2">{product.name}</h3>
+                                <Link to={`/product/${product._id}`}>
+                                  <h3 className="font-semibold text-lg mb-1 line-clamp-2 hover:text-primary transition-colors cursor-pointer">
+                                    {product.name}
+                                  </h3>
+                                </Link>
                                 <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
                                 
                                 {/* Price */}
@@ -861,10 +863,13 @@ const MerchantDetail = () => {
                                     <Button
                                       size="sm"
                                       className="flex-1 bg-green-600 hover:bg-green-700"
-                                      onClick={() => window.open(
-                                        `https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hi! I'm interested in ${product.name}`)}`,
-                                        '_blank'
-                                      )}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(
+                                          `https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hi! I'm interested in ${product.name}`)}`,
+                                          '_blank'
+                                        );
+                                      }}
                                     >
                                       WhatsApp
                                     </Button>
@@ -874,14 +879,17 @@ const MerchantDetail = () => {
                                       size="sm"
                                       variant="outline"
                                       className="flex-1"
-                                      onClick={() => window.location.href = `tel:${merchant.phone}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.location.href = `tel:${merchant.phone}`;
+                                      }}
                                     >
                                       Call
                                     </Button>
                                   )}
                                 </div>
                               </div>
-                            </Link>
+                            </div>
                           ))}
                         </div>
                       ) : (
