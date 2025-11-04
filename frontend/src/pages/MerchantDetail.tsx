@@ -54,6 +54,7 @@ interface Merchant {
   tiktokUrl?: string;
   youtubeUrl?: string;
   linkedinUrl?: string;
+  whatsapp?: string;
   socialLinks?: {
     facebook?: string;
     instagram?: string;
@@ -63,7 +64,7 @@ interface Merchant {
     linkedin?: string;
   };
   businessHours?: {
-    [key: string]: { open: string; close: string; closed?: boolean };
+    [key: string]: { open: string; close: string; closed: boolean };
   };
   services?: Service[];
 }
