@@ -178,8 +178,9 @@ const MerchantDetail = () => {
         await fetchMerchantProducts(id as string);
         
         setLoading(false);
-      } catch (error: any) {
-        setError(error.response?.data?.error || 'Failed to load merchant data');
+      } catch (error: unknown) {
+        const err = error as { response?: { data?: { error?: string } } };
+        setError(err.response?.data?.error || 'Failed to load merchant data');
         setLoading(false);
       }
     };
