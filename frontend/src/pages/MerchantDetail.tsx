@@ -80,12 +80,15 @@ interface Review {
   merchant: string;
   user: {
     _id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     avatar?: string;
   };
   rating: number;
   content: string;
   createdAt: string;
+  helpful: number;
+  helpfulBy: string[];
 }
 
 interface Product {
