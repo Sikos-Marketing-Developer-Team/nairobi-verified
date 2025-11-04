@@ -22,6 +22,85 @@ import { useFavorites } from '../contexts/FavoritesContext';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { isBusinessCurrentlyOpen, formatBusinessHours } from '@/utils/businessHours';
 
+// Type definitions
+interface Merchant {
+  _id: string;
+  businessName: string;
+  businessType: string;
+  description?: string;
+  location: string;
+  address: string;
+  phone: string;
+  email: string;
+  whatsappNumber?: string;
+  website?: string;
+  logo: string;
+  bannerImage: string;
+  gallery?: string[];
+  verified: boolean;
+  verifiedDate?: string;
+  yearEstablished: number;
+  rating: number;
+  reviews: number;
+  isActive: boolean;
+  featured?: boolean;
+  latitude?: number;
+  longitude?: number;
+  priceRange?: string;
+  googleBusinessUrl?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  twitterUrl?: string;
+  tiktokUrl?: string;
+  youtubeUrl?: string;
+  linkedinUrl?: string;
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    tiktok?: string;
+    youtube?: string;
+    linkedin?: string;
+  };
+  businessHours?: {
+    [key: string]: { open: string; close: string; closed?: boolean };
+  };
+  services?: Service[];
+}
+
+interface Service {
+  name: string;
+  description: string;
+  price?: string;
+}
+
+interface Review {
+  _id: string;
+  merchant: string;
+  user: {
+    _id: string;
+    name: string;
+    avatar?: string;
+  };
+  rating: number;
+  content: string;
+  createdAt: string;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  primaryImage?: string;
+  images?: string[];
+  category: string;
+  stockQuantity: number;
+  featured?: boolean;
+  merchant: string;
+}
+
 // Enhanced social media icon mapping
 const socialIcons = {
   facebook: Facebook,
@@ -42,9 +121,9 @@ const MerchantDetail = () => {
   const { user, isAuthenticated } = useAuth();
   const { updateFavoritesCount } = useFavorites();
   const [isFavorite, setIsFavorite] = useState(false);
-  const [merchant, setMerchant] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [merchant, setMerchant] = useState<Merchant | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const isPageLoading = usePageLoading(700);
   const [loading, setLoading] = useState(true);
