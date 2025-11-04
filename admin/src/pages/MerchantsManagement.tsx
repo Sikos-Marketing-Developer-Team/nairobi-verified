@@ -23,7 +23,6 @@ import {
   Clock3,
   RefreshCw,
   Edit,
-  Save,
   X,
   ChevronLeft,
   ChevronRight,
@@ -36,7 +35,6 @@ import { scrollToTop } from '../hooks/useScrollToTop';
 import { MerchantsManagementSkeleton } from '../components/ui/loading-skeletons';
 import AddMerchantModal from '@/components/modals/addMerchantModal';
 import EditMerchantModal from '@/components/modals/EditMerchantModal';
-import DocumentsViewer from '@/components/DocumentsViewer';
 import { Merchant } from '@/interfaces/MerchantsManagement';
 import '../index.css'
 
@@ -1220,14 +1218,12 @@ const MerchantsManagement: React.FC = () => {
         onAddMerchant={handleAddMerchant}
       />
 
-      {editingMerchant && (
-        <EditMerchantModal
-          merchant={editingMerchant}
-          onSave={handleSaveEdit}
-          onCancel={handleCancelEdit}
-          onUpdateField={(field, value) => setEditingMerchant(prev => prev ? {...prev, [field]: value} : null)}
-        />
-      )}
+      <EditMerchantModal
+        isOpen={!!editingMerchant}
+        merchant={editingMerchant!}
+        onClose={handleCancelEdit}
+        onUpdateMerchant={handleSaveEdit}
+      />
 
       {showDeleteConfirm && (
         <DeleteConfirmationModal
