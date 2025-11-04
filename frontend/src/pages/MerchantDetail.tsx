@@ -1311,7 +1311,7 @@ const MerchantDetail = () => {
 
 // Review Modal Component (keep the same as before)
 const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
-  merchant: any;
+  merchant: Merchant;
   onClose: () => void;
   onReviewSubmitted: () => void;
 }) => {
@@ -1354,10 +1354,11 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
       });
       
       onReviewSubmitted();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to submit review',
+        description: err.response?.data?.error || 'Failed to submit review',
         variant: 'destructive',
       });
     } finally {
