@@ -1,5 +1,6 @@
 // backend/routes/merchants.js - VERIFIED FIX
 const express = require('express');
+const multer = require('multer');
 const {
   getMerchants,
   getMerchant,
@@ -12,18 +13,37 @@ const {
   uploadDocuments,
   verifyMerchant,
   createMerchantByAdmin,
+  createMerchantWithProducts,
   completeAccountSetup,
   getSetupInfo,
   sendCredentials,
   setFeatured
 } = require('../controllers/merchants');
 const { protect, authorize, isMerchant } = require('../middleware/auth');
+const { protectAdmin } = require('../middleware/adminAuth');
 const { uploadImage, uploadDocs } = require('../middleware/upload');
 
 const { 
   merchantCreationLimiter, 
   bulkUploadLimiter 
 } = require('../middleware/rateLimiters');
+
+// Configure multer for handling multiple file uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage,
+  limits: { 
+    fileSize: 5 * 1024 * 1024, // 5MB per file
+    files: 50 // Maximum 50 files total
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
 
 // Include other resource routers
 const reviewRouter = require('./reviews');
@@ -40,10 +60,18 @@ router.use('/:merchantId/reviews', reviewRouter);
 // Admin routes - BEFORE /:id
 router.post(
   '/admin/create', 
-  protect, 
-  authorize('admin'), 
+  protectAdmin, // Use admin JWT auth instead of session auth
   merchantCreationLimiter, // Rate limit: 200/hour per admin
   createMerchantByAdmin
+);
+
+// Admin route for creating merchant with products and images
+router.post(
+  '/admin/create-with-products', 
+  protectAdmin, // Use admin JWT auth instead of session auth
+  merchantCreationLimiter,
+  upload.any(), // Accept any number of files with any field names
+  createMerchantWithProducts
 );
 
 

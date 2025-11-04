@@ -1,25 +1,18 @@
-// components/modals/AddMerchantModal.tsx - FIXED VERSION
+// components/modals/AddMerchantModal.tsx - ENHANCED VERSION WITH PRODUCTS
 import { useState, ChangeEvent, FormEvent } from 'react';
-import { X, Store, MapPin, Globe, Calendar } from 'lucide-react';
+import { X, Store, MapPin, Globe, Calendar, Package, Plus, Trash2, Upload } from 'lucide-react';
 
-interface Merchant {
-  _id: string;
-  businessName: string;
-  ownerName?: string;
-  email: string;
-  phone: string;
-  verified: boolean;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
-  address?: string;
-  location?: string;
-  businessType?: string;
-  description?: string;
-  website?: string;
-  yearEstablished?: number;
-  profileCompleteness?: number;
-  documentsCompleteness?: number;
+interface ProductFormData {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  subcategory: string;
+  price: string;
+  originalPrice: string;
+  stockQuantity: string;
+  images: File[];
+  imagePreviewUrls: string[];
 }
 
 interface MerchantFormData {
@@ -33,6 +26,7 @@ interface MerchantFormData {
   website: string;
   yearEstablished: string;
   autoVerify: boolean;
+  products: ProductFormData[];
 }
 
 interface AddMerchantModalProps {
@@ -56,6 +50,28 @@ const BUSINESS_TYPES = [
   'Other'
 ];
 
+const PRODUCT_CATEGORIES = [
+  'Electronics',
+  'Fashion',
+  'Home & Garden',
+  'Sports',
+  'Books',
+  'Beauty',
+  'Automotive',
+  'Food & Beverages'
+];
+
+const SUBCATEGORIES: Record<string, string[]> = {
+  'Electronics': ['Phones & Tablets', 'Computers', 'Audio', 'Cameras', 'Gaming', 'Accessories', 'Other'],
+  'Fashion': ['Men', 'Women', 'Kids', 'Shoes', 'Accessories', 'Jewelry', 'Other'],
+  'Home & Garden': ['Furniture', 'Decor', 'Kitchen', 'Garden', 'Tools', 'Bedding', 'Other'],
+  'Sports': ['Fitness', 'Outdoor', 'Team Sports', 'Water Sports', 'Cycling', 'Equipment', 'Other'],
+  'Books': ['Fiction', 'Non-Fiction', 'Educational', 'Children', 'Comics', 'Magazines', 'Other'],
+  'Beauty': ['Skincare', 'Makeup', 'Haircare', 'Fragrance', 'Personal Care', 'Tools', 'Other'],
+  'Automotive': ['Parts', 'Accessories', 'Tools', 'Care', 'Electronics', 'Tires', 'Other'],
+  'Food & Beverages': ['Fresh', 'Packaged', 'Beverages', 'Snacks', 'Frozen', 'Organic', 'Other']
+};
+
 const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalProps) => {
   const [formData, setFormData] = useState<MerchantFormData>({
     businessName: '',
@@ -67,11 +83,92 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
     location: '',
     website: '',
     yearEstablished: '',
-    autoVerify: false
+    autoVerify: false,
+    products: []
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Add new product to list
+  const addProduct = () => {
+    const newProduct: ProductFormData = {
+      id: Date.now().toString(),
+      name: '',
+      description: '',
+      category: '',
+      subcategory: '',
+      price: '',
+      originalPrice: '',
+      stockQuantity: '',
+      images: [],
+      imagePreviewUrls: []
+    };
+    setFormData(prev => ({
+      ...prev,
+      products: [...prev.products, newProduct]
+    }));
+  };
+
+  // Remove product from list
+  const removeProduct = (productId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.filter(p => p.id !== productId)
+    }));
+  };
+
+  // Update product field
+  const updateProduct = (productId: string, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.map(p => 
+        p.id === productId ? { ...p, [field]: value } : p
+      )
+    }));
+  };
+
+  // Handle product image uploads
+  const handleProductImageChange = (productId: string, e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles = Array.from(files);
+    const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file));
+
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.map(p => {
+        if (p.id === productId) {
+          return {
+            ...p,
+            images: [...p.images, ...newFiles],
+            imagePreviewUrls: [...p.imagePreviewUrls, ...newPreviewUrls]
+          };
+        }
+        return p;
+      })
+    }));
+  };
+
+  // Remove product image
+  const removeProductImage = (productId: string, index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.map(p => {
+        if (p.id === productId) {
+          // Revoke the URL to free memory
+          URL.revokeObjectURL(p.imagePreviewUrls[index]);
+          return {
+            ...p,
+            images: p.images.filter((_, i) => i !== index),
+            imagePreviewUrls: p.imagePreviewUrls.filter((_, i) => i !== index)
+          };
+        }
+        return p;
+      })
+    }));
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -122,6 +219,30 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
       }
     }
 
+    // Product validations (if any products added)
+    if (formData.products.length > 0) {
+      formData.products.forEach((product, index) => {
+        if (!product.name.trim()) {
+          newErrors[`product_${index}_name`] = 'Product name is required';
+        }
+        if (!product.description.trim()) {
+          newErrors[`product_${index}_description`] = 'Product description is required';
+        }
+        if (!product.category) {
+          newErrors[`product_${index}_category`] = 'Product category is required';
+        }
+        if (!product.subcategory) {
+          newErrors[`product_${index}_subcategory`] = 'Product subcategory is required';
+        }
+        if (!product.price || parseFloat(product.price) <= 0) {
+          newErrors[`product_${index}_price`] = 'Valid product price is required';
+        }
+        if (!product.stockQuantity || parseInt(product.stockQuantity) < 0) {
+          newErrors[`product_${index}_stockQuantity`] = 'Valid stock quantity is required';
+        }
+      });
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -137,23 +258,51 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
     setIsLoading(true);
     
     try {
-      // Prepare data matching backend requirements EXACTLY
-      const merchantData = {
-        businessName: formData.businessName.trim(),
-        email: formData.email.trim().toLowerCase(),
-        phone: formData.phone.trim(),
-        businessType: formData.businessType,           // REQUIRED
-        description: formData.description.trim(),      // REQUIRED
-        address: formData.address.trim(),              // REQUIRED
-        location: formData.location.trim(),            // REQUIRED
-        website: formData.website.trim() || undefined,
-        yearEstablished: formData.yearEstablished ? parseInt(formData.yearEstablished) : undefined,
-        autoVerify: formData.autoVerify
-      };
-
-      console.log('📤 Submitting merchant data:', merchantData);
+      // Prepare FormData for file uploads
+      const formDataToSend = new FormData();
       
-      await onAddMerchant(merchantData);
+      // Add merchant data
+      formDataToSend.append('businessName', formData.businessName.trim());
+      formDataToSend.append('email', formData.email.trim().toLowerCase());
+      formDataToSend.append('phone', formData.phone.trim());
+      formDataToSend.append('businessType', formData.businessType);
+      formDataToSend.append('description', formData.description.trim());
+      formDataToSend.append('address', formData.address.trim());
+      formDataToSend.append('location', formData.location.trim());
+      if (formData.website.trim()) {
+        formDataToSend.append('website', formData.website.trim());
+      }
+      if (formData.yearEstablished) {
+        formDataToSend.append('yearEstablished', formData.yearEstablished);
+      }
+      formDataToSend.append('autoVerify', formData.autoVerify.toString());
+
+      // Add products if any
+      if (formData.products.length > 0) {
+        const productsData = formData.products.map((product) => ({
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          subcategory: product.subcategory,
+          price: parseFloat(product.price) || 0,
+          originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price) || 0,
+          stockQuantity: parseInt(product.stockQuantity) || 0,
+          imageCount: product.images.length
+        }));
+        
+        formDataToSend.append('products', JSON.stringify(productsData));
+
+        // Add product images
+        formData.products.forEach((product, productIndex) => {
+          product.images.forEach((image, imageIndex) => {
+            formDataToSend.append(`product_${productIndex}_image_${imageIndex}`, image);
+          });
+        });
+      }
+
+      console.log('📤 Submitting merchant with products...');
+      
+      await onAddMerchant(formDataToSend);
       handleClose();
     } catch (error: any) {
       console.error('❌ Error adding merchant:', error);
@@ -168,6 +317,11 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
   };
 
   const handleClose = (): void => {
+    // Cleanup image preview URLs
+    formData.products.forEach(product => {
+      product.imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    });
+
     setFormData({
       businessName: '',
       email: '',
@@ -178,7 +332,8 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
       location: '',
       website: '',
       yearEstablished: '',
-      autoVerify: false
+      autoVerify: false,
+      products: []
     });
     setErrors({});
     onClose();
@@ -467,6 +622,222 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
             />
             {errors.yearEstablished && (
               <p className="mt-1 text-sm text-red-600">{errors.yearEstablished}</p>
+            )}
+          </div>
+
+          {/* Products Section */}
+          <div className="border-t pt-4 mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-700 flex items-center">
+                <Package className="h-4 w-4 mr-1" />
+                Initial Products (Optional)
+              </h3>
+              <button
+                type="button"
+                onClick={addProduct}
+                disabled={isLoading}
+                className="inline-flex items-center px-3 py-1 text-xs font-medium text-green-700 bg-green-50 border border-green-300 rounded-md hover:bg-green-100 transition-colors disabled:opacity-50"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Product
+              </button>
+            </div>
+
+            {formData.products.length > 0 && (
+              <div className="space-y-4 mt-3">
+                {formData.products.map((product, productIndex) => (
+                  <div key={product.id} className="border border-gray-200 rounded-md p-4 bg-gray-50">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-gray-800">Product {productIndex + 1}</h4>
+                      <button
+                        type="button"
+                        onClick={() => removeProduct(product.id)}
+                        disabled={isLoading}
+                        className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Product Name */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Product Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={product.name}
+                          onChange={(e) => updateProduct(product.id, 'name', e.target.value)}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="e.g., Premium Coffee Beans"
+                          disabled={isLoading}
+                        />
+                      </div>
+
+                      {/* Product Description */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Description *
+                        </label>
+                        <textarea
+                          value={product.description}
+                          onChange={(e) => updateProduct(product.id, 'description', e.target.value)}
+                          rows={2}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="Describe the product..."
+                          disabled={isLoading}
+                        />
+                      </div>
+
+                      {/* Category and Subcategory */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Category *
+                          </label>
+                          <select
+                            value={product.category}
+                            onChange={(e) => {
+                              updateProduct(product.id, 'category', e.target.value);
+                              // Reset subcategory when category changes
+                              updateProduct(product.id, 'subcategory', '');
+                            }}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            disabled={isLoading}
+                          >
+                            <option value="">Select category</option>
+                            {PRODUCT_CATEGORIES.map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Subcategory *
+                          </label>
+                          <select
+                            value={product.subcategory}
+                            onChange={(e) => updateProduct(product.id, 'subcategory', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            disabled={isLoading || !product.category}
+                          >
+                            <option value="">Select subcategory</option>
+                            {product.category && SUBCATEGORIES[product.category]?.map(subcat => (
+                              <option key={subcat} value={subcat}>{subcat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Stock and Prices */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Stock Quantity *
+                          </label>
+                          <input
+                            type="number"
+                            value={product.stockQuantity}
+                            onChange={(e) => updateProduct(product.id, 'stockQuantity', e.target.value)}
+                            min="0"
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            placeholder="0"
+                            disabled={isLoading}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Price (KES) *
+                          </label>
+                          <input
+                            type="number"
+                            value={product.price}
+                            onChange={(e) => updateProduct(product.id, 'price', e.target.value)}
+                            min="0"
+                            step="0.01"
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            placeholder="0.00"
+                            disabled={isLoading}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Original Price (KES)
+                          </label>
+                          <input
+                            type="number"
+                            value={product.originalPrice}
+                            onChange={(e) => updateProduct(product.id, 'originalPrice', e.target.value)}
+                            min="0"
+                            step="0.01"
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            placeholder="0.00"
+                            disabled={isLoading}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Product Images */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-2">
+                          Product Images (Unlimited)
+                        </label>
+                        
+                        {/* Image Preview Grid */}
+                        {product.imagePreviewUrls.length > 0 && (
+                          <div className="grid grid-cols-4 gap-2 mb-2">
+                            {product.imagePreviewUrls.map((url, index) => (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={url}
+                                  alt={`Product ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded border border-gray-300"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeProductImage(product.id, index)}
+                                  className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                  disabled={isLoading}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Upload Button */}
+                        <label className="flex items-center justify-center px-3 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-green-500 transition-colors">
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={(e) => handleProductImageChange(product.id, e)}
+                            className="hidden"
+                            disabled={isLoading}
+                          />
+                          <Upload className="h-4 w-4 mr-2 text-gray-500" />
+                          <span className="text-xs text-gray-600">
+                            {product.images.length > 0 
+                              ? `${product.images.length} image(s) selected - Click to add more` 
+                              : 'Upload Images'}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {formData.products.length === 0 && (
+              <p className="text-xs text-gray-500 mt-2">
+                No products added yet. Click "Add Product" to add initial products for this merchant.
+              </p>
             )}
           </div>
 

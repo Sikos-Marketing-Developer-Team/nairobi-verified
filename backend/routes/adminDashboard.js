@@ -49,9 +49,12 @@ router.get('/merchants', checkPermission('merchants.read'), getMerchants);
 router.post('/merchants', checkPermission('merchants.write'), createMerchant);
 router.put('/merchants/:id/verify', checkPermission('merchants.approve'), verifyMerchant);
 router.put('/merchants/:id/status', checkPermission('merchants.approve'), updateMerchantStatus);
+// IMPORTANT: Bulk operations MUST come before parameterized routes to avoid matching conflicts
 router.put('/merchants/bulk-status', checkPermission('merchants.approve'), bulkUpdateMerchantStatus);
-router.delete('/merchants/:merchantId', protectAdmin, checkPermission('merchants.delete'), deleteMerchant);
 router.delete('/merchants/bulk-delete', protectAdmin, checkPermission('merchants.delete'), bulkDeleteMerchants);
+router.post('/merchants/bulk-verify', checkPermission('merchants.approve'), bulkVerifyMerchants);
+// Parameterized routes come after bulk operations
+router.delete('/merchants/:merchantId', protectAdmin, checkPermission('merchants.delete'), deleteMerchant);
 router.put('/merchants/:id/featured', checkPermission('merchants.write'), async (req, res) => {
   try {
     const Merchant = require('../models/Merchant');
@@ -96,7 +99,6 @@ router.put('/merchants/:id/featured', checkPermission('merchants.write'), async 
 // Document management routes
 router.get('/merchants/:id/documents', checkPermission('merchants.read'), getMerchantDocuments);
 router.get('/merchants/:id/documents/:docType/view', checkPermission('merchants.read'), viewMerchantDocument);
-router.post('/merchants/bulk-verify', checkPermission('merchants.approve'), bulkVerifyMerchants);
 
 // User management routes
 router.get('/users', checkPermission('users.read'), getUsers);

@@ -1,2 +1,7 @@
 node_modules
 .zencoder
+
+# Package lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

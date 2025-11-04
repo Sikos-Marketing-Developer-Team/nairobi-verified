@@ -204,7 +204,15 @@ export const adminAPI = {
   getMerchants: (params?: any) => api.get('/admin/dashboard/merchants', { params }),
   getMerchant: (merchantId: string) => api.get(`/admin/dashboard/merchants/${merchantId}`),
   updateMerchant: (merchantId: string, merchantData: any) => api.put(`/admin/dashboard/merchants/${merchantId}`, merchantData),
-  deleteMerchant: (merchantId: string[]) => api.delete(`/admin/dashboard/merchants/${merchantId}`),
+  deleteMerchant: (merchantIdOrIds: string | string[]) => {
+    // Handle both single and bulk delete
+    if (Array.isArray(merchantIdOrIds)) {
+      return api.delete('/admin/dashboard/merchants/bulk-delete', { 
+        data: { merchantIds: merchantIdOrIds } 
+      });
+    }
+    return api.delete(`/admin/dashboard/merchants/${merchantIdOrIds}`);
+  },
   verifyMerchant: (merchantId: string) => api.put(`/admin/dashboard/merchants/${merchantId}/verify`),
   rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/dashboard/merchants/${merchantId}/reject`, { reason }),
   updateMerchantStatus: (merchantIdOrIds: string | string[], isActive: boolean) => {
@@ -213,7 +221,18 @@ export const adminAPI = {
       : `/admin/dashboard/merchants/${merchantIdOrIds}/status`;
     return api.put(endpoint, { isActive, merchantIds: Array.isArray(merchantIdOrIds) ? merchantIdOrIds : undefined });
   },
-  createMerchant: (merchantData: any) => api.post('/admin/dashboard/merchants', merchantData),
+  createMerchant: (merchantData: any) => {
+    // Check if merchantData is FormData (contains products with images)
+    if (merchantData instanceof FormData) {
+      return api.post('/merchants/admin/create-with-products', merchantData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+    }
+    // Regular merchant creation without products
+    return api.post('/admin/dashboard/merchants', merchantData);
+  },
   setFeaturedStatus: (merchantId: string, featured: boolean) => 
     api.put(`/admin/dashboard/merchants/${merchantId}/featured`, { featured }),
   bulkSetFeatured: (merchantIds: string[], featured: boolean) => 

@@ -69,3 +69,9 @@ ehthumbs.db
 *.tmp
 *.temp
 .cache
+# Package lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+dist
