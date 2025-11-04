@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { 
   Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, 
   Image, MessageSquare, AlertCircle, Loader2, X, Send, 
@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ReviewsSection from '@/components/ReviewsSection';
-import { merchantsAPI, reviewsAPI, favoritesAPI } from '@/lib/api';
+import { merchantsAPI, reviewsAPI, favoritesAPI, productsAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageLoading } from '@/hooks/use-loading';
 import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
@@ -44,6 +44,8 @@ const MerchantDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [merchant, setMerchant] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
   const isPageLoading = usePageLoading(700);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +93,10 @@ const MerchantDetail = () => {
         // Fetch reviews
         const reviewsRes = await reviewsAPI.getReviews(id as string);
         setReviews(reviewsRes.data.data);
+        
+        // Fetch products for this merchant
+        await fetchMerchantProducts(id as string);
+        
         setLoading(false);
       } catch (error: any) {
         setError(error.response?.data?.error || 'Failed to load merchant data');
@@ -105,6 +111,23 @@ const MerchantDetail = () => {
       setLoading(false);
     }
   }, [id]);
+
+  // Fetch merchant products
+  const fetchMerchantProducts = async (merchantId: string) => {
+    try {
+      setProductsLoading(true);
+      const response = await productsAPI.getProductsByMerchant(merchantId);
+      
+      if (response.data.success) {
+        setProducts(response.data.data || []);
+        console.log('✅ Fetched products:', response.data.data);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching products:', error);
+    } finally {
+      setProductsLoading(false);
+    }
+  };
 
   // Check favorite status
   useEffect(() => {
@@ -743,28 +766,130 @@ const MerchantDetail = () => {
 
               {/* Services Tab */}
               <TabsContent value="services">
-                <Card>
-                  <CardHeader>
-                    <h2 className="text-2xl font-bold text-gray-900">Services & Pricing</h2>
-                  </CardHeader>
-                  <CardContent>
-                    {merchant.services?.length > 0 ? (
-                      <ul className="space-y-4">
-                        {merchant.services.map((service: any, index: number) => (
-                          <li key={index} className="flex justify-between items-center border-b pb-2">
-                            <div>
-                              <p className="font-medium">{service.name}</p>
-                              <p className="text-sm text-gray-600">{service.description}</p>
+                <div className="space-y-6">
+                  {/* Services Section */}
+                  <Card>
+                    <CardHeader>
+                      <h2 className="text-2xl font-bold text-gray-900">Services & Pricing</h2>
+                    </CardHeader>
+                    <CardContent>
+                      {merchant.services?.length > 0 ? (
+                        <ul className="space-y-4">
+                          {merchant.services.map((service: any, index: number) => (
+                            <li key={index} className="flex justify-between items-center border-b pb-2">
+                              <div>
+                                <p className="font-medium">{service.name}</p>
+                                <p className="text-sm text-gray-600">{service.description}</p>
+                              </div>
+                              <p className="font-semibold">{service.price || 'Contact for pricing'}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-gray-600">No services listed.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Products Section */}
+                  <Card>
+                    <CardHeader>
+                      <h2 className="text-2xl font-bold text-gray-900">Products</h2>
+                    </CardHeader>
+                    <CardContent>
+                      {productsLoading ? (
+                        <div className="flex justify-center py-8">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                      ) : products.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {products.map((product: any) => (
+                            <Link 
+                              key={product._id} 
+                              to={`/product/${product._id}`}
+                              className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow block group"
+                            >
+                              {/* Product Image */}
+                              <div className="aspect-square overflow-hidden bg-gray-100 relative">
+                                <img
+                                  src={product.primaryImage || product.images?.[0] || '/placeholder-product.jpg'}
+                                  alt={product.name}
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = '/placeholder-product.jpg';
+                                  }}
+                                />
+                                {product.featured && (
+                                  <div className="absolute top-2 right-2 bg-yellow-400 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                    Featured
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Product Details */}
+                              <div className="p-4">
+                                <h3 className="font-semibold text-lg mb-1 line-clamp-2">{product.name}</h3>
+                                <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
+                                
+                                {/* Price */}
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-xl font-bold text-green-600">
+                                    KES {product.price?.toLocaleString()}
+                                  </span>
+                                  {product.originalPrice && product.originalPrice > product.price && (
+                                    <span className="text-sm text-gray-400 line-through">
+                                      KES {product.originalPrice?.toLocaleString()}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Category & Stock */}
+                                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                                  <span className="bg-gray-100 px-2 py-1 rounded">{product.category}</span>
+                                  {product.stockQuantity > 0 ? (
+                                    <span className="text-green-600">In Stock ({product.stockQuantity})</span>
+                                  ) : (
+                                    <span className="text-red-600">Out of Stock</span>
+                                  )}
+                                </div>
+
+                                {/* Contact Buttons */}
+                                <div className="flex gap-2">
+                                  {merchant.whatsappNumber && (
+                                    <Button
+                                      size="sm"
+                                      className="flex-1 bg-green-600 hover:bg-green-700"
+                                      onClick={() => window.open(
+                                        `https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hi! I'm interested in ${product.name}`)}`,
+                                        '_blank'
+                                      )}
+                                    >
+                                      WhatsApp
+                                    </Button>
+                                  )}
+                                  {merchant.phone && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="flex-1"
+                                      onClick={() => window.location.href = `tel:${merchant.phone}`}
+                                    >
+                                      Call
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            <p className="font-semibold">{service.price || 'Contact for pricing'}</p>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-gray-600">No services listed. Contact the business for more information.</p>
-                    )}
-                  </CardContent>
-                </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-600">No products listed yet.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
 
               {/* Gallery Tab */}
