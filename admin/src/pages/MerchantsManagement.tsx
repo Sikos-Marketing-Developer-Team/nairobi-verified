@@ -936,7 +936,7 @@ const MerchantsManagement: React.FC = () => {
         ) : (
           <>
             <ul className="divide-y divide-gray-200">
-              {currentMerchants.filter(m => m && m._id).map((merchant, index) => (
+              {currentMerchants.filter(m => m && m._id).map((merchant) => (
                 <li 
                   key={merchant._id} 
                   className="px-3 md:px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
