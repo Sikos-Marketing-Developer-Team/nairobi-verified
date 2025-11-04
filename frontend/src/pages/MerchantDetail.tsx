@@ -1489,7 +1489,7 @@ const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       onReportSubmitted();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
         description: 'Failed to submit report. Please try again.',
