@@ -299,20 +299,15 @@ const MerchantsManagement: React.FC = () => {
     setEditingMerchant({...merchant});
   };
 
-  const handleSaveEdit = async () => {
-    if (!editingMerchant) return;
-
+  const handleSaveEdit = async (merchantId: string, data: any) => {
     try {
-      if (editingMerchant.isActive !== merchants.find(m => m._id === editingMerchant._id)?.isActive) {
-        await adminAPI.updateMerchantStatus(editingMerchant._id, editingMerchant.isActive);
+      const response = await adminAPI.updateMerchant(merchantId, data);
+      if (response.data.success) {
+        // Reload merchants to get fresh data including new products
+        await loadMerchants(true);
+        setEditingMerchant(null);
+        toast.success('Merchant updated successfully!');
       }
-
-      setMerchants(prev => prev.map(merchant => 
-        merchant && merchant._id === editingMerchant._id ? editingMerchant : merchant
-      ).filter(m => m && m._id)); // Clean up any undefined
-      
-      setEditingMerchant(null);
-      toast.success('Merchant status updated successfully!');
     } catch (error) {
       console.error('Error updating merchant:', error);
       toast.error('Failed to update merchant. Please try again.');
@@ -1269,132 +1264,6 @@ const MerchantsManagement: React.FC = () => {
           }}
         />
       )}
-    </div>
-  );
-};
-
-// Edit Merchant Modal Component - Made responsive
-interface EditMerchantModalProps {
-  merchant: Merchant;
-  onSave: () => void;
-  onCancel: () => void;
-  onUpdateField: (field: string, value: any) => void;
-}
-
-const EditMerchantModal: React.FC<EditMerchantModalProps> = ({ 
-  merchant, 
-  onSave, 
-  onCancel, 
-  onUpdateField 
-}) => {
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
-
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
-      <div className="flex min-h-full items-center justify-center p-2 md:p-4">
-        <div className="relative bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto transform transition-all">
-          <div className="flex items-center justify-between mb-4 md:mb-6">
-            <h2 className="text-lg md:text-xl font-semibold text-gray-900">Edit Merchant Status</h2>
-            <button
-              onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1"
-            >
-              <X className="h-5 w-5 md:h-6 md:w-6" />
-            </button>
-          </div>
-
-          <div className="space-y-4 md:space-y-6">
-            <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
-              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Business Information</h3>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Business Name</label>
-                  <p className="mt-1 text-sm text-gray-900">{merchant.businessName}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Owner Name</label>
-                  <p className="mt-1 text-sm text-gray-900">{merchant.ownerName}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <p className="mt-1 text-sm text-gray-900">{merchant.email}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Phone</label>
-                  <p className="mt-1 text-sm text-gray-900">{merchant.phone}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
-              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Status Settings</h3>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="verified"
-                    checked={merchant.verified}
-                    onChange={(e) => onUpdateField('verified', e.target.checked)}
-                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="verified" className="ml-2 text-sm text-gray-700">
-                    Verified Merchant
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="active"
-                    checked={merchant.isActive}
-                    onChange={(e) => onUpdateField('isActive', e.target.checked)}
-                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="active" className="ml-2 text-sm text-gray-700">
-                    Active Account
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="featured"
-                    checked={merchant.featured || false}
-                    onChange={(e) => onUpdateField('featured', e.target.checked)}
-                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="featured" className="ml-2 text-sm text-gray-700">
-                    Featured Merchant
-                  </label>
-                </div>
-              </div>
-              <p className="mt-3 text-sm text-gray-500">
-                Note: Only status fields can be edited. Contact details require backend updates.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 md:pt-6 border-t">
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200 order-2 sm:order-1"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onSave}
-              className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200 order-1 sm:order-2"
-            >
-              <Save className="w-4 h-4 inline mr-2" />
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
