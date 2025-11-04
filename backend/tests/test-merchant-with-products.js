@@ -10,7 +10,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
-const BASE_URL = process.env.API_URL || 'http://localhost:5000/api';
+const BASE_URL = process.env.API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
 
 // Test admin credentials (replace with your test admin)
 const ADMIN_EMAIL = 'admin@nairobiverified.com';

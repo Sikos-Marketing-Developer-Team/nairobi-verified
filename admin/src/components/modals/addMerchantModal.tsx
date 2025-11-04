@@ -7,6 +7,7 @@ interface ProductFormData {
   name: string;
   description: string;
   category: string;
+  subcategory: string;
   price: string;
   originalPrice: string;
   stockQuantity: string;
@@ -51,18 +52,25 @@ const BUSINESS_TYPES = [
 
 const PRODUCT_CATEGORIES = [
   'Electronics',
-  'Fashion & Clothing',
-  'Food & Beverages',
+  'Fashion',
   'Home & Garden',
-  'Sports & Outdoors',
-  'Beauty & Personal Care',
-  'Books & Stationery',
-  'Toys & Games',
+  'Sports',
+  'Books',
+  'Beauty',
   'Automotive',
-  'Health & Wellness',
-  'Services',
-  'Other'
+  'Food & Beverages'
 ];
+
+const SUBCATEGORIES: Record<string, string[]> = {
+  'Electronics': ['Phones & Tablets', 'Computers', 'Audio', 'Cameras', 'Gaming', 'Accessories', 'Other'],
+  'Fashion': ['Men', 'Women', 'Kids', 'Shoes', 'Accessories', 'Jewelry', 'Other'],
+  'Home & Garden': ['Furniture', 'Decor', 'Kitchen', 'Garden', 'Tools', 'Bedding', 'Other'],
+  'Sports': ['Fitness', 'Outdoor', 'Team Sports', 'Water Sports', 'Cycling', 'Equipment', 'Other'],
+  'Books': ['Fiction', 'Non-Fiction', 'Educational', 'Children', 'Comics', 'Magazines', 'Other'],
+  'Beauty': ['Skincare', 'Makeup', 'Haircare', 'Fragrance', 'Personal Care', 'Tools', 'Other'],
+  'Automotive': ['Parts', 'Accessories', 'Tools', 'Care', 'Electronics', 'Tires', 'Other'],
+  'Food & Beverages': ['Fresh', 'Packaged', 'Beverages', 'Snacks', 'Frozen', 'Organic', 'Other']
+};
 
 const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalProps) => {
   const [formData, setFormData] = useState<MerchantFormData>({
@@ -89,6 +97,7 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
       name: '',
       description: '',
       category: '',
+      subcategory: '',
       price: '',
       originalPrice: '',
       stockQuantity: '',
@@ -210,6 +219,30 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
       }
     }
 
+    // Product validations (if any products added)
+    if (formData.products.length > 0) {
+      formData.products.forEach((product, index) => {
+        if (!product.name.trim()) {
+          newErrors[`product_${index}_name`] = 'Product name is required';
+        }
+        if (!product.description.trim()) {
+          newErrors[`product_${index}_description`] = 'Product description is required';
+        }
+        if (!product.category) {
+          newErrors[`product_${index}_category`] = 'Product category is required';
+        }
+        if (!product.subcategory) {
+          newErrors[`product_${index}_subcategory`] = 'Product subcategory is required';
+        }
+        if (!product.price || parseFloat(product.price) <= 0) {
+          newErrors[`product_${index}_price`] = 'Valid product price is required';
+        }
+        if (!product.stockQuantity || parseInt(product.stockQuantity) < 0) {
+          newErrors[`product_${index}_stockQuantity`] = 'Valid stock quantity is required';
+        }
+      });
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -250,6 +283,7 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
           name: product.name,
           description: product.description,
           category: product.category,
+          subcategory: product.subcategory,
           price: parseFloat(product.price) || 0,
           originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price) || 0,
           stockQuantity: parseInt(product.stockQuantity) || 0,
@@ -656,7 +690,7 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
                         />
                       </div>
 
-                      {/* Category and Prices */}
+                      {/* Category and Subcategory */}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -664,7 +698,11 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
                           </label>
                           <select
                             value={product.category}
-                            onChange={(e) => updateProduct(product.id, 'category', e.target.value)}
+                            onChange={(e) => {
+                              updateProduct(product.id, 'category', e.target.value);
+                              // Reset subcategory when category changes
+                              updateProduct(product.id, 'subcategory', '');
+                            }}
                             className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                             disabled={isLoading}
                           >
@@ -677,7 +715,27 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
 
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Stock Quantity
+                            Subcategory *
+                          </label>
+                          <select
+                            value={product.subcategory}
+                            onChange={(e) => updateProduct(product.id, 'subcategory', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            disabled={isLoading || !product.category}
+                          >
+                            <option value="">Select subcategory</option>
+                            {product.category && SUBCATEGORIES[product.category]?.map(subcat => (
+                              <option key={subcat} value={subcat}>{subcat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Stock and Prices */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Stock Quantity *
                           </label>
                           <input
                             type="number"
@@ -689,9 +747,7 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Price (KES) *

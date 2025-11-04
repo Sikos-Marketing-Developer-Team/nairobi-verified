@@ -419,6 +419,9 @@ const getRecentActivity = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/dashboard/merchants
 // @access  Private (Admin)
 const getMerchants = asyncHandler(async (req, res) => {
+  console.log('📋 getMerchants called by:', req.admin?.email);
+  console.log('📋 Query params:', req.query);
+  
   try {
     const { 
       page = 1, 
@@ -512,6 +515,8 @@ const getMerchants = asyncHandler(async (req, res) => {
       };
     });
 
+    console.log('✅ Returning', merchantsWithCompleteness.length, 'merchants');
+    
     res.status(200).json({
       success: true,
       merchants: merchantsWithCompleteness,

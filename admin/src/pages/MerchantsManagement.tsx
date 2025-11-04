@@ -161,6 +161,7 @@ const MerchantsManagement: React.FC = () => {
 
   const loadMerchants = useCallback(async (showRefreshing = false) => {
   try {
+    console.log('📋 Loading merchants...');
     if (showRefreshing) {
       setRefreshing(true);
     } else {
@@ -168,13 +169,25 @@ const MerchantsManagement: React.FC = () => {
     }
     
     // ✅ Remove limit - let backend return all merchants
-    const response = await adminAPI.getMerchants(); 
+    const response = await adminAPI.getMerchants();
+    console.log('📋 Response received:', response.data);
+    
     if (response.data.success) {
-      setMerchants(response.data.merchants || []);
+      // Filter out any null/undefined merchants and ensure data integrity
+      const validMerchants = (response.data.merchants || []).filter((m: any) => m && m._id);
+      console.log('📋 Valid merchants:', validMerchants.length);
+      setMerchants(validMerchants);
+    } else {
+      console.warn('⚠️ Response not successful:', response.data);
     }
   } catch (error: any) {
     console.error('Failed to load merchants:', error);
-    toast.error('Failed to load merchants');
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    toast.error(error.response?.data?.message || 'Failed to load merchants');
   } finally {
     requestAnimationFrame(() => {
       setIsLoading(false);
@@ -188,31 +201,36 @@ const MerchantsManagement: React.FC = () => {
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(merchant =>
-        merchant.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (merchant.ownerName && merchant.ownerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        merchant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (merchant.businessType && merchant.businessType.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (merchant.location && merchant.location.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+      filtered = filtered.filter(merchant => {
+        if (!merchant) return false;
+        return (
+          (merchant.businessName && merchant.businessName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (merchant.ownerName && merchant.ownerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (merchant.email && merchant.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (merchant.businessType && merchant.businessType.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (merchant.location && merchant.location.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+      });
     }
 
     // Status filter
     if (filterStatus !== 'all') {
       filtered = filtered.filter(merchant => {
+        if (!merchant) return false; // Safety check
+        
         switch (filterStatus) {
           case 'verified':
-            return merchant.verified;
+            return merchant.verified === true;
           case 'pending':
-            return !merchant.verified;
+            return merchant.verified !== true;
           case 'active':
-            return merchant.isActive;
+            return merchant.isActive === true;
           case 'inactive':
-            return !merchant.isActive;
+            return merchant.isActive !== true;
           case 'needs_review':
             return merchant.needsVerification || (merchant.isDocumentComplete && !merchant.verified);
           case 'featured':
-            return merchant.featured;
+            return merchant.featured === true;
           default:
             return true;
         }
@@ -221,16 +239,19 @@ const MerchantsManagement: React.FC = () => {
 
     // Sort merchants
     filtered.sort((a, b) => {
+      // Safety checks
+      if (!a || !b) return 0;
+      
       let aValue, bValue;
       
       switch (sortBy) {
         case 'name':
-          aValue = a.businessName.toLowerCase();
-          bValue = b.businessName.toLowerCase();
+          aValue = (a.businessName || '').toLowerCase();
+          bValue = (b.businessName || '').toLowerCase();
           break;
         case 'date':
-          aValue = new Date(a.createdAt).getTime();
-          bValue = new Date(b.createdAt).getTime();
+          aValue = new Date(a.createdAt || 0).getTime();
+          bValue = new Date(b.createdAt || 0).getTime();
           break;
         case 'status':
           aValue = a.verified ? 2 : (a.isActive ? 1 : 0);
@@ -241,8 +262,8 @@ const MerchantsManagement: React.FC = () => {
           bValue = (b.profileCompleteness || 0) + (b.documentsCompleteness || 0);
           break;
         default:
-          aValue = new Date(a.createdAt).getTime();
-          bValue = new Date(b.createdAt).getTime();
+          aValue = new Date(a.createdAt || 0).getTime();
+          bValue = new Date(b.createdAt || 0).getTime();
       }
 
       if (sortOrder === 'asc') {
@@ -252,7 +273,9 @@ const MerchantsManagement: React.FC = () => {
       }
     });
 
-    setFilteredMerchants(filtered);
+    // Final safety check: remove any null/undefined merchants before setting state
+    const safeFiltered = filtered.filter((m: any) => m && m._id);
+    setFilteredMerchants(safeFiltered);
   }, [merchants, searchTerm, filterStatus, sortBy, sortOrder]);
 
   // Pagination handlers
@@ -361,8 +384,8 @@ const MerchantsManagement: React.FC = () => {
 
       // Update local state
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === editingMerchant._id ? editingMerchant : merchant
-      ));
+        merchant && merchant._id === editingMerchant._id ? editingMerchant : merchant
+      ).filter(m => m && m._id)); // Clean up any undefined
       
       setEditingMerchant(null);
       toast.success('Merchant status updated successfully!');
@@ -381,10 +404,10 @@ const MerchantsManagement: React.FC = () => {
     try {
       // Update local state immediately for better UX
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
+        merchant && merchant._id === merchantId 
           ? { ...merchant, verified: true, updatedAt: new Date().toISOString() }
           : merchant
-      ));
+      ).filter(m => m && m._id));
 
       const response = await adminAPI.verifyMerchant(merchantId);
       if (response.data.success) {
@@ -397,10 +420,10 @@ const MerchantsManagement: React.FC = () => {
       
       // Revert the local state change if API call fails
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
+        merchant && merchant._id === merchantId 
           ? { ...merchant, verified: false }
           : merchant
-      ));
+      ).filter(m => m && m._id));
       toast.error('Failed to verify merchant. Please try again.');
     }
   };
@@ -412,10 +435,10 @@ const MerchantsManagement: React.FC = () => {
       
       // Update local state immediately
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
+        merchant && merchant._id === merchantId 
           ? { ...merchant, isActive: newStatus, updatedAt: new Date().toISOString() }
           : merchant
-      ));
+      ).filter(m => m && m._id));
 
       const response = await adminAPI.updateMerchantStatus(merchantId, newStatus);
       if (response.data.success) {
@@ -428,10 +451,10 @@ const MerchantsManagement: React.FC = () => {
       
       // Revert on error
       setMerchants(prev => prev.map(merchant => 
-        merchant._id === merchantId 
+        merchant && merchant._id === merchantId 
           ? { ...merchant, isActive: currentStatus }
           : merchant
-      ));
+      ).filter(m => m && m._id));
       toast.error('Failed to update merchant status');
     }
   };
@@ -443,10 +466,10 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     
     // Optimistic update - update UI immediately
     setMerchants(prev => prev.map(merchant => 
-      merchant._id === merchantId 
+      merchant && merchant._id === merchantId 
         ? { ...merchant, featured: newFeaturedStatus, updatedAt: new Date().toISOString() }
         : merchant
-    ));
+    ).filter(m => m && m._id));
 
     // 🔑 FIXED: Call the backend API to persist the change
     const response = await adminAPI.setFeaturedStatus(merchantId, newFeaturedStatus);
@@ -461,10 +484,10 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     
     // Revert on error
     setMerchants(prev => prev.map(merchant => 
-      merchant._id === merchantId 
+      merchant && merchant._id === merchantId 
         ? { ...merchant, featured: currentFeatured }
         : merchant
-    ));
+    ).filter(m => m && m._id));
     
     toast.error('Failed to update featured status');
   }
@@ -516,20 +539,20 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         // 🔑 FIXED: Use API instead of local state only
         await adminAPI.bulkSetFeatured(selectedMerchants, true);
         setMerchants(prev => prev.map(merchant => 
-          selectedMerchants.includes(merchant._id) 
+          merchant && selectedMerchants.includes(merchant._id) 
             ? { ...merchant, featured: true, updatedAt: new Date().toISOString() }
             : merchant
-        ));
+        ).filter(m => m && m._id));
         toast.success(`${selectedMerchants.length} merchants featured successfully`);
         break;
       case 'unfeature':
         // 🔑 FIXED: Use API instead of local state only
         await adminAPI.bulkSetFeatured(selectedMerchants, false);
         setMerchants(prev => prev.map(merchant => 
-          selectedMerchants.includes(merchant._id) 
+          merchant && selectedMerchants.includes(merchant._id) 
             ? { ...merchant, featured: false, updatedAt: new Date().toISOString() }
             : merchant
-        ));
+        ).filter(m => m && m._id));
         toast.success(`${selectedMerchants.length} merchants unfeatured successfully`);
         break;
       case 'delete':
@@ -551,7 +574,8 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     if (selectedMerchants.length === currentMerchants.length) {
       setSelectedMerchants([]);
     } else {
-      setSelectedMerchants(currentMerchants.map(m => m._id));
+      // Filter out any undefined merchants before mapping
+      setSelectedMerchants(currentMerchants.filter(m => m && m._id).map(m => m._id));
     }
   };
 
@@ -564,20 +588,23 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
   };
 
   const getStatusColor = (merchant: Merchant) => {
-    if (merchant.verified) return 'bg-green-100 text-green-800';
-    if (!merchant.isActive) return 'bg-red-100 text-red-800';
+    if (!merchant) return 'bg-gray-100 text-gray-800';
+    if (merchant.verified === true) return 'bg-green-100 text-green-800';
+    if (merchant.isActive === false) return 'bg-red-100 text-red-800';
     return 'bg-yellow-100 text-yellow-800';
   };
 
   const getStatusIcon = (merchant: Merchant) => {
-    if (merchant.verified) return <CheckCircle className="w-3 h-3" />;
-    if (!merchant.isActive) return <AlertTriangle className="w-3 h-3" />;
+    if (!merchant) return <AlertTriangle className="w-3 h-3" />;
+    if (merchant.verified === true) return <CheckCircle className="w-3 h-3" />;
+    if (merchant.isActive === false) return <AlertTriangle className="w-3 h-3" />;
     return <Clock className="w-3 h-3" />;
   };
 
   const getStatusText = (merchant: Merchant) => {
-    if (merchant.verified) return 'Verified';
-    if (!merchant.isActive) return 'Inactive';
+    if (!merchant) return 'Unknown';
+    if (merchant.verified === true) return 'Verified';
+    if (merchant.isActive === false) return 'Inactive';
     return 'Pending';
   };
 
@@ -596,7 +623,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     },
     {
       name: 'Verified',
-      value: merchants.filter(m => m.verified).length,
+      value: merchants.filter(m => m && m.verified === true).length,
       icon: CheckCircle,
       color: 'text-green-600 bg-green-100',
       change: '+8%',
@@ -604,7 +631,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     },
     {
       name: 'Needs Review',
-      value: merchants.filter(m => m.needsVerification || (m.isDocumentComplete && !m.verified)).length,
+      value: merchants.filter(m => m && (m.needsVerification || (m.isDocumentComplete && !m.verified))).length,
       icon: Clock3,
       color: 'text-orange-600 bg-orange-100',
       change: '-5%',
@@ -612,7 +639,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     },
     {
       name: 'Featured',
-      value: merchants.filter(m => m.featured).length,
+      value: merchants.filter(m => m && m.featured === true).length,
       icon: Star,
       color: 'text-purple-600 bg-purple-100',
       change: '+3%',
@@ -620,7 +647,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     },
     {
       name: 'Active',
-      value: merchants.filter(m => m.isActive).length,
+      value: merchants.filter(m => m && m.isActive === true).length,
       icon: Activity,
       color: 'text-emerald-600 bg-emerald-100',
       change: '+15%',
@@ -628,7 +655,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
     },
     {
       name: 'Documents Complete',
-      value: merchants.filter(m => m.isDocumentComplete).length,
+      value: merchants.filter(m => m && m.isDocumentComplete === true).length,
       icon: FileCheck,
       color: 'text-indigo-600 bg-indigo-100',
       change: '+22%',
@@ -910,7 +937,7 @@ const handleToggleFeatured = async (merchantId: string, currentFeatured: boolean
         ) : (
           <>
             <ul className="divide-y divide-gray-200">
-              {currentMerchants.map((merchant, index) => (
+              {currentMerchants.filter(m => m && m._id).map((merchant, index) => (
                 <li 
                   key={merchant._id} 
                   className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ease-in-out"
