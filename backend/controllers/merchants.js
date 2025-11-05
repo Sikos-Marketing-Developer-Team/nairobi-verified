@@ -1421,7 +1421,6 @@ exports.resendWelcomeEmail = async (req, res) => {
 
     // Generate new temporary password
     const newTempPassword = crypto.randomBytes(8).toString('hex');
-    const bcrypt = require('bcryptjs');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newTempPassword, salt);
 
