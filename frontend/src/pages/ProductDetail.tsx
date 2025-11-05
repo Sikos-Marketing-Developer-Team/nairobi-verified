@@ -469,10 +469,10 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Enquire via WhatsApp - Prominent CTA */}
-            {product.merchant.whatsappNumber && (
+            {(product.merchant.whatsappNumber || product.merchant.phone) && (
               <div className="mb-4">
                 <a
-                  href={`https://wa.me/${product.merchant.whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
+                  href={`https://wa.me/${(product.merchant.whatsappNumber || product.merchant.phone)?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(whatsappMessage)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block"
