@@ -46,10 +46,9 @@ import Cart from "./pages/Cart";
 import Contact from "./pages/Contact";
 import Status from "./pages/Status";
 import FlashSaleDetail from "./pages/FlashSaleDetail";
-import ProductPage from './pages/ProductPage';
 import { FavoritesProvider } from './contexts/FavoritesContext';
 import MerchantAuth from './pages/MerchantAuth';
-''
+
 const queryClient = new QueryClient();
 
 // Protected route component
