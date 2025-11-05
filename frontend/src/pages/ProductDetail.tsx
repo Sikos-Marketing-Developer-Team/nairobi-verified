@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn, AlertCircle, Phone, Mail, Shield, Truck, Store, Bookmark } from 'lucide-react';
+import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn, AlertCircle, Phone, Mail, Shield, Truck } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -223,41 +223,41 @@ const ProductDetail: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Header />
       
       {/* Breadcrumb Navigation */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <nav className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-600">
-            <Link to="/" className="hover:text-primary">Home</Link>
-            <span>/</span>
-            <Link to="/products" className="hover:text-primary">Products</Link>
-            <span>/</span>
-            <span className="text-gray-900 font-medium truncate">{product.name}</span>
-          </nav>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+          <Link to="/" className="hover:text-primary">Home</Link>
+          <span>/</span>
+          <Link to="/products" className="hover:text-primary">Products</Link>
+          <span>/</span>
+          <Link to={`/products?category=${product.category.toLowerCase()}`} className="hover:text-primary truncate max-w-[100px]">
+            {product.category}
+          </Link>
+          <span>/</span>
+          <span className="text-gray-900 font-medium truncate max-w-[150px] sm:max-w-none">{product.name}</span>
+        </nav>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         {/* Back Button */}
-        <Button 
-          variant="ghost" 
-          onClick={() => window.history.back()}
-          className="mb-4 -ml-2 text-sm hover:bg-transparent"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
-        </Button>
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2 text-gray-600 hover:text-primary"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Products
+          </Button>
+        </div>
 
-        {/* Main Product Grid - 2 column desktop, stack mobile */}
-        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Left Section - Product Images (2/3 width on desktop) */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Images Card */}
-            <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
-              {/* Main Image */}
-              <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 mb-3 sm:mb-4">
+        <div className="grid lg:grid-cols-2 gap-12">
+          {/* Product Images */}
+          <div className="space-y-4">
+            <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
               <img
                 src={product.images[selectedImage]}
                 alt={product.name}
@@ -463,30 +463,12 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Stock Status */}
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className={`font-medium text-sm sm:text-base ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
                 {product.inStock ? `In Stock (${product.stockQuantity || 999} available)` : 'Out of Stock'}
               </span>
             </div>
-
-            {/* Enquire via WhatsApp - Prominent CTA */}
-            {product.merchant.whatsappNumber && (
-              <a
-                href={`https://wa.me/${product.merchant.whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block mb-4"
-              >
-                <Button 
-                  className="w-full bg-[#25D366] hover:bg-[#1eb855] text-white font-bold py-3 sm:py-4 text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
-                  size="lg"
-                >
-                  <FaWhatsapp className="h-5 w-5 sm:h-6 sm:w-6 mr-2" />
-                  Enquire via WhatsApp
-                </Button>
-              </a>
-            )}
 
             {/* Quantity and Actions */}
             <div className="space-y-4">
