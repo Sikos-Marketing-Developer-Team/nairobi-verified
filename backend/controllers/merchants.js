@@ -1420,10 +1420,18 @@ exports.resendWelcomeEmail = async (req, res) => {
     console.log('✅ Found merchant:', merchant.businessName, merchant.email);
 
     // Generate new temporary password that meets validation requirements
-    // Password must have: uppercase, lowercase, number, special character, min 8 chars
-    const randomString = crypto.randomBytes(4).toString('hex'); // 8 chars
-    const newTempPassword = `${randomString.substring(0, 2).toUpperCase()}${randomString.substring(2, 6)}${Math.floor(Math.random() * 10)}!`;
-    // Format: AB****##! (uppercase + lowercase + number + special char)
+    // Must have: min 8 chars, uppercase, lowercase, number, special char (!@#$%^&*)
+    const specialChars = '!@#$%^&*';
+    const randomHex = crypto.randomBytes(3).toString('hex'); // 6 lowercase hex chars
+    const newTempPassword = 
+      randomHex.charAt(0).toUpperCase() + // 1 uppercase
+      randomHex.substring(1, 5) + // 4 lowercase
+      Math.floor(Math.random() * 10) + // 1 digit
+      randomHex.charAt(5).toUpperCase() + // 1 more uppercase
+      specialChars.charAt(Math.floor(Math.random() * specialChars.length)); // 1 special char
+    // Total: 8 characters with all required types
+    
+    console.log('🔑 Generated password length:', newTempPassword.length, 'chars');
     
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newTempPassword, salt);
