@@ -463,12 +463,30 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Stock Status */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-4">
               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className={`font-medium text-sm sm:text-base ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
                 {product.inStock ? `In Stock (${product.stockQuantity || 999} available)` : 'Out of Stock'}
               </span>
             </div>
+
+            {/* Enquire via WhatsApp - Prominent CTA */}
+            {product.merchant.whatsappNumber && (
+              <a
+                href={`https://wa.me/${product.merchant.whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block mb-4"
+              >
+                <Button 
+                  className="w-full bg-[#25D366] hover:bg-[#1eb855] text-white font-bold py-3 sm:py-4 text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                  size="lg"
+                >
+                  <FaWhatsapp className="h-5 w-5 sm:h-6 sm:w-6 mr-2" />
+                  Enquire via WhatsApp
+                </Button>
+              </a>
+            )}
 
             {/* Quantity and Actions */}
             <div className="space-y-4">
