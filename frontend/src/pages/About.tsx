@@ -308,56 +308,7 @@ const About = () => {
         </div>
       </section>
 
-      {/* Team Section */}
-      <section className="py-8 md:py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="text-left md:text-center mb-6 md:mb-12">
-            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold inter text-gray-900 mb-2 md:mb-4">
-              Meet Our Team
-            </h2>
-            <p className="text-base md:text-xl text-gray-600">
-              The passionate individuals building the future of trusted e-commerce in Kenya
-            </p>
-          </div>
-
-          {/* Desktop View - Grid Layout */}
-          <div className="hidden md:grid md:grid-cols-3 gap-6 md:gap-8">
-            {team.map((member, index) => (
-              <Card key={index} className="text-center hover-scale">
-                <CardContent className="p-6">
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    className="w-32 h-32 rounded-full mx-auto mb-4 object-cover"
-                  />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                    {member.name}
-                  </h3>
-                  <p className="text-primary font-medium mb-3">{member.role}</p>
-                  <p className="text-gray-600">{member.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Mobile View - Two Column Grid */}
-          <div className="md:hidden grid grid-cols-2 gap-3">
-            {team.map((member, index) => (
-              <div key={index} className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm text-center">
-                <img
-                  src={member.image}
-                  alt={member.name}
-                  className="w-16 h-16 rounded-full mx-auto mb-2 object-cover"
-                />
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                  {member.name}
-                </h3>
-                <p className="text-primary text-xs font-medium">{member.role}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+  
 
       {/* CTA Section */}
       <section className="py-8 md:py-16 bg-primary">
