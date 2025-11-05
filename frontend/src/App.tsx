@@ -131,7 +131,7 @@ const App = () => (
               <Route path="/merchant/account-setup/:token" element={<MerchantAccountSetup />} />
               <Route path="/howitworks" element={<HowItWorks />} />
               
-              {/* Protected User Routes */}  <Route path="/product/:id" element={<ProductPage />} />
+              {/* Protected User Routes */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
