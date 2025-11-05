@@ -7,21 +7,33 @@ const { cloudinaryUploadCounter, cloudinaryDeleteCounter, cloudinaryOperationDur
 let configured = false;
 function ensureConfigured() {
   if (!configured) {
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-    });
-    
-    // Debug: Log config (without exposing secret)
-    console.log('🔧 Cloudinary configured:', {
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY ? '✓ Set' : '✗ Missing',
-      api_secret: process.env.CLOUDINARY_API_SECRET ? '✓ Set' : '✗ Missing'
-    });
-    
-    configured = true;
+    try {
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+      });
+      
+      // Debug: Log config (without exposing secret)
+      console.log('🔧 Cloudinary configured:', {
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY ? '✓ Set' : '✗ Missing',
+        api_secret: process.env.CLOUDINARY_API_SECRET ? '✓ Set' : '✗ Missing'
+      });
+      
+      configured = true;
+    } catch (error) {
+      console.error('❌ Cloudinary configuration error:', error);
+      throw error;
+    }
   }
+}
+
+// Call configuration immediately when module loads
+try {
+  ensureConfigured();
+} catch (error) {
+  console.error('⚠️ Failed to configure Cloudinary on module load:', error.message);
 }
 
 // Create storage for different types of uploads
@@ -67,13 +79,32 @@ const productImageUpload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
+    console.log('📎 File filter - processing file:', file.originalname, 'mimetype:', file.mimetype);
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
+      console.warn('⚠️ Rejected non-image file:', file.originalname);
       cb(new Error('Only image files are allowed'), false);
     }
   }
-});
+}).any(); // Use .any() to accept files with any field name
+
+// Wrap with error handler
+const productImageUploadWithErrorHandler = (req, res, next) => {
+  productImageUpload(req, res, (err) => {
+    if (err) {
+      console.error('❌ Multer error:', err);
+      console.error('❌ Error type:', err.constructor.name);
+      console.error('❌ Error message:', err.message);
+      return res.status(400).json({
+        success: false,
+        error: err.message || 'File upload failed',
+        errorType: err.constructor.name
+      });
+    }
+    next();
+  });
+};
 
 const merchantImageUpload = multer({
   storage: createCloudinaryStorage('merchants'),
