@@ -223,25 +223,23 @@ const ProductDetail: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       
       {/* Breadcrumb Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-          <Link to="/" className="hover:text-primary">Home</Link>
-          <span>/</span>
-          <Link to="/products" className="hover:text-primary">Products</Link>
-          <span>/</span>
-          <Link to={`/products?category=${product.category.toLowerCase()}`} className="hover:text-primary truncate max-w-[100px]">
-            {product.category}
-          </Link>
-          <span>/</span>
-          <span className="text-gray-900 font-medium truncate max-w-[150px] sm:max-w-none">{product.name}</span>
-        </nav>
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <nav className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-600">
+            <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+            <span>/</span>
+            <Link to="/products" className="hover:text-primary transition-colors">Products</Link>
+            <span>/</span>
+            <span className="text-gray-900 font-medium truncate">{product.name}</span>
+          </nav>
+        </div>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Back Button */}
         <div className="mb-6">
           <Button 
@@ -463,12 +461,32 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Stock Status */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-4">
               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className={`font-medium text-sm sm:text-base ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
                 {product.inStock ? `In Stock (${product.stockQuantity || 999} available)` : 'Out of Stock'}
               </span>
             </div>
+
+            {/* Enquire via WhatsApp - Prominent CTA */}
+            {product.merchant.whatsappNumber && (
+              <div className="mb-4">
+                <a
+                  href={`https://wa.me/${product.merchant.whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <Button 
+                    className="w-full bg-[#25D366] hover:bg-[#1eb855] text-white font-bold py-3 sm:py-4 text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                    size="lg"
+                  >
+                    <FaWhatsapp className="h-5 w-5 sm:h-6 sm:w-6 mr-2" />
+                    💬 Enquire via WhatsApp
+                  </Button>
+                </a>
+              </div>
+            )}
 
             {/* Quantity and Actions */}
             <div className="space-y-4">
