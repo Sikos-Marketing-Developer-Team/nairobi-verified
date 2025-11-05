@@ -1,17 +1,28 @@
 const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const { EMAIL_CONFIG } = require('../config/constants');
 const { emailSentCounter, emailFailedCounter, emailSendDuration } = require('./metrics'); // MONITORING: Import metrics
 
 /**
  * Email Service for sending various types of emails
+ * Supports both SendGrid (preferred) and SMTP fallback
  */
 class EmailService {
   constructor() {
-    this.transporter = this.createTransporter();
+    // Initialize SendGrid if API key is available
+    if (process.env.SENDGRID_API_KEY) {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      this.useSendGrid = true;
+      console.log('📧 Email service initialized with SendGrid');
+    } else {
+      this.transporter = this.createTransporter();
+      this.useSendGrid = false;
+      console.log('📧 Email service initialized with SMTP');
+    }
   }
 
   /**
-   * Create email transporter based on environment
+   * Create email transporter based on environment (SMTP fallback)
    */
   createTransporter() {
     // Always use Gmail for email sending (both production and development)
@@ -30,40 +41,69 @@ class EmailService {
   }
 
   /**
-   * Send email
+   * Send email using SendGrid or SMTP fallback
    * @param {Object} options - Email options
    */
   async sendEmail(options) {
     const end = emailSendDuration.startTimer(); // MONITORING: Start timer
     try {
-      const mailOptions = {
-        from: `${EMAIL_CONFIG.FROM_NAME} <${EMAIL_CONFIG.FROM_EMAIL}>`,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text
-      };
+      if (this.useSendGrid) {
+        // Use SendGrid API
+        const msg = {
+          to: options.to,
+          from: {
+            email: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_USER,
+            name: EMAIL_CONFIG.FROM_NAME
+          },
+          subject: options.subject,
+          html: options.html,
+          text: options.text || options.html.replace(/<[^>]*>/g, '') // Strip HTML for text version
+        };
 
-      const info = await this.transporter.sendMail(mailOptions);
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Email sent successfully!');
-        console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+        const response = await sgMail.send(msg);
+        console.log('✅ Email sent via SendGrid to:', options.to);
+
+        emailSentCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other' });
+        end();
+
+        return {
+          success: true,
+          messageId: response[0].headers['x-message-id'],
+          provider: 'sendgrid'
+        };
+      } else {
+        // Use SMTP fallback
+        const mailOptions = {
+          from: `${EMAIL_CONFIG.FROM_NAME} <${EMAIL_CONFIG.FROM_EMAIL}>`,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+          text: options.text
+        };
+
+        const info = await this.transporter.sendMail(mailOptions);
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Email sent successfully!');
+          console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+        }
+
+        emailSentCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other' });
+        end();
+
+        return {
+          success: true,
+          messageId: info.messageId,
+          provider: 'smtp'
+        };
       }
-
-      emailSentCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other' }); // MONITORING: Increment sent
-      end(); // MONITORING: Record duration
-
-      return {
-        success: true,
-        messageId: info.messageId,
-        previewUrl: process.env.NODE_ENV === 'development' ? nodemailer.getTestMessageUrl(info) : null
-      };
-
     } catch (error) {
-      console.error('Email sending failed:', error);
-      emailFailedCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other', error_code: error.code || 'unknown' }); // MONITORING: Increment failed
-      end(); // MONITORING: Record duration
+      console.error('❌ Email sending failed:', error.message);
+      if (error.response) {
+        console.error('SendGrid error details:', error.response.body);
+      }
+      emailFailedCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other', error_code: error.code || 'unknown' });
+      end();
       throw new Error(`Failed to send email: ${error.message}`);
     }
   }
