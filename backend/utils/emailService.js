@@ -1,18 +1,28 @@
 const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const { EMAIL_CONFIG } = require('../config/constants');
 const { emailSentCounter, emailFailedCounter, emailSendDuration } = require('./metrics'); // MONITORING: Import metrics
 
 /**
- * Email Service for sending various types of emails using Nodemailer
+ * Email Service for sending various types of emails
+ * Uses SendGrid API (preferred) with SMTP fallback
  */
 class EmailService {
   constructor() {
-    this.transporter = this.createTransporter();
-    console.log('📧 Email service initialized with Nodemailer (Gmail SMTP)');
+    // Initialize SendGrid if API key is available
+    if (process.env.SENDGRID_API_KEY) {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      this.useSendGrid = true;
+      console.log('📧 Email service initialized with SendGrid');
+    } else {
+      this.transporter = this.createTransporter();
+      this.useSendGrid = false;
+      console.log('📧 Email service initialized with Nodemailer (Gmail SMTP)');
+    }
   }
 
   /**
-   * Create email transporter with Gmail SMTP
+   * Create email transporter with Gmail SMTP (fallback)
    */
   createTransporter() {
     return nodemailer.createTransport({
@@ -37,38 +47,68 @@ class EmailService {
   }
 
   /**
-   * Send email using Nodemailer (Gmail SMTP)
+   * Send email using SendGrid or Nodemailer fallback
    * @param {Object} options - Email options
    */
   async sendEmail(options) {
     const end = emailSendDuration.startTimer(); // MONITORING: Start timer
     try {
-      const mailOptions = {
-        from: `${EMAIL_CONFIG.FROM_NAME} <${process.env.EMAIL_USER}>`,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text
-      };
+      if (this.useSendGrid) {
+        // Use SendGrid API
+        const msg = {
+          to: options.to,
+          from: {
+            email: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_USER,
+            name: EMAIL_CONFIG.FROM_NAME
+          },
+          subject: options.subject,
+          html: options.html,
+          text: options.text || options.html.replace(/<[^>]*>/g, '') // Strip HTML for text version
+        };
 
-      const info = await this.transporter.sendMail(mailOptions);
-      
-      console.log('✅ Email sent successfully to:', options.to);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Message ID:', info.messageId);
-        console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+        const response = await sgMail.send(msg);
+        console.log('✅ Email sent via SendGrid to:', options.to);
+
+        emailSentCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other' });
+        end();
+
+        return {
+          success: true,
+          messageId: response[0].headers['x-message-id'],
+          provider: 'sendgrid'
+        };
+      } else {
+        // Use Nodemailer SMTP fallback
+        const mailOptions = {
+          from: `${EMAIL_CONFIG.FROM_NAME} <${process.env.EMAIL_USER}>`,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+          text: options.text
+        };
+
+        const info = await this.transporter.sendMail(mailOptions);
+        
+        console.log('✅ Email sent successfully to:', options.to);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Message ID:', info.messageId);
+          console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+        }
+
+        emailSentCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other' });
+        end();
+
+        return {
+          success: true,
+          messageId: info.messageId,
+          provider: 'nodemailer'
+        };
       }
-
-      emailSentCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other' });
-      end();
-
-      return {
-        success: true,
-        messageId: info.messageId,
-        provider: 'nodemailer'
-      };
     } catch (error) {
       console.error('❌ Email sending failed:', error.message);
+      if (error.response) {
+        console.error('SendGrid error details:', error.response.body);
+      }
       console.error('Error code:', error.code);
       emailFailedCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other', error_code: error.code || 'unknown' });
       end();
