@@ -918,24 +918,39 @@ exports.createMerchantWithProducts = async (req, res) => {
 // @route   PUT /api/merchants/admin/:id/update-with-products
 // @access  Private/Admin
 exports.updateMerchantWithProducts = async (req, res) => {
+  console.log('🔵 updateMerchantWithProducts called');
+  console.log('🔵 req.admin:', req.admin ? 'exists' : 'missing');
+  console.log('🔵 req.user:', req.user ? 'exists' : 'missing');
+  console.log('🔵 req.params.id:', req.params.id);
+  
   try {
     // AUTHORIZATION CHECK - Support both session (req.user) and JWT admin auth (req.admin)
     const adminUser = req.admin || req.user;
     const isAdmin = adminUser && (adminUser.role === 'admin' || adminUser.role === 'super_admin');
     
+    console.log('🔵 adminUser:', adminUser ? adminUser.email : 'none');
+    console.log('🔵 isAdmin:', isAdmin);
+    
     if (!isAdmin) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({ 
+      console.log('⛔ Access denied - not admin');
+      return res.status(403).json({ 
         success: false, 
         error: 'Access denied. Admin privileges required.' 
       });
     }
 
+    console.log('✅ Authorization passed');
+    
     const Product = require('../models/Product');
     const Merchant = require('../models/Merchant');
     const { cloudinary, ensureConfigured } = require('../services/cloudinaryService');
     
+    console.log('✅ Models loaded');
+    
     // Ensure Cloudinary is configured before using it
     ensureConfigured();
+    
+    console.log('✅ Cloudinary configured');
 
     const merchantId = req.params.id;
     console.log(`📝 Updating merchant ${merchantId} with products...`);
@@ -1081,17 +1096,17 @@ exports.updateMerchantWithProducts = async (req, res) => {
 
   } catch (error) {
     console.error('❌ updateMerchantWithProducts error:', error);
-    console.error('Error stack:', error.stack);
-    console.error('Error details:', {
-      message: error.message,
-      name: error.name,
-      code: error.code
-    });
+    console.error('❌ Error type:', typeof error);
+    console.error('❌ Error constructor:', error?.constructor?.name);
+    console.error('❌ Error message:', error?.message);
+    console.error('❌ Error stack:', error?.stack);
+    console.error('❌ Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Failed to update merchant with products',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: error?.message || error?.toString() || 'Failed to update merchant with products',
+      errorType: error?.constructor?.name || typeof error,
+      details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
     });
   }
 };
