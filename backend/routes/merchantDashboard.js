@@ -30,7 +30,6 @@ const {
   deleteProduct,
   toggleProductAvailability,
   uploadProductImages,
-  uploadStandaloneProductImages, // NEW FUNCTION
   deleteProductImage,
   
   // Review Management
@@ -123,11 +122,6 @@ router.post('/products', createProduct);
 router.put('/products/:productId', updateProduct);
 router.delete('/products/:productId', deleteProduct);
 router.patch('/products/:productId/availability', toggleProductAvailability);
-
-// NEW: Standalone product image upload (before product creation)
-router.post('/products/images', productImageUploadRaw.array('images', 5), uploadStandaloneProductImages);
-
-// Existing: Product-specific image upload (for existing products)
 router.post('/products/:productId/images', productImageUploadRaw.array('images', 5), uploadProductImages);
 router.delete('/products/:productId/images/:imageId', deleteProductImage);
 

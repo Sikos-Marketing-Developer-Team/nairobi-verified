@@ -255,14 +255,14 @@ const MerchantAuth = () => {
                       <span className="w-full border-t border-gray-300" />
                     </div>
                     <div className="relative flex justify-center text-[10px] uppercase">
-                      {/* <span className="bg-gradient-to-br from-blue-50 to-indigo-50 px-2 text-gray-500">
+                      <span className="bg-gradient-to-br from-blue-50 to-indigo-50 px-2 text-gray-500">
                         Or use email
-                      </span> */}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* <form onSubmit={handleSubmit} className="space-y-2 mt-3" noValidate>
+                <form onSubmit={handleSubmit} className="space-y-2 mt-3" noValidate>
                   <div className="relative">
                     <Mail className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
@@ -344,7 +344,7 @@ const MerchantAuth = () => {
                       'Sign In as Merchant'
                     )}
                   </Button>
-                </form> */}
+                </form>
 
                 <div className="text-center mt-3 text-xs">
                   <span className="text-gray-600">
