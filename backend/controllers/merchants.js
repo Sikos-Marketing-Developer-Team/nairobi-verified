@@ -4,6 +4,7 @@ const MerchantOnboardingService = require('../services/merchantOnboarding');
 const { emailService, sendEmail } = require('../utils/emailService');
 const { HTTP_STATUS } = require('../config/constants');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 
 /**
