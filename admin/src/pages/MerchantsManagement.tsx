@@ -27,7 +27,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  ChevronDown
+  ChevronDown,
+  Mail
 } from 'lucide-react';
 import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
@@ -1128,6 +1129,14 @@ const MerchantsManagement: React.FC = () => {
                     >
                       <UserCheck className="w-3 h-3 mr-1" />
                       {merchant.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button
+                      onClick={() => handleResendWelcomeEmail(merchant._id, merchant.businessName)}
+                      className="flex-1 inline-flex items-center justify-center px-2 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                      title="Resend welcome email with new password"
+                    >
+                      <Mail className="w-3 h-3 mr-1" />
+                      Resend
                     </button>
                   </div>
                 </li>
