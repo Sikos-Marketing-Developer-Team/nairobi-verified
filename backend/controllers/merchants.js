@@ -1457,8 +1457,8 @@ exports.resendWelcomeEmail = async (req, res) => {
 
     // Send welcome email with new credentials
     const setupUrl = `${process.env.FRONTEND_URL}/merchant/account-setup/${setupToken}`;
-    const loginUrl = `${process.env.FRONTEND_URL}/merchant/login`;
-    const googleLoginUrl = `${process.env.FRONTEND_URL}/merchant/login?oauth=google`;
+    const loginUrl = `https://www.nairobiverified.co.ke/merchant/sign-in`;
+    const googleLoginUrl = `https://www.nairobiverified.co.ke/merchant/sign-in`;
 
     const emailContent = {
       to: merchant.email,
@@ -1497,17 +1497,22 @@ exports.resendWelcomeEmail = async (req, res) => {
           <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; margin-bottom: 25px;">
             <h3 style="color: #1565c0; margin-top: 0;">🚀 Two Ways to Sign In</h3>
             <div style="margin: 15px 0;">
-              <p style="margin: 5px 0; color: #333;"><strong>1. Email & Password:</strong></p>
-              <p style="margin: 5px 0; color: #666; font-size: 14px;">Use your email and the temporary password above</p>
+              <p style="margin: 5px 0; color: #333;"><strong>Option 1: Sign in with Password</strong></p>
+              <p style="margin: 5px 0; color: #666; font-size: 14px;">
+                Click the "Login with Password" button below, then enter your email (${merchant.email}) and the temporary password shown above.
+              </p>
             </div>
             <div style="margin: 15px 0;">
-              <p style="margin: 5px 0; color: #333;"><strong>2. Sign in with Google:</strong></p>
-              <p style="margin: 5px 0; color: #666; font-size: 14px;">Use the same email address (${merchant.email}) to sign in with Google for faster access</p>
+              <p style="margin: 5px 0; color: #333;"><strong>Option 2: Sign in with Google</strong></p>
+              <p style="margin: 5px 0; color: #666; font-size: 14px;">
+                Click the "Sign in with Google" button below. On the sign-in page, click the "Sign in with Google" button and use your Google account (${merchant.email}) for faster access.
+              </p>
             </div>
           </div>
 
           <!-- Action Buttons -->
           <div style="text-align: center; margin: 30px 0;">
+            <p style="color: #333; font-size: 16px; font-weight: bold; margin-bottom: 15px;">Choose Your Sign-In Method:</p>
             <a href="${loginUrl}" style="background: #4caf50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin: 0 5px 10px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
               🔑 Login with Password
             </a>
@@ -1515,13 +1520,22 @@ exports.resendWelcomeEmail = async (req, res) => {
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;" alt="Google" />
               Sign in with Google
             </a>
+            <p style="color: #666; font-size: 13px; margin-top: 15px; font-style: italic;">
+              💡 Both buttons redirect to the sign-in page. Once there, click your preferred sign-in method.
+            </p>
           </div>
 
           <!-- Next Steps -->
           <div style="background: #fff; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
             <h3 style="color: #333; margin-top: 0;">📋 Next Steps</h3>
             <ol style="color: #666; line-height: 1.8; padding-left: 20px;">
-              <li><strong>Choose your sign-in method</strong> (Password or Google)</li>
+              <li><strong>Click one of the buttons above</strong> to go to the sign-in page</li>
+              <li><strong>On the sign-in page:</strong>
+                <ul style="margin-top: 5px;">
+                  <li>For password: Enter your email and temporary password</li>
+                  <li>For Google: Click the "Sign in with Google" button</li>
+                </ul>
+              </li>
               <li><strong>Change your password</strong> if using email/password login</li>
               <li><strong>Complete your profile</strong> with photos and details</li>
               <li><strong>Upload verification documents</strong> (Business Registration, ID, Utility Bill)</li>
