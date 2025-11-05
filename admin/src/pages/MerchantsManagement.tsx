@@ -1065,6 +1065,14 @@ const MerchantsManagement: React.FC = () => {
                               )}
                               
                               <button
+                                onClick={() => handleResendWelcomeEmail(merchant._id, merchant.businessName)}
+                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+                                title="Resend welcome email with new password"
+                              >
+                                <Mail className="w-4 h-4" />
+                              </button>
+                              
+                              <button
                                 onClick={() => handleToggleStatus(merchant._id, merchant.isActive)}
                                 className={`p-2 rounded-full transition-all duration-200 ${
                                   merchant.isActive 

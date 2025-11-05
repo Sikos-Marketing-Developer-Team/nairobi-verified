@@ -10,7 +10,7 @@ const AdminSettings = () => {
   const [settings, setSettings] = useState({
     platformName: 'Nairobi Verified',
     contactEmail: 'info@sikosmarketing.com',
-    contactPhone: '0790120841 / 0713740807',
+    contactPhone: '0790120841 / 0116003008',
     verificationEmail: 'verification@nairobiverified.com',
     autoApproveThreshold: '5',
     maxDocumentSize: '10',

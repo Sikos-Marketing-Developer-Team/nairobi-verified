@@ -231,7 +231,7 @@ const Support = () => {
                 Call our customer service team
               </p>
               <p className="text-lg font-medium text-purple-700">
-                0790120841 / 0713740807
+                0790120841 / 0116003008
               </p>
             </div>
             

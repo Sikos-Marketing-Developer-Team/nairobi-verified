@@ -459,7 +459,7 @@ const PrivacyPolicy = () => {
                               <span className="text-2xl">📞</span>
                               <div>
                                 <p className="font-medium text-gray-900">Phone</p>
-                                <p className="text-sm text-gray-600">0790120841 / 0713740807</p>
+                                <p className="text-sm text-gray-600">0790120841 / 0116003008</p>
                               </div>
                             </div>
                             

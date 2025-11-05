@@ -759,7 +759,7 @@ const MerchantRegister = () => {
                         type="tel"
                         value={formData.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
-                        placeholder="0790120841 / 0713740807"
+                        placeholder="0790120841 / 0116003008"
                         required
                       />
                     </div>

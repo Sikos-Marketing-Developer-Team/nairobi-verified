@@ -87,7 +87,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center justify-start sm:justify-center lg:justify-start"> {/* Adjusted alignment */}
                 <Phone className="h-3 w-3 md:h-4 md:w-4 text-primary mr-2" />
-                <span>0713740807</span>
+                <span>0116003008</span>
               </div>
               <div className="flex items-center justify-start sm:justify-center lg:justify-start"> {/* Adjusted alignment */}
                 <Mail className="h-3 w-3 md:h-4 md:w-4 text-primary mr-2" />
