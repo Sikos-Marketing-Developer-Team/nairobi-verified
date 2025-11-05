@@ -89,6 +89,43 @@ const ProductsManagement: React.FC = () => {
     setFilteredProducts(filtered);
   };
 
+  const handleDeleteProduct = async (productId: string, productName: string) => {
+    if (!confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await adminAPI.deleteProduct(productId);
+      toast.success('Product deleted successfully');
+      loadProducts(); // Reload the products list
+    } catch (error: any) {
+      console.error('Failed to delete product:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete product');
+    }
+  };
+
+  const handleToggleActive = async (productId: string, currentStatus: boolean) => {
+    try {
+      await adminAPI.updateProduct(productId, { isActive: !currentStatus });
+      toast.success(`Product ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
+      loadProducts(); // Reload the products list
+    } catch (error: any) {
+      console.error('Failed to update product status:', error);
+      toast.error('Failed to update product status');
+    }
+  };
+
+  const handleToggleFeatured = async (productId: string, currentStatus: boolean) => {
+    try {
+      await adminAPI.updateProduct(productId, { featured: !currentStatus });
+      toast.success(`Product ${!currentStatus ? 'featured' : 'unfeatured'} successfully`);
+      loadProducts(); // Reload the products list
+    } catch (error: any) {
+      console.error('Failed to update product featured status:', error);
+      toast.error('Failed to update product featured status');
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
@@ -298,20 +335,30 @@ const ProductsManagement: React.FC = () => {
                 <h3 className="text-sm font-medium text-gray-900 line-clamp-2 flex-1 mr-2">{product.name}</h3>
                 <div className="flex items-center space-x-1 flex-shrink-0">
                   <button
-                    onClick={() => console.log('View product:', product)}
+                    onClick={() => window.open(`/products/${product._id}`, '_blank')}
                     className="text-green-600 hover:text-green-700 p-1"
+                    title="View product"
                   >
                     <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                   </button>
                   <button
-                    onClick={() => console.log('Edit product:', product)}
-                    className="text-blue-600 hover:text-blue-700 p-1"
+                    onClick={() => handleToggleFeatured(product._id, product.featured || false)}
+                    className={`p-1 ${product.featured ? 'text-yellow-600 hover:text-yellow-700' : 'text-gray-400 hover:text-gray-600'}`}
+                    title={product.featured ? 'Remove from featured' : 'Mark as featured'}
                   >
-                    <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Star className={`h-3 w-3 sm:h-4 sm:w-4 ${product.featured ? 'fill-current' : ''}`} />
                   </button>
                   <button
-                    onClick={() => console.log('Delete product:', product)}
+                    onClick={() => handleToggleActive(product._id, product.isActive)}
+                    className={`p-1 ${product.isActive ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}`}
+                    title={product.isActive ? 'Deactivate product' : 'Activate product'}
+                  >
+                    {product.isActive ? <XCircle className="h-3 w-3 sm:h-4 sm:w-4" /> : <Edit className="h-3 w-3 sm:h-4 sm:w-4" />}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteProduct(product._id, product.name)}
                     className="text-red-600 hover:text-red-700 p-1"
+                    title="Delete product"
                   >
                     <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                   </button>

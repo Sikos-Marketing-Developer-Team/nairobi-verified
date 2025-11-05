@@ -15,6 +15,7 @@ export interface Product {
   isActive: boolean;
   inStock: boolean;
   stock?: number;
+  featured?: boolean;
   rating?: number;
   totalReviews?: number;
   totalSales?: number;
