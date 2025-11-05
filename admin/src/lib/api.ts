@@ -203,14 +203,31 @@ export const adminAPI = {
   // Merchant management
   getMerchants: (params?: any) => api.get('/admin/dashboard/merchants', { params }),
   getMerchant: (merchantId: string) => api.get(`/admin/dashboard/merchants/${merchantId}`),
-  updateMerchant: (merchantId: string, merchantData: any) => {
+  updateMerchant: async (merchantId: string, merchantData: any) => {
     // Check if merchantData is FormData (contains products with images)
     if (merchantData instanceof FormData) {
-      return api.put(`/admin/dashboard/merchants/${merchantId}/with-products`, merchantData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+      try {
+        // Try the new endpoint first
+        return await api.put(`/admin/dashboard/merchants/${merchantId}/with-products`, merchantData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      } catch (error: any) {
+        // If 404, fallback to regular update (backend not deployed yet)
+        if (error.response?.status === 404) {
+          console.warn('⚠️ with-products endpoint not available, using fallback');
+          // Convert FormData to JSON for regular endpoint
+          const jsonData: any = {};
+          merchantData.forEach((value, key) => {
+            if (key !== 'products' && key !== 'productImages') {
+              jsonData[key] = value;
+            }
+          });
+          return api.put(`/admin/dashboard/merchants/${merchantId}`, jsonData);
         }
-      });
+        throw error;
+      }
     }
     // Regular merchant update without products
     return api.put(`/admin/dashboard/merchants/${merchantId}`, merchantData);
