@@ -79,150 +79,6 @@ const ProductDetail = () => {
     }
   };
 
-  // Enhanced mock product data with multiple products
-  const products = {
-    '1': {
-      id: 1,
-      name: 'MacBook Pro 16-inch M3',
-      price: 185000,
-      originalPrice: 250000,
-      rating: 4.8,
-      reviews: 24,
-      images: [
-        'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800&h=800&fit=crop'
-      ],
-      merchant: {
-        id: '60d0fe4f5311236168a10101',
-        name: 'TechHub Kenya',
-        location: 'Kimathi Street, CBD',
-        verified: true,
-        rating: 4.9,
-        totalReviews: 156
-      },
-      category: 'Electronics',
-      inStock: true,
-      stockCount: 5,
-      description: 'The MacBook Pro 16-inch with M3 chip is Apple\'s most powerful laptop, featuring exceptional performance and efficiency. Perfect for professionals who need top-tier computing power for video editing, software development, and creative work.',
-      specifications: [
-        'Apple M3 Pro chip with 12-core CPU',
-        '18GB unified memory',
-        '512GB SSD storage',
-        '16-inch Liquid Retina XDR display (3456x2234)',
-        'Three Thunderbolt 4 ports',
-        'HDMI port, SDXC card slot',
-        'MagSafe 3 charging port',
-        '22-hour battery life'
-      ],
-      features: [
-        'All-day battery life (up to 22 hours)',
-        'Studio-quality three-mic array',
-        '1080p FaceTime HD camera',
-        'Six-speaker sound system with Spatial Audio',
-        'Backlit Magic Keyboard with Touch ID',
-        'Force Touch trackpad',
-        'Wi-Fi 6E and Bluetooth 5.3'
-      ],
-      tags: ['Professional', 'Creative', 'High Performance', 'Apple']
-    },
-    '2': {
-      id: 2,
-      name: 'Samsung Galaxy S24 Ultra',
-      price: 120000,
-      originalPrice: 150000,
-      rating: 4.7,
-      reviews: 32,
-      images: [
-        'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=800&h=800&fit=crop'
-      ],
-      merchant: {
-        id: '60d0fe4f5311236168a10102',
-        name: 'Mobile World CBD',
-        location: 'Tom Mboya Street, CBD',
-        verified: true,
-        rating: 4.8,
-        totalReviews: 89
-      },
-      category: 'Electronics',
-      inStock: true,
-      stockCount: 12,
-      description: 'The Samsung Galaxy S24 Ultra represents the pinnacle of Android smartphone technology. With its advanced camera system, S Pen functionality, and powerful performance, it\'s perfect for productivity and creativity.',
-      specifications: [
-        'Snapdragon 8 Gen 3 processor',
-        '12GB RAM, 256GB storage',
-        '6.8-inch Dynamic AMOLED 2X display',
-        '200MP main camera with AI enhancement',
-        '12MP ultrawide, 10MP telephoto cameras',
-        '5000mAh battery with 45W fast charging',
-        'Built-in S Pen',
-        'IP68 water resistance'
-      ],
-      features: [
-        'Advanced AI photography',
-        'S Pen for note-taking and drawing',
-        'All-day battery life',
-        'Ultra-fast 5G connectivity',
-        'Samsung DeX desktop experience',
-        'Wireless charging and PowerShare',
-        'Knox security platform'
-      ],
-      tags: ['Flagship', 'Camera', 'S Pen', 'Android']
-    },
-    '3': {
-      id: 3,
-      name: 'Designer Leather Handbag',
-      price: 8500,
-      originalPrice: 15000,
-      rating: 4.4,
-      reviews: 18,
-      images: [
-        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&h=800&fit=crop'
-      ],
-      merchant: {
-        id: '60d0fe4f5311236168a10106',
-        name: 'Fashion House CBD',
-        location: 'River Road, CBD',
-        verified: true,
-        rating: 4.6,
-        totalReviews: 67
-      },
-      category: 'Fashion',
-      inStock: true,
-      stockCount: 8,
-      description: 'Elegant designer leather handbag crafted from premium genuine leather. Perfect for both professional and casual occasions, featuring multiple compartments and a timeless design.',
-      specifications: [
-        '100% Genuine leather construction',
-        'Dimensions: 35cm x 25cm x 15cm',
-        'Multiple interior compartments',
-        'Adjustable shoulder strap',
-        'Gold-tone hardware',
-        'Magnetic snap closure',
-        'Interior zip pocket',
-        'Dust bag included'
-      ],
-      features: [
-        'Premium genuine leather',
-        'Spacious interior design',
-        'Multiple organization pockets',
-        'Comfortable shoulder strap',
-        'Elegant gold hardware',
-        'Professional craftsmanship',
-        'Versatile styling options'
-      ],
-      tags: ['Designer', 'Leather', 'Elegant', 'Professional']
-    }
-  };
-
-  const product = products[id as keyof typeof products] || products['1'];
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
@@ -232,8 +88,10 @@ const ProductDetail = () => {
   };
 
   const handleQuantityChange = (change: number) => {
+    if (!product) return;
     const newQuantity = quantity + change;
-    if (newQuantity >= 1 && newQuantity <= product.stockCount) {
+    const maxStock = product.stockQuantity || 999;
+    if (newQuantity >= 1 && newQuantity <= maxStock) {
       setQuantity(newQuantity);
     }
   };
@@ -257,6 +115,37 @@ const ProductDetail = () => {
       </div>
     );
   }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Product Not Found</h2>
+            <p className="text-gray-600 mb-6">{error || 'The product you are looking for does not exist.'}</p>
+            <Button onClick={() => navigate('/products')} className="bg-green-600 hover:bg-green-700">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Products
+            </Button>
+          </div>
+        </div>
+        
+        <Footer />
+      </div>
+    );
+  }
+
+  const productImages = product.images && product.images.length > 0 
+    ? product.images 
+    : [product.primaryImage || 'https://via.placeholder.com/800x800?text=No+Image'];
+
+  const specifications = typeof product.specifications === 'object' && product.specifications !== null
+    ? Object.entries(product.specifications).map(([key, value]) => `${key}: ${value}`)
+    : [];
+
 
   return (
     <div className="min-h-screen bg-white">
