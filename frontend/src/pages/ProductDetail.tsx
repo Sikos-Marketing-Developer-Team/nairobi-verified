@@ -223,25 +223,23 @@ const ProductDetail: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       
       {/* Breadcrumb Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-          <Link to="/" className="hover:text-primary">Home</Link>
-          <span>/</span>
-          <Link to="/products" className="hover:text-primary">Products</Link>
-          <span>/</span>
-          <Link to={`/products?category=${product.category.toLowerCase()}`} className="hover:text-primary truncate max-w-[100px]">
-            {product.category}
-          </Link>
-          <span>/</span>
-          <span className="text-gray-900 font-medium truncate max-w-[150px] sm:max-w-none">{product.name}</span>
-        </nav>
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <nav className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-600">
+            <Link to="/" className="hover:text-primary">Home</Link>
+            <span>/</span>
+            <Link to="/products" className="hover:text-primary">Products</Link>
+            <span>/</span>
+            <span className="text-gray-900 font-medium truncate">{product.name}</span>
+          </nav>
+        </div>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Back Button */}
         <div className="mb-6">
           <Button 
