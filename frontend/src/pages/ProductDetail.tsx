@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,14 +8,76 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
 import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
+
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  category: string;
+  subcategory?: string;
+  images: string[];
+  primaryImage: string;
+  merchant: {
+    _id: string;
+    businessName: string;
+    location?: {
+      address?: string;
+      city?: string;
+    };
+    verified: boolean;
+    rating?: number;
+  };
+  rating?: number;
+  totalReviews?: number;
+  inStock: boolean;
+  stockQuantity?: number;
+  tags?: string[];
+  specifications?: any;
+  featured?: boolean;
+  isActive: boolean;
+  createdAt: string;
+}
 
 const ProductDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
   const [isImageZoomed, setIsImageZoomed] = useState(false);
-  const isLoading = usePageLoading(700);
+
+  useEffect(() => {
+    if (id) {
+      loadProduct();
+    }
+  }, [id]);
+
+  const loadProduct = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await api.getProduct(id!);
+      
+      if (response.data.success) {
+        setProduct(response.data.data || response.data.product);
+      } else {
+        setError('Product not found');
+      }
+    } catch (err: any) {
+      console.error('Failed to load product:', err);
+      setError(err.response?.data?.message || 'Failed to load product');
+      toast.error('Failed to load product details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Enhanced mock product data with multiple products
   const products = {
