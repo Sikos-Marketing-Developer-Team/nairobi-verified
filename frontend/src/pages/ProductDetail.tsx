@@ -8,7 +8,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
 import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
-import { api } from '@/lib/api';
+import api from '@/lib/api';
 import { toast } from 'sonner';
 
 interface Product {
@@ -257,10 +257,10 @@ const ProductDetail = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Link 
-                        to={`/merchant/${product.merchant.id}`}
+                        to={`/merchant/${product.merchant._id}`}
                         className="font-semibold text-lg hover:text-primary transition-colors"
                       >
-                        {product.merchant.name}
+                        {product.merchant.businessName}
                       </Link>
                       {product.merchant.verified && (
                         <Badge variant="secondary" className="flex items-center gap-1 text-xs">
@@ -269,20 +269,23 @@ const ProductDetail = () => {
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                      <MapPin className="h-4 w-4" />
-                      {product.merchant.location}
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                        <span className="ml-1 font-medium">{product.merchant.rating}</span>
-                        <span className="text-sm text-gray-500 ml-1">({product.merchant.totalReviews} reviews)</span>
+                    {product.merchant.location && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                        <MapPin className="h-4 w-4" />
+                        {product.merchant.location.address || product.merchant.location.city || 'Nairobi CBD'}
                       </div>
-                    </div>
+                    )}
+                    {product.merchant.rating && (
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center">
+                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                          <span className="ml-1 font-medium">{product.merchant.rating.toFixed(1)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="ml-4">
-                    <Link to={`/merchant/${product.merchant.id}`}>
+                    <Link to={`/merchant/${product.merchant._id}`}>
                       <Button variant="outline" size="sm">
                         View Store
                       </Button>
