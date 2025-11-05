@@ -10,6 +10,7 @@ import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
 import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { productsAPI } from '@/lib/api';
+import { reviewsAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface Product {
@@ -42,7 +43,20 @@ interface Product {
   specifications?: Record<string, string | number>;
 }
 
-const ProductDetail = () => {
+interface Review {
+  _id: string;
+  user: {
+    _id: string;
+    name: string;
+  };
+  merchant: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  helpful?: number;
+}
+
+const ProductDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
