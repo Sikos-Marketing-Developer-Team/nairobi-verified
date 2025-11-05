@@ -119,6 +119,40 @@ router.delete('/users/:id', checkPermission('users.delete'), deleteUser);
 // Product management routes
 router.get('/products', checkPermission('products.read'), getProducts);
 router.post('/products', checkPermission('products.write'), createProduct);
+router.put('/products/:id', checkPermission('products.write'), async (req, res) => {
+  try {
+    const Product = require('../models/Product');
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    
+    res.json({ success: true, data: product });
+  } catch (error) {
+    console.error('Update product error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update product' });
+  }
+});
+router.delete('/products/:id', checkPermission('products.delete'), async (req, res) => {
+  try {
+    const Product = require('../models/Product');
+    const product = await Product.findByIdAndDelete(req.params.id);
+    
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    
+    res.json({ success: true, message: 'Product deleted successfully' });
+  } catch (error) {
+    console.error('Delete product error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete product' });
+  }
+});
 
 // Review management routes
 router.get('/reviews', checkPermission('reviews.read'), getReviews);
