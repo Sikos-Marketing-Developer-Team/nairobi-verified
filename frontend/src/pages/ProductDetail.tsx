@@ -241,21 +241,23 @@ const ProductDetail: React.FC = () => {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Back Button */}
-        <div className="mb-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => window.history.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-primary"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Products
-          </Button>
-        </div>
+        <Button 
+          variant="ghost" 
+          onClick={() => window.history.back()}
+          className="mb-4 -ml-2 text-sm hover:bg-transparent"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
 
-        <div className="grid lg:grid-cols-2 gap-12">
-          {/* Product Images */}
-          <div className="space-y-4">
-            <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+        {/* Main Product Grid - 2 column desktop, stack mobile */}
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Left Section - Product Images (2/3 width on desktop) */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Images Card */}
+            <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
+              {/* Main Image */}
+              <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 mb-3 sm:mb-4">
               <img
                 src={product.images[selectedImage]}
                 alt={product.name}
