@@ -91,8 +91,8 @@ const MerchantsManagement: React.FC = () => {
       setIsLoading(true);
     }
     
-    // ✅ Remove limit - let backend return all merchants
-    const response = await adminAPI.getMerchants();
+    // ✅ Request all merchants by setting a high limit
+    const response = await adminAPI.getMerchants({ limit: 1000 });
     console.log('📋 Response received:', response.data);
     
     if (response.data.success) {
