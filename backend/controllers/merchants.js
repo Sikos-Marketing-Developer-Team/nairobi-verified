@@ -1431,13 +1431,10 @@ exports.resendWelcomeEmail = async (req, res) => {
       specialChars.charAt(Math.floor(Math.random() * specialChars.length)); // 1 special char
     // Total: 8 characters with all required types
     
-    console.log('🔑 Generated password length:', newTempPassword.length, 'chars');
+    console.log('🔑 Generated password:', newTempPassword, 'length:', newTempPassword.length);
     
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newTempPassword, salt);
-
-    // Update merchant password
-    merchant.password = hashedPassword;
+    // Set PLAIN password - the Merchant model pre-save hook will validate and hash it
+    merchant.password = newTempPassword;
     merchant.isFirstLogin = true; // Mark as first login to force password change
     await merchant.save();
 
@@ -1554,12 +1551,23 @@ exports.resendWelcomeEmail = async (req, res) => {
       `
     };
 
-    await sendEmail(emailContent);
-    console.log(`✅ Welcome email resent to ${merchant.email}`);
+    // Try to send email but don't fail if it times out
+    let emailSent = false;
+    try {
+      await sendEmail(emailContent);
+      console.log(`✅ Welcome email resent to ${merchant.email}`);
+      emailSent = true;
+    } catch (emailError) {
+      console.error(`⚠️ Email failed but password was updated:`, emailError.message);
+      // Continue anyway - password is already updated
+    }
 
     res.status(200).json({
       success: true,
-      message: 'Welcome email resent successfully with new credentials',
+      message: emailSent 
+        ? 'Welcome email resent successfully with new credentials'
+        : 'Password updated successfully. Email delivery failed - please contact merchant directly.',
+      emailSent,
       data: {
         email: merchant.email,
         businessName: merchant.businessName,
