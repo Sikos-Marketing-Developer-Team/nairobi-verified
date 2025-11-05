@@ -1,107 +1,75 @@
 const nodemailer = require('nodemailer');
-const sgMail = require('@sendgrid/mail');
 const { EMAIL_CONFIG } = require('../config/constants');
 const { emailSentCounter, emailFailedCounter, emailSendDuration } = require('./metrics'); // MONITORING: Import metrics
 
 /**
- * Email Service for sending various types of emails
- * Supports both SendGrid (preferred) and SMTP fallback
+ * Email Service for sending various types of emails using Nodemailer
  */
 class EmailService {
   constructor() {
-    // Initialize SendGrid if API key is available
-    if (process.env.SENDGRID_API_KEY) {
-      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-      this.useSendGrid = true;
-      console.log('📧 Email service initialized with SendGrid');
-    } else {
-      this.transporter = this.createTransporter();
-      this.useSendGrid = false;
-      console.log('📧 Email service initialized with SMTP');
-    }
+    this.transporter = this.createTransporter();
+    console.log('📧 Email service initialized with Nodemailer (Gmail SMTP)');
   }
 
   /**
-   * Create email transporter based on environment (SMTP fallback)
+   * Create email transporter with Gmail SMTP
    */
   createTransporter() {
-    // Always use Gmail for email sending (both production and development)
-    return nodemailer.createTransport({
+    return nodemailer.createTransporter({
       host: 'smtp.gmail.com',
-      port: 465, // Use SSL port instead of TLS port 587
-      secure: true, // use SSL
+      port: 587, // Use STARTTLS port
+      secure: false, // true for 465, false for other ports
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       },
+      tls: {
+        rejectUnauthorized: false,
+        ciphers: 'SSLv3'
+      },
       connectionTimeout: 10000, // 10 seconds
       greetingTimeout: 10000,
-      socketTimeout: 30000 // 30 seconds
+      socketTimeout: 45000, // 45 seconds
+      pool: true, // Use pooled connections
+      maxConnections: 5,
+      maxMessages: 10
     });
   }
 
   /**
-   * Send email using SendGrid or SMTP fallback
+   * Send email using Nodemailer (Gmail SMTP)
    * @param {Object} options - Email options
    */
   async sendEmail(options) {
     const end = emailSendDuration.startTimer(); // MONITORING: Start timer
     try {
-      if (this.useSendGrid) {
-        // Use SendGrid API
-        const msg = {
-          to: options.to,
-          from: {
-            email: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_USER,
-            name: EMAIL_CONFIG.FROM_NAME
-          },
-          subject: options.subject,
-          html: options.html,
-          text: options.text || options.html.replace(/<[^>]*>/g, '') // Strip HTML for text version
-        };
+      const mailOptions = {
+        from: `${EMAIL_CONFIG.FROM_NAME} <${process.env.EMAIL_USER}>`,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text
+      };
 
-        const response = await sgMail.send(msg);
-        console.log('✅ Email sent via SendGrid to:', options.to);
-
-        emailSentCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other' });
-        end();
-
-        return {
-          success: true,
-          messageId: response[0].headers['x-message-id'],
-          provider: 'sendgrid'
-        };
-      } else {
-        // Use SMTP fallback
-        const mailOptions = {
-          from: `${EMAIL_CONFIG.FROM_NAME} <${EMAIL_CONFIG.FROM_EMAIL}>`,
-          to: options.to,
-          subject: options.subject,
-          html: options.html,
-          text: options.text
-        };
-
-        const info = await this.transporter.sendMail(mailOptions);
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Email sent successfully!');
-          console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
-        }
-
-        emailSentCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other' });
-        end();
-
-        return {
-          success: true,
-          messageId: info.messageId,
-          provider: 'smtp'
-        };
+      const info = await this.transporter.sendMail(mailOptions);
+      
+      console.log('✅ Email sent successfully to:', options.to);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Message ID:', info.messageId);
+        console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
       }
+
+      emailSentCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other' });
+      end();
+
+      return {
+        success: true,
+        messageId: info.messageId,
+        provider: 'nodemailer'
+      };
     } catch (error) {
       console.error('❌ Email sending failed:', error.message);
-      if (error.response) {
-        console.error('SendGrid error details:', error.response.body);
-      }
+      console.error('Error code:', error.code);
       emailFailedCounter.inc({ type: options.subject.toLowerCase().includes('welcome') ? 'welcome' : 'other', error_code: error.code || 'unknown' });
       end();
       throw new Error(`Failed to send email: ${error.message}`);
