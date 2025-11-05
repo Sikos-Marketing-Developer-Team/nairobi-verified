@@ -1422,14 +1422,21 @@ exports.resendWelcomeEmail = async (req, res) => {
     // Generate new temporary password that meets validation requirements
     // Must have: min 8 chars, uppercase, lowercase, number, special char (!@#$%^&*)
     const specialChars = '!@#$%^&*';
-    const randomHex = crypto.randomBytes(3).toString('hex'); // 6 lowercase hex chars
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const digits = '0123456789';
+    
+    // Ensure we have at least one of each required type
     const newTempPassword = 
-      randomHex.charAt(0).toUpperCase() + // 1 uppercase
-      randomHex.substring(1, 5) + // 4 lowercase
-      Math.floor(Math.random() * 10) + // 1 digit
-      randomHex.charAt(5).toUpperCase() + // 1 more uppercase
+      uppercase.charAt(Math.floor(Math.random() * uppercase.length)) + // 1 uppercase
+      lowercase.charAt(Math.floor(Math.random() * lowercase.length)) + // 1 lowercase
+      lowercase.charAt(Math.floor(Math.random() * lowercase.length)) + // 1 lowercase
+      lowercase.charAt(Math.floor(Math.random() * lowercase.length)) + // 1 lowercase
+      digits.charAt(Math.floor(Math.random() * digits.length)) + // 1 digit
+      digits.charAt(Math.floor(Math.random() * digits.length)) + // 1 digit
+      uppercase.charAt(Math.floor(Math.random() * uppercase.length)) + // 1 uppercase
       specialChars.charAt(Math.floor(Math.random() * specialChars.length)); // 1 special char
-    // Total: 8 characters with all required types
+    // Total: 8 characters (2 uppercase, 3 lowercase, 2 digits, 1 special)
     
     console.log('🔑 Generated password:', newTempPassword, 'length:', newTempPassword.length);
     
