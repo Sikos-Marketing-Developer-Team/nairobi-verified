@@ -16,11 +16,9 @@ interface Product {
   name: string;
   description: string;
   price: number;
-  originalPrice?: number;
-  category: string;
-  subcategory?: string;
   images: string[];
-  primaryImage: string;
+  category: string;
+  inStock: boolean;
   merchant: {
     _id: string;
     businessName: string;
@@ -28,18 +26,12 @@ interface Product {
       address?: string;
       city?: string;
     };
-    verified: boolean;
+    verified?: boolean;
     rating?: number;
   };
-  rating?: number;
-  totalReviews?: number;
-  inStock: boolean;
   stockQuantity?: number;
-  tags?: string[];
-  specifications?: any;
-  featured?: boolean;
-  isActive: boolean;
-  createdAt: string;
+  totalReviews?: number;
+  specifications?: Record<string, string | number>;
 }
 
 const ProductDetail = () => {
@@ -318,7 +310,7 @@ const ProductDetail = () => {
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className={`font-medium ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
-                {product.inStock ? `In Stock (${product.stockCount} available)` : 'Out of Stock'}
+                {product.inStock ? `In Stock (${product.stockQuantity || 999} available)` : 'Out of Stock'}
               </span>
             </div>
 
@@ -340,7 +332,7 @@ const ProductDetail = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleQuantityChange(1)}
-                    disabled={quantity >= product.stockCount}
+                    disabled={quantity >= (product.stockQuantity || 999)}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -391,15 +383,19 @@ const ProductDetail = () => {
             {activeTab === 'description' && (
               <div className="prose max-w-none">
                 <p className="text-gray-700 text-lg leading-relaxed">{product.description}</p>
-                <h3 className="text-xl font-semibold mt-6 mb-4">Key Features</h3>
-                <ul className="space-y-2">
-                  {product.features.map((feature, index) => (
-                    <li key={index} className="flex items-center">
-                      <Check className="h-5 w-5 text-green-500 mr-2" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+                {product.specifications && Object.keys(product.specifications).length > 0 && (
+                  <>
+                    <h3 className="text-xl font-semibold mt-6 mb-4">Key Features</h3>
+                    <ul className="space-y-2">
+                      {Object.entries(product.specifications).slice(0, 5).map(([key, value], index) => (
+                        <li key={index} className="flex items-center">
+                          <Check className="h-5 w-5 text-green-500 mr-2" />
+                          <span><strong>{key}:</strong> {String(value)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </div>
             )}
 
