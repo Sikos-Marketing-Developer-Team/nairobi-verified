@@ -67,7 +67,7 @@ const getProducts = async (req, res) => {
     console.log('Product filter:', JSON.stringify(productFilter, null, 2));
 
     const products = await Product.find(productFilter)
-      .populate('merchant', 'businessName address')
+      .populate('merchant', 'businessName address location phone email whatsappNumber verified rating')
       .sort(sort)
       .skip(skip)
       .limit(Number(limit))
@@ -134,7 +134,7 @@ const searchProducts = async (req, res) => {
     };
 
     const products = await Product.find(searchFilter)
-      .populate('merchant', 'businessName address')
+      .populate('merchant', 'businessName address location phone email whatsappNumber verified rating')
       .sort({ rating: -1, reviewCount: -1, createdAt: -1 }) // Sort by relevance
       .skip(skip)
       .limit(Number(limit))
@@ -165,7 +165,7 @@ const getFeaturedProducts = async (req, res) => {
     const { limit = 8 } = req.query;
 
     const products = await Product.find({ featured: true, isActive: true })
-      .populate('merchant', 'businessName address')
+      .populate('merchant', 'businessName address location phone email whatsappNumber verified rating')
       .sort({ rating: -1, reviewCount: -1 })
       .limit(Number(limit))
       .lean();
@@ -183,7 +183,7 @@ const getFeaturedProducts = async (req, res) => {
 const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('merchant', 'businessName address')
+      .populate('merchant', 'businessName address location phone email whatsappNumber verified rating')
       .lean();
 
     if (!product) {
@@ -273,7 +273,7 @@ const createProduct = async (req, res) => {
     await product.save();
 
     const populatedProduct = await Product.findById(product._id)
-      .populate('merchant', 'businessName address')
+      .populate('merchant', 'businessName address location phone email whatsappNumber verified rating')
       .lean();
 
     res.status(HTTP_STATUS.CREATED).json({
