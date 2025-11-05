@@ -66,6 +66,13 @@ const ProductDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
   const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    comment: ''
+  });
 
   const loadProduct = useCallback(async () => {
     try {
@@ -92,6 +99,56 @@ const ProductDetail: React.FC = () => {
       loadProduct();
     }
   }, [id, loadProduct]);
+
+  const loadReviews = useCallback(async () => {
+    if (!product?.merchant._id) return;
+    
+    try {
+      setIsLoadingReviews(true);
+      const response = await reviewsAPI.getReviews(product.merchant._id);
+      if (response.data.success) {
+        setReviews(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load reviews:', error);
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  }, [product?.merchant._id]);
+
+  useEffect(() => {
+    if (product?.merchant._id) {
+      loadReviews();
+    }
+  }, [product?.merchant._id, loadReviews]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!product) return;
+    
+    if (reviewForm.comment.trim().length < 10) {
+      toast.error('Review must be at least 10 characters long');
+      return;
+    }
+
+    try {
+      const response = await reviewsAPI.addReview(product.merchant._id, {
+        rating: reviewForm.rating,
+        comment: reviewForm.comment.trim()
+      });
+
+      if (response.data.success) {
+        toast.success('Review submitted successfully!');
+        setReviewForm({ rating: 5, comment: '' });
+        setShowReviewForm(false);
+        loadReviews();
+      }
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+      toast.error('Failed to submit review. Please login and try again.');
+    }
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -518,12 +575,133 @@ const ProductDetail: React.FC = () => {
 
             {activeTab === 'reviews' && (
               <div>
-                <h3 className="text-lg sm:text-xl font-semibold mb-4">Customer Reviews</h3>
-                <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-600 text-sm sm:text-base">Reviews functionality coming soon...</p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-semibold">Customer Reviews</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+                    </p>
                   </div>
+                  <Button 
+                    onClick={() => setShowReviewForm(!showReviewForm)}
+                    className="bg-primary hover:bg-primary-dark text-sm sm:text-base"
+                  >
+                    {showReviewForm ? 'Cancel' : 'Write a Review'}
+                  </Button>
                 </div>
+
+                {/* Review Form */}
+                {showReviewForm && (
+                  <Card className="border border-gray-200 mb-6">
+                    <CardContent className="p-4 sm:p-6">
+                      <form onSubmit={handleSubmitReview} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Rating
+                          </label>
+                          <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                                className="focus:outline-none"
+                              >
+                                <Star
+                                  className={`h-6 w-6 sm:h-8 sm:w-8 ${
+                                    star <= reviewForm.rating
+                                      ? 'text-yellow-400 fill-current'
+                                      : 'text-gray-300'
+                                  }`}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Your Review
+                          </label>
+                          <textarea
+                            value={reviewForm.comment}
+                            onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
+                            rows={4}
+                            placeholder="Share your experience with this product..."
+                            required
+                            minLength={10}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Minimum 10 characters
+                          </p>
+                        </div>
+
+                        <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary-dark">
+                          Submit Review
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Reviews List */}
+                {isLoadingReviews ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : reviews.length === 0 ? (
+                  <Card className="border border-gray-200">
+                    <CardContent className="p-8 text-center">
+                      <p className="text-gray-500 text-sm sm:text-base">
+                        No reviews yet. Be the first to review this product!
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {reviews.map((review) => (
+                      <Card key={review._id} className="border border-gray-200">
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-primary font-semibold text-sm sm:text-base">
+                                    {review.user.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                                    {review.user.name}
+                                  </p>
+                                  <div className="flex items-center gap-1">
+                                    {[...Array(5)].map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                                          i < review.rating
+                                            ? 'text-yellow-400 fill-current'
+                                            : 'text-gray-300'
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <span className="text-xs sm:text-sm text-gray-500 flex-shrink-0 ml-2">
+                              {new Date(review.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-gray-700 text-sm sm:text-base leading-relaxed break-words">
+                            {review.comment}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
