@@ -48,6 +48,7 @@ import Status from "./pages/Status";
 import FlashSaleDetail from "./pages/FlashSaleDetail";
 import { FavoritesProvider } from './contexts/FavoritesContext';
 import MerchantAuth from './pages/MerchantAuth';
+import MerchantRedirect from './components/MerchantRedirect';
 
 const queryClient = new QueryClient();
 
@@ -200,6 +201,7 @@ const App = () => (
               <Route path="/categories/:categoryId" element={<Categories />} />
               <Route path="/products" element={<Products />} />
               <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/merchant/:id" element={<MerchantRedirect />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/flash-sale/:id" element={<FlashSaleDetail />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
