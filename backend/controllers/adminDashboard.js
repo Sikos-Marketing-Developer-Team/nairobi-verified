@@ -2308,37 +2308,59 @@ const exportData = asyncHandler(async (req, res) => {
 const getSettings = asyncHandler(async (req, res) => {
   try {
     const settings = {
-      general: {
-        siteName: 'Nairobi Verified',
-        siteDescription: 'Trusted marketplace in Nairobi CBD',
-        contactEmail: process.env.FROM_EMAIL || 'admin@nairobiverified.com',
-        supportPhone: '+254712345678'
+      site: {
+        name: 'Nairobi Verified',
+        description: 'Trusted Business Directory for Nairobi CBD',
+        url: process.env.FRONTEND_URL || 'https://nairobiverified.co.ke',
+        logo: '',
+        favicon: '',
+        contactEmail: process.env.EMAIL_USER || 'contact@nairobiverified.com',
+        supportEmail: process.env.EMAIL_USER || 'support@nairobiverified.com'
+      },
+      email: {
+        smtpHost: 'smtp.gmail.com',
+        smtpPort: 587,
+        smtpUsername: process.env.EMAIL_USER || '',
+        smtpPassword: '', // Don't send password to frontend
+        fromEmail: process.env.SENDGRID_FROM_EMAIL || 'noreply@nairobiverified.com',
+        fromName: 'Nairobi Verified'
+      },
+      security: {
+        enableTwoFactor: false,
+        sessionTimeout: 30,
+        maxLoginAttempts: 5,
+        passwordMinLength: 8,
+        requireSpecialChars: true
+      },
+      notifications: {
+        emailEnabled: true,
+        smsEnabled: false,
+        pushEnabled: false,
+        merchantApprovalEmails: true,
+        userRegistrationEmails: true,
+        systemAlertsEmails: true
       },
       business: {
         currency: 'KES',
         timezone: 'Africa/Nairobi',
-        language: 'en',
-        autoVerifyMerchants: false,
-        requireMerchantDocuments: true
-      },
-      notifications: {
-        emailNotifications: true,
-        smsNotifications: false,
-        pushNotifications: true,
-        notifyOnNewMerchant: true,
-        notifyOnNewReview: true
-      },
-      security: {
-        twoFactorAuth: false,
-        sessionTimeout: 24,
-        maxLoginAttempts: 5,
-        requireStrongPasswords: true
+        dateFormat: 'DD/MM/YYYY',
+        businessHours: {
+          monday: { open: '08:00', close: '18:00', closed: false },
+          tuesday: { open: '08:00', close: '18:00', closed: false },
+          wednesday: { open: '08:00', close: '18:00', closed: false },
+          thursday: { open: '08:00', close: '18:00', closed: false },
+          friday: { open: '08:00', close: '18:00', closed: false },
+          saturday: { open: '09:00', close: '17:00', closed: false },
+          sunday: { open: '10:00', close: '16:00', closed: true }
+        }
       },
       features: {
-        flashSalesEnabled: true,
+        userRegistrationEnabled: true,
+        merchantRegistrationEnabled: true,
         reviewsEnabled: true,
-        merchantMessaging: true,
-        analyticsEnabled: true
+        flashSalesEnabled: true,
+        analyticsEnabled: true,
+        maintenanceMode: false
       }
     };
 
