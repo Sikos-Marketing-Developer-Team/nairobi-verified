@@ -16,16 +16,12 @@ class EmailService {
   createTransporter() {
     // Always use Gmail for email sending (both production and development)
     return nodemailer.createTransport({
-      service: EMAIL_CONFIG.SERVICE,
       host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // use TLS
+      port: 465, // Use SSL port instead of TLS port 587
+      secure: true, // use SSL
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-      },
-      tls: {
-        rejectUnauthorized: false
       },
       connectionTimeout: 10000, // 10 seconds
       greetingTimeout: 10000,
