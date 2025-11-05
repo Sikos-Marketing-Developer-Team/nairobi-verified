@@ -316,6 +316,23 @@ const MerchantsManagement: React.FC = () => {
     setEditingMerchant(null);
   };
 
+  // Resend welcome email with new password
+  const handleResendWelcomeEmail = async (merchantId: string, businessName: string): Promise<void> => {
+    if (!confirm(`Resend welcome email to ${businessName}? This will generate a new temporary password.`)) {
+      return;
+    }
+
+    try {
+      const response = await adminAPI.resendWelcomeEmail(merchantId);
+      if (response.data.success) {
+        toast.success(`Welcome email sent successfully to ${businessName}!`);
+      }
+    } catch (error) {
+      console.error('Error resending welcome email:', error);
+      toast.error('Failed to resend welcome email. Please try again.');
+    }
+  };
+
   // UPDATE - Verify merchant
   const handleVerifyMerchant = async (merchantId: string): Promise<void> => {
     try {
