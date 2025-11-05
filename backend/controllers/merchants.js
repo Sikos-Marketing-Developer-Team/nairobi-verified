@@ -841,25 +841,16 @@ exports.createMerchantWithProducts = async (req, res) => {
         
         for (const imageFile of productFiles) {
           try {
-            // Upload buffer to Cloudinary using upload_stream
-            const uploadResult = await new Promise((resolve, reject) => {
-              const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                  folder: 'nairobi-verified/products',
-                  resource_type: 'image'
-                },
-                (error, result) => {
-                  if (error) reject(error);
-                  else resolve(result);
-                }
-              );
-              uploadStream.end(imageFile.buffer);
-            });
-            
-            productImages.push(uploadResult.secure_url);
-            console.log(`✅ Image uploaded successfully: ${uploadResult.secure_url}`);
+            // Files are already uploaded to Cloudinary by multer-storage-cloudinary
+            // Access the URL from file.path
+            if (imageFile.path) {
+              productImages.push(imageFile.path);
+              console.log(`✅ Image uploaded successfully: ${imageFile.path}`);
+            } else {
+              console.error(`⚠️ Image file missing path:`, imageFile);
+            }
           } catch (uploadError) {
-            console.error(`Error uploading image:`, uploadError);
+            console.error(`Error processing image:`, uploadError);
             console.error('Upload error details:', JSON.stringify(uploadError, null, 2));
           }
         }
@@ -876,7 +867,7 @@ exports.createMerchantWithProducts = async (req, res) => {
           merchant: merchant._id,
           merchantName: merchant.businessName,
           images: productImages,
-          primaryImage: productImages[0] || '/placeholder-product.jpg',
+          primaryImage: productImages[0] || 'https://via.placeholder.com/400x400?text=No+Image',
           isActive: true,
           featured: false,
           tags: []
@@ -1040,25 +1031,16 @@ exports.updateMerchantWithProducts = async (req, res) => {
         
         for (const imageFile of productFiles) {
           try {
-            // Upload buffer to Cloudinary using upload_stream
-            const uploadResult = await new Promise((resolve, reject) => {
-              const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                  folder: 'nairobi-verified/products',
-                  resource_type: 'image'
-                },
-                (error, result) => {
-                  if (error) reject(error);
-                  else resolve(result);
-                }
-              );
-              uploadStream.end(imageFile.buffer);
-            });
-            
-            productImages.push(uploadResult.secure_url);
-            console.log(`✅ Image uploaded successfully: ${uploadResult.secure_url}`);
+            // Files are already uploaded to Cloudinary by multer-storage-cloudinary
+            // Access the URL from file.path
+            if (imageFile.path) {
+              productImages.push(imageFile.path);
+              console.log(`✅ Image uploaded successfully: ${imageFile.path}`);
+            } else {
+              console.error(`⚠️ Image file missing path:`, imageFile);
+            }
           } catch (uploadError) {
-            console.error(`Error uploading image:`, uploadError);
+            console.error(`Error processing image:`, uploadError);
           }
         }
 
@@ -1074,7 +1056,7 @@ exports.updateMerchantWithProducts = async (req, res) => {
           merchant: merchant._id,
           merchantName: merchant.businessName,
           images: productImages,
-          primaryImage: productImages[0] || '/placeholder-product.jpg',
+          primaryImage: productImages[0] || 'https://via.placeholder.com/400x400?text=No+Image',
           isActive: true,
           featured: false,
           tags: []
