@@ -27,8 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  ChevronDown,
-  Mail
+  ChevronDown
 } from 'lucide-react';
 import { adminAPI } from '../lib/api';
 import { toast } from 'sonner';
