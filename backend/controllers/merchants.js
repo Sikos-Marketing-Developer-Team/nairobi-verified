@@ -987,30 +987,40 @@ exports.updateMerchantWithProducts = async (req, res) => {
       const productsData = JSON.parse(req.body.products);
       console.log(`📦 Creating ${productsData.length} new products...`);
 
-      // Group files by product index
-      const filesByProduct = {};
-      if (req.files && Array.isArray(req.files)) {
-        req.files.forEach(file => {
-          // Parse fieldname like "product_0_image_0"
-          const match = file.fieldname.match(/product_(\d+)_image_(\d+)/);
-          if (match) {
-            const productIndex = parseInt(match[1]);
-            if (!filesByProduct[productIndex]) {
-              filesByProduct[productIndex] = [];
+      // Validate products data
+      if (!Array.isArray(productsData)) {
+        console.warn('⚠️ Products data is not an array, skipping product creation');
+      } else {
+        // Group files by product index
+        const filesByProduct = {};
+        if (req.files && Array.isArray(req.files)) {
+          req.files.forEach(file => {
+            // Parse fieldname like "product_0_image_0"
+            const match = file.fieldname.match(/product_(\d+)_image_(\d+)/);
+            if (match) {
+              const productIndex = parseInt(match[1]);
+              if (!filesByProduct[productIndex]) {
+                filesByProduct[productIndex] = [];
+              }
+              filesByProduct[productIndex].push(file);
             }
-            filesByProduct[productIndex].push(file);
-          }
-        });
-      }
+          });
+        }
 
-      for (let i = 0; i < productsData.length; i++) {
-        const productData = productsData[i];
-        
-        // Upload product images
-        const productImages = [];
-        const productFiles = filesByProduct[i] || [];
-        
-        console.log(`Uploading ${productFiles.length} images for product ${i}...`);
+        for (let i = 0; i < productsData.length; i++) {
+          const productData = productsData[i];
+          
+          // Validate required fields
+          if (!productData.name || !productData.price) {
+            console.warn(`⚠️ Skipping product ${i}: missing required fields`);
+            continue;
+          }
+          
+          // Upload product images
+          const productImages = [];
+          const productFiles = filesByProduct[i] || [];
+          
+          console.log(`Uploading ${productFiles.length} images for product ${i}...`);
         
         for (const imageFile of productFiles) {
           try {
@@ -1056,6 +1066,7 @@ exports.updateMerchantWithProducts = async (req, res) => {
 
         createdProducts.push(product);
         console.log(`✅ Product created: ${product.name} with ${productImages.length} images`);
+        }
       }
     }
 
@@ -1070,9 +1081,17 @@ exports.updateMerchantWithProducts = async (req, res) => {
 
   } catch (error) {
     console.error('❌ updateMerchantWithProducts error:', error);
-    res.status(400).json({ 
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      code: error.code
+    });
+    
+    res.status(500).json({ 
       success: false, 
-      error: error.message || 'Failed to update merchant with products'
+      error: error.message || 'Failed to update merchant with products',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
