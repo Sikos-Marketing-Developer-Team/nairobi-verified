@@ -317,7 +317,7 @@ const updateProduct = async (req, res) => {
       req.body,
       { new: true, runValidators: true }
     )
-      .populate('merchant', 'businessName address')
+      .populate('merchant', 'businessName address location phone email whatsappNumber verified rating')
       .lean();
 
     res.json({
