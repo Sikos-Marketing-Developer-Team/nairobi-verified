@@ -61,7 +61,7 @@ const {
 const { protect, isMerchant } = require('../middleware/auth');
 const { 
   merchantImageUpload, 
-  productImageUpload,
+  productImageUploadRaw, // Raw multer instance with .array() method
   documentUpload 
 } = require('../services/cloudinaryService');
 
@@ -122,7 +122,7 @@ router.post('/products', createProduct);
 router.put('/products/:productId', updateProduct);
 router.delete('/products/:productId', deleteProduct);
 router.patch('/products/:productId/availability', toggleProductAvailability);
-router.post('/products/:productId/images', productImageUpload.array('images', 5), uploadProductImages);
+router.post('/products/:productId/images', productImageUploadRaw.array('images', 5), uploadProductImages);
 router.delete('/products/:productId/images/:imageId', deleteProductImage);
 
 // ==================== REVIEW MANAGEMENT ====================

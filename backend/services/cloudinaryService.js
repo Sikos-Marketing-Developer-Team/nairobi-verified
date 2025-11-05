@@ -181,7 +181,8 @@ const getOptimizedImageUrl = (publicId, options = {}) => {
 module.exports = {
   cloudinary,
   ensureConfigured,
-  productImageUpload: productImageUploadWithErrorHandler,
+  productImageUpload, // Wrapped version with .any() for adminDashboard
+  productImageUploadRaw, // Raw multer instance with methods for merchantDashboard
   merchantImageUpload,
   documentUpload,
   deleteFromCloudinary,
