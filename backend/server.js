@@ -108,10 +108,10 @@ app.use(cors({
     process.env.ADMIN_URL || 'http://localhost:3001',
     'https://nairobi-verified-frontend.onrender.com',
     'http://localhost:3000',
-    'https://nairobi-verified-admin.onrender.com/',
+    'https://nairobi-verified-admin.onrender.com',
     'https://www.nairobiverified.co.ke',
     'https://nairobiverified.co.ke',
-    'https://nairobi-verified-1-rmgv.onrender.com/'
+    'https://nairobi-verified-1-rmgv.onrender.com'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
