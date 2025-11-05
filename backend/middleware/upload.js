@@ -1,7 +1,8 @@
 const multer = require('multer');
 const path = require('path');
 const { 
-  productImageUpload, 
+  productImageUpload, // Wrapped version with .any()
+  productImageUploadRaw, // Raw multer instance with methods
   merchantImageUpload, 
   documentUpload 
 } = require('../services/cloudinaryService');
@@ -56,7 +57,7 @@ const uploadDocument = multer({
 });
 
 // Cloudinary uploads (new preferred method)
-const uploadProductImages = productImageUpload;
+const uploadProductImages = productImageUploadRaw; // Use raw version for .array() method
 const uploadMerchantImages = merchantImageUpload;
 const uploadDocs = documentUpload; // Renamed to avoid conflict
 
