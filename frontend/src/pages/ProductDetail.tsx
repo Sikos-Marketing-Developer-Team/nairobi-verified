@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn, AlertCircle } from 'lucide-react';
+import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn, AlertCircle, Phone, Mail, Shield, Truck } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +31,9 @@ interface Product {
     };
     verified?: boolean;
     rating?: number;
+    phone?: string;
+    email?: string;
+    whatsappNumber?: string;
   };
   stockQuantity?: number;
   totalReviews?: number;
@@ -91,6 +95,10 @@ const ProductDetail = () => {
       setQuantity(newQuantity);
     }
   };
+
+  const whatsappMessage = product 
+    ? `Hi! I'm interested in ${product.name} (${formatPrice(product.price)}). Can you tell me more about it?`
+    : '';
 
   const tabs = [
     { id: 'description', label: 'Description' },
@@ -261,7 +269,7 @@ const ProductDetail = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       <Link 
-                        to={`/merchant/${product.merchant._id}`}
+                        to={`/business/${product.merchant._id}`}
                         className="font-semibold text-base sm:text-lg hover:text-primary transition-colors truncate"
                       >
                         {product.merchant.businessName}
@@ -289,7 +297,7 @@ const ProductDetail = () => {
                     )}
                   </div>
                   <div className="sm:ml-4">
-                    <Link to={`/merchant/${product.merchant._id}`}>
+                    <Link to={`/business/${product.merchant._id}`}>
                       <Button variant="outline" size="sm" className="w-full sm:w-auto">
                         View Store
                       </Button>
@@ -298,6 +306,71 @@ const ProductDetail = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Contact Section */}
+            <Card className="border border-gray-200">
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-base sm:text-lg mb-3">Contact Seller</h3>
+                <div className="space-y-3">
+                  {/* WhatsApp Button */}
+                  {product.merchant.whatsappNumber && (
+                    <a
+                      href={`https://wa.me/${product.merchant.whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <Button 
+                        className="w-full bg-[#25D366] hover:bg-[#1eb855] text-white font-semibold py-2.5 sm:py-3 text-sm sm:text-base shadow-md hover:shadow-lg transition-all"
+                      >
+                        <FaWhatsapp className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                        Chat on WhatsApp
+                      </Button>
+                    </a>
+                  )}
+
+                  {/* Phone */}
+                  {product.merchant.phone && (
+                    <a
+                      href={`tel:${product.merchant.phone}`}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500">Call us</p>
+                        <p className="text-sm sm:text-base font-medium text-gray-900 truncate">{product.merchant.phone}</p>
+                      </div>
+                    </a>
+                  )}
+
+                  {/* Email */}
+                  {product.merchant.email && (
+                    <a
+                      href={`mailto:${product.merchant.email}`}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500">Email us</p>
+                        <p className="text-sm sm:text-base font-medium text-gray-900 truncate">{product.merchant.email}</p>
+                      </div>
+                    </a>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Trust Indicators */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                <Shield className="h-4 w-4 text-green-600 flex-shrink-0" />
+                <span>Secure Purchase</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                <Truck className="h-4 w-4 text-primary flex-shrink-0" />
+                <span>Fast Delivery</span>
+              </div>
+            </div>
 
             {/* Price */}
             <div className="space-y-2">
