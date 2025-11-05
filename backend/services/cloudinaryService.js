@@ -73,7 +73,7 @@ const createDocumentStorage = (folder) => {
 };
 
 // Multer configurations for different upload types
-const productImageUpload = multer({
+const productImageUploadRaw = multer({
   storage: createCloudinaryStorage('products'),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
@@ -87,11 +87,11 @@ const productImageUpload = multer({
       cb(new Error('Only image files are allowed'), false);
     }
   }
-}).any(); // Use .any() to accept files with any field name
+});
 
-// Wrap with error handler
-const productImageUploadWithErrorHandler = (req, res, next) => {
-  productImageUpload(req, res, (err) => {
+// Wrap with error handler for .any() usage
+const productImageUpload = (req, res, next) => {
+  productImageUploadRaw.any()(req, res, (err) => {
     if (err) {
       console.error('❌ Multer error:', err);
       console.error('❌ Error type:', err.constructor.name);
