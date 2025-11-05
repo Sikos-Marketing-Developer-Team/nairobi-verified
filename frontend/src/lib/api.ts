@@ -326,25 +326,31 @@ export const userAPI = {
 };
 
 // Products API
+// In your lib/api.ts - REPLACE the productsAPI section:
+
+// Products API - UPDATED to use dashboard endpoints
 export const productsAPI = {
+  // Merchant dashboard product management
+  getMyProducts: (params = {}) => api.get('/merchants/dashboard/products', { params }),
+  getProductById: (productId: string) => api.get(`/merchants/dashboard/products/${productId}`),
+  createMyProduct: (productData: any) => api.post('/merchants/dashboard/products', productData),
+  updateMyProduct: (productId: string, productData: any) => api.put(`/merchants/dashboard/products/${productId}`, productData),
+  deleteMyProduct: (productId: string) => api.delete(`/merchants/dashboard/products/${productId}`),
+  toggleProductAvailability: (productId: string, available: boolean) => api.patch(`/merchants/dashboard/products/${productId}/availability`, { available }),
+  uploadProductImages: (productId: string, images: File[]) => {
+    const formData = new FormData();
+    images.forEach(file => formData.append('images', file));
+    return api.post(`/merchants/dashboard/products/${productId}/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  deleteProductImage: (productId: string, imageIndex: number) => api.delete(`/merchants/dashboard/products/${productId}/images/${imageIndex}`),
+
+  // Public product endpoints (for marketplace)
   getProducts: (params = {}) => api.get('/products', { params }),
-  getProduct: (id: string) => api.get(`/products/${id}`),
-  searchProducts: (query: string, params = {}) => api.get('/products/search', { params: { q: query, ...params } }),
   getFeaturedProducts: (limit = 8) => api.get('/products/featured', { params: { limit } }),
   getProductsByMerchant: (merchantId: string, params = {}) => api.get(`/products/merchant/${merchantId}`, { params }),
   getCategories: () => api.get('/products/categories'),
-  getSearchSuggestions: (query: string) => api.get('/products/suggestions', { params: { q: query } }),
-  createProduct: (productData: any) => api.post('/products', productData),
-  updateProduct: (id: string, productData: any) => api.put(`/products/${id}`, productData),
-  deleteProduct: (id: string) => api.delete(`/products/${id}`),
-  
-  // Merchant product management
-  getMyProducts: (params = {}) => api.get('/merchants/me/products', { params }),
-  createMyProduct: (productData: any) => api.post('/merchants/me/products', productData),
-  updateMyProduct: (productId: string, productData: any) => api.put(`/merchants/me/products/${productId}`, productData),
-  deleteMyProduct: (productId: string) => api.delete(`/merchants/me/products/${productId}`),
-  updateProductInventory: (productId: string, inventory: number) => api.put(`/merchants/me/products/${productId}/inventory`, { inventory }),
-  bulkUpdateProducts: (updates: Array<{ id: string; data: any }>) => api.put('/merchants/me/products/bulk', { updates }),
 };
 
 // Admin API
