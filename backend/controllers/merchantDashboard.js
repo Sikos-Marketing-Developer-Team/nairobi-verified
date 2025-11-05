@@ -1890,3 +1890,62 @@ exports.reorderServices = async (req, res) => {
     });
   }
 };
+
+
+/**
+ * @desc    Upload product images (standalone - before product creation)
+ * @route   POST /api/merchants/dashboard/products/images
+ * @access  Private/Merchant
+ */
+exports.uploadStandaloneProductImages = async (req, res) => {
+  try {
+    const merchantId = req.user._id;
+
+    console.log('📸 Standalone product image upload request');
+    console.log('Merchant ID:', merchantId);
+    console.log('Files received:', req.files?.length || 0);
+
+    if (!req.files || req.files.length === 0) {
+      console.log('❌ No files in request');
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'No images provided'
+      });
+    }
+
+    // Verify merchant exists
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant) {
+      console.log('❌ Merchant not found:', merchantId);
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        error: 'Merchant not found'
+      });
+    }
+
+    // Log Cloudinary upload details
+    console.log('📤 Files uploaded to Cloudinary:');
+    req.files.forEach((file, index) => {
+      console.log(`  [${index + 1}] ${file.originalname}`);
+      console.log(`      URL: ${file.path}`);
+      console.log(`      Public ID: ${file.filename}`);
+    });
+
+    // Extract image URLs from uploaded files
+    const imageUrls = req.files.map(file => file.path);
+
+    console.log('✅ Responding with', imageUrls.length, 'image URLs');
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: `${imageUrls.length} image(s) uploaded successfully`,
+      data: imageUrls
+    });
+  } catch (error) {
+    console.error('❌ uploadStandaloneProductImages error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to upload product images'
+    });
+  }
+};
