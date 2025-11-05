@@ -1398,3 +1398,169 @@ exports.setFeatured = async (req, res) => {
     res.status(400).json({ success: false, error: error.message });
   }
 };
+
+// @desc    Resend welcome email with new password
+// @route   POST /api/admin/merchants/:id/resend-welcome
+// @access  Private (Admin only)
+exports.resendWelcomeEmail = async (req, res) => {
+  try {
+    console.log('🔵 resendWelcomeEmail called for merchant:', req.params.id);
+    
+    // Check admin authentication
+    if (!req.admin) {
+      return res.status(401).json({ success: false, error: 'Admin authentication required' });
+    }
+
+    const merchant = await Merchant.findById(req.params.id);
+    if (!merchant) {
+      return res.status(404).json({ success: false, error: 'Merchant not found' });
+    }
+
+    console.log('✅ Found merchant:', merchant.businessName, merchant.email);
+
+    // Generate new temporary password
+    const newTempPassword = crypto.randomBytes(8).toString('hex');
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newTempPassword, salt);
+
+    // Update merchant password
+    merchant.password = hashedPassword;
+    merchant.isFirstLogin = true; // Mark as first login to force password change
+    await merchant.save();
+
+    console.log('✅ Generated new password for merchant');
+
+    // Generate new setup token
+    const setupToken = crypto.randomBytes(32).toString('hex');
+    merchant.accountSetupToken = crypto.createHash('sha256').update(setupToken).digest('hex');
+    merchant.accountSetupExpires = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
+    await merchant.save();
+
+    console.log('✅ Generated new setup token');
+
+    // Send welcome email with new credentials
+    const setupUrl = `${process.env.FRONTEND_URL}/merchant/account-setup/${setupToken}`;
+    const loginUrl = `${process.env.FRONTEND_URL}/merchant/login`;
+    const googleLoginUrl = `${process.env.FRONTEND_URL}/merchant/login?oauth=google`;
+
+    const emailContent = {
+      to: merchant.email,
+      subject: '🎉 Welcome to Nairobi CBD - Your Updated Account Credentials',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Nairobi CBD!</h1>
+            <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Your merchant account credentials have been updated</p>
+          </div>
+          
+          <!-- Greeting -->
+          <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+            <h2 style="color: #333; margin-top: 0;">Hello ${merchant.businessName}!</h2>
+            <p style="color: #666; line-height: 1.6;">
+              We're resending your welcome email with updated login credentials. 
+              You can now access your merchant dashboard and start managing your business profile.
+            </p>
+          </div>
+
+          <!-- Credentials -->
+          <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 20px; margin-bottom: 25px;">
+            <h3 style="color: #2e7d32; margin-top: 0;">🔐 Your New Login Credentials</h3>
+            <p style="margin: 10px 0;"><strong>Email:</strong> ${merchant.email}</p>
+            <p style="margin: 10px 0;">
+              <strong>New Temporary Password:</strong> 
+              <code style="background: #fff; padding: 8px 12px; border-radius: 4px; color: #d32f2f; font-weight: bold; font-size: 16px; display: inline-block; border: 2px dashed #d32f2f;">${newTempPassword}</code>
+            </p>
+            <p style="color: #f57c00; font-size: 14px; margin-top: 15px; background: #fff3e0; padding: 10px; border-radius: 4px;">
+              ⚠️ <strong>Security Alert:</strong> Change this password immediately after your first login.
+            </p>
+          </div>
+
+          <!-- Sign in Options -->
+          <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; margin-bottom: 25px;">
+            <h3 style="color: #1565c0; margin-top: 0;">🚀 Two Ways to Sign In</h3>
+            <div style="margin: 15px 0;">
+              <p style="margin: 5px 0; color: #333;"><strong>1. Email & Password:</strong></p>
+              <p style="margin: 5px 0; color: #666; font-size: 14px;">Use your email and the temporary password above</p>
+            </div>
+            <div style="margin: 15px 0;">
+              <p style="margin: 5px 0; color: #333;"><strong>2. Sign in with Google:</strong></p>
+              <p style="margin: 5px 0; color: #666; font-size: 14px;">Use the same email address (${merchant.email}) to sign in with Google for faster access</p>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${loginUrl}" style="background: #4caf50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin: 0 5px 10px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              🔑 Login with Password
+            </a>
+            <a href="${googleLoginUrl}" style="background: #4285f4; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin: 0 5px 10px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;" alt="Google" />
+              Sign in with Google
+            </a>
+          </div>
+
+          <!-- Next Steps -->
+          <div style="background: #fff; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
+            <h3 style="color: #333; margin-top: 0;">📋 Next Steps</h3>
+            <ol style="color: #666; line-height: 1.8; padding-left: 20px;">
+              <li><strong>Choose your sign-in method</strong> (Password or Google)</li>
+              <li><strong>Change your password</strong> if using email/password login</li>
+              <li><strong>Complete your profile</strong> with photos and details</li>
+              <li><strong>Upload verification documents</strong> (Business Registration, ID, Utility Bill)</li>
+              <li><strong>Start connecting with customers!</strong></li>
+            </ol>
+          </div>
+
+          <!-- Important Notice -->
+          <div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 25px;">
+            <p style="color: #e65100; margin: 0; font-size: 14px; line-height: 1.6;">
+              <strong>📄 Document Verification Required:</strong> To complete your verification and appear in customer searches, 
+              please upload your Business Registration Certificate, ID Document, and Utility Bill through your dashboard.
+            </p>
+          </div>
+
+          <!-- Account Info -->
+          <div style="text-align: center; padding: 15px; background: #f5f5f5; border-radius: 8px; margin-bottom: 25px;">
+            <p style="color: #666; margin: 0; font-size: 13px; line-height: 1.5;">
+              <strong>Email Resent By:</strong> ${req.admin.firstName} ${req.admin.lastName}<br>
+              <strong>Setup Link Valid:</strong> 7 days<br>
+              <strong>Account Status:</strong> ${merchant.verified ? '✅ Verified' : '⏳ Pending Document Upload'}
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 0;">
+              <strong>Nairobi CBD Business Directory</strong><br>
+              Connecting Businesses with Customers<br>
+              Need help? Contact our support team
+            </p>
+          </div>
+        </div>
+      `
+    };
+
+    await sendEmail(emailContent);
+    console.log(`✅ Welcome email resent to ${merchant.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Welcome email resent successfully with new credentials',
+      data: {
+        email: merchant.email,
+        businessName: merchant.businessName,
+        setupTokenExpires: merchant.accountSetupExpires
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ resendWelcomeEmail error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to resend welcome email',
+      details: error.message
+    });
+  }
+};

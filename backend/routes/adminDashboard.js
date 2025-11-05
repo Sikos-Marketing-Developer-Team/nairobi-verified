@@ -30,7 +30,8 @@ const {
 } = require('../controllers/adminDashboard');
 const { 
   createMerchantWithProducts,
-  updateMerchantWithProducts
+  updateMerchantWithProducts,
+  resendWelcomeEmail
 } = require('../controllers/merchants');
 const { protectAdmin, checkPermission } = require('../middleware/adminAuth');
 const { productImageUpload } = require('../services/cloudinaryService');
@@ -56,6 +57,7 @@ router.post('/merchants/with-products', checkPermission('merchants.write'), prod
 router.put('/merchants/:id/with-products', checkPermission('merchants.write'), productImageUpload, updateMerchantWithProducts);
 router.put('/merchants/:id/verify', checkPermission('merchants.approve'), verifyMerchant);
 router.put('/merchants/:id/status', checkPermission('merchants.approve'), updateMerchantStatus);
+router.post('/merchants/:id/resend-welcome', checkPermission('merchants.write'), resendWelcomeEmail);
 // IMPORTANT: Bulk operations MUST come before parameterized routes to avoid matching conflicts
 router.put('/merchants/bulk-status', checkPermission('merchants.approve'), bulkUpdateMerchantStatus);
 router.delete('/merchants/bulk-delete', protectAdmin, checkPermission('merchants.delete'), bulkDeleteMerchants);
