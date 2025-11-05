@@ -815,7 +815,7 @@ const MerchantDetail = () => {
             <Tabs defaultValue="about" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="about">About</TabsTrigger>
-                <TabsTrigger value="services">Services</TabsTrigger>
+                <TabsTrigger value="services">Products</TabsTrigger>
                 <TabsTrigger value="gallery">Gallery</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
               </TabsList>
@@ -874,30 +874,6 @@ const MerchantDetail = () => {
               {/* Services Tab */}
               <TabsContent value="services">
                 <div className="space-y-6">
-                  {/* Services Section */}
-                  <Card>
-                    <CardHeader>
-                      <h2 className="text-2xl font-bold text-gray-900">Services & Pricing</h2>
-                    </CardHeader>
-                    <CardContent>
-                      {merchant.services?.length > 0 ? (
-                        <ul className="space-y-4">
-                          {merchant.services.map((service, index: number) => (
-                            <li key={index} className="flex justify-between items-center border-b pb-2">
-                              <div>
-                                <p className="font-medium">{service.name}</p>
-                                <p className="text-sm text-gray-600">{service.description}</p>
-                              </div>
-                              <p className="font-semibold">{service.price || 'Contact for pricing'}</p>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-600">No services listed.</p>
-                      )}
-                    </CardContent>
-                  </Card>
-
                   {/* Products Section */}
                   <Card>
                     <CardHeader>
@@ -1004,6 +980,31 @@ const MerchantDetail = () => {
                       )}
                     </CardContent>
                   </Card>
+                  {/* Services Section */}
+                  <Card>
+                    <CardHeader>
+                      <h2 className="text-2xl font-bold text-gray-900">Services & Pricing</h2>
+                    </CardHeader>
+                    <CardContent>
+                      {merchant.services?.length > 0 ? (
+                        <ul className="space-y-4">
+                          {merchant.services.map((service, index: number) => (
+                            <li key={index} className="flex justify-between items-center border-b pb-2">
+                              <div>
+                                <p className="font-medium">{service.name}</p>
+                                <p className="text-sm text-gray-600">{service.description}</p>
+                              </div>
+                              <p className="font-semibold">{service.price || 'Contact for pricing'}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-gray-600">No services listed.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  
                 </div>
               </TabsContent>
 
