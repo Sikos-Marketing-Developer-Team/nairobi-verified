@@ -51,12 +51,6 @@ const About = () => {
       role: 'CEO & Founder',
       image: 'https://images.unsplash.com/photo-149790108755-2616b612b786?w=400&h=400&fit=crop',
       description: 'Former e-commerce executive with 10+ years in Kenya\'s retail industry.'
-    },
-    {
-      name: 'Maxwell S.',
-      role: 'CTO',
-      image: 'https://images.unsplash.com/photo-147299645785-5658abf4ff4e?w=400&h=400&fit=crop',
-      description: 'Tech entrepreneur focused on building trust through technology solutions.'
     }
   ];
 

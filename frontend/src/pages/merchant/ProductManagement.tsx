@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { productsAPI } from "@/lib/api";
+import axios from "axios";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +44,6 @@ interface Product {
   category: string;
   price: number;
   available: boolean;
-  isActive: boolean;
   featured: boolean;
   images: string[];
   createdAt: string;
@@ -78,9 +77,11 @@ const ProductManagement = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   
+  // Modal states
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
+  // Form state
   const [formData, setFormData] = useState<ProductFormData>({
     name: "",
     description: "",
@@ -90,6 +91,7 @@ const ProductManagement = () => {
     featured: false
   });
   
+  // Image upload state
   const [productImages, setProductImages] = useState<File[]>([]);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -102,16 +104,10 @@ const ProductManagement = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await productsAPI.getMyProducts();
-      
-      const productsWithAvailable = response.data.data.map((product: any) => ({
-        ...product,
-        available: product.isActive !== undefined ? product.isActive : true
-      }));
-      
-      setProducts(productsWithAvailable || []);
+      const response = await axios.get("/api/merchants/dashboard/products");
+      setProducts(response.data.data || []);
     } catch (err: any) {
-      setError(err.response?.data?.error || err.response?.data?.message || "Failed to load products");
+      setError(err.response?.data?.message || "Failed to load products");
     } finally {
       setLoading(false);
     }
@@ -128,7 +124,7 @@ const ProductManagement = () => {
         available: product.available,
         featured: product.featured
       });
-      setPreviewImages(product.images || []);
+      setPreviewImages(product.images);
     } else {
       setEditingProduct(null);
       setFormData({
@@ -164,11 +160,11 @@ const ProductManagement = () => {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setError("");
     
+    // Validate file types and sizes
     const validFiles = files.filter(file => {
       if (!file.type.startsWith("image/")) {
-        setError("Please select only image files (JPEG, PNG)");
+        setError("Please select only image files");
         return false;
       }
       if (file.size > 5 * 1024 * 1024) {
@@ -178,6 +174,7 @@ const ProductManagement = () => {
       return true;
     });
 
+    // Limit to 5 images total
     const currentTotal = previewImages.length + productImages.length;
     const remaining = 5 - currentTotal;
     
@@ -188,6 +185,7 @@ const ProductManagement = () => {
 
     setProductImages([...productImages, ...validFiles]);
 
+    // Create preview URLs
     validFiles.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -198,146 +196,230 @@ const ProductManagement = () => {
   };
 
   const handleRemoveNewImage = (index: number) => {
-    const newProductImages = [...productImages];
-    const newPreviewImages = [...previewImages];
-    
-    newProductImages.splice(index, 1);
-    newPreviewImages.splice(index, 1);
-    
-    setProductImages(newProductImages);
-    setPreviewImages(newPreviewImages);
+    setProductImages(prev => prev.filter((_, i) => i !== index));
+    setPreviewImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const uploadImagesToServer = async (files: File[]): Promise<string[]> => {
-    if (files.length === 0) return [];
-    
-    const formData = new FormData();
-    files.forEach(file => formData.append("images", file));
-    
-    try {
-      // Use the dashboard image upload endpoint
-      const response = await fetch('/api/merchants/dashboard/products/images', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
+  // const handleDeleteExistingImage = async (imageUrl: string, productId: string) => {
+  //   if (!confirm("Are you sure you want to delete this image?")) return;
+
+  //   try {
+  //     setDeletingImage(imageUrl);
+  //     await axios.delete(`/api/merchants/dashboard/products/${productId}/images`, {
+  //       data: { imageUrl }
+  //     });
       
-      if (!response.ok) {
-        throw new Error('Image upload failed');
-      }
+  //     setSuccess("Image deleted successfully");
+  //     await fetchProducts();
       
-      const result = await response.json();
-      return result.data || [];
-    } catch (error) {
-      console.error('Image upload error:', error);
-      throw new Error('Failed to upload images');
-    }
-  };
+  //     // Update preview if modal is open
+  //     if (editingProduct && editingProduct._id === productId) {
+  //       setPreviewImages(prev => prev.filter(img => img !== imageUrl));
+  //     }
+      
+  //     setTimeout(() => setSuccess(""), 3000);
+  //   } catch (err: any) {
+  //     setError(err.response?.data?.message || "Failed to delete image");
+  //   } finally {
+  //     setDeletingImage(null);
+  //   }
+  // };
 
   const handleDeleteExistingImage = async (imageUrl: string, productId: string) => {
-    if (!confirm("Are you sure you want to delete this image?")) return;
+  if (!confirm("Are you sure you want to delete this image?")) return;
 
-    try {
-      setDeletingImage(imageUrl);
-      
-      const product = products.find(p => p._id === productId);
-      if (!product) throw new Error("Product not found");
+  try {
+    setDeletingImage(imageUrl);
+    
+    // Get the current product
+    const product = products.find(p => p._id === productId);
+    if (!product) throw new Error("Product not found");
 
-      const imageIndex = product.images.findIndex(img => img === imageUrl);
-      if (imageIndex === -1) throw new Error("Image not found");
+    // Remove the image from the product's images array
+    const updatedImages = product.images.filter(img => img !== imageUrl);
+    
+    // Update the product with the new images array
+    await axios.put(`/api/merchants/dashboard/products/${productId}`, {
+      ...formData,
+      images: updatedImages
+    });
+    
+    setSuccess("Image deleted successfully");
+    await fetchProducts();
+    
+    // Update preview if modal is open
+    if (editingProduct && editingProduct._id === productId) {
+      setPreviewImages(prev => prev.filter(img => img !== imageUrl));
+    }
+    
+    setTimeout(() => setSuccess(""), 3000);
+  } catch (err: any) {
+    setError(err.response?.data?.message || "Failed to delete image");
+  } finally {
+    setDeletingImage(null);
+  }
+};
 
-      await productsAPI.deleteProductImage(productId, imageIndex);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  setSuccess("");
+
+  // Validation
+  if (!formData.name || !formData.category || !formData.description) {
+    setError("Please fill in all required fields");
+    return;
+  }
+
+  if (formData.price < 0) {
+    setError("Price must be a positive number");
+    return;
+  }
+
+  try {
+    setUploading(true);
+    console.log('📦 Submitting product:', formData);
+
+    let uploadedImageUrls: string[] = [];
+
+    // Upload images first if there are new ones
+    if (productImages.length > 0) {
+      console.log('🔄 Uploading product images...');
+      const imageFormData = new FormData();
+      productImages.forEach(file => {
+        imageFormData.append("images", file);
+      });
+
+      const uploadResponse = await axios.post("/api/uploads/products", imageFormData, {
+        withCredentials: true,
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          "Accept": "application/json"
+        },
+        timeout: 60000, // 60 second timeout for file uploads
+      });
+
+      console.log('✅ Upload response:', uploadResponse.data);
       
-      setSuccess("Image deleted successfully");
-      await fetchProducts();
-      
-      if (editingProduct && editingProduct._id === productId) {
-        setPreviewImages(prev => prev.filter(img => img !== imageUrl));
+      // Handle different response structures
+      if (uploadResponse.data.files) {
+        uploadedImageUrls = uploadResponse.data.files.map((file: any) => file.url);
+      } else if (uploadResponse.data.data) {
+        uploadedImageUrls = uploadResponse.data.data;
       }
       
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to delete image");
-    } finally {
-      setDeletingImage(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    // Validation
-    if (!formData.name?.trim()) {
-      setError("Product name is required");
-      return;
-    }
-    if (!formData.category) {
-      setError("Please select a category");
-      return;
-    }
-    if (!formData.description?.trim()) {
-      setError("Product description is required");
-      return;
-    }
-    if (formData.price < 0) {
-      setError("Price must be a positive number");
-      return;
+      console.log('✅ Images uploaded:', uploadedImageUrls);
     }
 
-    try {
-      setUploading(true);
-
-      let uploadedImageUrls: string[] = [];
-      const existingImageUrls = previewImages.filter(img => img.startsWith('http'));
-
-      // Upload new images if any
-      if (productImages.length > 0) {
-        try {
-          uploadedImageUrls = await uploadImagesToServer(productImages);
-        } catch (uploadError: any) {
-          setError(uploadError.message || "Failed to upload images");
-          return;
-        }
-      }
-
-      // Prepare data for backend
-      const backendData = {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        category: formData.category,
-        price: formData.price,
-        featured: formData.featured,
-        isActive: formData.available,
-        images: [...existingImageUrls, ...uploadedImageUrls]
+    if (editingProduct) {
+      // Update existing product
+      const existingImages = previewImages.filter(img => img.startsWith('http'));
+      const updateData = {
+        ...formData,
+        images: [...existingImages, ...uploadedImageUrls]
       };
 
-      if (editingProduct) {
-        // UPDATE existing product
-        await productsAPI.updateMyProduct(editingProduct._id, backendData);
-        setSuccess("Product updated successfully");
-      } else {
-        // CREATE new product
-        await productsAPI.createMyProduct(backendData);
+      console.log('🔄 Updating product:', editingProduct._id);
+      const updateResponse = await axios.put(
+        `/api/merchants/dashboard/products/${editingProduct._id}`, 
+        updateData,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+      console.log('✅ Product updated:', updateResponse.data);
+
+      setSuccess("Product updated successfully");
+    } else {
+      // Create new product
+      const productData = {
+        ...formData,
+        images: uploadedImageUrls
+      };
+
+      console.log('🔄 Creating new product with data:', productData);
+      
+      try {
+        const response = await axios.post(
+          "/api/merchants/dashboard/products", 
+          productData,
+          {
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            timeout: 30000, // 30 second timeout
+            validateStatus: (status) => status < 500 // Don't reject on 4xx errors
+          }
+        );
+        
+        console.log('✅ Full response:', response);
+        console.log('✅ Response status:', response.status);
+        console.log('✅ Response data:', response.data);
+        console.log('✅ Response headers:', response.headers);
+        
+        // Check if response has data
+        if (!response || !response.data) {
+          console.error('❌ Empty response received');
+          console.error('❌ Response object:', response);
+          throw new Error("Server returned empty response. Please check your network connection and try again.");
+        }
+
+        // Handle error responses
+        if (response.status >= 400) {
+          console.error('❌ Error status received:', response.status);
+          throw new Error(response.data?.error || response.data?.message || `Server error: ${response.status}`);
+        }
+
+        if (!response.data.success) {
+          console.error('❌ Response indicates failure:', response.data);
+          throw new Error(response.data.error || response.data.message || "Product creation failed");
+        }
+
+        const newProduct = response.data.data;
+        
+        if (!newProduct || (!newProduct._id && !newProduct.id)) {
+          console.error('❌ Invalid response structure:', response.data);
+          throw new Error("Product created but no product ID returned from server");
+        }
+
+        console.log('✅ Product created successfully:', newProduct._id || newProduct.id);
         setSuccess("Product created successfully");
+      } catch (axiosError: any) {
+        // Handle axios-specific errors
+        if (axiosError.code === 'ECONNABORTED') {
+          throw new Error("Request timeout. Please check your internet connection and try again.");
+        }
+        if (axiosError.code === 'ERR_NETWORK') {
+          throw new Error("Network error. Please check your internet connection.");
+        }
+        throw axiosError;
       }
-
-      await fetchProducts();
-      handleCloseProductModal();
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: any) {
-      console.error('Product submission error:', err);
-      const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to save product";
-      setError(errorMessage);
-    } finally {
-      setUploading(false);
     }
-  };
 
+    await fetchProducts();
+    handleCloseProductModal();
+    setTimeout(() => setSuccess(""), 3000);
+  } catch (err: any) {
+    console.error('❌ Product submission error:', err);
+    console.error('❌ Error response:', err.response);
+    const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to save product";
+    setError(errorMessage);
+  } finally {
+    setUploading(false);
+  }
+};
   const handleToggleAvailability = async (productId: string, currentStatus: boolean) => {
     try {
-      await productsAPI.toggleProductAvailability(productId, !currentStatus);
+      await axios.patch(`/api/merchants/dashboard/products/${productId}/availability`, {
+        available: !currentStatus
+      });
+      
       setSuccess(`Product ${!currentStatus ? "enabled" : "disabled"} successfully`);
       await fetchProducts();
       setTimeout(() => setSuccess(""), 3000);
@@ -352,7 +434,7 @@ const ProductManagement = () => {
     }
 
     try {
-      await productsAPI.deleteMyProduct(productId);
+      await axios.delete(`/api/merchants/dashboard/products/${productId}`);
       setSuccess("Product deleted successfully");
       await fetchProducts();
       setTimeout(() => setSuccess(""), 3000);
@@ -375,7 +457,9 @@ const ProductManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Product Management</h1>
-          <p className="text-gray-600 mt-1">Manage your products and services</p>
+          <p className="text-gray-600 mt-1">
+            Manage your products and services
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate("/merchant/dashboard")}>
@@ -420,8 +504,9 @@ const ProductManagement = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map(product => (
             <Card key={product._id} className="overflow-hidden">
+              {/* Product Image */}
               <div className="relative h-48 bg-gray-200">
-                {product.images && product.images.length > 0 ? (
+                {product.images.length > 0 ? (
                   <img
                     src={product.images[0]}
                     alt={product.name}
@@ -433,15 +518,23 @@ const ProductManagement = () => {
                   </div>
                 )}
                 
+                {/* Badges */}
                 <div className="absolute top-2 right-2 flex gap-2">
-                  {product.featured && <Badge className="bg-yellow-500">Featured</Badge>}
-                  {!product.available && <Badge variant="secondary">Unavailable</Badge>}
+                  {product.featured && (
+                    <Badge className="bg-yellow-500">Featured</Badge>
+                  )}
+                  {!product.available && (
+                    <Badge variant="secondary">Unavailable</Badge>
+                  )}
                 </div>
               </div>
 
+              {/* Product Info */}
               <CardHeader>
                 <CardTitle className="line-clamp-1">{product.name}</CardTitle>
-                <CardDescription className="line-clamp-2">{product.description}</CardDescription>
+                <CardDescription className="line-clamp-2">
+                  {product.description}
+                </CardDescription>
               </CardHeader>
 
               <CardContent>
@@ -460,9 +553,10 @@ const ProductManagement = () => {
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Images:</span>
-                    <span>{(product.images || []).length}/5</span>
+                    <span>{product.images.length}/5</span>
                   </div>
 
+                  {/* Actions */}
                   <div className="flex gap-2 pt-2">
                     <Button
                       variant="outline"
@@ -479,7 +573,11 @@ const ProductManagement = () => {
                       size="sm"
                       onClick={() => handleToggleAvailability(product._id, product.available)}
                     >
-                      {product.available ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {product.available ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                     
                     <Button
@@ -505,13 +603,18 @@ const ProductManagement = () => {
               {editingProduct ? "Edit Product" : "Add New Product"}
             </DialogTitle>
             <DialogDescription>
-              {editingProduct ? "Update your product information" : "Add a new product or service to your catalog"}
+              {editingProduct 
+                ? "Update your product information" 
+                : "Add a new product or service to your catalog"}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Product Name */}
             <div>
-              <Label htmlFor="name">Product/Service Name <span className="text-red-500">*</span></Label>
+              <Label htmlFor="name">
+                Product/Service Name <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -521,9 +624,15 @@ const ProductManagement = () => {
               />
             </div>
 
+            {/* Category */}
             <div>
-              <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+              <Label htmlFor="category">
+                Category <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
@@ -537,8 +646,11 @@ const ProductManagement = () => {
               </Select>
             </div>
 
+            {/* Description */}
             <div>
-              <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
+              <Label htmlFor="description">
+                Description <span className="text-red-500">*</span>
+              </Label>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -549,6 +661,7 @@ const ProductManagement = () => {
               />
             </div>
 
+            {/* Price */}
             <div>
               <Label htmlFor="price">Price (KES)</Label>
               <Input
@@ -565,6 +678,7 @@ const ProductManagement = () => {
               </p>
             </div>
 
+            {/* Availability and Featured */}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center space-x-2">
                 <input
@@ -593,9 +707,11 @@ const ProductManagement = () => {
               </div>
             </div>
 
+            {/* Image Upload */}
             <div>
               <Label>Product Images (Max 5)</Label>
               
+              {/* Preview Grid */}
               {previewImages.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {previewImages.map((img, idx) => (
@@ -624,6 +740,7 @@ const ProductManagement = () => {
                 </div>
               )}
 
+              {/* Upload Button */}
               {previewImages.length < 5 && (
                 <div>
                   <input

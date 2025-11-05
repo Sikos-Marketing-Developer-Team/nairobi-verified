@@ -15,6 +15,7 @@
     "test:product": "jest tests/test-product-creation.js --verbose"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
@@ -31,6 +32,7 @@
     "google-auth-library": "^10.2.1",
     "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.20.0",
     "mongoose": "^7.5.0",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",

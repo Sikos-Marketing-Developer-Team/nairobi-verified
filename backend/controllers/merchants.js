@@ -841,25 +841,16 @@ exports.createMerchantWithProducts = async (req, res) => {
         
         for (const imageFile of productFiles) {
           try {
-            // Upload buffer to Cloudinary using upload_stream
-            const uploadResult = await new Promise((resolve, reject) => {
-              const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                  folder: 'nairobi-verified/products',
-                  resource_type: 'image'
-                },
-                (error, result) => {
-                  if (error) reject(error);
-                  else resolve(result);
-                }
-              );
-              uploadStream.end(imageFile.buffer);
-            });
-            
-            productImages.push(uploadResult.secure_url);
-            console.log(`✅ Image uploaded successfully: ${uploadResult.secure_url}`);
+            // Files are already uploaded to Cloudinary by multer-storage-cloudinary
+            // Access the URL from file.path
+            if (imageFile.path) {
+              productImages.push(imageFile.path);
+              console.log(`✅ Image uploaded successfully: ${imageFile.path}`);
+            } else {
+              console.error(`⚠️ Image file missing path:`, imageFile);
+            }
           } catch (uploadError) {
-            console.error(`Error uploading image:`, uploadError);
+            console.error(`Error processing image:`, uploadError);
             console.error('Upload error details:', JSON.stringify(uploadError, null, 2));
           }
         }
@@ -876,7 +867,7 @@ exports.createMerchantWithProducts = async (req, res) => {
           merchant: merchant._id,
           merchantName: merchant.businessName,
           images: productImages,
-          primaryImage: productImages[0] || '/placeholder-product.jpg',
+          primaryImage: productImages[0] || 'https://via.placeholder.com/400x400?text=No+Image',
           isActive: true,
           featured: false,
           tags: []
@@ -1040,25 +1031,16 @@ exports.updateMerchantWithProducts = async (req, res) => {
         
         for (const imageFile of productFiles) {
           try {
-            // Upload buffer to Cloudinary using upload_stream
-            const uploadResult = await new Promise((resolve, reject) => {
-              const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                  folder: 'nairobi-verified/products',
-                  resource_type: 'image'
-                },
-                (error, result) => {
-                  if (error) reject(error);
-                  else resolve(result);
-                }
-              );
-              uploadStream.end(imageFile.buffer);
-            });
-            
-            productImages.push(uploadResult.secure_url);
-            console.log(`✅ Image uploaded successfully: ${uploadResult.secure_url}`);
+            // Files are already uploaded to Cloudinary by multer-storage-cloudinary
+            // Access the URL from file.path
+            if (imageFile.path) {
+              productImages.push(imageFile.path);
+              console.log(`✅ Image uploaded successfully: ${imageFile.path}`);
+            } else {
+              console.error(`⚠️ Image file missing path:`, imageFile);
+            }
           } catch (uploadError) {
-            console.error(`Error uploading image:`, uploadError);
+            console.error(`Error processing image:`, uploadError);
           }
         }
 
@@ -1074,7 +1056,7 @@ exports.updateMerchantWithProducts = async (req, res) => {
           merchant: merchant._id,
           merchantName: merchant.businessName,
           images: productImages,
-          primaryImage: productImages[0] || '/placeholder-product.jpg',
+          primaryImage: productImages[0] || 'https://via.placeholder.com/400x400?text=No+Image',
           isActive: true,
           featured: false,
           tags: []
@@ -1422,14 +1404,21 @@ exports.resendWelcomeEmail = async (req, res) => {
     // Generate new temporary password that meets validation requirements
     // Must have: min 8 chars, uppercase, lowercase, number, special char (!@#$%^&*)
     const specialChars = '!@#$%^&*';
-    const randomHex = crypto.randomBytes(3).toString('hex'); // 6 lowercase hex chars
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const digits = '0123456789';
+    
+    // Ensure we have at least one of each required type
     const newTempPassword = 
-      randomHex.charAt(0).toUpperCase() + // 1 uppercase
-      randomHex.substring(1, 5) + // 4 lowercase
-      Math.floor(Math.random() * 10) + // 1 digit
-      randomHex.charAt(5).toUpperCase() + // 1 more uppercase
+      uppercase.charAt(Math.floor(Math.random() * uppercase.length)) + // 1 uppercase
+      lowercase.charAt(Math.floor(Math.random() * lowercase.length)) + // 1 lowercase
+      lowercase.charAt(Math.floor(Math.random() * lowercase.length)) + // 1 lowercase
+      lowercase.charAt(Math.floor(Math.random() * lowercase.length)) + // 1 lowercase
+      digits.charAt(Math.floor(Math.random() * digits.length)) + // 1 digit
+      digits.charAt(Math.floor(Math.random() * digits.length)) + // 1 digit
+      uppercase.charAt(Math.floor(Math.random() * uppercase.length)) + // 1 uppercase
       specialChars.charAt(Math.floor(Math.random() * specialChars.length)); // 1 special char
-    // Total: 8 characters with all required types
+    // Total: 8 characters (2 uppercase, 3 lowercase, 2 digits, 1 special)
     
     console.log('🔑 Generated password:', newTempPassword, 'length:', newTempPassword.length);
     
@@ -1450,8 +1439,8 @@ exports.resendWelcomeEmail = async (req, res) => {
 
     // Send welcome email with new credentials
     const setupUrl = `${process.env.FRONTEND_URL}/merchant/account-setup/${setupToken}`;
-    const loginUrl = `${process.env.FRONTEND_URL}/merchant/login`;
-    const googleLoginUrl = `${process.env.FRONTEND_URL}/merchant/login?oauth=google`;
+    const loginUrl = `https://www.nairobiverified.co.ke/merchant/sign-in`;
+    const googleLoginUrl = `https://www.nairobiverified.co.ke/merchant/sign-in`;
 
     const emailContent = {
       to: merchant.email,
@@ -1490,17 +1479,22 @@ exports.resendWelcomeEmail = async (req, res) => {
           <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; margin-bottom: 25px;">
             <h3 style="color: #1565c0; margin-top: 0;">🚀 Two Ways to Sign In</h3>
             <div style="margin: 15px 0;">
-              <p style="margin: 5px 0; color: #333;"><strong>1. Email & Password:</strong></p>
-              <p style="margin: 5px 0; color: #666; font-size: 14px;">Use your email and the temporary password above</p>
+              <p style="margin: 5px 0; color: #333;"><strong>Option 1: Sign in with Password</strong></p>
+              <p style="margin: 5px 0; color: #666; font-size: 14px;">
+                Click the "Login with Password" button below, then enter your email (${merchant.email}) and the temporary password shown above.
+              </p>
             </div>
             <div style="margin: 15px 0;">
-              <p style="margin: 5px 0; color: #333;"><strong>2. Sign in with Google:</strong></p>
-              <p style="margin: 5px 0; color: #666; font-size: 14px;">Use the same email address (${merchant.email}) to sign in with Google for faster access</p>
+              <p style="margin: 5px 0; color: #333;"><strong>Option 2: Sign in with Google</strong></p>
+              <p style="margin: 5px 0; color: #666; font-size: 14px;">
+                Click the "Sign in with Google" button below. On the sign-in page, click the "Sign in with Google" button and use your Google account (${merchant.email}) for faster access.
+              </p>
             </div>
           </div>
 
           <!-- Action Buttons -->
           <div style="text-align: center; margin: 30px 0;">
+            <p style="color: #333; font-size: 16px; font-weight: bold; margin-bottom: 15px;">Choose Your Sign-In Method:</p>
             <a href="${loginUrl}" style="background: #4caf50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin: 0 5px 10px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
               🔑 Login with Password
             </a>
@@ -1508,13 +1502,22 @@ exports.resendWelcomeEmail = async (req, res) => {
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;" alt="Google" />
               Sign in with Google
             </a>
+            <p style="color: #666; font-size: 13px; margin-top: 15px; font-style: italic;">
+              💡 Both buttons redirect to the sign-in page. Once there, click your preferred sign-in method.
+            </p>
           </div>
 
           <!-- Next Steps -->
           <div style="background: #fff; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
             <h3 style="color: #333; margin-top: 0;">📋 Next Steps</h3>
             <ol style="color: #666; line-height: 1.8; padding-left: 20px;">
-              <li><strong>Choose your sign-in method</strong> (Password or Google)</li>
+              <li><strong>Click one of the buttons above</strong> to go to the sign-in page</li>
+              <li><strong>On the sign-in page:</strong>
+                <ul style="margin-top: 5px;">
+                  <li>For password: Enter your email and temporary password</li>
+                  <li>For Google: Click the "Sign in with Google" button</li>
+                </ul>
+              </li>
               <li><strong>Change your password</strong> if using email/password login</li>
               <li><strong>Complete your profile</strong> with photos and details</li>
               <li><strong>Upload verification documents</strong> (Business Registration, ID, Utility Bill)</li>
