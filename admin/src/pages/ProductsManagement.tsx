@@ -342,7 +342,7 @@ const ProductsManagement: React.FC = () => {
                     <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                   </button>
                   <button
-                    onClick={() => handleToggleFeatured(product._id, product.featured)}
+                    onClick={() => handleToggleFeatured(product._id, product.featured || false)}
                     className={`p-1 ${product.featured ? 'text-yellow-600 hover:text-yellow-700' : 'text-gray-400 hover:text-gray-600'}`}
                     title={product.featured ? 'Remove from featured' : 'Mark as featured'}
                   >
