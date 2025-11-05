@@ -530,15 +530,15 @@ const MerchantsManagement: React.FC = () => {
       value: merchants.length,
       icon: Store,
       color: 'text-blue-600 bg-blue-100',
-      change: '+12%',
-      changeType: 'positive' as const
+      change: merchants.length > 0 ? 'All time' : '0',
+      changeType: 'neutral' as const
     },
     {
       name: 'Verified',
       value: merchants.filter(m => m && m.verified === true).length,
       icon: CheckCircle,
       color: 'text-green-600 bg-green-100',
-      change: '+8%',
+      change: `${merchants.length > 0 ? ((merchants.filter(m => m && m.verified === true).length / merchants.length) * 100).toFixed(1) : 0}%`,
       changeType: 'positive' as const
     },
     {
@@ -546,15 +546,15 @@ const MerchantsManagement: React.FC = () => {
       value: merchants.filter(m => m && (m.needsVerification || (m.isDocumentComplete && !m.verified))).length,
       icon: Clock3,
       color: 'text-orange-600 bg-orange-100',
-      change: '-5%',
-      changeType: 'negative' as const
+      change: `${merchants.length > 0 ? ((merchants.filter(m => m && (m.needsVerification || (m.isDocumentComplete && !m.verified))).length / merchants.length) * 100).toFixed(1) : 0}%`,
+      changeType: merchants.filter(m => m && (m.needsVerification || (m.isDocumentComplete && !m.verified))).length > 0 ? 'negative' as const : 'neutral' as const
     },
     {
       name: 'Featured',
       value: merchants.filter(m => m && m.featured === true).length,
       icon: Star,
       color: 'text-purple-600 bg-purple-100',
-      change: '+3%',
+      change: `${merchants.length > 0 ? ((merchants.filter(m => m && m.featured === true).length / merchants.length) * 100).toFixed(1) : 0}%`,
       changeType: 'positive' as const
     },
     {
@@ -562,7 +562,7 @@ const MerchantsManagement: React.FC = () => {
       value: merchants.filter(m => m && m.isActive === true).length,
       icon: Activity,
       color: 'text-emerald-600 bg-emerald-100',
-      change: '+15%',
+      change: `${merchants.length > 0 ? ((merchants.filter(m => m && m.isActive === true).length / merchants.length) * 100).toFixed(1) : 0}%`,
       changeType: 'positive' as const
     },
     {
@@ -570,8 +570,8 @@ const MerchantsManagement: React.FC = () => {
       value: merchants.filter(m => m && m.isDocumentComplete === true).length,
       icon: FileCheck,
       color: 'text-indigo-600 bg-indigo-100',
-      change: '+22%',
-      changeType: 'positive' as const
+      change: `${merchants.length > 0 ? ((merchants.filter(m => m && m.isDocumentComplete === true).length / merchants.length) * 100).toFixed(1) : 0}%`,
+      changeType: merchants.filter(m => m && m.isDocumentComplete === true).length > merchants.length * 0.5 ? 'positive' as const : 'neutral' as const
     }
   ];
 
