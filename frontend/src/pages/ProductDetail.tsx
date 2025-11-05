@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
 import { ProductDetailSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
-import api from '@/lib/api';
+import { productsAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface Product {
@@ -16,7 +16,9 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  originalPrice?: number;
   images: string[];
+  primaryImage?: string;
   category: string;
   inStock: boolean;
   merchant: {
@@ -31,6 +33,8 @@ interface Product {
   };
   stockQuantity?: number;
   totalReviews?: number;
+  rating?: number;
+  tags?: string[];
   specifications?: Record<string, string | number>;
 }
 
@@ -45,31 +49,31 @@ const ProductDetail = () => {
   const [activeTab, setActiveTab] = useState('description');
   const [isImageZoomed, setIsImageZoomed] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      loadProduct();
-    }
-  }, [id]);
-
-  const loadProduct = async () => {
+  const loadProduct = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.getProduct(id!);
+      const response = await productsAPI.getProduct(id!);
       
       if (response.data.success) {
         setProduct(response.data.data || response.data.product);
       } else {
         setError('Product not found');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load product:', err);
-      setError(err.response?.data?.message || 'Failed to load product');
+      setError(err instanceof Error ? err.message : 'Failed to load product');
       toast.error('Failed to load product details');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      loadProduct();
+    }
+  }, [id, loadProduct]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -223,23 +227,31 @@ const ProductDetail = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-3">{product.name}</h1>
               <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center">
-                  <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                  <span className="ml-1 font-medium">{product.rating}</span>
-                  <span className="text-gray-500 ml-1">({product.reviews} reviews)</span>
-                </div>
-                <span className="text-gray-300">|</span>
+                {product.rating && (
+                  <>
+                    <div className="flex items-center">
+                      <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                      <span className="ml-1 font-medium">{product.rating}</span>
+                      {product.totalReviews && (
+                        <span className="text-gray-500 ml-1">({product.totalReviews} reviews)</span>
+                      )}
+                    </div>
+                    <span className="text-gray-300">|</span>
+                  </>
+                )}
                 <Badge variant="secondary">{product.category}</Badge>
               </div>
               
               {/* Product Tags */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {product.tags.map((tag, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+              {product.tags && product.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {product.tags.map((tag, index) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Merchant Info */}
@@ -402,14 +414,18 @@ const ProductDetail = () => {
             {activeTab === 'specifications' && (
               <div>
                 <h3 className="text-xl font-semibold mb-4">Technical Specifications</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {product.specifications.map((spec, index) => (
-                    <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
-                      <Check className="h-4 w-4 text-primary mr-2" />
-                      {spec}
-                    </div>
-                  ))}
-                </div>
+                {product.specifications && Object.keys(product.specifications).length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(product.specifications).map(([key, value], index) => (
+                      <div key={index} className="flex flex-col p-4 bg-gray-50 rounded-lg">
+                        <span className="font-medium text-gray-700 mb-1">{key}</span>
+                        <span className="text-gray-600">{String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No specifications available</p>
+                )}
               </div>
             )}
 
