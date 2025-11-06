@@ -1,21 +1,38 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, MapPin, Check, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, MapPin, Check, Heart, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { productsAPI } from '@/lib/api';
 
-const products = [ 
-  { id: 1, name: 'MacBook Pro 16-inch M3', price: 185000, originalPrice: 250000, rating: 4.8, reviews: 24, image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop', merchant: 'TechHub Kenya', location: 'Kimathi Street, CBD', verified: true, featured: true, merchantId: '60d0fe4f5311236168a10101', category: 'Electronics' }, 
-  { id: 2, name: 'Samsung Galaxy S24 Ultra', price: 120000, originalPrice: 150000, rating: 4.7, reviews: 32, image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop', merchant: 'Mobile World CBD', location: 'Tom Mboya Street, CBD', verified: true, featured: true, merchantId: '60d0fe4f5311236168a10102', category: 'Electronics' }, 
-  { id: 3, name: 'Designer Leather Handbag', price: 8500, originalPrice: 15000, rating: 4.4, reviews: 18, image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=300&fit=crop', merchant: 'Fashion House CBD', location: 'River Road, CBD', verified: true, featured: true, merchantId: '60d0fe4f5311236168a10106', category: 'Fashion' }, 
-  { id: 4, name: 'Canon EOS R5 Camera', price: 75000, originalPrice: 95000, rating: 4.9, reviews: 15, image: 'https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=400&h=300&fit=crop', merchant: 'PhotoPro Kenya', location: 'Koinange Street, CBD', verified: true, featured: true, merchantId: '60d0fe4f5311236168a10104', category: 'Electronics' }, 
-  { id: 5, name: 'Sony WH-1000XM5 Headphones', price: 32000, originalPrice: 45000, rating: 4.6, reviews: 28, image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop', merchant: 'Audio Excellence', location: 'Moi Avenue, CBD', verified: true, featured: true, merchantId: '60d0fe4f5311236168a10105', category: 'Electronics' }, 
-  { id: 6, name: 'Premium Watch Collection', price: 16000, originalPrice: 25000, rating: 4.7, reviews: 12, image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=300&fit=crop', merchant: 'Time Pieces Kenya', location: 'Kenyatta Avenue, CBD', verified: true, featured: true, merchantId: '60d0fe4f5311236168a10107', category: 'Fashion' }, 
-  { id: 7, name: 'Smart Fitness Watch', price: 8500, originalPrice: 12000, rating: 4.4, reviews: 35, image: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=300&fit=crop', merchant: 'FitTech Kenya', location: 'Westlands, Nairobi', verified: true, featured: true, merchantId: '60d0fe4f5311236168a10109', category: 'Electronics' }, 
-  { id: 8, name: 'Gaming Mechanical Keyboard', price: 6500, originalPrice: 9000, rating: 4.3, reviews: 25, image: 'https://images.unsplash.com/photo-1541140532154-b024d705b90a?w=400&h=300&fit=crop', merchant: 'Gaming Hub Kenya', location: 'Sarit Centre, Westlands', verified: true, featured: true, merchantId: '60d0fe4f5311236168a10108', category: 'Electronics' } 
-];
+interface Product {
+  _id?: string;
+  id?: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  rating?: number;
+  reviewCount?: number;
+  reviews?: number;
+  image?: string;
+  images?: string[];
+  primaryImage?: string;
+  merchant?: {
+    _id?: string;
+    businessName?: string;
+    verified?: boolean;
+    address?: string;
+  };
+  merchantName?: string;
+  merchantId?: string;
+  location?: string;
+  verified?: boolean;
+  featured?: boolean;
+  category?: string;
+}
 
-const ProductCard = ({ product, onProductClick, isMobile = false }: { product: typeof products[0]; onProductClick: (id: number) => void; isMobile?: boolean }) => {
+const ProductCard = ({ product, onProductClick, isMobile = false }: { product: Product; onProductClick: (id: string) => void; isMobile?: boolean }) => {
+const ProductCard = ({ product, onProductClick, isMobile = false }: { product: Product; onProductClick: (id: string) => void; isMobile?: boolean }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
@@ -25,7 +42,7 @@ const ProductCard = ({ product, onProductClick, isMobile = false }: { product: t
   };
 
   const calculateDiscount = () => {
-    if (product.originalPrice <= product.price) return 0;
+    if (!product.originalPrice || product.originalPrice <= product.price) return 0;
     return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
   };
 
@@ -34,8 +51,26 @@ const ProductCard = ({ product, onProductClick, isMobile = false }: { product: t
     if ((e.target as HTMLElement).closest('button')) {
       return;
     }
-    onProductClick(product.id);
+    const productId = product._id || product.id;
+    if (productId) {
+      onProductClick(productId);
+    }
   };
+
+  // Get merchant info
+  const merchantName = typeof product.merchant === 'object' && product.merchant?.businessName
+    ? product.merchant.businessName
+    : product.merchantName || 'Unknown Merchant';
+    
+  const isVerified = typeof product.merchant === 'object'
+    ? product.merchant?.verified
+    : product.verified || false;
+    
+  const locationDisplay = typeof product.merchant === 'object' && product.merchant?.address
+    ? product.merchant.address
+    : product.location || 'Location not specified';
+  
+  const displayImage = product.primaryImage || product.image || (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop';
 
   return (
     <Card 
