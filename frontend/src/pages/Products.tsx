@@ -54,71 +54,58 @@ const Products = () => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const pageLoading = usePageLoading(600);
 
-  // Fetch products on component mount
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
   // Fetch products when filters change
   useEffect(() => {
-    if (!pageLoading) {
-      fetchProducts();
-    }
-  }, [searchTerm, selectedCategory]);
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        let response;
+        
+        if (searchTerm.trim()) {
+          response = await productsAPI.searchProducts(searchTerm, {
+            category: selectedCategory !== 'All' ? selectedCategory : undefined
+          });
+        } else {
+          const params: Record<string, string> = {};
+          if (selectedCategory !== 'All') {
+            params.category = selectedCategory;
+          }
+          response = await productsAPI.getProducts(params);
+        }
+        
+        let productsData: Product[] = [];
+        
+        if (response && response.data) {
+          if (response.data.data && Array.isArray(response.data.data)) {
+            productsData = response.data.data;
+          } else if (Array.isArray(response.data)) {
+            productsData = response.data;
+          } else if (response.data.products && Array.isArray(response.data.products)) {
+            productsData = response.data.products;
+          } else if (typeof response.data === 'object' && response.data._id) {
+            productsData = [response.data];
+          }
+        }
+        
+        console.log('Fetched products:', productsData);
+        setProducts(productsData);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products. Please try again.');
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      let response;
-      
-      if (searchTerm.trim()) {
-        // Use search API if there's a search term
-        response = await productsAPI.searchProducts(searchTerm, {
-          category: selectedCategory !== 'All' ? selectedCategory : undefined
-        });
-      } else {
-        // Use regular products API with filters
-        const params: any = {};
-        if (selectedCategory !== 'All') {
-          params.category = selectedCategory;
-        }
-        response = await productsAPI.getProducts(params);
-      }
-      
-      // Handle different API response formats safely
-      let productsData: Product[] = [];
-      
-      if (response && response.data) {
-        // The backend returns: { success: true, data: [...], pagination: {...} }
-        if (response.data.data && Array.isArray(response.data.data)) {
-          productsData = response.data.data;
-        }
-        // If response.data is an array, use it directly
-        else if (Array.isArray(response.data)) {
-          productsData = response.data;
-        } 
-        // If response.data has a products property that's an array
-        else if (response.data.products && Array.isArray(response.data.products)) {
-          productsData = response.data.products;
-        }
-        // If response.data is a single product object, wrap it in an array
-        else if (typeof response.data === 'object' && response.data._id) {
-          productsData = [response.data];
-        }
-      }
-      
-      console.log('Fetched products:', productsData); // Debug log
-      setProducts(productsData);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      setError('Failed to load products. Please try again.');
-      setProducts([]); // Ensure products is always an array
-    } finally {
-      setLoading(false);
+    if (!pageLoading) {
+      loadProducts();
     }
-  };
+  }, [searchTerm, selectedCategory, pageLoading]);
+
+
 
   useEffect(() => {
     // Check screen size and update visible cards count
@@ -340,7 +327,7 @@ const Products = () => {
         <div className="max-w-7xl mx-auto mt-20 px-4 pt-16 sm:px-6 sm:mt-15 lg:px-8 py-8">
           <div className="text-center py-12">
             <p className="text-red-500 text-lg mb-4">{error}</p>
-            <Button onClick={fetchProducts} className="bg-primary hover:bg-primary-dark">
+            <Button onClick={() => window.location.reload()} className="bg-primary hover:bg-primary-dark">
               Try Again
             </Button>
           </div>

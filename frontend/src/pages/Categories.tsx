@@ -383,53 +383,53 @@ const Categories = () => {
     : null;
 
   useEffect(() => {
-    fetchProducts();
-  }, [categoryId, searchTerm, priceRange, currentPage]);
+    const loadProducts = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const params: Record<string, string | number> = {
+          page: currentPage,
+          limit: 12,
+        };
 
-  const fetchProducts = async () => {
-    setIsLoadingProducts(true);
-    try {
-      const params: any = {
-        page: currentPage,
-        limit: 12,
-      };
+        if (selectedCategory) {
+          params.category = selectedCategory.name;
+        }
 
-      if (selectedCategory) {
-        params.category = selectedCategory.name;
+        if (searchTerm.trim()) {
+          params.search = searchTerm.trim();
+        }
+
+        if (priceRange[0] > 0) {
+          params.minPrice = priceRange[0];
+        }
+        if (priceRange[1] < 200000) {
+          params.maxPrice = priceRange[1];
+        }
+
+        const response = await productsAPI.getProducts(params);
+        
+        // Backend returns { success: true, data: [...], pagination: {...} }
+        const productsData = response.data.data || [];
+        const paginationData = response.data.pagination || { total: 0 };
+        
+        setProducts(productsData);
+        setTotalProducts(paginationData.total);
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load products. Please try again.",
+          variant: "destructive",
+        });
+        setProducts([]);
+        setTotalProducts(0);
+      } finally {
+        setIsLoadingProducts(false);
       }
+    };
 
-      if (searchTerm.trim()) {
-        params.search = searchTerm.trim();
-      }
-
-      if (priceRange[0] > 0) {
-        params.minPrice = priceRange[0];
-      }
-      if (priceRange[1] < 200000) {
-        params.maxPrice = priceRange[1];
-      }
-
-      const response = await productsAPI.getProducts(params);
-      
-      // Backend returns { success: true, data: [...], pagination: {...} }
-      const productsData = response.data.data || [];
-      const paginationData = response.data.pagination || { total: 0 };
-      
-      setProducts(productsData);
-      setTotalProducts(paginationData.total);
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load products. Please try again.",
-        variant: "destructive",
-      });
-      setProducts([]);
-      setTotalProducts(0);
-    } finally {
-      setIsLoadingProducts(false);
-    }
-  };
+    loadProducts();
+  }, [categoryId, searchTerm, priceRange, currentPage, selectedCategory, toast]);
 
   const filteredProducts = products;
 
