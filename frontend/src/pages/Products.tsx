@@ -12,21 +12,33 @@ import { productsAPI } from '@/lib/api';
 
 // Define the Product interface
 interface Product {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
   price: number;
-  originalPrice: number;
+  originalPrice?: number;
   rating: number;
-  reviews: number;
-  image: string;
-  merchant: string;
-  location: string;
-  verified: boolean;
+  reviewCount?: number;
+  reviews?: number;
+  image?: string;
+  images?: string[];
+  primaryImage?: string;
+  merchant?: {
+    _id?: string;
+    businessName?: string;
+    verified?: boolean;
+    address?: string;
+  };
+  merchantName?: string;
+  location?: string;
+  verified?: boolean;
   category: string;
-  inStock: boolean;
+  inStock?: boolean;
+  isActive?: boolean;
+  stockQuantity?: number;
 }
 
-const categories = ['All', 'Electronics', 'Fashion', 'Home & Garden', 'Books', 'Sports'];
+const categories = ['All', 'Electronics', 'Fashion', 'Beauty', 'Home & Garden', 'Books & Media', 'Sports & Fitness'];
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,67 +54,58 @@ const Products = () => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const pageLoading = usePageLoading(600);
 
-  // Fetch products on component mount
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
   // Fetch products when filters change
   useEffect(() => {
-    if (!pageLoading) {
-      fetchProducts();
-    }
-  }, [searchTerm, selectedCategory]);
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        let response;
+        
+        if (searchTerm.trim()) {
+          response = await productsAPI.searchProducts(searchTerm, {
+            category: selectedCategory !== 'All' ? selectedCategory : undefined
+          });
+        } else {
+          const params: Record<string, string> = {};
+          if (selectedCategory !== 'All') {
+            params.category = selectedCategory;
+          }
+          response = await productsAPI.getProducts(params);
+        }
+        
+        let productsData: Product[] = [];
+        
+        if (response && response.data) {
+          if (response.data.data && Array.isArray(response.data.data)) {
+            productsData = response.data.data;
+          } else if (Array.isArray(response.data)) {
+            productsData = response.data;
+          } else if (response.data.products && Array.isArray(response.data.products)) {
+            productsData = response.data.products;
+          } else if (typeof response.data === 'object' && response.data._id) {
+            productsData = [response.data];
+          }
+        }
+        
+        console.log('Fetched products:', productsData);
+        setProducts(productsData);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products. Please try again.');
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      let response;
-      
-      if (searchTerm.trim()) {
-        // Use search API if there's a search term
-        response = await productsAPI.searchProducts(searchTerm, {
-          category: selectedCategory !== 'All' ? selectedCategory : undefined
-        });
-      } else {
-        // Use regular products API with filters
-        const params: any = {};
-        if (selectedCategory !== 'All') {
-          params.category = selectedCategory;
-        }
-        response = await productsAPI.getProducts(params);
-      }
-      
-      // Handle different API response formats safely
-      let productsData: Product[] = [];
-      
-      if (response && response.data) {
-        // If response.data is an array, use it directly
-        if (Array.isArray(response.data)) {
-          productsData = response.data;
-        } 
-        // If response.data has a products property that's an array
-        else if (response.data.products && Array.isArray(response.data.products)) {
-          productsData = response.data.products;
-        }
-        // If response.data is a single product object, wrap it in an array
-        else if (typeof response.data === 'object' && response.data.id) {
-          productsData = [response.data];
-        }
-      }
-      
-      console.log('Fetched products:', productsData); // Debug log
-      setProducts(productsData);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      setError('Failed to load products. Please try again.');
-      setProducts([]); // Ensure products is always an array
-    } finally {
-      setLoading(false);
+    if (!pageLoading) {
+      loadProducts();
     }
-  };
+  }, [searchTerm, selectedCategory, pageLoading]);
+
+
 
   useEffect(() => {
     // Check screen size and update visible cards count
@@ -174,19 +177,39 @@ const Products = () => {
   const ProductCard = ({ product, isMobile = false }: { product: Product; isMobile?: boolean }) => {
     if (!product) return null;
     
+    // Get the display image
+    const displayImage = product.primaryImage || product.image || (product.images && product.images[0]) || '/placeholder-image.jpg';
+    
+    // Get merchant name and verification status
+    const merchantName = typeof product.merchant === 'object' && product.merchant?.businessName 
+      ? product.merchant.businessName 
+      : product.merchantName || 'Unknown Merchant';
+    
+    const isVerified = typeof product.merchant === 'object' 
+      ? product.merchant?.verified 
+      : product.verified || false;
+    
+    // Get location
+    const locationDisplay = typeof product.merchant === 'object' && product.merchant?.address
+      ? product.merchant.address
+      : product.location || 'Location not specified';
+    
+    // Check if product is in stock
+    const inStock = product.isActive !== false && (product.stockQuantity === undefined || product.stockQuantity > 0);
+    
     return (
       <Card className={`hover-scale cursor-pointer border-0 shadow-lg overflow-hidden flex-shrink-0 ${isMobile ? 'w-[160px]' : 'w-full'}`}>
         <CardContent className="p-0">
           <div className="relative">
             <img
-              src={product.image || '/placeholder-image.jpg'}
+              src={displayImage}
               alt={product.name || 'Product image'}
               className={`w-full ${isMobile ? 'h-32' : 'h-48'} object-cover`}
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
               }}
             />
-            {!product.inStock && (
+            {!inStock && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                 <span className="text-white font-semibold">Out of Stock</span>
               </div>
@@ -196,9 +219,9 @@ const Products = () => {
           <div className={`${isMobile ? 'p-2' : 'p-4'}`}>
             <div className="flex items-center gap-1 mb-1">
               <span className={`text-gray-600 truncate ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
-                {product.merchant || 'Unknown Merchant'}
+                {merchantName}
               </span>
-              {product.verified && (
+              {isVerified && (
                 <div className={`verified-badge flex items-center gap-1 bg-green-100 text-green-700 px-1 py-0.5 rounded-full flex-shrink-0 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                   <Check className={`${isMobile ? 'h-2 w-2' : 'h-3 w-3'}`} />
                   Verified
@@ -212,7 +235,7 @@ const Products = () => {
             
             <div className={`flex items-center gap-1 mb-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
               <MapPin className={`text-gray-400 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              <span className="truncate">{product.location || 'Location not specified'}</span>
+              <span className="truncate">{locationDisplay}</span>
             </div>
             
             <div className="flex items-center gap-1 mb-2">
@@ -223,7 +246,7 @@ const Products = () => {
                 </span>
               </div>
               <span className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
-                ({product.reviews || 0})
+                ({product.reviewCount || product.reviews || 0})
               </span>
             </div>
             
@@ -231,7 +254,7 @@ const Products = () => {
               <span className={`font-bold text-primary ${isMobile ? 'text-sm' : 'text-xl'}`}>
                 {formatPrice(product.price || 0)}
               </span>
-              {product.originalPrice > product.price && (
+              {product.originalPrice && product.originalPrice > product.price && (
                 <span className={`text-gray-500 line-through ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
                   {formatPrice(product.originalPrice)}
                 </span>
@@ -240,9 +263,9 @@ const Products = () => {
             
             <Button 
               className={`w-full bg-primary hover:bg-primary-dark text-white ${isMobile ? 'text-xs py-1 h-7' : ''}`}
-              disabled={!product.inStock}
+              disabled={!inStock}
             >
-              {product.inStock ? 'View' : 'Out of Stock'}
+              {inStock ? 'View' : 'Out of Stock'}
             </Button>
           </div>
         </CardContent>
@@ -304,7 +327,7 @@ const Products = () => {
         <div className="max-w-7xl mx-auto mt-20 px-4 pt-16 sm:px-6 sm:mt-15 lg:px-8 py-8">
           <div className="text-center py-12">
             <p className="text-red-500 text-lg mb-4">{error}</p>
-            <Button onClick={fetchProducts} className="bg-primary hover:bg-primary-dark">
+            <Button onClick={() => window.location.reload()} className="bg-primary hover:bg-primary-dark">
               Try Again
             </Button>
           </div>
