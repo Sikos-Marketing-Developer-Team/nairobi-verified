@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Grid, List, Star, MapPin, Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +42,7 @@ interface Product {
 const categories = ['All', 'Electronics', 'Fashion', 'Beauty', 'Home & Garden', 'Books & Media', 'Sports & Fitness'];
 
 const Products = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -51,10 +53,19 @@ const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
   const pageLoading = usePageLoading(600);
 
   // Fetch products when filters change
+  useEffect(() => {
+    setCurrentPage(1); // Reset to page 1 when filters change
+    setProducts([]); // Clear existing products
+  }, [searchTerm, selectedCategory]);
+
+  // Fetch products when page or filters change
   useEffect(() => {
     const loadProducts = async () => {
       try {
@@ -65,10 +76,15 @@ const Products = () => {
         
         if (searchTerm.trim()) {
           response = await productsAPI.searchProducts(searchTerm, {
-            category: selectedCategory !== 'All' ? selectedCategory : undefined
+            category: selectedCategory !== 'All' ? selectedCategory : undefined,
+            page: currentPage,
+            limit: 24
           });
         } else {
-          const params: Record<string, string> = {};
+          const params: Record<string, string | number> = {
+            page: currentPage,
+            limit: 24
+          };
           if (selectedCategory !== 'All') {
             params.category = selectedCategory;
           }
@@ -76,25 +92,39 @@ const Products = () => {
         }
         
         let productsData: Product[] = [];
+        let total = 0;
         
         if (response && response.data) {
           if (response.data.data && Array.isArray(response.data.data)) {
             productsData = response.data.data;
+            total = response.data.pagination?.total || 0;
           } else if (Array.isArray(response.data)) {
             productsData = response.data;
+            total = response.data.length;
           } else if (response.data.products && Array.isArray(response.data.products)) {
             productsData = response.data.products;
+            total = response.data.pagination?.total || 0;
           } else if (typeof response.data === 'object' && response.data._id) {
             productsData = [response.data];
+            total = 1;
           }
         }
         
-        console.log('Fetched products:', productsData);
-        setProducts(productsData);
+        console.log('Fetched products:', productsData, 'Total:', total);
+        
+        // Append new products to existing ones or replace if page 1
+        setProducts(prev => {
+          const newProducts = currentPage === 1 ? productsData : [...prev, ...productsData];
+          setHasMore(newProducts.length < total);
+          return newProducts;
+        });
+        setTotalProducts(total);
       } catch (err) {
         console.error('Error fetching products:', err);
         setError('Failed to load products. Please try again.');
-        setProducts([]);
+        if (currentPage === 1) {
+          setProducts([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -103,7 +133,7 @@ const Products = () => {
     if (!pageLoading) {
       loadProducts();
     }
-  }, [searchTerm, selectedCategory, pageLoading]);
+  }, [currentPage, searchTerm, selectedCategory, pageLoading]);
 
 
 
@@ -197,8 +227,18 @@ const Products = () => {
     // Check if product is in stock
     const inStock = product.isActive !== false && (product.stockQuantity === undefined || product.stockQuantity > 0);
     
+    const handleClick = () => {
+      const productId = product._id || product.id;
+      if (productId) {
+        navigate(`/product/${productId}`);
+      }
+    };
+    
     return (
-      <Card className={`hover-scale cursor-pointer border-0 shadow-lg overflow-hidden flex-shrink-0 ${isMobile ? 'w-[160px]' : 'w-full'}`}>
+      <Card 
+        className={`hover-scale cursor-pointer border-0 shadow-lg overflow-hidden flex-shrink-0 ${isMobile ? 'w-[160px]' : 'w-full'}`}
+        onClick={handleClick}
+      >
         <CardContent className="p-0">
           <div className="relative">
             <img
@@ -409,63 +449,94 @@ const Products = () => {
         </div>
 
         {/* Results Count */}
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <p className="text-gray-600">
-            Showing {filteredProducts.length} products
+            Showing {filteredProducts.length} of {totalProducts} products
             {selectedCategory !== 'All' && ` in ${selectedCategory}`}
           </p>
+          {totalProducts > filteredProducts.length && (
+            <Button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={loading}
+              variant="outline"
+              className="text-sm"
+            >
+              {loading ? 'Loading...' : `Load More (${totalProducts - filteredProducts.length} remaining)`}
+            </Button>
+          )}
         </div>
 
         {/* Carousel for all screen sizes */}
         {filteredProducts.length > 0 ? (
-          <div className="relative mb-8 overflow-hidden">
-            <div 
-              ref={carouselRef}
-              className="flex transition-transform duration-300 ease-in-out gap-4"
-              style={{ transform: getTransformValue() }}
-            >
-              {filteredProducts.map((product) => (
-                <div key={product.id} className="flex-shrink-0" style={{ width: isMobile ? '160px' : 'calc(25% - 12px)' }}>
-                  <ProductCard 
-                    product={product} 
-                    isMobile={isMobile}
-                  />
+          <>
+            <div className="relative mb-8 overflow-hidden">
+              <div 
+                ref={carouselRef}
+                className="flex transition-transform duration-300 ease-in-out gap-4"
+                style={{ transform: getTransformValue() }}
+              >
+                {filteredProducts.map((product) => (
+                  <div key={product._id || product.id} className="flex-shrink-0" style={{ width: isMobile ? '160px' : 'calc(25% - 12px)' }}>
+                    <ProductCard 
+                      product={product} 
+                      isMobile={isMobile}
+                    />
+                  </div>
+                ))}
+              </div>
+              
+              {/* Navigation arrows - Show only when there are more products */}
+              {filteredProducts.length > visibleCards && (
+                <>
+                  {currentIndex > 0 && (
+                    <Button
+                      onClick={prevSlide}
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
+                    >
+                      <ChevronLeft className="h-6 w-6 text-white" />
+                    </Button>
+                  )}
+                  
+                  {currentIndex < filteredProducts.length - visibleCards && (
+                    <Button
+                      onClick={nextSlide}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
+                    >
+                      <ChevronRight className="h-6 w-6 text-white" />
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {/* Counter indicator */}
+              {filteredProducts.length > visibleCards && (
+                <div className="flex justify-center mt-6">
+                  <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                    {currentIndex + 1} / {filteredProducts.length - visibleCards + 1}
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
             
-            {/* Navigation arrows - Show only when there are more products */}
-            {filteredProducts.length > visibleCards && (
-              <>
-                {currentIndex > 0 && (
-                  <Button
-                    onClick={prevSlide}
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
-                  >
-                    <ChevronLeft className="h-6 w-6 text-white" />
-                  </Button>
-                )}
-                
-                {currentIndex < filteredProducts.length - visibleCards && (
-                  <Button
-                    onClick={nextSlide}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
-                  >
-                    <ChevronRight className="h-6 w-6 text-white" />
-                  </Button>
-                )}
-              </>
-            )}
-
-            {/* Counter indicator */}
-            {filteredProducts.length > visibleCards && (
-              <div className="flex justify-center mt-6">
-                <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm">
-                  {currentIndex + 1} / {filteredProducts.length - visibleCards + 1}
-                </div>
+            {/* Load More Button */}
+            {hasMore && !loading && (
+              <div className="flex justify-center mt-8">
+                <Button
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  size="lg"
+                  className="bg-primary hover:bg-primary-dark"
+                >
+                  Load More Products ({totalProducts - filteredProducts.length} remaining)
+                </Button>
               </div>
             )}
-          </div>
+            
+            {loading && currentPage > 1 && (
+              <div className="flex justify-center mt-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
