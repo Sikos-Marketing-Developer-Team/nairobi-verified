@@ -38,7 +38,7 @@ interface Product {
   stockQuantity?: number;
 }
 
-const categories = ['All', 'Electronics', 'Fashion', 'Home & Garden', 'Books', 'Sports'];
+const categories = ['All', 'Electronics', 'Fashion', 'Beauty', 'Home & Garden', 'Books & Media', 'Sports & Fitness'];
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
