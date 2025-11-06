@@ -250,30 +250,18 @@ export const adminAPI = {
       : `/admin/dashboard/merchants/${merchantIdOrIds}/status`;
     return api.put(endpoint, { isActive, merchantIds: Array.isArray(merchantIdOrIds) ? merchantIdOrIds : undefined });
   },
-  // createMerchant: (merchantData: any) => {
-  //   // Check if merchantData is FormData (contains products with images)
-  //   if (merchantData instanceof FormData) {
-  //     return api.post('/merchants/admin/create-with-products', merchantData, {
-  //       headers: {
-  //         'Content-Type': 'multipart/form-data'
-  //       }
-  //     });
-  //   }
-  //   // Regular merchant creation without products
-  //   return api.post('/admin/dashboard/merchants', merchantData);
-  // },
-
   createMerchant: (merchantData: any) => {
-  if (merchantData instanceof FormData) {
-    return api.post('/admin/create-with-products', merchantData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  }
-
-  // ✅ Use the correct route for JSON data
-  return api.post('/admin/create', merchantData);
-},
-
+    // Check if merchantData is FormData (contains products with images)
+    if (merchantData instanceof FormData) {
+      return api.post('/merchants/admin/create-with-products', merchantData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+    }
+    // Regular merchant creation without products
+    return api.post('/admin/dashboard/merchants', merchantData);
+  },
   setFeaturedStatus: (merchantId: string, featured: boolean) => 
     api.put(`/admin/dashboard/merchants/${merchantId}/featured`, { featured }),
   bulkSetFeatured: (merchantIds: string[], featured: boolean) => 
