@@ -814,90 +814,17 @@ const MerchantDetail = () => {
           <section className="lg:col-span-2 space-y-8">
             <Tabs defaultValue="about" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="services">Products</TabsTrigger>
                 <TabsTrigger value="about">About</TabsTrigger>
-                <TabsTrigger value="services">Services</TabsTrigger>
                 <TabsTrigger value="gallery">Gallery</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
               </TabsList>
 
-              {/* About Tab */}
-              <TabsContent value="about">
-                <Card>
-                  <CardHeader>
-                    <h2 className="text-2xl font-bold text-gray-900">About {merchant.businessName}</h2>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 leading-relaxed">{merchant.description}</p>
-                    
-                    {/* Social Links in About Section */}
-                    {availableSocialLinks.length > 0 && (
-                      <div className="mt-6 pt-6 border-t">
-                        <h4 className="font-semibold text-gray-900 mb-3">Connect with {merchant.businessName}</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {availableSocialLinks.map(([platform, url]) => {
-                            const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
-                            const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
-                            
-                            return (
-                              <Button
-                                key={platform}
-                                variant="outline"
-                                size="sm"
-                                className="flex items-center gap-2"
-                                onClick={() => handleSocialMediaClick(url as string, platform)}
-                              >
-                                <IconComponent className="h-4 w-4" />
-                                <span>{platformName}</span>
-                              </Button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="mt-6 flex items-center gap-4">
-                      <div className="flex items-center">
-                        <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                        <span className="text-lg font-semibold ml-1">{merchant.rating}</span>
-                      </div>
-                      <span className="text-gray-500">({merchant.reviews} reviews)</span>
-                      {merchant.verified && merchant.verifiedDate && (
-                        <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
-                          Verified since {new Date(merchant.verifiedDate).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+            
 
               {/* Services Tab */}
               <TabsContent value="services">
                 <div className="space-y-6">
-                  {/* Services Section */}
-                  <Card>
-                    <CardHeader>
-                      <h2 className="text-2xl font-bold text-gray-900">Services & Pricing</h2>
-                    </CardHeader>
-                    <CardContent>
-                      {merchant.services?.length > 0 ? (
-                        <ul className="space-y-4">
-                          {merchant.services.map((service, index: number) => (
-                            <li key={index} className="flex justify-between items-center border-b pb-2">
-                              <div>
-                                <p className="font-medium">{service.name}</p>
-                                <p className="text-sm text-gray-600">{service.description}</p>
-                              </div>
-                              <p className="font-semibold">{service.price || 'Contact for pricing'}</p>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-600">No services listed.</p>
-                      )}
-                    </CardContent>
-                  </Card>
-
                   {/* Products Section */}
                   <Card>
                     <CardHeader>
@@ -1004,7 +931,83 @@ const MerchantDetail = () => {
                       )}
                     </CardContent>
                   </Card>
+                  {/* Services Section */}
+                  <Card>
+                    <CardHeader>
+                      <h2 className="text-2xl font-bold text-gray-900">Services & Pricing</h2>
+                    </CardHeader>
+                    <CardContent>
+                      {merchant.services?.length > 0 ? (
+                        <ul className="space-y-4">
+                          {merchant.services.map((service, index: number) => (
+                            <li key={index} className="flex justify-between items-center border-b pb-2">
+                              <div>
+                                <p className="font-medium">{service.name}</p>
+                                <p className="text-sm text-gray-600">{service.description}</p>
+                              </div>
+                              <p className="font-semibold">{service.price || 'Contact for pricing'}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-gray-600">No services listed.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  
                 </div>
+              </TabsContent>
+
+                {/* About Tab */}
+              <TabsContent value="about">
+                <Card>
+                  <CardHeader>
+                    <h2 className="text-2xl font-bold text-gray-900">About {merchant.businessName}</h2>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 leading-relaxed">{merchant.description}</p>
+                    
+                    {/* Social Links in About Section */}
+                    {availableSocialLinks.length > 0 && (
+                      <div className="mt-6 pt-6 border-t">
+                        <h4 className="font-semibold text-gray-900 mb-3">Connect with {merchant.businessName}</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {availableSocialLinks.map(([platform, url]) => {
+                            const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
+                            const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
+                            
+                            return (
+                              <Button
+                                key={platform}
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-2"
+                                onClick={() => handleSocialMediaClick(url as string, platform)}
+                              >
+                                <IconComponent className="h-4 w-4" />
+                                <span>{platformName}</span>
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="mt-6 flex items-center gap-4">
+                      <div className="flex items-center">
+                        <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                        <span className="text-lg font-semibold ml-1">{merchant.rating}</span>
+                      </div>
+                      <span className="text-gray-500">({merchant.reviews} reviews)</span>
+                      {merchant.verified && merchant.verifiedDate && (
+                        <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
+                          Verified since {new Date(merchant.verifiedDate).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               {/* Gallery Tab */}

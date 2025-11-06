@@ -37,38 +37,8 @@ import {
   Image as ImageIcon
 } from "lucide-react";
 
-interface Product {
-  _id: string;
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  available: boolean;
-  featured: boolean;
-  images: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ProductFormData {
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  available: boolean;
-  featured: boolean;
-}
-
-const CATEGORIES = [
-  "Beauty & Cosmetics",
-  "Fashion & Apparel",
-  "Food & Beverages",
-  "Health & Wellness",
-  "Home & Garden",
-  "Electronics",
-  "Services",
-  "Other"
-];
+import { Product, ProductFormData  } from "@/interfaces/productmanagement";
+import { CATEGORIES } from "@/data/productmanagement";
 
 const ProductManagement = () => {
   const navigate = useNavigate();
