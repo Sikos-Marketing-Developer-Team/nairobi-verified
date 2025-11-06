@@ -26,6 +26,8 @@ const ProductsManagement: React.FC = () => {
   const [merchantFilter] = useState<string>('all');
   const [stockFilter] = useState<string>('all');
   const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   useEffect(() => {
