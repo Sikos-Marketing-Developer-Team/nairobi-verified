@@ -330,7 +330,7 @@ const ProductsManagement: React.FC = () => {
 
           <div className="mt-4">
             <p className="text-sm text-gray-700">
-              Showing {filteredProducts.length} of {products.length} products
+              Showing {filteredProducts.length} of {totalProducts} total products
             </p>
           </div>
         </div>
@@ -338,7 +338,9 @@ const ProductsManagement: React.FC = () => {
 
       {/* Products Grid - Mobile Optimized */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredProducts.map((product) => (
+        {filteredProducts
+          .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+          .map((product) => (
           <div key={product._id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
             <div className="aspect-w-1 aspect-h-1 w-full bg-gray-200">
               <img
