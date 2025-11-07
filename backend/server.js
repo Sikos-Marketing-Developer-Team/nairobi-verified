@@ -6,7 +6,6 @@ const path = require('path');
 const passport = require('passport');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
 const connectDB = require('./config/db');
 
 // Deploy trigger: Added updateMerchantWithProducts endpoint - 2025-11-04
@@ -144,42 +143,85 @@ app.options('*', cors());
 //   next();
 // });
 
-// Session configuration
-const mongoStore = MongoStore.create({
-  mongoUrl: process.env.MONGODB_URI,
-  collectionName: 'sessions',
-  ttl: 7 * 24 * 60 * 60,
-  autoRemove: 'native',
-  touchAfter: 24 * 3600,
-  stringify: false,
-  crypto: {
-    secret: process.env.JWT_SECRET
-  },
-  writeOperationOptions: {
-    upsert: true,
-    retryWrites: false
+// ==================== SESSION STORE CONFIGURATION ====================
+const MongoStore = require('connect-mongo');
+const RedisStore = require('connect-redis').default;
+const { connectRedis, getRedisClient } = require('./config/redis');
+
+let sessionStore;
+let redisClient;
+
+// Temporary in-memory store until Redis/Mongo is ready
+const MemoryStore = require('express-session').MemoryStore;
+sessionStore = new MemoryStore();
+
+// Initialize Redis first (non-blocking)
+(async () => {
+  try {
+    redisClient = await connectRedis();
+    
+    if (redisClient) {
+      // Use Redis for sessions
+      const redisStore = new RedisStore({
+        client: redisClient,
+        prefix: 'sess:', // Session key prefix
+        ttl: 7 * 24 * 60 * 60, // 7 days in seconds
+        disableTouch: false, // Enable session refresh on activity
+        disableTTL: false // Enable automatic expiration
+      });
+      
+      // Update the session store
+      sessionStore = redisStore;
+      sessionConfig.store = redisStore;
+      
+      console.log('✅ Using Redis for session storage');
+    } else {
+      throw new Error('Redis client not available');
+    }
+  } catch (error) {
+    // Fallback to MongoDB
+    console.warn('⚠️  Redis unavailable, falling back to MongoDB sessions');
+    const mongoStore = MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI,
+      collectionName: 'sessions',
+      ttl: 7 * 24 * 60 * 60,
+      autoRemove: 'native',
+      touchAfter: 24 * 3600,
+      stringify: false,
+      crypto: {
+        secret: process.env.JWT_SECRET
+      },
+      writeOperationOptions: {
+        upsert: true,
+        retryWrites: false
+      }
+    });
+    
+    mongoStore.on('error', (error) => {
+      console.error('MongoDB Session store error:', error);
+    });
+    
+    mongoStore.on('connected', () => {
+      console.log('✅ MongoDB Session store connected');
+    });
+    
+    // Update the session store
+    sessionStore = mongoStore;
+    sessionConfig.store = mongoStore;
   }
-});
-
-mongoStore.on('error', (error) => {
-  console.error('Session store error:', error);
-});
-
-mongoStore.on('connected', () => {
-  console.log('Session store connected to MongoDB');
-});
+})();
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-// OPTIMIZATION: Optimized session configuration
+// Session configuration
 const sessionConfig = {
   name: 'nairobi_verified_session',
   genid: () => uuidv4(),
   secret: process.env.JWT_SECRET || 'your-session-secret',
   resave: false,
   saveUninitialized: false,
-  store: mongoStore,
-  rolling: false, // Don't reset session expiry on every request
+  store: sessionStore, // Will be updated when Redis/Mongo is ready
+  rolling: false,
   cookie: {
     httpOnly: true,
     secure: isProduction,
@@ -192,7 +234,7 @@ const sessionConfig = {
   unset: 'destroy'
 };
 
-// CRITICAL: Skip session middleware if SKIP_SESSION is enabled (load testing)
+// Apply session middleware
 if (process.env.SKIP_SESSION === 'true') {
   console.log('⚠️  SESSION DISABLED - Load Testing Mode Active');
   app.use((req, res, next) => {
@@ -207,6 +249,7 @@ if (process.env.SKIP_SESSION === 'true') {
   app.use(passport.initialize());
   app.use(passport.session());
 }
+// ==================== END SESSION CONFIGURATION ====================
 
 // OPTIMIZATION: Optimized logging
 if (process.env.NODE_ENV === 'development') {
@@ -380,6 +423,12 @@ const gracefulShutdown = async () => {
     console.log('✅ HTTP server closed');
     
     try {
+      // Close Redis connection if it exists
+      if (redisClient) {
+        await redisClient.quit();
+        console.log('✅ Redis connection closed');
+      }
+      
       // Close database connection
       const { closeDB } = require('./config/db');
       await closeDB();
