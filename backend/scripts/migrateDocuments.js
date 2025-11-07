@@ -1,167 +1,148 @@
-// backend/scripts/migrateDocuments.js
+// backend/scripts/copyDatabase.js
 const mongoose = require('mongoose');
-const Merchant = require('../models/Merchant');
 require('dotenv').config();
 
-const migrateDocuments = async () => {
+// Source and target connection strings
+const SOURCE_URI = 'mongodb+srv://judekimathii:Kamundis@nairobiverified.mvbwr.mongodb.net/';
+const TARGET_URI = 'mongodb+srv://donellkioko2001_db_user:Apty1234@cluster0.mz66cyd.mongodb.net/';
+
+// Create separate connections
+const sourceConnection = mongoose.createConnection(SOURCE_URI);
+const targetConnection = mongoose.createConnection(TARGET_URI);
+
+const copyDatabase = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB\n');
+    console.log('🔄 Starting database copy process...\n');
 
-    // Find all merchants
-    const merchants = await Merchant.find({});
-    console.log(`📊 Found ${merchants.length} merchants to check\n`);
+    // Wait for both connections
+    await Promise.all([
+      new Promise((resolve, reject) => {
+        sourceConnection.once('open', resolve);
+        sourceConnection.once('error', reject);
+      }),
+      new Promise((resolve, reject) => {
+        targetConnection.once('open', resolve);
+        targetConnection.once('error', reject);
+      })
+    ]);
 
-    let migrated = 0;
-    let skipped = 0;
-    let errors = 0;
+    console.log('✅ Connected to source database');
+    console.log('✅ Connected to target database\n');
 
-    for (const merchant of merchants) {
+    // Get all collection names from source
+    const collections = await sourceConnection.db.listCollections().toArray();
+    console.log(`📊 Found ${collections.length} collections to copy:\n`);
+    
+    collections.forEach(col => console.log(`  - ${col.name}`));
+    console.log('');
+
+    let totalDocsCopied = 0;
+    const summary = [];
+
+    // Copy each collection
+    for (const collectionInfo of collections) {
+      const collectionName = collectionInfo.name;
+      console.log(`\n${'─'.repeat(60)}`);
+      console.log(`📁 Processing collection: ${collectionName}`);
+
       try {
-        console.log(`\n${'─'.repeat(60)}`);
-        console.log(`Checking: ${merchant.businessName}`);
+        // Get source collection
+        const sourceCollection = sourceConnection.db.collection(collectionName);
         
-        // Check if merchant has documents object
-        if (!merchant.documents) {
-          console.log('  ⚠️  No documents object - initializing...');
-          merchant.documents = {
-            businessRegistration: { path: '', uploadedAt: null },
-            idDocument: { path: '', uploadedAt: null },
-            utilityBill: { path: '', uploadedAt: null },
-            additionalDocs: [],
-            documentReviewStatus: 'pending'
-          };
-          await merchant.save();
-          migrated++;
-          console.log('  ✅ Initialized empty documents structure');
+        // Count documents
+        const count = await sourceCollection.countDocuments();
+        console.log(`  📊 Documents found: ${count}`);
+
+        if (count === 0) {
+          console.log('  ⏭️  Skipping empty collection');
+          summary.push({ collection: collectionName, count: 0, status: 'skipped' });
           continue;
         }
 
-        let needsUpdate = false;
-        const updates = [];
+        // Get all documents
+        const documents = await sourceCollection.find({}).toArray();
+        
+        // Get target collection
+        const targetCollection = targetConnection.db.collection(collectionName);
 
-        // Check and fix businessRegistration
-        if (merchant.documents.businessRegistration) {
-          if (typeof merchant.documents.businessRegistration === 'string') {
-            // Convert string to object
-            console.log('  🔧 Converting businessRegistration from string to object');
-            merchant.documents.businessRegistration = {
-              path: merchant.documents.businessRegistration,
-              uploadedAt: new Date(),
-              originalName: 'business-registration',
-              mimeType: 'application/pdf'
-            };
-            needsUpdate = true;
-            updates.push('businessRegistration');
-          } else if (merchant.documents.businessRegistration.path) {
-            // Check if path exists and is valid
-            console.log('  ✅ businessRegistration structure correct');
+        // Clear target collection first (optional - remove if you want to merge)
+        await targetCollection.deleteMany({});
+        console.log('  🗑️  Cleared target collection');
+
+        // Insert documents into target
+        if (documents.length > 0) {
+          await targetCollection.insertMany(documents, { ordered: false });
+          console.log(`  ✅ Copied ${documents.length} documents`);
+          totalDocsCopied += documents.length;
+          summary.push({ collection: collectionName, count: documents.length, status: 'success' });
+        }
+
+        // Copy indexes
+        const indexes = await sourceCollection.indexes();
+        console.log(`  🔍 Copying ${indexes.length} indexes...`);
+        
+        for (const index of indexes) {
+          // Skip the default _id index
+          if (index.name === '_id_') continue;
+          
+          try {
+            const key = index.key;
+            const options = { ...index };
+            delete options.key;
+            delete options.v;
+            delete options.ns;
+            
+            await targetCollection.createIndex(key, options);
+            console.log(`    ✅ Created index: ${index.name}`);
+          } catch (err) {
+            console.log(`    ⚠️  Index ${index.name} may already exist`);
           }
-        }
-
-        // Check and fix idDocument
-        if (merchant.documents.idDocument) {
-          if (typeof merchant.documents.idDocument === 'string') {
-            console.log('  🔧 Converting idDocument from string to object');
-            merchant.documents.idDocument = {
-              path: merchant.documents.idDocument,
-              uploadedAt: new Date(),
-              originalName: 'id-document',
-              mimeType: 'application/pdf'
-            };
-            needsUpdate = true;
-            updates.push('idDocument');
-          } else if (merchant.documents.idDocument.path) {
-            console.log('  ✅ idDocument structure correct');
-          }
-        }
-
-        // Check and fix utilityBill
-        if (merchant.documents.utilityBill) {
-          if (typeof merchant.documents.utilityBill === 'string') {
-            console.log('  🔧 Converting utilityBill from string to object');
-            merchant.documents.utilityBill = {
-              path: merchant.documents.utilityBill,
-              uploadedAt: new Date(),
-              originalName: 'utility-bill',
-              mimeType: 'application/pdf'
-            };
-            needsUpdate = true;
-            updates.push('utilityBill');
-          } else if (merchant.documents.utilityBill.path) {
-            console.log('  ✅ utilityBill structure correct');
-          }
-        }
-
-        // Ensure additionalDocs is an array
-        if (!Array.isArray(merchant.documents.additionalDocs)) {
-          console.log('  🔧 Fixing additionalDocs structure');
-          merchant.documents.additionalDocs = [];
-          needsUpdate = true;
-        }
-
-        // Ensure documentReviewStatus exists
-        if (!merchant.documents.documentReviewStatus) {
-          console.log('  🔧 Adding documentReviewStatus');
-          merchant.documents.documentReviewStatus = 'pending';
-          needsUpdate = true;
-        }
-
-        if (needsUpdate) {
-          await merchant.save();
-          migrated++;
-          console.log(`  ✅ Updated: ${updates.join(', ')}`);
-        } else {
-          skipped++;
-          console.log('  ⏭️  No changes needed');
         }
 
       } catch (error) {
-        errors++;
-        console.error(`  ❌ Error processing ${merchant.businessName}:`, error.message);
+        console.error(`  ❌ Error copying ${collectionName}:`, error.message);
+        summary.push({ collection: collectionName, count: 0, status: 'error', error: error.message });
       }
     }
 
-    // Summary
+    // Print summary
     console.log(`\n${'='.repeat(60)}`);
-    console.log('📊 MIGRATION SUMMARY');
+    console.log('📊 COPY SUMMARY');
     console.log('='.repeat(60));
-    console.log(`Total merchants: ${merchants.length}`);
-    console.log(`✅ Migrated: ${migrated}`);
-    console.log(`⏭️  Skipped (already correct): ${skipped}`);
-    console.log(`❌ Errors: ${errors}`);
+    console.log(`Total collections: ${collections.length}`);
+    console.log(`Total documents copied: ${totalDocsCopied}\n`);
+    
+    console.log('Collection Details:');
+    summary.forEach(item => {
+      const status = item.status === 'success' ? '✅' : 
+                     item.status === 'skipped' ? '⏭️' : '❌';
+      console.log(`  ${status} ${item.collection}: ${item.count} docs ${item.status}`);
+    });
     console.log('='.repeat(60));
 
-    // Verify migration
-    console.log('\n🔍 Verifying migration...');
-    const withDocs = await Merchant.countDocuments({
-      $or: [
-        { 'documents.businessRegistration.path': { $exists: true, $ne: '' } },
-        { 'documents.idDocument.path': { $exists: true, $ne: '' } },
-        { 'documents.utilityBill.path': { $exists: true, $ne: '' } }
-      ]
-    });
+    // Verify copy
+    console.log('\n🔍 Verifying copy...');
+    const sourceCount = await sourceConnection.db.stats();
+    const targetCount = await targetConnection.db.stats();
+    
+    console.log(`\nSource database: ${sourceCount.collections} collections, ${sourceCount.objects} documents`);
+    console.log(`Target database: ${targetCount.collections} collections, ${targetCount.objects} documents`);
 
-    console.log(`\n📈 Merchants with documents: ${withDocs}`);
-
-    const complete = await Merchant.countDocuments({
-      'documents.businessRegistration.path': { $exists: true, $ne: '' },
-      'documents.idDocument.path': { $exists: true, $ne: '' },
-      'documents.utilityBill.path': { $exists: true, $ne: '' }
-    });
-
-    console.log(`📋 Merchants with complete documents: ${complete}`);
-
-    console.log('\n✅ Migration complete!');
+    if (sourceCount.objects === targetCount.objects) {
+      console.log('\n✅ Verification passed! All documents copied successfully.');
+    } else {
+      console.log('\n⚠️  Document counts differ. Please verify manually.');
+    }
 
   } catch (error) {
-    console.error('❌ Migration failed:', error);
+    console.error('❌ Copy failed:', error);
     console.error(error.stack);
   } finally {
-    await mongoose.connection.close();
-    console.log('\n✅ Database connection closed');
+    await sourceConnection.close();
+    await targetConnection.close();
+    console.log('\n✅ Database connections closed');
   }
 };
 
-// Run migration
-migrateDocuments();
+// Run copy
+copyDatabase();

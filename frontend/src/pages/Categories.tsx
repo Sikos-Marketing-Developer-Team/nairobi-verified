@@ -15,46 +15,46 @@ import { useToast } from '@/components/ui/use-toast';
 
 const categories = [
   {
-    id: '60d0fe4f5311236168a10101',
+    id: 'electronics',
     name: 'Electronics',
     count: '500+ Products',
     image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=300&h=200&fit=crop',
     color: 'bg-blue-100'
   },
   {
-    id: '60d0fe4f5311236168a10102',
-    name: 'Fashion & Clothing',
+    id: 'fashion',
+    name: 'Fashion',
     count: '800+ Products',
     image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&h=200&fit=crop',
     color: 'bg-pink-100'
   },
   {
-    id: '60d0fe4f5311236168a10103',
+    id: 'beauty',
+    name: 'Beauty',
+    count: '300+ Products',
+    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&h=200&fit=crop',
+    color: 'bg-green-100'
+  },
+  {
+    id: 'home-garden',
     name: 'Home & Garden',
     count: '300+ Products',
     image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop',
     color: 'bg-green-100'
   },
   {
-    id: '60d0fe4f5311236168a10104',
+    id: 'books-media',
     name: 'Books & Media',
     count: '200+ Products',
     image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=200&fit=crop',
     color: 'bg-yellow-100'
   },
   {
-    id: '60d0fe4f5311236168a10105',
+    id: 'sports-fitness',
     name: 'Sports & Fitness',
     count: '150+ Products',
     image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=200&fit=crop',
     color: 'bg-purple-100'
-  },
-  {
-    id: '60d0fe4f5311236168a10106',
-    name: 'Health & Beauty',
-    count: '400+ Products',
-    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&h=200&fit=crop',
-    color: 'bg-indigo-100'
   }
 ];
 
@@ -102,6 +102,15 @@ const ProductCard = ({ product }: { product: Product }) => {
     }
   };
 
+  // Get the display image
+  const displayImage = product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop';
+  
+  // Get merchant name and verification status
+  const merchantName = product.merchant?.businessName || product.merchantName || 'Unknown Merchant';
+  const isVerified = product.merchant?.verified || false;
+  const locationDisplay = product.merchant?.address || product.location || 'Location not specified';
+  const reviewCount = product.reviewCount || product.reviews || 0;
+
   return (
     <Card 
       className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden group transition-transform duration-200 hover:scale-105"
@@ -110,7 +119,7 @@ const ProductCard = ({ product }: { product: Product }) => {
       <CardContent className="p-0">
         <div className="relative">
           <img
-            src={product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop'}
+            src={displayImage}
             alt={product.name}
             className="w-full h-32 md:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
@@ -134,8 +143,8 @@ const ProductCard = ({ product }: { product: Product }) => {
         
         <div className="p-2 md:p-4">
           <div className="flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
-            <span className="text-[10px] md:text-sm text-gray-600 line-clamp-1">{product.merchant?.businessName || product.merchantName}</span>
-            {product.merchant?.verified && (
+            <span className="text-[10px] md:text-sm text-gray-600 line-clamp-1">{merchantName}</span>
+            {isVerified && (
               <div className="flex items-center gap-0.5 md:gap-1 bg-green-100 text-green-800 text-[10px] md:text-xs px-1 py-0.5 rounded flex-shrink-0">
                 <Check className="h-2.5 w-2.5 md:h-3 md:w-3" />
                 Verified
@@ -149,7 +158,7 @@ const ProductCard = ({ product }: { product: Product }) => {
           
           <div className="text-[10px] md:text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
             <MapPin className="h-2.5 md:h-4 w-2.5 md:w-4 text-gray-400" />
-            <span className="line-clamp-1">{product.merchant?.address || product.location}</span>
+            <span className="line-clamp-1">{locationDisplay}</span>
           </div>
           
           <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3 flex-wrap">
@@ -157,7 +166,7 @@ const ProductCard = ({ product }: { product: Product }) => {
               <Star className="h-2.5 md:h-4 w-2.5 md:w-4 text-yellow-400 fill-current" />
               <span className="text-[10px] md:text-sm font-medium ml-0.5 md:ml-1">{product.rating || 0}</span>
             </div>
-            <span className="text-[10px] md:text-sm text-gray-500">({product.reviewCount || product.reviews || 0})</span>
+            <span className="text-[10px] md:text-sm text-gray-500">({reviewCount})</span>
           </div>
           
           <div className="flex items-center gap-1 md:gap-2 mb-3 md:mb-4 flex-wrap">
@@ -374,48 +383,53 @@ const Categories = () => {
     : null;
 
   useEffect(() => {
-    fetchProducts();
-  }, [categoryId, searchTerm, priceRange, currentPage]);
+    const loadProducts = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const params: Record<string, string | number> = {
+          page: currentPage,
+          limit: 12,
+        };
 
-  const fetchProducts = async () => {
-    setIsLoadingProducts(true);
-    try {
-      const params: any = {
-        page: currentPage,
-        limit: 12,
-      };
+        if (selectedCategory) {
+          params.category = selectedCategory.name;
+        }
 
-      if (selectedCategory) {
-        params.category = selectedCategory.name;
+        if (searchTerm.trim()) {
+          params.search = searchTerm.trim();
+        }
+
+        if (priceRange[0] > 0) {
+          params.minPrice = priceRange[0];
+        }
+        if (priceRange[1] < 200000) {
+          params.maxPrice = priceRange[1];
+        }
+
+        const response = await productsAPI.getProducts(params);
+        
+        // Backend returns { success: true, data: [...], pagination: {...} }
+        const productsData = response.data.data || [];
+        const paginationData = response.data.pagination || { total: 0 };
+        
+        setProducts(productsData);
+        setTotalProducts(paginationData.total);
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load products. Please try again.",
+          variant: "destructive",
+        });
+        setProducts([]);
+        setTotalProducts(0);
+      } finally {
+        setIsLoadingProducts(false);
       }
+    };
 
-      if (searchTerm.trim()) {
-        params.search = searchTerm.trim();
-      }
-
-      if (priceRange[0] > 0) {
-        params.minPrice = priceRange[0];
-      }
-      if (priceRange[1] < 200000) {
-        params.maxPrice = priceRange[1];
-      }
-
-      const response = await productsAPI.getProducts(params);
-      setProducts(response.data.data);
-      setTotalProducts(response.data.pagination.total);
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load products. Please try again.",
-        variant: "destructive",
-      });
-      setProducts([]);
-      setTotalProducts(0);
-    } finally {
-      setIsLoadingProducts(false);
-    }
-  };
+    loadProducts();
+  }, [categoryId, searchTerm, priceRange, currentPage, selectedCategory, toast]);
 
   const filteredProducts = products;
 

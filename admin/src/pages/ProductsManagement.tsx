@@ -26,6 +26,8 @@ const ProductsManagement: React.FC = () => {
   const [merchantFilter] = useState<string>('all');
   const [stockFilter] = useState<string>('all');
   const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   useEffect(() => {
@@ -342,6 +344,16 @@ const ProductsManagement: React.FC = () => {
                     <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                   </button>
                   <button
+                    onClick={() => {
+                      setSelectedProduct(product);
+                      setShowEditProductModal(true);
+                    }}
+                    className="text-blue-600 hover:text-blue-700 p-1"
+                    title="Edit product"
+                  >
+                    <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                  </button>
+                  <button
                     onClick={() => handleToggleFeatured(product._id, product.featured || false)}
                     className={`p-1 ${product.featured ? 'text-yellow-600 hover:text-yellow-700' : 'text-gray-400 hover:text-gray-600'}`}
                     title={product.featured ? 'Remove from featured' : 'Mark as featured'}
@@ -353,7 +365,7 @@ const ProductsManagement: React.FC = () => {
                     className={`p-1 ${product.isActive ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}`}
                     title={product.isActive ? 'Deactivate product' : 'Activate product'}
                   >
-                    {product.isActive ? <XCircle className="h-3 w-3 sm:h-4 sm:w-4" /> : <Edit className="h-3 w-3 sm:h-4 sm:w-4" />}
+                    {product.isActive ? <XCircle className="h-3 w-3 sm:h-4 sm:w-4" /> : <Package className="h-3 w-3 sm:h-4 sm:w-4" />}
                   </button>
                   <button
                     onClick={() => handleDeleteProduct(product._id, product.name)}
@@ -420,6 +432,22 @@ const ProductsManagement: React.FC = () => {
           onClose={() => setShowAddProductModal(false)}
           onProductAdded={() => {
             setShowAddProductModal(false);
+            loadProducts();
+          }}
+        />
+      )}
+
+      {/* Edit Product Modal */}
+      {showEditProductModal && selectedProduct && (
+        <EditProductModal
+          product={selectedProduct}
+          onClose={() => {
+            setShowEditProductModal(false);
+            setSelectedProduct(null);
+          }}
+          onProductUpdated={() => {
+            setShowEditProductModal(false);
+            setSelectedProduct(null);
             loadProducts();
           }}
         />
@@ -766,6 +794,303 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ onClose, onProductAdd
                 </div>
               ) : (
                 'Create Product'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Edit Product Modal Component
+interface EditProductModalProps {
+  product: Product;
+  onClose: () => void;
+  onProductUpdated: () => void;
+}
+
+const EditProductModal: React.FC<EditProductModalProps> = ({ product, onClose, onProductUpdated }) => {
+  const [formData, setFormData] = useState({
+    name: product.name,
+    description: product.description,
+    price: product.price.toString(),
+    originalPrice: product.originalPrice?.toString() || '',
+    category: product.category,
+    subcategory: product.subcategory || '',
+    stock: product.stock?.toString() || '0',
+    tags: Array.isArray(product.tags) ? product.tags.join(', ') : '',
+    specifications: product.specifications ? JSON.stringify(product.specifications, null, 2) : '',
+    isActive: product.isActive
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    
+    if (type === 'checkbox') {
+      const target = e.target as HTMLInputElement;
+      setFormData(prev => ({ ...prev, [name]: target.checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim() || !formData.description.trim() || !formData.price || !formData.category) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Validate specifications JSON if provided
+    if (formData.specifications.trim()) {
+      try {
+        JSON.parse(formData.specifications);
+      } catch (error) {
+        toast.error('Specifications must be valid JSON');
+        return;
+      }
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const productData: any = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        price: parseFloat(formData.price),
+        category: formData.category,
+        subcategory: formData.subcategory || undefined,
+        stock: formData.stock ? parseInt(formData.stock) : 0,
+        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+        isActive: formData.isActive
+      };
+
+      if (formData.originalPrice) {
+        productData.originalPrice = parseFloat(formData.originalPrice);
+      }
+
+      if (formData.specifications.trim()) {
+        productData.specifications = JSON.parse(formData.specifications);
+      }
+
+      const response = await adminAPI.updateProduct(product._id, productData);
+      
+      if (response.data.success) {
+        toast.success('Product updated successfully');
+        onProductUpdated();
+      }
+    } catch (error: any) {
+      console.error('Failed to update product:', error);
+      toast.error(error.response?.data?.message || 'Failed to update product');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const categories = ['All Categories', 'Grocery', 'Food', 'Electronics', 'Fashion', 'Health', 'Beauty'];
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl my-8">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Edit Product</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <XCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6">
+          <div className="space-y-4 mb-6 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  required
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description *
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Price (KES) *
+                </label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Original Price (KES)
+                </label>
+                <input
+                  type="number"
+                  name="originalPrice"
+                  value={formData.originalPrice}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder="Optional"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Stock Quantity *
+                </label>
+                <input
+                  type="number"
+                  name="stock"
+                  value={formData.stock}
+                  onChange={handleInputChange}
+                  min="0"
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category *
+                </label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  required
+                >
+                  <option value="">Select a category</option>
+                  {categories.filter(c => c !== 'All Categories').map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Subcategory
+                </label>
+                <input
+                  type="text"
+                  name="subcategory"
+                  value={formData.subcategory}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder="Enter subcategory"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tags (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  name="tags"
+                  value={formData.tags}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder="tag1, tag2, tag3"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Specifications (JSON)
+                </label>
+                <textarea
+                  name="specifications"
+                  value={formData.specifications}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 font-mono text-xs"
+                  placeholder='{"color": "blue", "size": "large", "weight": "500g"}'
+                />
+                <p className="mt-1 text-xs text-gray-500">Enter valid JSON format for product specifications</p>
+              </div>
+
+              <div className="sm:col-span-2 flex items-center">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  checked={formData.isActive}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                />
+                <label className="ml-2 block text-sm text-gray-900">
+                  Active (visible to customers)
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+            <p className="text-xs text-gray-600">
+              <strong>Current Merchant:</strong> {product.merchant.businessName}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Note: Merchant cannot be changed after product creation. To change merchant, delete and recreate the product.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 text-sm sm:text-base"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full sm:w-auto px-6 py-2 text-white rounded text-sm sm:text-base ${
+                isSubmitting
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Updating...
+                </div>
+              ) : (
+                'Update Product'
               )}
             </button>
           </div>
