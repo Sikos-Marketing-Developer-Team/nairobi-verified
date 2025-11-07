@@ -28,6 +28,11 @@ const dbConnectionGauge = new client.Gauge({
   help: 'MongoDB connection status (1 = connected, 0 = disconnected)'
 });
 
+const redisConnectionGauge = new client.Gauge({
+  name: 'redis_connection_status',
+  help: 'Redis connection status (1 = connected, 0 = disconnected)'
+});
+
 const dbQueryDuration = new client.Histogram({
   name: 'db_query_duration_seconds',
   help: 'Duration of MongoDB queries in seconds',
@@ -93,5 +98,6 @@ module.exports = {
   httpErrorsCounter,
   webVitalsLCP,
   webVitalsCLS,
-  webVitalsFID
+  webVitalsFID,
+  redisConnectionGauge
 };
