@@ -223,6 +223,7 @@ const Navbar = () => {
     },
     { path: '/merchants', label: 'Shops', icon: Store },
     { path: '/about', label: 'About' },
+    { path: '/all-products', label: 'All Products' },
   ];
 
   // Market research links for merchants
