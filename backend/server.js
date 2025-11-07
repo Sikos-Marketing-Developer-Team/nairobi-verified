@@ -104,10 +104,12 @@ app.use((req, res, next) => {
 // Configure CORS with credentials support
 app.use(cors({
   origin: [
+    'http://localhost:3001', // Admin dashboard local
+    'http://localhost:8080', // Frontend local
+    'http://localhost:3000', // Fallback local
     process.env.FRONTEND_URL || 'http://localhost:8080',
     process.env.ADMIN_URL || 'http://localhost:3001',
     'https://nairobi-verified-frontend.onrender.com',
-    'http://localhost:3000',
     'https://nairobi-verified-admin.onrender.com',
     'https://www.nairobiverified.co.ke',
     'https://nairobiverified.co.ke',
