@@ -282,13 +282,25 @@ const MerchantsManagement: React.FC = () => {
     try {
       const response = await adminAPI.createMerchant(newMerchantData);
       if (response.data.success) {
-        setMerchants(prev => [response.data.merchant, ...prev]);
-        toast.success('Merchant added successfully!');
+        // Backend returns merchant in response.data.data
+        const newMerchant = response.data.data || response.data.merchant;
+        setMerchants(prev => [newMerchant, ...prev]);
+        
+        // Show success message with product count if available
+        const productCount = response.data.productsCreated || 0;
+        const message = productCount > 0 
+          ? `Merchant added successfully with ${productCount} product(s)!`
+          : 'Merchant added successfully!';
+        toast.success(message);
+        
         setShowAddMerchantModal(false);
+        // Reload to get fresh data
+        await loadMerchants(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding merchant:', error);
-      toast.error('Failed to add merchant. Please try again.');
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to add merchant. Please try again.';
+      toast.error(errorMessage);
     }
   };
 
