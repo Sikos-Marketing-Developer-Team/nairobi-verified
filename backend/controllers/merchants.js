@@ -78,38 +78,25 @@ exports.getMerchants = async (req, res) => {
       }
     }
 
-    // Count total documents matching the query
-    const total = await Merchant.countDocuments(baseQuery);
-
-    // Initialize query with filters
-    query = Merchant.find(baseQuery).lean();
-
-    // Select fields
-    if (req.query.select) {
-      const fields = req.query.select.split(',').join(' ');
-      query = query.select(fields);
-    } else {
-      query = query.select('-password');
-    }
-
-    // Sort
-    if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(sortBy);
-    } else {
-      query = query.sort('-createdAt');
-    }
-
+    // OPTIMIZATION: Select only needed fields for list view
+    const listFields = 'businessName businessType description address phone email verified featured rating reviews logo bannerImage createdAt';
+    
     // Pagination
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 25;
+    const limit = parseInt(req.query.limit, 10) || 12; // Reduced from 25 to 12
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
 
-    query = query.skip(startIndex).limit(limit);
-
-    // Execute query
-    const merchants = await query;
+    // OPTIMIZATION: Parallel execution for count and fetch
+    const [merchants, total] = await Promise.all([
+      Merchant.find(baseQuery)
+        .select(listFields) // Only fetch needed fields
+        .sort(req.query.sort || '-createdAt')
+        .skip(startIndex)
+        .limit(limit)
+        .lean(), // Keep lean for performance
+      Merchant.countDocuments(baseQuery)
+    ]);
 
     // Build pagination response
     const pagination = {};
@@ -120,10 +107,20 @@ exports.getMerchants = async (req, res) => {
       pagination.prev = { page: page - 1, limit };
     }
 
+    // OPTIMIZATION: Enable caching for public merchant lists
+    // Don't cache admin queries (documentStatus) or search results
+    if (!req.query.documentStatus && !req.query.search) {
+      res.set('Cache-Control', 'public, max-age=300, s-maxage=600'); // 5 min browser, 10 min CDN
+      res.set('CDN-Cache-Control', 'max-age=600'); // Cloudflare cache
+    } else {
+      // Admin/search queries: no cache
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    }
+
     res.status(200).json({
       success: true,
       count: merchants.length,
-      total: total, // Add total count for frontend
+      total: total,
       pagination,
       data: merchants
     });
@@ -138,15 +135,38 @@ exports.getMerchants = async (req, res) => {
 // @access  Public
 exports.getMerchant = async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.params.id).lean();
+    // OPTIMIZATION: Select all fields except sensitive ones
+    const merchant = await Merchant.findById(req.params.id)
+      .select('-password -accountSetupToken -accountSetupExpires -resetPasswordToken -resetPasswordExpire')
+      .lean();
+      
     if (!merchant) {
-      return res.status(404).json({ success: false, error: `Merchant not found with id of ${req.params.id}` });
+      return res.status(404).json({ 
+        success: false, 
+        error: `Merchant not found with id of ${req.params.id}` 
+      });
+    }
+
+    // OPTIMIZATION: Cache individual merchant pages for public viewers
+    const isOwnerOrAdmin = req.user && (
+      req.user.role === 'admin' || 
+      String(req.user._id) === String(merchant._id) ||
+      String(req.user._id) === String(req.params.id)
+    );
+
+    if (!isOwnerOrAdmin) {
+      // Public view: cache aggressively
+      res.set('Cache-Control', 'public, max-age=600, s-maxage=1800'); // 10 min browser, 30 min CDN
+      res.set('CDN-Cache-Control', 'max-age=1800'); // Cloudflare 30 minutes
+    } else {
+      // Owner/admin view: no cache
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     }
 
     let responseData = { ...merchant };
 
     // Expose document analysis only to admin or the merchant themselves
-    if (req.user && (req.user.role === 'admin' || getUserIdFromReq(req) === String(merchant._id))) {
+    if (isOwnerOrAdmin) {
       const documentAnalysis = {
         businessRegistration: !!(merchant.documents?.businessRegistration?.path),
         idDocument: !!(merchant.documents?.idDocument?.path),
@@ -169,7 +189,7 @@ exports.getMerchant = async (req, res) => {
         requiresDocuments: requiredDocsCount < 3
       };
     } else {
-      // hide sensitive document info from public
+      // Hide sensitive document info from public
       delete responseData.documents;
     }
 

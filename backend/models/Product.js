@@ -127,7 +127,7 @@ const productSchema = new mongoose.Schema({
 // Optimizes queries for active products by category
 productSchema.index({ category: 1, isActive: 1 });
 // Optimizes queries for merchant-specific active products
-productSchema.index({ merchant: 1, isActive: 1 });
+productSchema.index({ merchant: 1, isActive: 1, createdAt: -1 });
 // Optimizes queries for featured active products
 productSchema.index({ featured: 1, isActive: 1 });
 // Enables text search on name, description, and tags

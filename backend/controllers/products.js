@@ -58,24 +58,27 @@ const getProducts = async (req, res) => {
       sortOrder = 'desc',
     } = req.query;
 
-    console.log('Search query received:', { search, category, merchant });
-
     const productFilter = buildProductFilter({ category, merchant, featured, minPrice, maxPrice, search });
     const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
     const skip = (page - 1) * limit;
 
-    console.log('Product filter:', JSON.stringify(productFilter, null, 2));
+    // OPTIMIZATION: Parallel queries + reduced merchant fields
+    const [products, total] = await Promise.all([
+      Product.find(productFilter)
+        .populate('merchant', 'businessName address verified rating') // Only needed fields
+        .select('-__v')
+        .sort(sort)
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      Product.countDocuments(productFilter)
+    ]);
 
-    const products = await Product.find(productFilter)
-      .populate('merchant', 'businessName address location phone email whatsappNumber verified rating')
-      .sort(sort)
-      .skip(skip)
-      .limit(Number(limit))
-      .lean();
-
-    const total = await Product.countDocuments(productFilter);
-
-    console.log(`Found ${products.length} products out of ${total} total matching filter`);
+    // OPTIMIZATION: Cache product lists
+    if (!merchant && !search) { // Cache general product pages
+      res.set('Cache-Control', 'public, max-age=300');
+      res.set('CDN-Cache-Control', 'max-age=600');
+    }
 
     res.json({
       success: true,
@@ -87,17 +90,10 @@ const getProducts = async (req, res) => {
         pages: Math.ceil(total / limit),
       },
       searchTerm: search || null,
-      appliedFilters: {
-        category,
-        merchant,
-        featured,
-        minPrice,
-        maxPrice,
-        search
-      }
+      appliedFilters: { category, merchant, featured, minPrice, maxPrice, search }
     });
   } catch (error) {
-    console.error('Search error:', error);
+    console.error('getProducts error:', error);
     handleError(res, error, 'Failed to fetch products');
   }
 };
