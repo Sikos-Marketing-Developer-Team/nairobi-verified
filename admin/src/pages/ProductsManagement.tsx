@@ -72,6 +72,12 @@ const ProductsManagement: React.FC = () => {
     }
   };
 
+    useEffect(() => {
+    filterProducts();
+    // Reset to first page when filters change
+    setCurrentPage(1);
+  }, [products, searchTerm, categoryFilter, statusFilter]);
+
   const filterProducts = () => {
     let filtered = products;
 
