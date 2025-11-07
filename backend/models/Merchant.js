@@ -418,4 +418,23 @@ MerchantSchema.index({ rating: -1, reviews: -1 });
 MerchantSchema.index({ 'documents.documentReviewStatus': 1, verified: 1 });
 MerchantSchema.index({ email: 1 }, { unique: true });
 
+
+// 1. List queries (most important)
+MerchantSchema.index({ createdAt: -1 });
+MerchantSchema.index({ businessType: 1, createdAt: -1 });
+MerchantSchema.index({ verified: 1, featured: -1, createdAt: -1 });
+
+// 2. Search optimization
+MerchantSchema.index({ 
+  businessName: 'text', 
+  description: 'text', 
+  businessType: 'text' 
+});
+
+// 3. Email lookup
+MerchantSchema.index({ email: 1 }, { unique: true });
+
+// 4. Featured merchants
+MerchantSchema.index({ featured: 1, rating: -1 });
+
 module.exports = mongoose.model('Merchant', MerchantSchema);
