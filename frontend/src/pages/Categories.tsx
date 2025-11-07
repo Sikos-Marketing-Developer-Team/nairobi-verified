@@ -14,48 +14,12 @@ import { productsAPI } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
 
 const categories = [
-  {
-    id: 'electronics',
-    name: 'Electronics',
-    count: '500+ Products',
-    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=300&h=200&fit=crop',
-    color: 'bg-blue-100'
-  },
-  {
-    id: 'fashion',
-    name: 'Fashion',
-    count: '800+ Products',
-    image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&h=200&fit=crop',
-    color: 'bg-pink-100'
-  },
-  {
-    id: 'beauty',
-    name: 'Beauty',
-    count: '300+ Products',
-    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&h=200&fit=crop',
-    color: 'bg-green-100'
-  },
-  {
-    id: 'home-garden',
-    name: 'Home & Garden',
-    count: '300+ Products',
-    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop',
-    color: 'bg-green-100'
-  },
-  {
-    id: 'books-media',
-    name: 'Books & Media',
-    count: '200+ Products',
-    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=200&fit=crop',
-    color: 'bg-yellow-100'
-  },
-  {
-    id: 'sports-fitness',
-    name: 'Sports & Fitness',
-    count: '150+ Products',
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=200&fit=crop',
-    color: 'bg-purple-100'
-  }
+  { id: 'electronics', name: 'Electronics', count: '500+ Products', image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=300&h=200&fit=crop', color: 'bg-blue-100' },
+  { id: 'fashion', name: 'Fashion', count: '800+ Products', image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&h=200&fit=crop', color: 'bg-pink-100' },
+  { id: 'beauty', name: 'Beauty', count: '300+ Products', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&h=200&fit=crop', color: 'bg-green-100' },
+  { id: 'home-garden', name: 'Home & Garden', count: '300+ Products', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop', color: 'bg-green-100' },
+  { id: 'books-media', name: 'Books & Media', count: '200+ Products', image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=200&fit=crop', color: 'bg-yellow-100' },
+  { id: 'sports-fitness', name: 'Sports & Fitness', count: '150+ Products', image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=200&fit=crop', color: 'bg-purple-100' }
 ];
 
 interface Product {
@@ -70,12 +34,7 @@ interface Product {
   rating?: number;
   reviewCount?: number;
   reviews?: number;
-  merchant?: {
-    _id?: string;
-    businessName?: string;
-    verified?: boolean;
-    address?: string;
-  };
+  merchant?: { _id?: string; businessName?: string; verified?: boolean; address?: string; };
   merchantId?: string;
   merchantName?: string;
   location?: string;
@@ -84,15 +43,10 @@ interface Product {
 const ProductCard = ({ product }: { product: Product }) => {
   const navigate = useNavigate();
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0
-    }).format(price);
+    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(price);
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking on interactive elements
     if ((e.target as HTMLElement).closest('button')) {
       return;
     }
@@ -102,27 +56,17 @@ const ProductCard = ({ product }: { product: Product }) => {
     }
   };
 
-  // Get the display image
   const displayImage = product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop';
-  
-  // Get merchant name and verification status
   const merchantName = product.merchant?.businessName || product.merchantName || 'Unknown Merchant';
   const isVerified = product.merchant?.verified || false;
   const locationDisplay = product.merchant?.address || product.location || 'Location not specified';
   const reviewCount = product.reviewCount || product.reviews || 0;
 
   return (
-    <Card 
-      className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden group transition-transform duration-200 hover:scale-105"
-      onClick={handleCardClick}
-    >
+    <Card className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden group transition-transform duration-200 hover:scale-105" onClick={handleCardClick}>
       <CardContent className="p-0">
         <div className="relative">
-          <img
-            src={displayImage}
-            alt={product.name}
-            className="w-full h-32 md:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+          <img src={displayImage} alt={product.name} className="w-full h-32 md:h-48 object-cover group-hover:scale-105 transition-transform duration-300" />
           {product.featured && (
             <div className="absolute top-1 left-1 md:top-2 md:left-2 bg-secondary text-secondary-foreground px-1 py-0.5 md:px-2 md:py-1 rounded text-[10px] md:text-xs font-medium">
               Featured
@@ -140,7 +84,6 @@ const ProductCard = ({ product }: { product: Product }) => {
             <Heart className="h-3 w-3 md:h-4 md:w-4" />
           </Button>
         </div>
-        
         <div className="p-2 md:p-4">
           <div className="flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
             <span className="text-[10px] md:text-sm text-gray-600 line-clamp-1">{merchantName}</span>
@@ -151,16 +94,13 @@ const ProductCard = ({ product }: { product: Product }) => {
               </div>
             )}
           </div>
-          
           <h3 className="font-semibold text-gray-900 mb-1 md:mb-2 line-clamp-2 text-[11px] md:text-base leading-tight group-hover:text-primary transition-colors">
             {product.name}
           </h3>
-          
           <div className="text-[10px] md:text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
             <MapPin className="h-2.5 md:h-4 w-2.5 md:w-4 text-gray-400" />
             <span className="line-clamp-1">{locationDisplay}</span>
           </div>
-          
           <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3 flex-wrap">
             <div className="flex items-center">
               <Star className="h-2.5 md:h-4 w-2.5 md:w-4 text-yellow-400 fill-current" />
@@ -168,7 +108,6 @@ const ProductCard = ({ product }: { product: Product }) => {
             </div>
             <span className="text-[10px] md:text-sm text-gray-500">({reviewCount})</span>
           </div>
-          
           <div className="flex items-center gap-1 md:gap-2 mb-3 md:mb-4 flex-wrap">
             <span className="text-sm md:text-xl font-bold text-primary leading-tight">
               {formatPrice(product.price)}
@@ -179,8 +118,7 @@ const ProductCard = ({ product }: { product: Product }) => {
               </span>
             )}
           </div>
-          
-          <Button 
+          <Button
             className="w-full text-xs md:text-base"
             onClick={(e) => {
               e.stopPropagation();
@@ -211,11 +149,7 @@ const CategoryCard = ({ category }: { category: Category }) => {
     <Card className="hover-scale cursor-pointer border-0 shadow-lg snap-center flex-shrink-0 w-80">
       <CardContent className="p-0">
         <div className="relative h-48 overflow-hidden rounded-t-lg">
-          <img
-            src={category.image}
-            alt={category.name}
-            className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-          />
+          <img src={category.image} alt={category.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-110" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
           <div className="absolute bottom-4 left-4 text-white">
             <h3 className="text-xl font-semibold">{category.name}</h3>
@@ -237,33 +171,31 @@ const CategorySection = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  // Minimum swipe distance (px)
-  const minSwipeDistance = 50;
+  // Swipe & drag state
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
+  const isDragging = useRef<boolean>(false);
 
   useEffect(() => {
     const updateView = () => {
       setIsMobile(window.innerWidth < 1024);
     };
-
     updateView();
     window.addEventListener('resize', updateView);
-    
     return () => window.removeEventListener('resize', updateView);
   }, []);
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
-      const scrollAmount = isMobile ? 320 : 1008; // Adjust scroll amount based on device
+      const scrollAmount = isMobile ? 320 : 1008;
       scrollContainerRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
     if (scrollContainerRef.current) {
-      const scrollAmount = isMobile ? 320 : 1008; // Adjust scroll amount based on device
+      const scrollAmount = isMobile ? 320 : 1008;
       scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
@@ -271,42 +203,55 @@ const CategorySection = () => {
   const updateCurrentIndex = () => {
     if (scrollContainerRef.current) {
       const scrollPos = scrollContainerRef.current.scrollLeft;
-      const itemWidth = isMobile ? 160 : 336; // Card width + gap (w-40 + space-x-4 = 160px, w-80 + space-x-6 = 336px)
+      const itemWidth = isMobile ? 160 : 336;
       const newIndex = Math.round(scrollPos / itemWidth);
       setCurrentIndex(newIndex);
     }
   };
 
-  // Touch event handlers for swipe
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+  // === SWIPE & DRAG HANDLERS ===
+  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    isDragging.current = true;
+    touchStartX.current = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    touchEndX.current = touchStartX.current;
   };
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!isDragging.current || !scrollContainerRef.current) return;
+
+    const currentX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const diff = touchStartX.current - currentX;
+
+    scrollContainerRef.current.scrollLeft += diff;
+    touchStartX.current = currentX;
+    touchEndX.current = currentX;
   };
 
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    
-    if (isLeftSwipe) {
-      scrollRight(); // Swipe left to go right
-    } else if (isRightSwipe) {
-      scrollLeft(); // Swipe right to go left
+  const handleTouchEnd = () => {
+    if (!isDragging.current || !scrollContainerRef.current) return;
+    isDragging.current = false;
+
+    const diff = touchEndX.current - touchStartX.current;
+    const threshold = 50;
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) scrollRight();
+      else scrollLeft();
     }
+
+    setTimeout(updateCurrentIndex, 150);
+  };
+
+  const handleMouseUpOrLeave = () => {
+    if (isDragging.current) handleTouchEnd();
   };
 
   return (
     <section className="py-4 md:py-6 lg:py-8">
       <div className="w-full px-3 sm:px-4 lg:px-6">
-          <h2 className="text-xl sm:text-2xl md:text-2xl lg:text-2xl font-semibold text-gray-900 mb-5 mx-1">
-            Shop by Category
-          </h2>
+        <h2 className="text-xl sm:text-2xl md:text-2xl lg:text-2xl font-semibold text-gray-900 mb-5 mx-1">
+          Shop by Category
+        </h2>
         <div className="relative">
           <Button
             onClick={scrollLeft}
@@ -320,24 +265,27 @@ const CategorySection = () => {
           >
             <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-5 lg:w-5 text-white" />
           </Button>
+
           <div className="absolute top-2 right-2 z-10 bg-black/60 text-white text-[10px] sm:text-xs md:text-xs lg:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
             {Math.min(currentIndex + (isMobile ? 1 : 3), categories.length)} / {categories.length}
           </div>
+
           {isMobile ? (
-            <div 
+            <div
               ref={scrollContainerRef}
-              className="flex overflow-x-auto pb-2 md:pb-4 space-x-4 hide-scrollbar snap-x snap-mandatory"
+              className="flex overflow-x-auto pb-2 md:pb-4 space-x-4 hide-scrollbar snap-x snap-mandatory cursor-grab active:cursor-grabbing select-none"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               onScroll={updateCurrentIndex}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleTouchStart}
+              onMouseMove={handleTouchMove}
+              onMouseUp={handleMouseUpOrLeave}
+              onMouseLeave={handleMouseUpOrLeave}
             >
               {categories.map((category) => (
-                <div 
-                  key={category.id} 
-                  className="flex-shrink-0 w-40 sm:w-48 md:w-64 snap-center"
-                >
+                <div key={category.id} className="flex-shrink-0 w-40 sm:w-48 md:w-64 snap-center">
                   <Link to={`/categories/${category.id}`}>
                     <Card className="hover-scale cursor-pointer border-0 shadow-md sm:shadow-lg h-full">
                       <CardContent className="p-0 flex flex-col h-full">
@@ -366,14 +314,18 @@ const CategorySection = () => {
               ))}
             </div>
           ) : (
-            <div 
+            <div
               ref={scrollContainerRef}
-              className="flex overflow-x-auto pb-4 space-x-6 hide-scrollbar snap-x snap-mandatory w-full"
+              className="flex overflow-x-auto pb-4 space-x-6 hide-scrollbar snap-x snap-mandatory w-full cursor-grab active:cursor-grabbing select-none"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               onScroll={updateCurrentIndex}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleTouchStart}
+              onMouseMove={handleTouchMove}
+              onMouseUp={handleMouseUpOrLeave}
+              onMouseLeave={handleMouseUpOrLeave}
             >
               {categories.map((category) => (
                 <div key={category.id} className="snap-center flex-shrink-0">
@@ -388,13 +340,8 @@ const CategorySection = () => {
       </div>
 
       <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hover-scale:hover {
-          transform: scale(1.02);
-          transition: transform 0.2s ease-in-out;
-        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hover-scale:hover { transform: scale(1.02); transition: transform 0.2s ease-in-out; }
       `}</style>
     </section>
   );
@@ -413,9 +360,7 @@ const Categories = () => {
   const isPageLoading = usePageLoading(650);
   const { toast } = useToast();
 
-  const selectedCategory = categoryId 
-    ? categories.find(cat => cat.id === categoryId) 
-    : null;
+  const selectedCategory = categoryId ? categories.find(cat => cat.id === categoryId) : null;
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -425,15 +370,12 @@ const Categories = () => {
           page: currentPage,
           limit: 12,
         };
-
         if (selectedCategory) {
           params.category = selectedCategory.name;
         }
-
         if (searchTerm.trim()) {
           params.search = searchTerm.trim();
         }
-
         if (priceRange[0] > 0) {
           params.minPrice = priceRange[0];
         }
@@ -442,11 +384,8 @@ const Categories = () => {
         }
 
         const response = await productsAPI.getProducts(params);
-        
-        // Backend returns { success: true, data: [...], pagination: {...} }
         const productsData = response.data.data || [];
         const paginationData = response.data.pagination || { total: 0 };
-        
         setProducts(productsData);
         setTotalProducts(paginationData.total);
       } catch (error) {
@@ -519,7 +458,7 @@ const Categories = () => {
               {selectedCategory ? selectedCategory.name : 'All Categories'}
             </h1>
             <p className="text-sm md:text-base text-orange-600">
-              {selectedCategory 
+              {selectedCategory
                 ? `Browse verified merchants offering ${selectedCategory.name.toLowerCase()}`
                 : 'Browse all categories or select one to filter products'}
             </p>
@@ -539,8 +478,8 @@ const Categories = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex items-center gap-2 text-xs md:text-base"
                 onClick={() => setShowFilters(!showFilters)}
               >
@@ -594,8 +533,8 @@ const Categories = () => {
               <div className="text-center py-12 bg-white rounded-lg shadow">
                 <h3 className="text-lg md:text-xl font-medium text-gray-900 mb-2">No products found</h3>
                 <p className="text-xs md:text-base text-gray-600 mb-6">Try adjusting your search or filter criteria</p>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="text-xs md:text-base"
                   onClick={() => {
                     setSearchTerm('');
@@ -613,12 +552,9 @@ const Categories = () => {
         </div>
       </main>
       <Footer />
-      
       <style>{`
         @media (max-width: 768px) {
-          .pt-36 {
-            padding-top: 9rem;
-          }
+          .pt-36 { padding-top: 9rem; }
         }
       `}</style>
     </div>
