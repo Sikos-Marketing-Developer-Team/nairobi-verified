@@ -29,6 +29,11 @@ const ProductsManagement: React.FC = () => {
   const [showEditProductModal, setShowEditProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   useEffect(() => {
     loadProducts();
@@ -41,9 +46,10 @@ const ProductsManagement: React.FC = () => {
   const loadProducts = async () => {
     try {
       setIsLoading(true);
+      // Load ALL products by setting a high limit
       const response = await adminAPI.getProducts({
         page: 1,
-        limit: 100,
+        limit: 1000, // Increased from 100 to fetch all products
         category: categoryFilter !== 'all' ? categoryFilter : undefined,
         isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined,
         inStock: stockFilter === 'in_stock' ? true : stockFilter === 'out_of_stock' ? false : undefined,
@@ -53,7 +59,10 @@ const ProductsManagement: React.FC = () => {
       
       if (response.data.success) {
         const products = response.data.data?.products || response.data.products || [];
+        const total = response.data.data?.total || response.data.total || products.length;
         setProducts(products);
+        setTotalProducts(total);
+        console.log(`✅ Loaded ${products.length} of ${total} total products`);
       }
     } catch (error: any) {
       console.error('Failed to load products:', error);
