@@ -121,26 +121,26 @@ app.use(cors({
 
 app.options('*', cors());
 
-app.use((req, res, next) => {
-  // Set headers to prevent Cloudflare from caching/modifying responses
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('CDN-Cache-Control', 'no-store');
-  res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-No-Transform', '1');
+// app.use((req, res, next) => {
+//   // Set headers to prevent Cloudflare from caching/modifying responses
+//   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+//   res.setHeader('Pragma', 'no-cache');
+//   res.setHeader('Expires', '0');
+//   res.setHeader('CDN-Cache-Control', 'no-store');
+//   res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
+//   res.setHeader('X-Content-Type-Options', 'nosniff');
+//   res.setHeader('X-No-Transform', '1');
   
-  // Prevent response body modification
-  const originalJson = res.json;
-  res.json = function(data) {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Content-Length', JSON.stringify(data).length.toString());
-    return originalJson.call(this, data);
-  };
+//   // Prevent response body modification
+//   const originalJson = res.json;
+//   res.json = function(data) {
+//     res.setHeader('Content-Type', 'application/json; charset=utf-8');
+//     res.setHeader('Content-Length', JSON.stringify(data).length.toString());
+//     return originalJson.call(this, data);
+//   };
   
-  next();
-});
+//   next();
+// });
 
 // Session configuration
 const mongoStore = MongoStore.create({
