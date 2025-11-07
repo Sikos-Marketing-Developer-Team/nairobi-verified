@@ -49,6 +49,7 @@ import FlashSaleDetail from "./pages/FlashSaleDetail";
 import { FavoritesProvider } from './contexts/FavoritesContext';
 import MerchantAuth from './pages/MerchantAuth';
 import MerchantRedirect from './components/MerchantRedirect';
+import AllProducts from './pages/AllProducts';
 
 const queryClient = new QueryClient();
 
@@ -215,6 +216,7 @@ const App = () => (
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/merchant/sign-in" element={<MerchantAuth />} />
               <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
+              <Route path="/all-products" element={<AllProducts />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -237,6 +237,11 @@ const CategorySection = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Minimum swipe distance (px)
+  const minSwipeDistance = 50;
 
   useEffect(() => {
     const updateView = () => {
@@ -272,6 +277,30 @@ const CategorySection = () => {
     }
   };
 
+  // Touch event handlers for swipe
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe) {
+      scrollRight(); // Swipe left to go right
+    } else if (isRightSwipe) {
+      scrollLeft(); // Swipe right to go left
+    }
+  };
+
   return (
     <section className="py-4 md:py-6 lg:py-8">
       <div className="w-full px-3 sm:px-4 lg:px-6">
@@ -300,6 +329,9 @@ const CategorySection = () => {
               className="flex overflow-x-auto pb-2 md:pb-4 space-x-4 hide-scrollbar snap-x snap-mandatory"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               onScroll={updateCurrentIndex}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
             >
               {categories.map((category) => (
                 <div 
@@ -339,6 +371,9 @@ const CategorySection = () => {
               className="flex overflow-x-auto pb-4 space-x-6 hide-scrollbar snap-x snap-mandatory w-full"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               onScroll={updateCurrentIndex}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
             >
               {categories.map((category) => (
                 <div key={category.id} className="snap-center flex-shrink-0">
