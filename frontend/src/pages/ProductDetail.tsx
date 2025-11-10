@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Check, Heart, Share2, ArrowLeft, ZoomIn, AlertCircle, Phone, Mail, Shield, Clock } from 'lucide-react';
+import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn, AlertCircle, Phone, Mail, Shield, Truck, Clock } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -63,6 +63,7 @@ const ProductDetail: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -72,8 +73,6 @@ const ProductDetail: React.FC = () => {
     rating: 5,
     comment: ''
   });
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [showShareOptions, setShowShareOptions] = useState(false);
 
   const loadProduct = useCallback(async () => {
     try {
@@ -83,10 +82,6 @@ const ProductDetail: React.FC = () => {
       
       if (response.data.success) {
         setProduct(response.data.data || response.data.product);
-        
-        // Check if product is in favorites
-        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-        setIsFavorite(favorites.includes(id));
       } else {
         setError('Product not found');
       }
@@ -155,84 +150,21 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  // Favorite functionality
-  const toggleFavorite = () => {
-    if (!product) return;
-    
-    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-    
-    if (isFavorite) {
-      // Remove from favorites
-      const updatedFavorites = favorites.filter((favId: string) => favId !== product._id);
-      localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
-      setIsFavorite(false);
-      toast.success('Removed from favorites');
-    } else {
-      // Add to favorites
-      const updatedFavorites = [...favorites, product._id];
-      localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
-      setIsFavorite(true);
-      toast.success('Added to favorites');
-    }
-  };
-
-  // Share functionality
-  const handleShare = async (platform?: string) => {
-    if (!product) return;
-
-    const shareUrl = window.location.href;
-    const shareText = `Check out ${product.name} - ${formatPrice(product.price)} on our platform!`;
-    const shareImage = product.images?.[0] || product.primaryImage;
-
-    try {
-      switch (platform) {
-        case 'whatsapp':
-          window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank');
-          break;
-        
-        case 'facebook':
-          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`, '_blank');
-          break;
-        
-        case 'twitter':
-          window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
-          break;
-        
-        case 'copy':
-          await navigator.clipboard.writeText(shareUrl);
-          toast.success('Link copied to clipboard!');
-          break;
-        
-        default:
-          // Native share API
-          if (navigator.share) {
-            await navigator.share({
-              title: product.name,
-              text: shareText,
-              url: shareUrl,
-            });
-          } else {
-            // Fallback: copy to clipboard
-            await navigator.clipboard.writeText(shareUrl);
-            toast.success('Link copied to clipboard!');
-          }
-          break;
-      }
-      
-      setShowShareOptions(false);
-      toast.success('Product shared successfully!');
-    } catch (error) {
-      console.error('Error sharing:', error);
-      toast.error('Failed to share product');
-    }
-  };
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
       currency: 'KES',
       minimumFractionDigits: 0
     }).format(price);
+  };
+
+  const handleQuantityChange = (change: number) => {
+    if (!product) return;
+    const newQuantity = quantity + change;
+    const maxStock = product.stockQuantity || 999;
+    if (newQuantity >= 1 && newQuantity <= maxStock) {
+      setQuantity(newQuantity);
+    }
   };
 
   const whatsappMessage = product 
@@ -425,109 +357,68 @@ const ProductDetail: React.FC = () => {
               </div>
             </div>
 
-            {/* Primary Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              {/* WhatsApp Inquiry Button */}
-              <a
-                href={`https://wa.me/${product.merchant.whatsappNumber || '254712345678'}?text=${encodeURIComponent(whatsappMessage)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1"
-              >
-                <Button 
-                  size="lg" 
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
-                >
-                  <FaWhatsapp className="h-5 w-5 mr-2" />
-                  Inquire via WhatsApp
-                </Button>
-              </a>
-              
-              {/* Favorite Button */}
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className={`sm:w-12 h-12 border-gray-300 transition-all duration-200 ${
-                  isFavorite 
-                    ? 'bg-red-50 border-red-300 text-red-600 hover:bg-red-100 hover:border-red-400' 
-                    : 'hover:border-orange-400 hover:text-orange-600'
-                }`}
-                onClick={toggleFavorite}
-              >
-                <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
-              </Button>
-              
-              {/* Share Button with Dropdown */}
-              <div className="relative">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="sm:w-12 h-12 border-gray-300 hover:border-orange-400 hover:text-orange-600"
-                  onClick={() => setShowShareOptions(!showShareOptions)}
-                >
-                  <Share2 className="h-5 w-5" />
-                </Button>
-                
-                {/* Share Options Dropdown */}
-                {showShareOptions && (
-                  <div className="absolute top-14 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-10 min-w-[180px] p-2">
-                    <div className="space-y-1">
-                      <button
-                        onClick={() => handleShare('whatsapp')}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-lg transition-colors"
-                      >
-                        <FaWhatsapp className="h-4 w-4 text-green-500" />
-                        Share on WhatsApp
-                      </button>
-                      <button
-                        onClick={() => handleShare('facebook')}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
-                      >
-                        <span className="w-4 h-4 bg-blue-500 text-white text-xs flex items-center justify-center rounded">f</span>
-                        Share on Facebook
-                      </button>
-                      <button
-                        onClick={() => handleShare('twitter')}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-500 rounded-lg transition-colors"
-                      >
-                        <span className="w-4 h-4 bg-blue-400 text-white text-xs flex items-center justify-center rounded">𝕏</span>
-                        Share on Twitter
-                      </button>
-                      <button
-                        onClick={() => handleShare('copy')}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors"
-                      >
-                        <span className="w-4 h-4 border border-gray-400 text-gray-600 text-xs flex items-center justify-center rounded">📋</span>
-                        Copy Link
-                      </button>
-                      {navigator.share && (
-                        <button
-                          onClick={() => handleShare()}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700 rounded-lg transition-colors"
-                        >
-                          <Share2 className="h-4 w-4" />
-                          Share via...
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
+            {/* Quantity Selector */}
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <span className="font-semibold text-gray-700 text-sm sm:text-base">Quantity:</span>
+                <div className="flex items-center border border-gray-200 rounded-xl shadow-sm">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleQuantityChange(-1)}
+                    disabled={quantity <= 1}
+                    className="h-10 w-10 hover:bg-gray-50 transition-colors"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="px-4 sm:px-6 py-2 min-w-[3rem] text-center font-semibold text-gray-900 border-x border-gray-200">
+                    {quantity}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleQuantityChange(1)}
+                    disabled={quantity >= (product.stockQuantity || 999)}
+                    className="h-10 w-10 hover:bg-gray-50 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
+            {/* Primary Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                size="lg" 
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 text-base shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
+              >
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Add to Cart
+              </Button>
+              <Button variant="outline" size="lg" className="sm:w-12 h-12 border-gray-300 hover:border-orange-400 hover:text-orange-600">
+                <Heart className="h-5 w-5" />
+              </Button>
+              <Button variant="outline" size="lg" className="sm:w-12 h-12 border-gray-300 hover:border-orange-400 hover:text-orange-600">
+                <Share2 className="h-5 w-5" />
+              </Button>
+            </div>
+
             {/* Trust Indicators */}
-            <div className="grid grid-cols-3 gap-3 pt-4">
-              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100 w-full">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
+              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100">
                 <Shield className="h-5 w-5 text-orange-600 mb-1" />
                 <span className="text-xs font-medium text-orange-700">Secure</span>
               </div>
-              
-              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100 w-full">
+              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100">
+                <Truck className="h-5 w-5 text-orange-600 mb-1" />
+                <span className="text-xs font-medium text-orange-700">Free Delivery</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100">
                 <Clock className="h-5 w-5 text-orange-600 mb-1" />
                 <span className="text-xs font-medium text-orange-700">24/7 Support</span>
               </div>
-              
-              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100 w-full">
+              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100">
                 <Check className="h-5 w-5 text-orange-600 mb-1" />
                 <span className="text-xs font-medium text-orange-700">Verified</span>
               </div>
@@ -592,20 +483,22 @@ const ProductDetail: React.FC = () => {
               <CardContent className="p-4 sm:p-6">
                 <h3 className="font-bold text-gray-900 text-lg mb-4">Contact Seller</h3>
                 <div className="space-y-3">
-                  {/* WhatsApp Button */}
-                  <a
-                    href={`https://wa.me/${product.merchant.whatsappNumber || '254712345678'}?text=${encodeURIComponent(whatsappMessage)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    <Button 
-                      className="w-full bg-[#25D366] hover:bg-[#1eb855] text-white font-semibold py-3.5 text-base shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
+                  {/* WhatsApp Button - Keep Green */}
+                  {product.merchant.whatsappNumber && (
+                    <a
+                      href={`https://wa.me/${product.merchant.whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
                     >
-                      <FaWhatsapp className="h-5 w-5 mr-2" />
-                      💬 Chat on WhatsApp
-                    </Button>
-                  </a>
+                      <Button 
+                        className="w-full bg-[#25D366] hover:bg-[#1eb855] text-white font-semibold py-3.5 text-base shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
+                      >
+                        <FaWhatsapp className="h-5 w-5 mr-2" />
+                        💬 Chat on WhatsApp
+                      </Button>
+                    </a>
+                  )}
 
                   {/* Contact Options */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
