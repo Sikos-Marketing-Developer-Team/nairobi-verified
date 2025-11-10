@@ -249,11 +249,6 @@ const Products = () => {
                 (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
               }}
             />
-            {!inStock && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <span className="text-white font-semibold">Out of Stock</span>
-              </div>
-            )}
           </div>
           
           <div className={`${isMobile ? 'p-2' : 'p-4'}`}>
@@ -303,9 +298,8 @@ const Products = () => {
             
             <Button 
               className={`w-full bg-primary hover:bg-primary-dark text-white ${isMobile ? 'text-xs py-1 h-7' : ''}`}
-              disabled={!inStock}
             >
-              {inStock ? 'View' : 'Out of Stock'}
+              View Product
             </Button>
           </div>
         </CardContent>

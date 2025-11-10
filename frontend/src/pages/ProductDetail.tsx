@@ -355,14 +355,6 @@ const ProductDetail: React.FC = () => {
                   </span>
                 )}
               </div>
-
-              {/* Stock Status */}
-              <div className="flex items-center gap-3 mt-4">
-                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${product.inStock ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                <span className={`font-semibold text-sm sm:text-base ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
-                  {product.inStock ? `In Stock (${product.stockQuantity || 999} available)` : 'Out of Stock'}
-                </span>
-              </div>
             </div>
 
             {/* Quantity Selector */}
@@ -400,7 +392,6 @@ const ProductDetail: React.FC = () => {
               <Button 
                 size="lg" 
                 className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 text-base shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
-                disabled={!product.inStock}
               >
                 <ShoppingCart className="h-5 w-5 mr-2" />
                 Add to Cart

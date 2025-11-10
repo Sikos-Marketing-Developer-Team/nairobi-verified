@@ -1032,14 +1032,9 @@ const MerchantDetail = () => {
                                 )}
                               </div>
 
-                              {/* Category & Stock */}
+                              {/* Category */}
                               <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                                 <span className="bg-gray-100 px-2 py-1 rounded">{product.category}</span>
-                                {product.stockQuantity > 0 ? (
-                                  <span className="text-green-600">In Stock</span>
-                                ) : (
-                                  <span className="text-red-600">Out of Stock</span>
-                                )}
                               </div>
 
                               {/* Contact Buttons */}
