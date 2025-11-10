@@ -70,22 +70,70 @@ const AnalyticsPage: React.FC = () => {
 
   const exportData = async (type: string) => {
     try {
-      const response = await adminAPI.exportAnalytics(type);
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${type}-analytics-${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      
-      toast.success(`${type} data exported successfully`);
+      setIsExporting(true);
       setShowExportMenu(false);
+      
+      switch(type) {
+        case 'pdf-full':
+          await generateAnalyticsPDF({
+            dashboardStats,
+            analyticsData,
+            period: selectedPeriod,
+            generatedAt: new Date()
+          }, 'full');
+          toast.success('Full PDF report generated successfully');
+          break;
+          
+        case 'pdf-summary':
+          await generateAnalyticsPDF({
+            dashboardStats,
+            period: selectedPeriod,
+            generatedAt: new Date()
+          }, 'summary');
+          toast.success('Summary PDF report generated successfully');
+          break;
+          
+        case 'csv-merchants':
+          if (analyticsData?.topMerchants) {
+            const merchantsData = analyticsData.topMerchants.map((m: any) => ({
+              'Business Name': m.businessName,
+              'Rating': m.rating?.toFixed(2) || '0.00',
+              'Reviews': m.reviews || 0,
+              'Verified': m.verified ? 'Yes' : 'No',
+              'Business Type': m.businessType || 'N/A'
+            }));
+            generateCSV(merchantsData, `merchants-${new Date().toISOString().split('T')[0]}.csv`);
+            toast.success('Merchants data exported to CSV');
+          }
+          break;
+          
+        case 'csv-analytics':
+          if (dashboardStats) {
+            const analyticsCSVData = [{
+              'Total Merchants': dashboardStats.totalMerchants,
+              'Verified Merchants': dashboardStats.verifiedMerchants,
+              'Total Users': dashboardStats.totalUsers,
+              'Total Products': dashboardStats.totalProducts,
+              'Total Reviews': dashboardStats.totalReviews,
+              'Verification Rate': `${dashboardStats.metrics.verificationRate}%`,
+              'Merchant Growth': `${dashboardStats.growth.merchantGrowth}%`,
+              'User Growth': `${dashboardStats.growth.userGrowth}%`,
+              'Period': selectedPeriod,
+              'Generated Date': new Date().toLocaleDateString()
+            }];
+            generateCSV(analyticsCSVData, `analytics-summary-${new Date().toISOString().split('T')[0]}.csv`);
+            toast.success('Analytics data exported to CSV');
+          }
+          break;
+          
+        default:
+          toast.error('Unknown export type');
+      }
     } catch (error: any) {
       console.error('Error exporting data:', error);
-      toast.error('Failed to export data');
+      toast.error('Failed to export data: ' + (error.message || 'Unknown error'));
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -159,36 +207,51 @@ const AnalyticsPage: React.FC = () => {
             <div className="relative">
               <button 
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                disabled={isExporting}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Export
+                {isExporting ? 'Exporting...' : 'Export'}
                 <ChevronDown className="w-4 h-4 ml-2" />
               </button>
               
-              {showExportMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+              {showExportMenu && !isExporting && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                   <div className="py-1">
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase border-b">
+                      PDF Reports
+                    </div>
                     <button
-                      onClick={() => exportData('merchants')}
+                      onClick={() => exportData('pdf-full')}
                       className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      <Store className="w-4 h-4 mr-2" />
-                      Export Merchants
+                      <FileText className="w-4 h-4 mr-2 text-red-500" />
+                      Full Analytics Report (PDF)
                     </button>
                     <button
-                      onClick={() => exportData('users')}
+                      onClick={() => exportData('pdf-summary')}
                       className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      <Users className="w-4 h-4 mr-2" />
-                      Export Users
+                      <FileText className="w-4 h-4 mr-2 text-red-500" />
+                      Summary Report (PDF)
+                    </button>
+                    
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase border-b border-t mt-1">
+                      CSV/Excel Exports
+                    </div>
+                    <button
+                      onClick={() => exportData('csv-merchants')}
+                      className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+                      Merchants Data (CSV)
                     </button>
                     <button
-                      onClick={() => exportData('analytics')}
+                      onClick={() => exportData('csv-analytics')}
                       className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Export Analytics
+                      <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+                      Analytics Summary (CSV)
                     </button>
                   </div>
                 </div>
