@@ -74,6 +74,13 @@ const getProducts = async (req, res) => {
       Product.countDocuments(productFilter)
     ]);
 
+    // Add inStock field to all products
+    const productsWithStock = products.map(product => ({
+      ...product,
+      inStock: product.isActive && product.stockQuantity > (product.soldQuantity || 0),
+      availableQuantity: Math.max(0, product.stockQuantity - (product.soldQuantity || 0))
+    }));
+
     // OPTIMIZATION: Cache product lists
     if (!merchant && !search) { // Cache general product pages
       res.set('Cache-Control', 'public, max-age=300');
@@ -82,7 +89,7 @@ const getProducts = async (req, res) => {
 
     res.json({
       success: true,
-      data: products,
+      data: productsWithStock,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -166,9 +173,16 @@ const getFeaturedProducts = async (req, res) => {
       .limit(Number(limit))
       .lean();
 
+    // Add inStock field to all products
+    const productsWithStock = products.map(product => ({
+      ...product,
+      inStock: product.isActive && product.stockQuantity > (product.soldQuantity || 0),
+      availableQuantity: Math.max(0, product.stockQuantity - (product.soldQuantity || 0))
+    }));
+
     res.json({
       success: true,
-      data: products,
+      data: productsWithStock,
     });
   } catch (error) {
     handleError(res, error, 'Failed to fetch featured products');
