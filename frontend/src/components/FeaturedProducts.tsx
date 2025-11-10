@@ -295,90 +295,25 @@ const FeaturedProducts = () => {
           </Button>
         </div>
 
-        <div className="relative">
-          <div 
-            ref={containerRef}
-            className="overflow-hidden select-none touch-pan-y"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={() => {
-              if (isDragging) {
-                updateSliderPosition(currentIndex);
-                setIsDragging(false);
-              }
-            }}
-            style={{ 
-              cursor: isDragging ? 'grabbing' : 'grab',
-            }}
-          >
-            <div 
-              ref={sliderRef}
-              className="flex transition-transform duration-300 ease-in-out"
-              style={{ 
-                transform: `translateX(${currentTranslate}%)`,
-                transition: isDragging ? 'none' : 'transform 0.3s ease-in-out'
-              }}
-            >
-              {products.map((product) => (
-                <div 
-                  key={product._id} 
-                  className="flex-shrink-0"
-                  style={{ width: `${100 / visibleCards}%` }}
-                >
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </div>
+        {/* Scrollable Grid Layout */}
+        <div className="overflow-x-auto overflow-y-visible pb-4 hide-scrollbar">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 min-w-full">
+            {products.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
           </div>
-
-          {products.length > visibleCards && (
-            <>
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 sm:-translate-x-4 bg-white shadow-lg hover:bg-gray-50 z-10 h-8 w-8 sm:h-10 sm:w-10"
-                onClick={prevSlide}
-              >
-                <ChevronLeft className="h-4 w-4 sm:h-6 sm:w-6" />
-              </Button>
-
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-4 bg-white shadow-lg hover:bg-gray-50 z-10 h-8 w-8 sm:h-10 sm:w-10"
-                onClick={nextSlide}
-              >
-                <ChevronRight className="h-4 w-4 sm:h-6 sm:w-6" />
-              </Button>
-            </>
-          )}
         </div>
-
-        {/* Dots indicator */}
-        {products.length > visibleCards && (
-          <div className="flex justify-center mt-6">
-            <div className="flex space-x-2">
-              {Array.from({ length: Math.ceil(products.length / visibleCards) }).map((_, index) => (
-                <button
-                  key={index}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentIndex ? 'bg-orange-600' : 'bg-gray-300'
-                  }`}
-                  onClick={() => {
-                    setCurrentIndex(index);
-                    updateSliderPosition(index);
-                  }}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </section>
   );
 };
