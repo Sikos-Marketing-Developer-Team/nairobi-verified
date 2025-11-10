@@ -2572,34 +2572,48 @@ const getAnalytics = asyncHandler(async (req, res) => {
 
     res.status(200).json({
       success: true,
-      analytics: {
+      data: {
         period,
         registrationTrends: {
           merchants: merchantRegistrations,
           users: userRegistrations
         },
-        distributions: {
-          businessTypes: businessTypeDistribution,
-          geographic: geographicDistribution,
-          ratings: ratingDistribution
-        },
-        verification: verificationAnalytics[0] || {
+        businessTypeDistribution: businessTypeDistribution.map(item => ({
+          businessType: item._id,
+          count: item.count,
+          _id: item._id
+        })),
+        geographicDistribution,
+        verificationAnalytics: [verificationAnalytics[0] || {
           totalMerchants: 0,
           verified: 0,
           pending: 0,
           averageRating: 0
+        }],
+        reviewAnalytics: {
+          totalReviews: reviewAnalytics[0]?.totalReviews || 0,
+          averageRating: reviewAnalytics[0]?.averageRating || 0,
+          ratingDistribution: ratingDistribution.reduce((acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+          }, {})
         },
-        reviews: reviewAnalytics[0] || {
-          totalReviews: 0,
-          averageRating: 0
+        topMerchants: topMerchants.map(m => ({
+          _id: m._id,
+          businessName: m.businessName,
+          rating: m.rating,
+          reviews: m.reviews,
+          verified: m.verified,
+          businessType: m.businessType
+        })),
+        productAnalytics: {
+          totalProducts: currentPeriodMetrics[3],
+          activeProducts: currentPeriodMetrics[3],
+          categoryDistribution: []
         },
-        topPerformers: {
-          merchants: topMerchants
-        },
-        recentActivity: {
-          merchants: recentActivity[0],
-          users: recentActivity[1],
-          reviews: recentActivity[2]
+        revenueAnalytics: {
+          totalRevenue: 0,
+          monthlyRevenue: []
         },
         growth: {
           current: {

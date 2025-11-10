@@ -38,7 +38,7 @@ const FeaturedProducts = () => {
     const fetchFeaturedProducts = async () => {
       try {
         setLoading(true);
-        const response = await productsAPI.getFeaturedProducts(8);
+        const response = await productsAPI.getFeaturedProducts(12); // Fetch more products for grid
         const productsData = response.data.data || response.data;
         setProducts(Array.isArray(productsData) ? productsData : []);
       } catch (error) {
@@ -118,9 +118,9 @@ const FeaturedProducts = () => {
             alt={product.name}
             className="w-full h-full object-cover"
           />
-          {product.originalPrice && (
-            <Badge className="absolute top-2 right-2 bg-red-500 text-xs">
-              Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+          {product.originalPrice && product.originalPrice > product.price && (
+            <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-red-600">
+              -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
             </Badge>
           )}
         </div>
@@ -139,7 +139,7 @@ const FeaturedProducts = () => {
           <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
             <span className="truncate">{merchantName}</span>
             {isVerified && (
-              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
+              <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
             )}
           </div>
 

@@ -3,7 +3,7 @@ export interface AnalyticsData {
     merchants: Array<{ _id: any; count: number }>;
     users: Array<{ _id: any; count: number }>;
   };
-  businessTypeDistribution: Array<{ _id: string; count: number }>;
+  businessTypeDistribution: Array<{ _id: string; businessType: string; count: number }>;
   geographicDistribution: Array<{ _id: string; count: number }>;
   verificationAnalytics: Array<{
     totalMerchants: number;
@@ -14,7 +14,7 @@ export interface AnalyticsData {
   reviewAnalytics: {
     totalReviews: number;
     averageRating: number;
-    ratingDistribution: Array<{ _id: number; count: number }>;
+    ratingDistribution: { [key: number]: number };
   };
   productAnalytics: {
     totalProducts: number;
@@ -25,6 +25,14 @@ export interface AnalyticsData {
     totalRevenue: number;
     monthlyRevenue: Array<{ month: string; revenue: number }>;
   };
+  topMerchants?: Array<{
+    _id: string;
+    businessName: string;
+    rating: number;
+    reviews: number;
+    verified: boolean;
+    businessType: string;
+  }>;
 }
 
 export interface DashboardStats {
