@@ -210,11 +210,12 @@ const Navbar = () => {
   const userNavItems = [
     { path: '/products', label: 'Hot Deals', icon: Zap, highlight: true },
     { 
-      path: '#', 
+      path: '/categories', 
       label: 'Categories', 
       icon: ChevronDown, 
       hasDropdown: true,
       dropdownItems: [
+         { path: '/categories', label: 'View All Categories' }, // ← Add this
         { path: '/products?category=electronics', label: 'Electronics' },
         { path: '/products?category=fashion', label: 'Fashion' },
         { path: '/products?category=home', label: 'Home & Kitchen' },

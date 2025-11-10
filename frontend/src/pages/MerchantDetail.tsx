@@ -4,7 +4,7 @@ import {
   Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, 
   Image, MessageSquare, AlertCircle, Loader2, X, Send, 
   Facebook, Instagram, Globe, Map, Twitter, Film, Copy, Share2,
-  Youtube, Linkedin, ChevronLeft, ChevronRight
+  Youtube, Linkedin, ChevronLeft, ChevronRight, Menu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -21,6 +21,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useFavorites } from '../contexts/FavoritesContext';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { isBusinessCurrentlyOpen, formatBusinessHours } from '@/utils/businessHours';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Type definitions
 interface Merchant {
@@ -137,6 +139,19 @@ const MerchantDetail = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeTab, setActiveTab] = useState('about');
+
+  // Check for mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // SEO and Data Fetching
   useEffect(() => {
@@ -252,7 +267,7 @@ const MerchantDetail = () => {
         updateFavoritesCount();
         toast({
           title: 'Removed from Favorites',
-          description: `${merchant.businessName} has been removed from your favorites`,
+          description: `${merchant?.businessName} has been removed from your favorites`,
           variant: 'destructive',
         });
       } else {
@@ -261,7 +276,7 @@ const MerchantDetail = () => {
         updateFavoritesCount();
         toast({
           title: 'Added to Favorites',
-          description: `${merchant.businessName} has been added to your favorites`,
+          description: `${merchant?.businessName} has been added to your favorites`,
         });
       }
     } catch (error: unknown) {
@@ -287,6 +302,7 @@ const MerchantDetail = () => {
 
   // Share via WhatsApp
   const handleWhatsAppShare = () => {
+    if (!merchant) return;
     const message = `Check out ${merchant.businessName}, a ${merchant.businessType} in ${merchant.location}! ${window.location.href}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
@@ -317,7 +333,7 @@ const MerchantDetail = () => {
     if (merchant?.googleBusinessUrl) {
       window.open(merchant.googleBusinessUrl, '_blank', 'noopener,noreferrer');
     } else {
-      const searchQuery = encodeURIComponent(`${merchant.businessName} ${merchant.address}`);
+      const searchQuery = encodeURIComponent(`${merchant?.businessName} ${merchant?.address}`);
       window.open(`https://www.google.com/maps/search/?api=1&query=${searchQuery}`, '_blank', 'noopener,noreferrer');
     }
   };
@@ -538,10 +554,10 @@ const MerchantDetail = () => {
         }}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section with Carousel */}
-        <header className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-          <Carousel className="relative h-64 md:h-80">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6">
+        {/* Hero Section - Mobile Optimized */}
+        <header className="bg-white rounded-xl lg:rounded-lg shadow-lg overflow-hidden mb-4 lg:mb-6">
+          <Carousel className="relative h-48 sm:h-56 md:h-64 lg:h-80">
             <CarouselContent>
               <CarouselItem>
                 <img
@@ -562,76 +578,195 @@ const MerchantDetail = () => {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <div className="absolute bottom-6 left-6 right-6">
-              <div className="flex items-end gap-6">
+            <CarouselPrevious className="hidden sm:flex" />
+            <CarouselNext className="hidden sm:flex" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-3 lg:bottom-6 left-3 lg:left-6 right-3 lg:right-6">
+              <div className="flex items-end gap-3 lg:gap-6">
                 <img
                   src={merchant.logo}
                   alt={`${merchant.businessName} logo`}
-                  className="w-24 h-24 rounded-lg border-4 border-white shadow-lg object-cover"
+                  className="w-16 h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 rounded-lg border-2 lg:border-4 border-white shadow-lg object-cover"
                   loading="eager"
                 />
-                <div className="text-white flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-3xl font-bold">{merchant.businessName}</h1>
+                <div className="text-white flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 lg:mb-2 flex-wrap">
+                    <h1 className="text-lg lg:text-2xl xl:text-3xl font-bold truncate">
+                      {merchant.businessName}
+                    </h1>
                     {merchant.verified && (
-                      <div className="verified-badge bg-white text-primary px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                      <div className="verified-badge bg-white text-primary px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 shrink-0">
                         <Check className="h-3 w-3" />
                         Verified
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="bg-white/20 px-3 py-1 rounded-full">{merchant.businessType}</span>
-                    <span>Est. {merchant.yearEstablished}</span>
-                    <span>{merchant.location}</span>
+                  <div className="flex items-center gap-2 text-xs lg:text-sm flex-wrap">
+                    <span className="bg-white/20 px-2 py-1 rounded-full truncate">
+                      {merchant.businessType}
+                    </span>
+                    <span className="truncate">Est. {merchant.yearEstablished}</span>
+                    <span className="truncate">{merchant.location}</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                {/* Mobile Action Buttons */}
+                <div className="flex gap-1 lg:gap-2">
                   <Button 
+                    size="sm"
                     variant="outline" 
                     className={`${
                       isFavorite 
                         ? "bg-primary border-primary text-white hover:bg-primary-dark" 
                         : "bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
-                    }`}
+                    } h-8 lg:h-10 px-2 lg:px-4`}
                     onClick={handleFavoriteToggle}
                     disabled={favoriteLoading}
                   >
                     {favoriteLoading ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-3 w-3 lg:h-4 lg:w-4 animate-spin" />
                     ) : (
-                      <Heart className={`h-4 w-4 mr-2 ${isFavorite ? "fill-current" : ""}`} />
+                      <Heart className={`h-3 w-3 lg:h-4 lg:w-4 ${isFavorite ? "fill-current" : ""}`} />
                     )}
-                    {isFavorite ? 'Saved' : 'Save'}
+                    <span className="hidden sm:inline ml-1 lg:ml-2">
+                      {isFavorite ? 'Saved' : 'Save'}
+                    </span>
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
-                    onClick={handleCopyLink}
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Link
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
-                    onClick={handleWhatsAppShare}
-                  >
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Share
-                  </Button>
+                  
+                  {/* Mobile Menu Sheet */}
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900 h-8 lg:h-10 px-2 lg:px-4"
+                      >
+                        <Menu className="h-3 w-3 lg:h-4 lg:w-4" />
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="h-[80vh]">
+                      <ScrollArea className="h-full">
+                        <div className="space-y-6 p-4">
+                          {/* Quick Actions */}
+                          <div>
+                            <h3 className="font-semibold text-lg mb-4">Quick Actions</h3>
+                            <div className="space-y-3">
+                              <Button 
+                                className="w-full bg-primary hover:bg-primary-dark"
+                                onClick={handleContactMerchant}
+                              >
+                                <Phone className="h-4 w-4 mr-2" />
+                                Contact Now
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="w-full"
+                                onClick={handleWriteReview}
+                              >
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Write a Review
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="w-full"
+                                onClick={handleGetDirections}
+                              >
+                                <MapPin className="h-4 w-4 mr-2" />
+                                Get Directions
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="w-full"
+                                onClick={handleOpenGoogleBusiness}
+                              >
+                                <Map className="h-4 w-4 mr-2" />
+                                View on Google
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="w-full text-red-500 hover:bg-red-50"
+                                onClick={handleReportIssue}
+                              >
+                                <AlertCircle className="h-4 w-4 mr-2" />
+                                Report an Issue
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Contact Information */}
+                          <div>
+                            <h3 className="font-semibold text-lg mb-4">Contact Information</h3>
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-3">
+                                <Phone className="h-5 w-5 text-gray-400" />
+                                <div>
+                                  <p className="text-sm text-gray-500">Phone</p>
+                                  <a 
+                                    href={`tel:${merchant.phone}`} 
+                                    className="font-medium text-primary hover:text-primary-dark"
+                                  >
+                                    {merchant.phone}
+                                  </a>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Mail className="h-5 w-5 text-gray-400" />
+                                <div>
+                                  <p className="text-sm text-gray-500">Email</p>
+                                  <a 
+                                    href={`mailto:${merchant.email}`} 
+                                    className="font-medium text-primary hover:text-primary-dark"
+                                  >
+                                    {merchant.email}
+                                  </a>
+                                </div>
+                              </div>
+                              {merchant.whatsappNumber && (
+                                <div className="flex items-center gap-3">
+                                  <Send className="h-5 w-5 text-gray-400" />
+                                  <div>
+                                    <p className="text-sm text-gray-500">WhatsApp</p>
+                                    <a 
+                                      href={`https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
+                                      className="font-medium text-primary hover:text-primary-dark"
+                                    >
+                                      Message on WhatsApp
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Business Hours */}
+                          <div>
+                            <h3 className="font-semibold text-lg mb-4">Business Hours</h3>
+                            <div className="space-y-2">
+                              {Object.entries(businessHoursFormatted).map(([day, hoursStr]) => (
+                                <div 
+                                  key={day} 
+                                  className={`flex justify-between text-sm ${
+                                    day === currentDay ? 'font-medium text-primary' : 'text-gray-600'
+                                  }`}
+                                >
+                                  <span className="capitalize">{day}</span>
+                                  <span>{hoursStr}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </SheetContent>
+                  </Sheet>
                 </div>
               </div>
             </div>
           </Carousel>
         </header>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Sidebar */}
-          <aside className="space-y-6">
+        <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
+          {/* Sidebar - Hidden on mobile, shown in sheet */}
+          <aside className="hidden lg:block space-y-6">
             {/* Trust Indicators */}
             <Card>
               <CardHeader>
@@ -671,7 +806,6 @@ const MerchantDetail = () => {
                       <a 
                         href={`tel:${merchant.phone}`} 
                         className="font-medium text-primary hover:text-primary-dark"
-                        aria-label={`Call ${merchant.businessName} at ${merchant.phone}`}
                       >
                         {merchant.phone}
                       </a>
@@ -684,7 +818,6 @@ const MerchantDetail = () => {
                       <a 
                         href={`mailto:${merchant.email}`} 
                         className="font-medium text-primary hover:text-primary-dark"
-                        aria-label={`Email ${merchant.businessName} at ${merchant.email}`}
                       >
                         {merchant.email}
                       </a>
@@ -698,7 +831,6 @@ const MerchantDetail = () => {
                         <a 
                           href={`https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
                           className="font-medium text-primary hover:text-primary-dark"
-                          aria-label={`Message ${merchant.businessName} on WhatsApp`}
                         >
                           Message on WhatsApp
                         </a>
@@ -722,7 +854,6 @@ const MerchantDetail = () => {
                               size="sm"
                               className="flex items-center justify-start gap-2 h-auto py-2"
                               onClick={() => handleSocialMediaClick(url as string, platform)}
-                              aria-label={`Visit ${merchant.businessName} on ${platformName}`}
                             >
                               <IconComponent className="h-4 w-4 flex-shrink-0" />
                               <span className="text-xs truncate">{platformName}</span>
@@ -767,7 +898,7 @@ const MerchantDetail = () => {
             </Card>
 
             {/* Quick Actions */}
-            <nav className="space-y-3" aria-label="Quick actions for merchant">
+            <nav className="space-y-3">
               <Button 
                 className="w-full bg-primary hover:bg-primary-dark"
                 onClick={handleContactMerchant}
@@ -811,167 +942,185 @@ const MerchantDetail = () => {
           </aside>
 
           {/* Main Content */}
-          <section className="lg:col-span-2 space-y-8">
-            <Tabs defaultValue="about" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="services">Products</TabsTrigger>
-                <TabsTrigger value="about">About</TabsTrigger>
-                <TabsTrigger value="gallery">Gallery</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
+          <section className="lg:col-span-2 space-y-4 lg:space-y-6">
+            {/* Mobile Quick Stats Bar */}
+            <div className="lg:hidden bg-white rounded-xl p-4 shadow-sm">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                  <span className="font-semibold">{merchant.rating}</span>
+                  <span className="text-gray-500">({merchant.reviews})</span>
+                </div>
+                <div className={`px-2 py-1 rounded-full text-xs ${
+                  isOpen ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {isOpen ? 'Open Now' : 'Closed'}
+                </div>
+                <div className="text-gray-500">
+                  Est. {merchant.yearEstablished}
+                </div>
+              </div>
+            </div>
+
+            <Tabs defaultValue="about" value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-4 h-12 lg:h-10">
+                <TabsTrigger value="services" className="text-xs lg:text-sm">
+                  Products
+                </TabsTrigger>
+                <TabsTrigger value="about" className="text-xs lg:text-sm">
+                  About
+                </TabsTrigger>
+                <TabsTrigger value="gallery" className="text-xs lg:text-sm">
+                  Gallery
+                </TabsTrigger>
+                <TabsTrigger value="reviews" className="text-xs lg:text-sm">
+                  Reviews
+                </TabsTrigger>
               </TabsList>
 
-            
-
               {/* Services Tab */}
-              <TabsContent value="services">
-                <div className="space-y-6">
-                  {/* Products Section */}
-                  <Card>
-                    <CardHeader>
-                      <h2 className="text-2xl font-bold text-gray-900">Products</h2>
-                    </CardHeader>
-                    <CardContent>
-                      {productsLoading ? (
-                        <div className="flex justify-center py-8">
-                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        </div>
-                      ) : products.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {products.map((product) => (
-                            <div key={product._id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow group">
-                              {/* Product Image - Clickable */}
+              <TabsContent value="services" className="space-y-4 lg:space-y-6">
+                {/* Products Section */}
+                <Card>
+                  <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
+                    <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Products</h2>
+                  </CardHeader>
+                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
+                    {productsLoading ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    ) : products.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                        {products.map((product) => (
+                          <div key={product._id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow group">
+                            {/* Product Image - Clickable */}
+                            <Link to={`/product/${product._id}`}>
+                              <div className="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer">
+                                <img
+                                  src={product.primaryImage || product.images?.[0] || '/placeholder-product.jpg'}
+                                  alt={product.name}
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                  loading="lazy"
+                                />
+                                {product.featured && (
+                                  <div className="absolute top-2 right-2 bg-yellow-400 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                    Featured
+                                  </div>
+                                )}
+                              </div>
+                            </Link>
+                            
+                            {/* Product Details */}
+                            <div className="p-3 lg:p-4">
                               <Link to={`/product/${product._id}`}>
-                                <div className="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer">
-                                  <img
-                                    src={product.primaryImage || product.images?.[0] || '/placeholder-product.jpg'}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                    loading="lazy"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.src = '/placeholder-product.jpg';
-                                    }}
-                                  />
-                                  {product.featured && (
-                                    <div className="absolute top-2 right-2 bg-yellow-400 text-white px-2 py-1 rounded-full text-xs font-bold">
-                                      Featured
-                                    </div>
-                                  )}
-                                </div>
+                                <h3 className="font-semibold text-base lg:text-lg mb-1 line-clamp-2 hover:text-primary transition-colors cursor-pointer">
+                                  {product.name}
+                                </h3>
                               </Link>
+                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
                               
-                              {/* Product Details */}
-                              <div className="p-4">
-                                <Link to={`/product/${product._id}`}>
-                                  <h3 className="font-semibold text-lg mb-1 line-clamp-2 hover:text-primary transition-colors cursor-pointer">
-                                    {product.name}
-                                  </h3>
-                                </Link>
-                                <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
-                                
-                                {/* Price */}
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-xl font-bold text-green-600">
-                                    KES {product.price?.toLocaleString()}
+                              {/* Price */}
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-lg lg:text-xl font-bold text-green-600">
+                                  KES {product.price?.toLocaleString()}
+                                </span>
+                                {product.originalPrice && product.originalPrice > product.price && (
+                                  <span className="text-sm text-gray-400 line-through">
+                                    KES {product.originalPrice?.toLocaleString()}
                                   </span>
-                                  {product.originalPrice && product.originalPrice > product.price && (
-                                    <span className="text-sm text-gray-400 line-through">
-                                      KES {product.originalPrice?.toLocaleString()}
-                                    </span>
-                                  )}
-                                </div>
+                                )}
+                              </div>
 
-                                {/* Category & Stock */}
-                                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                                  <span className="bg-gray-100 px-2 py-1 rounded">{product.category}</span>
-                                  {product.stockQuantity > 0 ? (
-                                    <span className="text-green-600">In Stock ({product.stockQuantity})</span>
-                                  ) : (
-                                    <span className="text-red-600">Out of Stock</span>
-                                  )}
-                                </div>
+                              {/* Category & Stock */}
+                              <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                                <span className="bg-gray-100 px-2 py-1 rounded">{product.category}</span>
+                                {product.stockQuantity > 0 ? (
+                                  <span className="text-green-600">In Stock</span>
+                                ) : (
+                                  <span className="text-red-600">Out of Stock</span>
+                                )}
+                              </div>
 
-                                {/* Contact Buttons */}
-                                <div className="flex gap-2">
-                                  {merchant.whatsappNumber && (
-                                    <Button
-                                      size="sm"
-                                      className="flex-1 bg-green-600 hover:bg-green-700"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.open(
-                                          `https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hi! I'm interested in ${product.name}`)}`,
-                                          '_blank'
-                                        );
-                                      }}
-                                    >
-                                      WhatsApp
-                                    </Button>
-                                  )}
-                                  {merchant.phone && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="flex-1"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.location.href = `tel:${merchant.phone}`;
-                                      }}
-                                    >
-                                      Call
-                                    </Button>
-                                  )}
-                                </div>
+                              {/* Contact Buttons */}
+                              <div className="flex gap-2">
+                                {merchant.whatsappNumber && (
+                                  <Button
+                                    size="sm"
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(
+                                        `https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hi! I'm interested in ${product.name}`)}`,
+                                        '_blank'
+                                      );
+                                    }}
+                                  >
+                                    WhatsApp
+                                  </Button>
+                                )}
+                                {merchant.phone && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.location.href = `tel:${merchant.phone}`;
+                                    }}
+                                  >
+                                    Call
+                                  </Button>
+                                )}
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-600">No products listed yet.</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                  {/* Services Section */}
-                  <Card>
-                    <CardHeader>
-                      <h2 className="text-2xl font-bold text-gray-900">Services & Pricing</h2>
-                    </CardHeader>
-                    <CardContent>
-                      {merchant.services?.length > 0 ? (
-                        <ul className="space-y-4">
-                          {merchant.services.map((service, index: number) => (
-                            <li key={index} className="flex justify-between items-center border-b pb-2">
-                              <div>
-                                <p className="font-medium">{service.name}</p>
-                                <p className="text-sm text-gray-600">{service.description}</p>
-                              </div>
-                              <p className="font-semibold">{service.price || 'Contact for pricing'}</p>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-600">No services listed.</p>
-                      )}
-                    </CardContent>
-                  </Card>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 text-center py-8">No products listed yet.</p>
+                    )}
+                  </CardContent>
+                </Card>
 
-                  
-                </div>
+                {/* Services Section */}
+                {merchant.services && merchant.services.length > 0 && (
+                  <Card>
+                    <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
+                      <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Services & Pricing</h2>
+                    </CardHeader>
+                    <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
+                      <ul className="space-y-4">
+                        {merchant.services.map((service, index: number) => (
+                          <li key={index} className="flex justify-between items-start border-b pb-4 last:border-b-0">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900">{service.name}</p>
+                              <p className="text-sm text-gray-600 mt-1">{service.description}</p>
+                            </div>
+                            <p className="font-semibold text-primary ml-4 whitespace-nowrap">
+                              {service.price || 'Contact for pricing'}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
-                {/* About Tab */}
+              {/* About Tab */}
               <TabsContent value="about">
                 <Card>
-                  <CardHeader>
-                    <h2 className="text-2xl font-bold text-gray-900">About {merchant.businessName}</h2>
+                  <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
+                    <h2 className="text-xl lg:text-2xl font-bold text-gray-900">About {merchant.businessName}</h2>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 leading-relaxed">{merchant.description}</p>
+                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
+                    <p className="text-gray-600 leading-relaxed text-sm lg:text-base">{merchant.description}</p>
                     
                     {/* Social Links in About Section */}
                     {availableSocialLinks.length > 0 && (
                       <div className="mt-6 pt-6 border-t">
-                        <h4 className="font-semibold text-gray-900 mb-3">Connect with {merchant.businessName}</h4>
+                        <h4 className="font-semibold text-gray-900 mb-3 text-base lg:text-lg">Connect with {merchant.businessName}</h4>
                         <div className="flex flex-wrap gap-2">
                           {availableSocialLinks.map(([platform, url]) => {
                             const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
@@ -982,10 +1131,10 @@ const MerchantDetail = () => {
                                 key={platform}
                                 variant="outline"
                                 size="sm"
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 text-xs lg:text-sm"
                                 onClick={() => handleSocialMediaClick(url as string, platform)}
                               >
-                                <IconComponent className="h-4 w-4" />
+                                <IconComponent className="h-3 w-3 lg:h-4 lg:w-4" />
                                 <span>{platformName}</span>
                               </Button>
                             );
@@ -994,12 +1143,12 @@ const MerchantDetail = () => {
                       </div>
                     )}
                     
-                    <div className="mt-6 flex items-center gap-4">
+                    <div className="mt-6 flex items-center gap-4 flex-wrap">
                       <div className="flex items-center">
                         <Star className="h-5 w-5 text-yellow-400 fill-current" />
                         <span className="text-lg font-semibold ml-1">{merchant.rating}</span>
                       </div>
-                      <span className="text-gray-500">({merchant.reviews} reviews)</span>
+                      <span className="text-gray-500 text-sm lg:text-base">({merchant.reviews} reviews)</span>
                       {merchant.verified && merchant.verifiedDate && (
                         <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
                           Verified since {new Date(merchant.verifiedDate).toLocaleDateString()}
@@ -1013,60 +1162,18 @@ const MerchantDetail = () => {
               {/* Gallery Tab */}
               <TabsContent value="gallery">
                 <Card>
-                  <CardHeader>
-                    <h2 className="text-2xl font-bold text-gray-900">Photo Gallery</h2>
-                    <p className="text-gray-600 mt-2">
+                  <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
+                    <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Photo Gallery</h2>
+                    <p className="text-gray-600 mt-2 text-sm lg:text-base">
                       {merchant.gallery?.length || 0} photos showcasing {merchant.businessName}'s work and premises
                     </p>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
                     {merchant.gallery && merchant.gallery.length > 0 ? (
-                      <div className="space-y-6">
-                        {/* Horizontal Scrollable Carousel */}
-                        <div className="relative">
-                          <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide scroll-smooth">
-                            {merchant.gallery.map((image: string, index: number) => (
-                              <div
-                                key={index}
-                                className="flex-shrink-0 w-64 h-64 rounded-lg overflow-hidden cursor-pointer group relative"
-                                onClick={() => handleImageClick(index)}
-                              >
-                                <img
-                                  src={image}
-                                  alt={`${merchant.businessName} gallery image ${index + 1}`}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                  loading="lazy"
-                                />
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />
-                              </div>
-                            ))}
-                          </div>
-                          
-                          {/* Scroll Indicators */}
-                          <div className="flex justify-center mt-4 space-x-2">
-                            {merchant.gallery.map((_, index) => (
-                              <button
-                                key={index}
-                                className="w-2 h-2 rounded-full bg-gray-300 hover:bg-gray-400 transition-colors"
-                                aria-label={`Go to image ${index + 1}`}
-                                onClick={() => {
-                                  const container = document.querySelector('.overflow-x-auto');
-                                  const item = document.querySelector(`[data-image-index="${index}"]`);
-                                  if (container && item) {
-                                    container.scrollTo({
-                                      left: (item as HTMLElement).offsetLeft - container.clientWidth / 2 + 128,
-                                      behavior: 'smooth'
-                                    });
-                                  }
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Grid View for Smaller Screens */}
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {merchant.gallery.slice(0, 6).map((image: string, index: number) => (
+                      <div className="space-y-4 lg:space-y-6">
+                        {/* Grid View */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 lg:gap-4">
+                          {merchant.gallery.map((image: string, index: number) => (
                             <div
                               key={index}
                               className="aspect-square rounded-lg overflow-hidden cursor-pointer group relative"
@@ -1079,22 +1186,15 @@ const MerchantDetail = () => {
                                 loading="lazy"
                               />
                               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />
-                              {index === 5 && merchant.gallery.length > 6 && (
-                                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                                  <span className="text-white font-semibold text-lg">
-                                    +{merchant.gallery.length - 6} more
-                                  </span>
-                                </div>
-                              )}
                             </div>
                           ))}
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-12">
-                        <Image className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Photos Available</h3>
-                        <p className="text-gray-600">This merchant hasn't uploaded any photos yet.</p>
+                      <div className="text-center py-8 lg:py-12">
+                        <Image className="h-12 w-12 lg:h-16 lg:w-16 text-gray-400 mx-auto mb-3 lg:mb-4" />
+                        <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-2">No Photos Available</h3>
+                        <p className="text-gray-600 text-sm lg:text-base">This merchant hasn't uploaded any photos yet.</p>
                       </div>
                     )}
                   </CardContent>
@@ -1104,10 +1204,10 @@ const MerchantDetail = () => {
               {/* Reviews Tab */}
               <TabsContent value="reviews">
                 <Card>
-                  <CardHeader>
-                    <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
+                  <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
+                    <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Customer Reviews</h2>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
                     <ReviewsSection merchantId={merchant._id} reviews={reviews} />
                   </CardContent>
                 </Card>
@@ -1116,18 +1216,18 @@ const MerchantDetail = () => {
 
             {/* Location & Map */}
             <Card>
-              <CardHeader>
-                <h2 className="text-2xl font-bold text-gray-900">Location</h2>
+              <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Location</h2>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
                 <div className="flex items-start gap-3 mb-4">
-                  <MapPin className="h-5 w-5 text-gray-400 mt-1" />
-                  <div>
-                    <p className="font-medium text-gray-900">{merchant.address}</p>
-                    <p className="text-gray-600">{merchant.location}</p>
+                  <MapPin className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{merchant.address}</p>
+                    <p className="text-gray-600 truncate">{merchant.location}</p>
                   </div>
                 </div>
-                <div className="rounded-lg h-64 overflow-hidden">
+                <div className="rounded-lg h-48 lg:h-64 overflow-hidden">
                   <iframe 
                     title={`Location of ${merchant.businessName} in ${merchant.location}`}
                     width="100%" 
@@ -1154,15 +1254,15 @@ const MerchantDetail = () => {
 
       {/* Image Modal */}
       {selectedImageIndex !== null && merchant?.gallery && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-2 lg:p-4">
           <div className="relative max-w-4xl max-h-full w-full">
             {/* Close Button */}
             <button
               onClick={handleCloseModal}
-              className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2"
+              className="absolute top-2 lg:top-4 right-2 lg:right-4 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2"
               aria-label="Close image viewer"
             >
-              <X className="h-6 w-6" />
+              <X className="h-4 w-4 lg:h-6 lg:w-6" />
             </button>
 
             {/* Navigation Buttons */}
@@ -1170,17 +1270,17 @@ const MerchantDetail = () => {
               <>
                 <button
                   onClick={handlePrevImage}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-3"
+                  className="absolute left-2 lg:left-4 top-1/2 transform -translate-y-1/2 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2 lg:p-3"
                   aria-label="Previous image"
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <ChevronLeft className="h-4 w-4 lg:h-6 lg:w-6" />
                 </button>
                 <button
                   onClick={handleNextImage}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-3"
+                  className="absolute right-2 lg:right-4 top-1/2 transform -translate-y-1/2 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2 lg:p-3"
                   aria-label="Next image"
                 >
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight className="h-4 w-4 lg:h-6 lg:w-6" />
                 </button>
               </>
             )}
@@ -1193,7 +1293,7 @@ const MerchantDetail = () => {
             />
 
             {/* Image Counter */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black bg-opacity-50 px-3 py-1 rounded-full text-sm">
+            <div className="absolute bottom-2 lg:bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black bg-opacity-50 px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm">
               {selectedImageIndex + 1} / {merchant.gallery.length}
             </div>
           </div>
@@ -1202,8 +1302,8 @@ const MerchantDetail = () => {
 
       {/* Enhanced Contact Modal */}
       {showContactModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 lg:p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-4 lg:p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Contact {merchant.businessName}</h3>
               <Button
@@ -1269,9 +1369,9 @@ const MerchantDetail = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleSocialMediaClick(url as string, platform)}
-                          className="justify-start"
+                          className="justify-start text-xs"
                         >
-                          <IconComponent className="h-4 w-4 mr-2" />
+                          <IconComponent className="h-3 w-3 lg:h-4 lg:w-4 mr-2" />
                           <span className="capitalize">{platformName}</span>
                         </Button>
                       );
@@ -1316,7 +1416,7 @@ const MerchantDetail = () => {
   );
 };
 
-// Review Modal Component (keep the same as before)
+// Review Modal Component
 const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
   merchant: Merchant;
   onClose: () => void;
@@ -1458,7 +1558,7 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
   );
 };
 
-// Report Modal Component (keep the same as before)
+// Report Modal Component
 const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
   merchant: Merchant;
   onClose: () => void;

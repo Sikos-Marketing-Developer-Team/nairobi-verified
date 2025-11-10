@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn, AlertCircle, Phone, Mail, Shield, Truck } from 'lucide-react';
+import { Star, MapPin, Check, Heart, ShoppingCart, Minus, Plus, Share2, ArrowLeft, ZoomIn, AlertCircle, Phone, Mail, Shield, Truck, Clock } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -174,7 +174,7 @@ const ProductDetail: React.FC = () => {
   const tabs = [
     { id: 'description', label: 'Description' },
     { id: 'specifications', label: 'Specifications' },
-    { id: 'reviews', label: 'Reviews' }
+    { id: 'reviews', label: `Reviews ${reviews.length > 0 ? `(${reviews.length})` : ''}` }
   ];
 
   if (isLoading) {
@@ -201,7 +201,7 @@ const ProductDetail: React.FC = () => {
             <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Product Not Found</h2>
             <p className="text-gray-600 mb-6">{error || 'The product you are looking for does not exist.'}</p>
-            <Button onClick={() => navigate('/products')} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={() => navigate('/products')} className="bg-orange-600 hover:bg-orange-700">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Products
             </Button>
@@ -221,72 +221,73 @@ const ProductDetail: React.FC = () => {
     ? Object.entries(product.specifications).map(([key, value]) => `${key}: ${value}`)
     : [];
 
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Header />
       
       {/* Breadcrumb Navigation */}
-      <div className="bg-white border-b">
+      <div className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <nav className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-600">
-            <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+            <Link to="/" className="hover:text-orange-600 transition-colors duration-200">Home</Link>
             <span>/</span>
-            <Link to="/products" className="hover:text-primary transition-colors">Products</Link>
+            <Link to="/products" className="hover:text-orange-600 transition-colors duration-200">Products</Link>
             <span>/</span>
-            <span className="text-gray-900 font-medium truncate">{product.name}</span>
+            <span className="text-gray-900 font-medium truncate max-w-[200px] sm:max-w-none">{product.name}</span>
           </nav>
         </div>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Back Button */}
         <div className="mb-6">
           <Button 
             variant="ghost" 
             onClick={() => window.history.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-primary"
+            className="flex items-center gap-2 text-gray-600 hover:text-orange-600 transition-colors duration-200 group"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
             Back to Products
           </Button>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-12">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-50 shadow-sm border border-gray-100">
               <img
-                src={product.images[selectedImage]}
+                src={productImages[selectedImage]}
                 alt={product.name}
-                className="w-full h-full object-cover cursor-zoom-in"
+                className="w-full h-full object-cover cursor-zoom-in transition-transform duration-300 hover:scale-105"
                 onClick={() => setIsImageZoomed(true)}
               />
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-white/80 hover:bg-white"
+                className="absolute top-3 right-3 bg-white/90 hover:bg-white backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-200"
                 onClick={() => setIsImageZoomed(true)}
               >
                 <ZoomIn className="h-4 w-4" />
               </Button>
               {product.originalPrice && product.originalPrice > product.price && (
-                <div className="absolute top-2 left-2 sm:top-4 sm:left-4">
-                  <Badge className="bg-red-500 text-white font-bold text-xs sm:text-sm">
+                <div className="absolute top-3 left-3">
+                  <Badge className="bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-2 py-1 shadow-lg">
                     -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                   </Badge>
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-3">
-              {product.images.map((image, index) => (
+            
+            {/* Thumbnail Images */}
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3">
+              {productImages.slice(0, 6).map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                  className={`aspect-square rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                     selectedImage === index 
-                      ? 'border-primary ring-2 ring-primary/20' 
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-orange-500 ring-2 ring-orange-500/20 shadow-md' 
+                      : 'border-gray-200 hover:border-gray-300 shadow-sm'
                   }`}
                 >
                   <img
@@ -301,29 +302,33 @@ const ProductDetail: React.FC = () => {
 
           {/* Product Info */}
           <div className="space-y-6">
+            {/* Product Header */}
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 break-words">{product.name}</h1>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 break-words leading-tight">
+                {product.name}
+              </h1>
+              
+              {/* Rating and Category */}
               <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4">
                 {product.rating && (
-                  <>
-                    <div className="flex items-center">
-                      <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                      <span className="ml-1 font-medium">{product.rating}</span>
-                      {product.totalReviews && (
-                        <span className="text-gray-500 ml-1 text-sm">({product.totalReviews} reviews)</span>
-                      )}
-                    </div>
-                    <span className="text-gray-300 hidden sm:inline">|</span>
-                  </>
+                  <div className="flex items-center bg-orange-50 px-3 py-1 rounded-full">
+                    <Star className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400 fill-current" />
+                    <span className="ml-1 font-semibold text-orange-800">{product.rating}</span>
+                    {product.totalReviews && (
+                      <span className="text-orange-600 ml-1 text-sm">({product.totalReviews})</span>
+                    )}
+                  </div>
                 )}
-                <Badge variant="secondary">{product.category}</Badge>
+                <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-200">
+                  {product.category}
+                </Badge>
               </div>
               
               {/* Product Tags */}
               {product.tags && product.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {product.tags.map((tag, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
+                    <Badge key={index} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                       {tag}
                     </Badge>
                   ))}
@@ -331,43 +336,149 @@ const ProductDetail: React.FC = () => {
               )}
             </div>
 
+            {/* Price Section */}
+            <div className="bg-gradient-to-r from-gray-50 to-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-3xl sm:text-4xl font-bold text-green-600">
+                    {formatPrice(product.price)}
+                  </span>
+                  {product.originalPrice && product.originalPrice > product.price && (
+                    <span className="text-xl text-gray-500 line-through">
+                      {formatPrice(product.originalPrice)}
+                    </span>
+                  )}
+                </div>
+                {product.originalPrice && product.originalPrice > product.price && (
+                  <span className="text-green-600 font-semibold text-lg">
+                    You save {formatPrice(product.originalPrice - product.price)}
+                  </span>
+                )}
+              </div>
+
+              {/* Stock Status */}
+              <div className="flex items-center gap-3 mt-4">
+                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${product.inStock ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                <span className={`font-semibold text-sm sm:text-base ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
+                  {product.inStock ? `In Stock (${product.stockQuantity || 999} available)` : 'Out of Stock'}
+                </span>
+              </div>
+            </div>
+
+            {/* Quantity Selector */}
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <span className="font-semibold text-gray-700 text-sm sm:text-base">Quantity:</span>
+                <div className="flex items-center border border-gray-200 rounded-xl shadow-sm">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleQuantityChange(-1)}
+                    disabled={quantity <= 1}
+                    className="h-10 w-10 hover:bg-gray-50 transition-colors"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="px-4 sm:px-6 py-2 min-w-[3rem] text-center font-semibold text-gray-900 border-x border-gray-200">
+                    {quantity}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleQuantityChange(1)}
+                    disabled={quantity >= (product.stockQuantity || 999)}
+                    className="h-10 w-10 hover:bg-gray-50 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Primary Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                size="lg" 
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 text-base shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
+                disabled={!product.inStock}
+              >
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Add to Cart
+              </Button>
+              <Button variant="outline" size="lg" className="sm:w-12 h-12 border-gray-300 hover:border-orange-400 hover:text-orange-600">
+                <Heart className="h-5 w-5" />
+              </Button>
+              <Button variant="outline" size="lg" className="sm:w-12 h-12 border-gray-300 hover:border-orange-400 hover:text-orange-600">
+                <Share2 className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Trust Indicators */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
+              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100">
+                <Shield className="h-5 w-5 text-orange-600 mb-1" />
+                <span className="text-xs font-medium text-orange-700">Secure</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100">
+                <Truck className="h-5 w-5 text-orange-600 mb-1" />
+                <span className="text-xs font-medium text-orange-700">Free Delivery</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100">
+                <Clock className="h-5 w-5 text-orange-600 mb-1" />
+                <span className="text-xs font-medium text-orange-700">24/7 Support</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100">
+                <Check className="h-5 w-5 text-orange-600 mb-1" />
+                <span className="text-xs font-medium text-orange-700">Verified</span>
+              </div>
+            </div>
+
             {/* Merchant Info */}
-            <Card className="border border-gray-200 hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <Card className="border border-gray-200 hover:shadow-md transition-all duration-300 rounded-2xl overflow-hidden">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <Link 
-                        to={`/business/${product.merchant._id}`}
-                        className="font-semibold text-base sm:text-lg hover:text-primary transition-colors truncate"
-                      >
-                        {product.merchant.businessName}
-                      </Link>
-                      {product.merchant.verified && (
-                        <Badge variant="secondary" className="flex items-center gap-1 text-xs flex-shrink-0">
-                          <Check className="h-3 w-3" />
-                          Verified
-                        </Badge>
-                      )}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm">
+                          {product.merchant.businessName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <Link 
+                          to={`/business/${product.merchant._id}`}
+                          className="font-bold text-gray-900 hover:text-orange-600 transition-colors truncate block text-base"
+                        >
+                          {product.merchant.businessName}
+                        </Link>
+                        <div className="flex items-center gap-2">
+                          {product.merchant.verified && (
+                            <Badge variant="secondary" className="flex items-center gap-1 text-xs bg-orange-50 text-orange-700 border-orange-200">
+                              <Check className="h-3 w-3" />
+                              Verified
+                            </Badge>
+                          )}
+                          {product.merchant.rating && (
+                            <div className="flex items-center text-sm text-gray-600">
+                              <Star className="h-3 w-3 text-orange-400 fill-current mr-1" />
+                              <span className="font-medium">{product.merchant.rating.toFixed(1)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     {product.merchant.location && (
-                      <div className="flex items-start gap-2 text-sm text-gray-600 mb-2">
+                      <div className="flex items-start gap-2 text-sm text-gray-600 mt-2">
                         <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                        <span className="break-words">{product.merchant.location.address || product.merchant.location.city || 'Nairobi CBD'}</span>
-                      </div>
-                    )}
-                    {product.merchant.rating && (
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center">
-                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                          <span className="ml-1 font-medium">{product.merchant.rating.toFixed(1)}</span>
-                        </div>
+                        <span className="break-words">
+                          {product.merchant.location.address || product.merchant.location.city || 'Nairobi CBD'}
+                        </span>
                       </div>
                     )}
                   </div>
-                  <div className="sm:ml-4">
+                  <div className="sm:ml-4 flex-shrink-0">
                     <Link to={`/business/${product.merchant._id}`}>
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto border-gray-300 hover:border-orange-400 hover:text-orange-600">
                         View Store
                       </Button>
                     </Link>
@@ -377,11 +488,11 @@ const ProductDetail: React.FC = () => {
             </Card>
 
             {/* Contact Section */}
-            <Card className="border border-gray-200">
-              <CardContent className="p-4">
-                <h3 className="font-semibold text-base sm:text-lg mb-3">Contact Seller</h3>
+            <Card className="border border-gray-200 rounded-2xl overflow-hidden">
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="font-bold text-gray-900 text-lg mb-4">Contact Seller</h3>
                 <div className="space-y-3">
-                  {/* WhatsApp Button */}
+                  {/* WhatsApp Button - Keep Green */}
                   {product.merchant.whatsappNumber && (
                     <a
                       href={`https://wa.me/${product.merchant.whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
@@ -390,146 +501,49 @@ const ProductDetail: React.FC = () => {
                       className="block"
                     >
                       <Button 
-                        className="w-full bg-[#25D366] hover:bg-[#1eb855] text-white font-semibold py-2.5 sm:py-3 text-sm sm:text-base shadow-md hover:shadow-lg transition-all"
+                        className="w-full bg-[#25D366] hover:bg-[#1eb855] text-white font-semibold py-3.5 text-base shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
                       >
-                        <FaWhatsapp className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                        Chat on WhatsApp
+                        <FaWhatsapp className="h-5 w-5 mr-2" />
+                        💬 Chat on WhatsApp
                       </Button>
                     </a>
                   )}
 
-                  {/* Phone */}
-                  {product.merchant.phone && (
-                    <a
-                      href={`tel:${product.merchant.phone}`}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500">Call us</p>
-                        <p className="text-sm sm:text-base font-medium text-gray-900 truncate">{product.merchant.phone}</p>
-                      </div>
-                    </a>
-                  )}
+                  {/* Contact Options */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {product.merchant.phone && (
+                      <a
+                        href={`tel:${product.merchant.phone}`}
+                        className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl hover:bg-orange-100 transition-colors duration-200 border border-orange-200"
+                      >
+                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Phone className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-orange-600">Call us</p>
+                          <p className="text-sm font-semibold text-gray-900 truncate">{product.merchant.phone}</p>
+                        </div>
+                      </a>
+                    )}
 
-                  {/* Email */}
-                  {product.merchant.email && (
-                    <a
-                      href={`mailto:${product.merchant.email}`}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500">Email us</p>
-                        <p className="text-sm sm:text-base font-medium text-gray-900 truncate">{product.merchant.email}</p>
-                      </div>
-                    </a>
-                  )}
+                    {product.merchant.email && (
+                      <a
+                        href={`mailto:${product.merchant.email}`}
+                        className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl hover:bg-orange-100 transition-colors duration-200 border border-orange-200"
+                      >
+                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Mail className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-orange-600">Email us</p>
+                          <p className="text-sm font-semibold text-gray-900 truncate">{product.merchant.email}</p>
+                        </div>
+                      </a>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Trust Indicators */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                <Shield className="h-4 w-4 text-green-600 flex-shrink-0" />
-                <span>Secure Purchase</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                <Truck className="h-4 w-4 text-primary flex-shrink-0" />
-                <span>Fast Delivery</span>
-              </div>
-            </div>
-
-            {/* Price */}
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-2xl sm:text-3xl font-bold text-primary">
-                  {formatPrice(product.price)}
-                </span>
-                {product.originalPrice && product.originalPrice > product.price && (
-                  <span className="text-lg sm:text-xl text-gray-500 line-through">
-                    {formatPrice(product.originalPrice)}
-                  </span>
-                )}
-              </div>
-              {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-green-600 font-medium text-sm sm:text-base">
-                  Save {formatPrice(product.originalPrice - product.price)}
-                </span>
-              )}
-            </div>
-
-            {/* Stock Status */}
-            <div className="flex items-center gap-2 mb-4">
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className={`font-medium text-sm sm:text-base ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
-                {product.inStock ? `In Stock (${product.stockQuantity || 999} available)` : 'Out of Stock'}
-              </span>
-            </div>
-
-            {/* Enquire via WhatsApp - Prominent CTA */}
-            {(product.merchant.whatsappNumber || product.merchant.phone) && (
-              <div className="mb-4">
-                <a
-                  href={`https://wa.me/${(product.merchant.whatsappNumber || product.merchant.phone)?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(whatsappMessage)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  <Button 
-                    className="w-full bg-[#25D366] hover:bg-[#1eb855] text-white font-bold py-3 sm:py-4 text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
-                    size="lg"
-                  >
-                    <FaWhatsapp className="h-5 w-5 sm:h-6 sm:w-6 mr-2" />
-                    💬 Enquire via WhatsApp
-                  </Button>
-                </a>
-              </div>
-            )}
-
-            {/* Quantity and Actions */}
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-4">
-                <span className="font-medium text-sm sm:text-base">Quantity:</span>
-                <div className="flex items-center border border-gray-300 rounded-lg">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleQuantityChange(-1)}
-                    disabled={quantity <= 1}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <span className="px-3 sm:px-4 py-2 min-w-[2.5rem] sm:min-w-[3rem] text-center text-sm sm:text-base">{quantity}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleQuantityChange(1)}
-                    disabled={quantity >= (product.stockQuantity || 999)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <Button 
-                  size="lg" 
-                  className="flex-1 bg-primary hover:bg-primary-dark text-sm sm:text-base"
-                  disabled={!product.inStock}
-                >
-                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                  Add to Cart
-                </Button>
-                <Button variant="outline" size="lg" className="sm:w-auto">
-                  <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
-                <Button variant="outline" size="lg" className="sm:w-auto">
-                  <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -541,9 +555,9 @@ const ProductDetail: React.FC = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  className={`py-3 sm:py-4 px-1 border-b-2 font-semibold text-sm sm:text-base whitespace-nowrap transition-colors duration-200 ${
                     activeTab === tab.id
-                      ? 'border-primary text-primary'
+                      ? 'border-orange-500 text-orange-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -556,18 +570,23 @@ const ProductDetail: React.FC = () => {
           <div className="py-6 sm:py-8">
             {activeTab === 'description' && (
               <div className="prose max-w-none">
-                <p className="text-gray-700 text-base sm:text-lg leading-relaxed break-words">{product.description}</p>
+                <p className="text-gray-700 text-base sm:text-lg leading-relaxed break-words mb-6">
+                  {product.description}
+                </p>
                 {product.specifications && Object.keys(product.specifications).length > 0 && (
                   <>
-                    <h3 className="text-lg sm:text-xl font-semibold mt-6 mb-4">Key Features</h3>
-                    <ul className="space-y-2">
-                      {Object.entries(product.specifications).slice(0, 5).map(([key, value], index) => (
-                        <li key={index} className="flex items-start">
-                          <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm sm:text-base break-words"><strong>{key}:</strong> {String(value)}</span>
-                        </li>
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-8 mb-6">Key Features</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {Object.entries(product.specifications).slice(0, 6).map(([key, value], index) => (
+                        <div key={index} className="flex items-start p-4 bg-orange-50 rounded-xl border border-orange-200">
+                          <Check className="h-5 w-5 text-orange-500 mr-3 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-semibold text-gray-900 text-sm sm:text-base break-words">{key}</span>
+                            <span className="text-gray-600 text-sm sm:text-base block mt-1 break-words">{String(value)}</span>
+                          </div>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </>
                 )}
               </div>
@@ -575,34 +594,36 @@ const ProductDetail: React.FC = () => {
 
             {activeTab === 'specifications' && (
               <div>
-                <h3 className="text-lg sm:text-xl font-semibold mb-4">Technical Specifications</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Technical Specifications</h3>
                 {product.specifications && Object.keys(product.specifications).length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {Object.entries(product.specifications).map(([key, value], index) => (
-                      <div key={index} className="flex flex-col p-3 sm:p-4 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-gray-700 mb-1 text-sm sm:text-base break-words">{key}</span>
-                        <span className="text-gray-600 text-sm break-words">{String(value)}</span>
+                      <div key={index} className="flex flex-col p-4 sm:p-5 bg-orange-50 rounded-xl border border-orange-200 hover:shadow-sm transition-shadow duration-200">
+                        <span className="font-semibold text-gray-700 mb-2 text-sm sm:text-base break-words">{key}</span>
+                        <span className="text-gray-600 text-sm sm:text-base break-words">{String(value)}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-sm sm:text-base">No specifications available</p>
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 text-base">No specifications available</p>
+                  </div>
                 )}
               </div>
             )}
 
             {activeTab === 'reviews' && (
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
                   <div>
-                    <h3 className="text-lg sm:text-xl font-semibold">Customer Reviews</h3>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Customer Reviews</h3>
+                    <p className="text-gray-600 mt-2">
                       {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
                     </p>
                   </div>
                   <Button 
                     onClick={() => setShowReviewForm(!showReviewForm)}
-                    className="bg-primary hover:bg-primary-dark text-sm sm:text-base"
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-semibold"
                   >
                     {showReviewForm ? 'Cancel' : 'Write a Review'}
                   </Button>
@@ -610,25 +631,25 @@ const ProductDetail: React.FC = () => {
 
                 {/* Review Form */}
                 {showReviewForm && (
-                  <Card className="border border-gray-200 mb-6">
-                    <CardContent className="p-4 sm:p-6">
-                      <form onSubmit={handleSubmitReview} className="space-y-4">
+                  <Card className="border border-gray-200 mb-8 rounded-2xl overflow-hidden">
+                    <CardContent className="p-6">
+                      <form onSubmit={handleSubmitReview} className="space-y-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-3">
                             Rating
                           </label>
-                          <div className="flex gap-2">
+                          <div className="flex gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <button
                                 key={star}
                                 type="button"
                                 onClick={() => setReviewForm({ ...reviewForm, rating: star })}
-                                className="focus:outline-none"
+                                className="focus:outline-none transform hover:scale-110 transition-transform duration-200"
                               >
                                 <Star
-                                  className={`h-6 w-6 sm:h-8 sm:w-8 ${
+                                  className={`h-8 w-8 sm:h-10 sm:w-10 ${
                                     star <= reviewForm.rating
-                                      ? 'text-yellow-400 fill-current'
+                                      ? 'text-orange-400 fill-current'
                                       : 'text-gray-300'
                                   }`}
                                 />
@@ -638,24 +659,27 @@ const ProductDetail: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-3">
                             Your Review
                           </label>
                           <textarea
                             value={reviewForm.comment}
                             onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
-                            rows={4}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent text-base resize-none transition-colors duration-200"
+                            rows={5}
                             placeholder="Share your experience with this product..."
                             required
                             minLength={10}
                           />
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-sm text-gray-500 mt-2">
                             Minimum 10 characters
                           </p>
                         </div>
 
-                        <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary-dark">
+                        <Button 
+                          type="submit" 
+                          className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6"
+                        >
                           Submit Review
                         </Button>
                       </form>
@@ -665,54 +689,59 @@ const ProductDetail: React.FC = () => {
 
                 {/* Reviews List */}
                 {isLoadingReviews ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
                   </div>
                 ) : reviews.length === 0 ? (
-                  <Card className="border border-gray-200">
-                    <CardContent className="p-8 text-center">
-                      <p className="text-gray-500 text-sm sm:text-base">
+                  <Card className="border border-gray-200 rounded-2xl overflow-hidden">
+                    <CardContent className="p-12 text-center">
+                      <Star className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 text-lg">
                         No reviews yet. Be the first to review this product!
                       </p>
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {reviews.map((review) => (
-                      <Card key={review._id} className="border border-gray-200">
-                        <CardContent className="p-4 sm:p-6">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                  <span className="text-primary font-semibold text-sm sm:text-base">
-                                    {review.user.name.charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="font-semibold text-gray-900 text-sm sm:text-base truncate">
-                                    {review.user.name}
-                                  </p>
+                      <Card key={review._id} className="border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition-shadow duration-200">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <span className="text-white font-bold text-sm">
+                                  {review.user.name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-gray-900 text-base truncate">
+                                  {review.user.name}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
                                   <div className="flex items-center gap-1">
                                     {[...Array(5)].map((_, i) => (
                                       <Star
                                         key={i}
-                                        className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                                        className={`h-4 w-4 ${
                                           i < review.rating
-                                            ? 'text-yellow-400 fill-current'
+                                            ? 'text-orange-400 fill-current'
                                             : 'text-gray-300'
                                         }`}
                                       />
                                     ))}
                                   </div>
+                                  <span className="text-sm text-gray-500">
+                                    {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric'
+                                    })}
+                                  </span>
                                 </div>
                               </div>
                             </div>
-                            <span className="text-xs sm:text-sm text-gray-500 flex-shrink-0 ml-2">
-                              {new Date(review.createdAt).toLocaleDateString()}
-                            </span>
                           </div>
-                          <p className="text-gray-700 text-sm sm:text-base leading-relaxed break-words">
+                          <p className="text-gray-700 text-base leading-relaxed break-words">
                             {review.comment}
                           </p>
                         </CardContent>
@@ -729,33 +758,33 @@ const ProductDetail: React.FC = () => {
       {/* Image Zoom Modal */}
       {isImageZoomed && (
         <div 
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4"
+          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
           onClick={() => setIsImageZoomed(false)}
         >
-          <div className="relative w-full h-full max-w-4xl flex items-center justify-center">
+          <div className="relative w-full h-full max-w-6xl max-h-[90vh] flex items-center justify-center">
             <img
-              src={product.images[selectedImage]}
+              src={productImages[selectedImage]}
               alt={product.name}
-              className="max-w-full max-h-full object-contain"
+              className="max-w-full max-h-full object-contain rounded-lg"
             />
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-white/20 hover:bg-white/30 text-white"
+              className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm"
               onClick={() => setIsImageZoomed(false)}
             >
               ✕
             </Button>
-            <div className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-              {product.images.map((_, index) => (
+            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-2">
+              {productImages.map((_, index) => (
                 <button
                   key={index}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedImage(index);
                   }}
-                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
-                    selectedImage === index ? 'bg-white' : 'bg-white/50'
+                  className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                    selectedImage === index ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/70'
                   }`}
                 />
               ))}

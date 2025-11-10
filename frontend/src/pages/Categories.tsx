@@ -146,20 +146,20 @@ interface Category {
 
 const CategoryCard = ({ category }: { category: Category }) => {
   return (
-    <Card className="hover-scale cursor-pointer border-0 shadow-lg snap-center flex-shrink-0 w-80">
+    <Card className="hover-scale cursor-pointer border-0 shadow-lg snap-center flex-shrink-0 w-64">
       <CardContent className="p-0">
-        <div className="relative h-48 overflow-hidden rounded-t-lg">
+        <div className="relative h-40 overflow-hidden rounded-t-lg">
           <img src={category.image} alt={category.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-110" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          <div className="absolute bottom-4 left-4 text-white">
-            <h3 className="text-xl font-semibold">{category.name}</h3>
-            <p className="text-sm opacity-90">{category.count}</p>
+          <div className="absolute bottom-3 left-3 text-white">
+            <h3 className="text-lg font-semibold">{category.name}</h3>
+            <p className="text-xs opacity-90">{category.count}</p>
           </div>
         </div>
-        <div className="p-4">
+        <div className="p-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">Verified merchants only</span>
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span className="text-xs text-gray-500">Verified merchants only</span>
+            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
           </div>
         </div>
       </CardContent>
@@ -188,14 +188,14 @@ const CategorySection = () => {
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
-      const scrollAmount = isMobile ? 320 : 1008;
+      const scrollAmount = isMobile ? window.innerWidth - 32 : 800;
       scrollContainerRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
     if (scrollContainerRef.current) {
-      const scrollAmount = isMobile ? 320 : 1008;
+      const scrollAmount = isMobile ? window.innerWidth - 32 : 800;
       scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
@@ -203,7 +203,7 @@ const CategorySection = () => {
   const updateCurrentIndex = () => {
     if (scrollContainerRef.current) {
       const scrollPos = scrollContainerRef.current.scrollLeft;
-      const itemWidth = isMobile ? 160 : 336;
+      const itemWidth = isMobile ? window.innerWidth - 16 : 280;
       const newIndex = Math.round(scrollPos / itemWidth);
       setCurrentIndex(newIndex);
     }
@@ -273,7 +273,7 @@ const CategorySection = () => {
           {isMobile ? (
             <div
               ref={scrollContainerRef}
-              className="flex overflow-x-auto pb-2 md:pb-4 space-x-4 hide-scrollbar snap-x snap-mandatory cursor-grab active:cursor-grabbing select-none"
+              className="flex overflow-x-auto pb-2 md:pb-4 space-x-3 hide-scrollbar snap-x snap-mandatory cursor-grab active:cursor-grabbing select-none"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               onScroll={updateCurrentIndex}
               onTouchStart={handleTouchStart}
@@ -285,26 +285,26 @@ const CategorySection = () => {
               onMouseLeave={handleMouseUpOrLeave}
             >
               {categories.map((category) => (
-                <div key={category.id} className="flex-shrink-0 w-40 sm:w-48 md:w-64 snap-center">
+                <div key={category.id} className="flex-shrink-0 snap-center" style={{ width: 'calc(100vw - 32px)' }}>
                   <Link to={`/categories/${category.id}`}>
                     <Card className="hover-scale cursor-pointer border-0 shadow-md sm:shadow-lg h-full">
                       <CardContent className="p-0 flex flex-col h-full">
-                        <div className="relative h-24 sm:h-28 md:h-36 overflow-hidden rounded-t-lg flex-grow">
+                        <div className="relative h-48 overflow-hidden rounded-t-lg flex-grow">
                           <img
                             src={category.image}
                             alt={category.name}
                             className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                          <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 text-white">
-                            <h3 className="text-xs sm:text-sm md:text-base font-semibold">{category.name}</h3>
-                            <p className="text-[10px] sm:text-xs opacity-90">{category.count}</p>
+                          <div className="absolute bottom-3 left-3 text-white">
+                            <h3 className="text-base font-semibold">{category.name}</h3>
+                            <p className="text-xs opacity-90">{category.count}</p>
                           </div>
                         </div>
-                        <div className="p-1 sm:p-2 md:p-3">
+                        <div className="p-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] sm:text-xs text-gray-500">Verified merchants</span>
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-3 md:h-3 bg-green-500 rounded-full"></div>
+                            <span className="text-xs text-gray-500">Verified merchants</span>
+                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
                           </div>
                         </div>
                       </CardContent>
@@ -316,7 +316,7 @@ const CategorySection = () => {
           ) : (
             <div
               ref={scrollContainerRef}
-              className="flex overflow-x-auto pb-4 space-x-6 hide-scrollbar snap-x snap-mandatory w-full cursor-grab active:cursor-grabbing select-none"
+              className="flex overflow-x-auto pb-4 space-x-4 hide-scrollbar snap-x snap-mandatory w-full cursor-grab active:cursor-grabbing select-none"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               onScroll={updateCurrentIndex}
               onTouchStart={handleTouchStart}
