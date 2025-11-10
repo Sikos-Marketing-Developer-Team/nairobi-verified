@@ -506,12 +506,15 @@ const AnalyticsPage: React.FC = () => {
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-2 md:mb-3">Rating Distribution</h4>
                 <div className="space-y-1 md:space-y-2">
-                  {analyticsData.reviewAnalytics.ratingDistribution.map((rating) => {
-                    const percentage = ((rating.count / analyticsData.reviewAnalytics.totalReviews) * 100).toFixed(1);
+                  {[5, 4, 3, 2, 1].map((starRating) => {
+                    const count = analyticsData.reviewAnalytics.ratingDistribution[starRating] || 0;
+                    const percentage = analyticsData.reviewAnalytics.totalReviews > 0 
+                      ? ((count / analyticsData.reviewAnalytics.totalReviews) * 100).toFixed(1)
+                      : '0';
                     return (
-                      <div key={rating._id} className="flex items-center">
+                      <div key={starRating} className="flex items-center">
                         <span className="text-xs md:text-sm font-medium text-gray-900 w-6 md:w-8">
-                          {rating._id}★
+                          {starRating}★
                         </span>
                         <div className="flex-1 mx-2 md:mx-3">
                           <div className="bg-gray-200 rounded-full h-1.5 md:h-2">
@@ -522,7 +525,7 @@ const AnalyticsPage: React.FC = () => {
                           </div>
                         </div>
                         <span className="text-xs md:text-sm text-gray-500 w-8 md:w-12 text-right">
-                          {rating.count}
+                          {count}
                         </span>
                       </div>
                     );
