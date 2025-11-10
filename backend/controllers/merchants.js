@@ -87,16 +87,81 @@ exports.getMerchants = async (req, res) => {
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
 
-    // OPTIMIZATION: Parallel execution for count and fetch
-    const [merchants, total] = await Promise.all([
-      Merchant.find(baseQuery)
-        .select(listFields) // Only fetch needed fields
-        .sort(req.query.sort || '-createdAt')
-        .skip(startIndex)
-        .limit(limit)
-        .lean(), // Keep lean for performance
-      Merchant.countDocuments(baseQuery)
+    // Create aggregation pipeline to prioritize merchants with logos and products
+    const aggregationPipeline = [
+      { $match: baseQuery },
+      // Lookup to count products for each merchant
+      {
+        $lookup: {
+          from: 'products',
+          localField: '_id',
+          foreignField: 'merchant',
+          as: 'products'
+        }
+      },
+      // Add computed fields for sorting
+      {
+        $addFields: {
+          productCount: { $size: '$products' },
+          hasLogo: { $cond: [{ $and: [{ $ne: ['$logo', null] }, { $ne: ['$logo', ''] }] }, 1, 0] },
+          hasBanner: { $cond: [{ $and: [{ $ne: ['$bannerImage', null] }, { $ne: ['$bannerImage', ''] }] }, 1, 0] },
+          // Priority score: verified=4, hasLogo=2, hasProducts=1
+          priorityScore: {
+            $add: [
+              { $cond: ['$verified', 4, 0] },
+              { $cond: [{ $and: [{ $ne: ['$logo', null] }, { $ne: ['$logo', ''] }] }, 2, 0] },
+              { $cond: [{ $gt: [{ $size: '$products' }, 0] }, 1, 0] }
+            ]
+          }
+        }
+      },
+      // Sort by priority score (desc), then rating (desc), then creation date (desc)
+      {
+        $sort: {
+          priorityScore: -1,
+          verified: -1,
+          productCount: -1,
+          rating: -1,
+          createdAt: -1
+        }
+      },
+      // Project only needed fields
+      {
+        $project: {
+          businessName: 1,
+          businessType: 1,
+          description: 1,
+          address: 1,
+          phone: 1,
+          email: 1,
+          verified: 1,
+          featured: 1,
+          rating: 1,
+          reviews: 1,
+          logo: 1,
+          bannerImage: 1,
+          createdAt: 1,
+          productCount: 1,
+          priorityScore: 1
+        }
+      }
+    ];
+
+    // Execute aggregation with pagination
+    const [merchantsResult, totalResult] = await Promise.all([
+      Merchant.aggregate([
+        ...aggregationPipeline,
+        { $skip: startIndex },
+        { $limit: limit }
+      ]),
+      Merchant.aggregate([
+        ...aggregationPipeline,
+        { $count: 'total' }
+      ])
     ]);
+
+    const merchants = merchantsResult;
+    const total = totalResult.length > 0 ? totalResult[0].total : 0;
 
     // Build pagination response
     const pagination = {};

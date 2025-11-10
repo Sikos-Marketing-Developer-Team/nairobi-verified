@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Star, MapPin, CheckCircle, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Star, MapPin, CheckCircle, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,20 +30,13 @@ interface Product {
 const FeaturedProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [visibleCards, setVisibleCards] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [currentTranslate, setCurrentTranslate] = useState(0);
   const navigate = useNavigate();
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
       try {
         setLoading(true);
-        const response = await productsAPI.getFeaturedProducts(8);
+        const response = await productsAPI.getFeaturedProducts(12); // Fetch more products for grid
         const productsData = response.data.data || response.data;
         setProducts(Array.isArray(productsData) ? productsData : []);
       } catch (error) {
@@ -57,133 +50,12 @@ const FeaturedProducts = () => {
     fetchFeaturedProducts();
   }, []);
 
-  // Handle responsive card count
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setVisibleCards(4);
-      } else if (window.innerWidth >= 768) {
-        setVisibleCards(2);
-      } else {
-        setVisibleCards(1);
-      }
-      // Reset translate on resize
-      setCurrentTranslate(0);
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
       currency: 'KES',
       minimumFractionDigits: 0,
     }).format(price);
-  };
-
-  const nextSlide = useCallback(() => {
-    setCurrentIndex((prevIndex) => {
-      const newIndex = prevIndex + 1 >= products.length - (visibleCards - 1) ? 0 : prevIndex + 1;
-      updateSliderPosition(newIndex);
-      return newIndex;
-    });
-  }, [products.length, visibleCards]);
-
-  const prevSlide = useCallback(() => {
-    setCurrentIndex((prevIndex) => {
-      const newIndex = prevIndex - 1 < 0 ? Math.max(0, products.length - visibleCards) : prevIndex - 1;
-      updateSliderPosition(newIndex);
-      return newIndex;
-    });
-  }, [products.length, visibleCards]);
-
-  const updateSliderPosition = (index: number) => {
-    if (containerRef.current) {
-      const cardWidth = 100 / visibleCards;
-      const translateX = -index * cardWidth;
-      setCurrentTranslate(translateX);
-    }
-  };
-
-  // Touch event handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsDragging(true);
-    setStartX(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    
-    const currentX = e.touches[0].clientX;
-    const diff = startX - currentX;
-    const cardWidth = 100 / visibleCards;
-    
-    // Calculate new translate position with resistance
-    const newTranslate = currentTranslate - (diff / (containerRef.current?.offsetWidth || 1)) * 100;
-    setCurrentTranslate(newTranslate);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    
-    const endX = e.changedTouches[0].clientX;
-    const diff = startX - endX;
-    const threshold = 50; // Minimum swipe distance in pixels
-
-    if (Math.abs(diff) > threshold) {
-      if (diff > 0) {
-        // Swiped left - next slide
-        nextSlide();
-      } else {
-        // Swiped right - previous slide
-        prevSlide();
-      }
-    } else {
-      // Not enough swipe distance, return to current position
-      updateSliderPosition(currentIndex);
-    }
-    
-    setIsDragging(false);
-  };
-
-  // Mouse event handlers for desktop
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setStartX(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    
-    const currentX = e.clientX;
-    const diff = startX - currentX;
-    const cardWidth = 100 / visibleCards;
-    
-    const newTranslate = currentTranslate - (diff / (containerRef.current?.offsetWidth || 1)) * 100;
-    setCurrentTranslate(newTranslate);
-  };
-
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    
-    const endX = e.clientX;
-    const diff = startX - endX;
-    const threshold = 50;
-
-    if (Math.abs(diff) > threshold) {
-      if (diff > 0) {
-        nextSlide();
-      } else {
-        prevSlide();
-      }
-    } else {
-      updateSliderPosition(currentIndex);
-    }
-    
-    setIsDragging(false);
   };
 
   const ProductCard = ({ product }: { product: Product }) => {
@@ -198,55 +70,64 @@ const FeaturedProducts = () => {
 
     return (
       <Card 
-        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer mx-2 select-none"
+        className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border-0 shadow-md hover:scale-[1.02]"
         onClick={handleClick}
       >
-        <div className="relative h-40 sm:h-48 bg-gray-100">
+        <div className="relative h-48 bg-gray-100">
           <img
             src={displayImage}
             alt={product.name}
             className="w-full h-full object-cover"
-            draggable="false"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/placeholder-product.jpg';
+            }}
           />
-          {product.originalPrice && (
-            <Badge className="absolute top-2 right-2 bg-red-500 text-xs">
-              Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+          {product.originalPrice && product.originalPrice > product.price && (
+            <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-red-600">
+              -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
             </Badge>
           )}
         </div>
-        
-        <div className="p-3 sm:p-4">
-          <h3 className="font-semibold text-base sm:text-lg mb-2 line-clamp-2 sm:line-clamp-1">{product.name}</h3>
-          
-          <div className="flex items-center gap-2 mb-2">
-            <div className="flex items-center">
-              <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-              <span className="ml-1 text-xs sm:text-sm">{product.rating.toFixed(1)}</span>
-            </div>
-            <span className="text-xs sm:text-sm text-gray-500">({product.reviewCount})</span>
-          </div>
 
-          <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
-            <span className="truncate">{merchantName}</span>
+        <div className="p-4">
+          {/* Merchant Info */}
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs text-gray-600 truncate">{merchantName}</span>
             {isVerified && (
-              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
+              <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
             )}
           </div>
 
-          <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
-            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="truncate">{locationDisplay}</span>
+          {/* Product Name */}
+          <h3 className="font-semibold text-sm mb-2 line-clamp-2 text-gray-900 min-h-[2.5rem]">
+            {product.name}
+          </h3>
+
+          {/* Rating */}
+          <div className="flex items-center gap-1 mb-2">
+            <div className="flex items-center">
+              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+              <span className="text-xs ml-1">{product.rating?.toFixed(1) || '0.0'}</span>
+            </div>
+            <span className="text-xs text-gray-500">({product.reviewCount || 0})</span>
           </div>
 
+          {/* Location */}
+          <div className="flex items-center gap-1 mb-3">
+            <MapPin className="h-3 w-3 text-gray-400" />
+            <span className="text-xs text-gray-600 truncate">{locationDisplay}</span>
+          </div>
+
+          {/* Price */}
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-lg sm:text-xl font-bold text-orange-600">
+            <div className="flex flex-col">
+              <span className="text-lg font-bold text-orange-600">
                 {formatPrice(product.price)}
-              </div>
-              {product.originalPrice && (
-                <div className="text-xs sm:text-sm text-gray-500 line-through">
+              </span>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <span className="text-xs text-gray-500 line-through">
                   {formatPrice(product.originalPrice)}
-                </div>
+                </span>
               )}
             </div>
           </div>
@@ -295,25 +176,13 @@ const FeaturedProducts = () => {
           </Button>
         </div>
 
-        {/* Scrollable Grid Layout */}
-        <div className="overflow-x-auto overflow-y-visible pb-4 hide-scrollbar">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 min-w-full">
-            {products.map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
+        {/* Grid Layout - Scrollable on mobile, full grid on desktop */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          {products.map((product) => (
+            <ProductCard key={product._id} product={product} />
+          ))}
         </div>
       </div>
-
-      <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </section>
   );
 };

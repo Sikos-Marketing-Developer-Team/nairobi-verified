@@ -12,11 +12,14 @@ import {
   Star,
   MapPin,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  FileText,
+  FileSpreadsheet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '../lib/api';
 import { AnalyticsData, DashboardStats } from '@/interfaces/AnalyticsPage';
+import { generateAnalyticsPDF, generateCSV } from '../utils/pdfExport';
 
 const AnalyticsPage: React.FC = () => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
@@ -25,6 +28,7 @@ const AnalyticsPage: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('30d');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     loadAnalytics();
