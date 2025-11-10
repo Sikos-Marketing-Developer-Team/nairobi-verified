@@ -97,11 +97,34 @@ export const generateAnalyticsPDF = async (data: AnalyticsData, exportType: stri
   const pageHeight = doc.internal.pageSize.getHeight();
   let yPosition = 20;
 
+  // Load logo image
+  const loadLogo = (): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          resolve('');
+        }
+      };
+      img.onerror = () => resolve('');
+      img.src = '/logo.png';
+    });
+  };
+
+  const logoData = await loadLogo();
+
   // Helper to add new page if needed
-  const checkAddPage = (requiredSpace: number = 20) => {
-    if (yPosition + requiredSpace > pageHeight - 20) {
+  const checkAddPage = (requiredSpace: number = 30) => {
+    if (yPosition + requiredSpace > pageHeight - 25) {
       doc.addPage();
-      yPosition = 20;
+      yPosition = 30;
       addHeader();
       return true;
     }
@@ -110,24 +133,26 @@ export const generateAnalyticsPDF = async (data: AnalyticsData, exportType: stri
 
   // Add header to each page
   const addHeader = () => {
-    // Add logo placeholder (brand color rectangle)
-    doc.setFillColor(BRAND_COLORS.primary);
-    doc.rect(15, 10, 30, 10, 'F');
-    doc.setTextColor(BRAND_COLORS.white);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('NV', 25, 17);
+    // Add logo if available
+    if (logoData) {
+      doc.addImage(logoData, 'PNG', 15, 10, 25, 25);
+    }
 
     // Title
     doc.setTextColor(BRAND_COLORS.secondary);
-    doc.setFontSize(20);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('Nairobi Verified', 50, 17);
+    doc.text('Nairobi Verified', 45, 18);
     
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(BRAND_COLORS.darkGray);
-    doc.text('Admin Analytics Report', 50, 23);
+    doc.text('Admin Analytics Report', 45, 26);
+    
+    // Add horizontal line
+    doc.setDrawColor(BRAND_COLORS.primary);
+    doc.setLineWidth(0.5);
+    doc.line(15, 38, pageWidth - 15, 38);
   };
 
   // Add footer
@@ -146,33 +171,33 @@ export const generateAnalyticsPDF = async (data: AnalyticsData, exportType: stri
   addHeader();
 
   // Report Details
-  yPosition = 35;
+  yPosition = 45;
   doc.setFillColor(BRAND_COLORS.lightGray);
-  doc.rect(15, yPosition, pageWidth - 30, 25, 'F');
+  doc.rect(15, yPosition, pageWidth - 30, 30, 'F');
   
-  doc.setFontSize(11);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(BRAND_COLORS.secondary);
-  doc.text('Report Details', 20, yPosition + 7);
+  doc.text('Report Details', 20, yPosition + 8);
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(BRAND_COLORS.darkGray);
-  doc.text(`Report Type: ${exportType.toUpperCase()}`, 20, yPosition + 14);
-  doc.text(`Period: ${data.period || 'Last 30 days'}`, 20, yPosition + 20);
-  doc.text(`Generated: ${new Date().toLocaleString()}`, 110, yPosition + 14);
+  doc.text(`Report Type: ${exportType.toUpperCase()}`, 20, yPosition + 16);
+  doc.text(`Period: ${data.period || 'Last 30 days'}`, 20, yPosition + 23);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 110, yPosition + 16);
   
-  yPosition += 35;
+  yPosition += 40;
 
   // Key Metrics Section
   if (data.dashboardStats) {
-    checkAddPage(60);
+    checkAddPage(70);
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(BRAND_COLORS.primary);
     doc.text('Key Performance Metrics', 15, yPosition);
-    yPosition += 10;
+    yPosition += 8;
 
     const metrics = [
       { label: 'Total Merchants', value: data.dashboardStats.totalMerchants || 0, growth: data.dashboardStats.growth?.merchantGrowth || 0 },
@@ -198,7 +223,12 @@ export const generateAnalyticsPDF = async (data: AnalyticsData, exportType: stri
       headStyles: {
         fillColor: BRAND_COLORS.primary,
         textColor: BRAND_COLORS.white,
-        fontStyle: 'bold'
+        fontStyle: 'bold',
+        fontSize: 10
+      },
+      bodyStyles: {
+        fontSize: 9,
+        cellPadding: 3
       },
       alternateRowStyles: {
         fillColor: BRAND_COLORS.lightGray
@@ -206,18 +236,18 @@ export const generateAnalyticsPDF = async (data: AnalyticsData, exportType: stri
       margin: { left: 15, right: 15 }
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 15;
+    yPosition = (doc as any).lastAutoTable.finalY + 20;
   }
 
   // Business Type Distribution Chart
   if (data.analyticsData?.businessTypeDistribution) {
-    checkAddPage(100);
+    checkAddPage(110);
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(BRAND_COLORS.primary);
     doc.text('Business Type Distribution', 15, yPosition);
-    yPosition += 10;
+    yPosition += 8;
 
     const businessTypes = data.analyticsData.businessTypeDistribution;
     const labels = businessTypes.map((item: any) => item.businessType);
@@ -225,10 +255,10 @@ export const generateAnalyticsPDF = async (data: AnalyticsData, exportType: stri
 
     const pieChart = await createChartImage('pie', values, labels);
     if (pieChart) {
-      doc.addImage(pieChart, 'PNG', 15, yPosition, 85, 64);
+      doc.addImage(pieChart, 'PNG', 20, yPosition, 80, 60);
     }
 
-    // Add table next to chart
+    // Add table next to chart with better spacing
     const businessTableData = businessTypes.map((item: any) => [
       item.businessType,
       item.count.toString(),
@@ -237,29 +267,35 @@ export const generateAnalyticsPDF = async (data: AnalyticsData, exportType: stri
 
     autoTable(doc, {
       startY: yPosition,
-      head: [['Type', 'Count', 'Percentage']],
+      head: [['Type', 'Count', '%']],
       body: businessTableData,
       theme: 'striped',
       headStyles: {
         fillColor: BRAND_COLORS.secondary,
-        textColor: BRAND_COLORS.white
+        textColor: BRAND_COLORS.white,
+        fontSize: 9,
+        fontStyle: 'bold'
+      },
+      bodyStyles: {
+        fontSize: 8,
+        cellPadding: 2
       },
       margin: { left: 110, right: 15 },
-      tableWidth: 85
+      tableWidth: 80
     });
 
-    yPosition = Math.max(yPosition + 70, (doc as any).lastAutoTable.finalY + 15);
+    yPosition = Math.max(yPosition + 75, (doc as any).lastAutoTable.finalY + 20);
   }
 
   // Top Merchants Table
   if (data.analyticsData?.topMerchants && data.analyticsData.topMerchants.length > 0) {
-    checkAddPage(80);
+    checkAddPage(90);
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(BRAND_COLORS.primary);
     doc.text('Top Performing Merchants', 15, yPosition);
-    yPosition += 10;
+    yPosition += 8;
 
     const merchantsData = data.analyticsData.topMerchants.slice(0, 10).map((m: any, index: number) => [
       (index + 1).toString(),
@@ -277,26 +313,35 @@ export const generateAnalyticsPDF = async (data: AnalyticsData, exportType: stri
       headStyles: {
         fillColor: BRAND_COLORS.primary,
         textColor: BRAND_COLORS.white,
-        fontStyle: 'bold'
-      },
-      styles: {
+        fontStyle: 'bold',
         fontSize: 9
+      },
+      bodyStyles: {
+        fontSize: 8,
+        cellPadding: 3
+      },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 20 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 25 }
       },
       margin: { left: 15, right: 15 }
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 15;
+    yPosition = (doc as any).lastAutoTable.finalY + 20;
   }
 
   // Review Analytics
   if (data.analyticsData?.reviewAnalytics) {
-    checkAddPage(60);
+    checkAddPage(70);
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(BRAND_COLORS.primary);
     doc.text('Review Analytics', 15, yPosition);
-    yPosition += 10;
+    yPosition += 8;
 
     const reviewData = [
       ['Total Reviews', (data.analyticsData.reviewAnalytics.totalReviews || 0).toString()],
@@ -311,18 +356,29 @@ export const generateAnalyticsPDF = async (data: AnalyticsData, exportType: stri
     autoTable(doc, {
       startY: yPosition,
       body: reviewData,
-      theme: 'plain',
-      styles: {
-        fontSize: 10
+      theme: 'striped',
+      bodyStyles: {
+        fontSize: 9,
+        cellPadding: 3
       },
       columnStyles: {
-        0: { fontStyle: 'bold', textColor: BRAND_COLORS.secondary },
-        1: { textColor: BRAND_COLORS.darkGray }
+        0: { 
+          fontStyle: 'bold', 
+          textColor: BRAND_COLORS.secondary,
+          cellWidth: 50
+        },
+        1: { 
+          textColor: BRAND_COLORS.darkGray,
+          cellWidth: 'auto'
+        }
       },
-      margin: { left: 15 }
+      alternateRowStyles: {
+        fillColor: BRAND_COLORS.lightGray
+      },
+      margin: { left: 15, right: 15 }
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 15;
+    yPosition = (doc as any).lastAutoTable.finalY + 20;
   }
 
   // Add page numbers to all pages
