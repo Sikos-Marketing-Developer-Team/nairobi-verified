@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { MapPin, Grid, List, Search, Check } from 'lucide-react';
+import { MapPin, Grid, List, Search, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,6 +33,55 @@ interface PaginationData {
   hasNext: boolean;
   hasPrev: boolean;
 }
+
+// Component for truncated description with read more
+const TruncatedDescription = ({ 
+  text, 
+  maxLength = 100,
+  className = "" 
+}: { 
+  text: string; 
+  maxLength?: number;
+  className?: string;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  if (!text || text === 'No description available.') {
+    return (
+      <p className={`text-gray-600 text-[11px] sm:text-sm ${className}`}>
+        {text || 'No description available.'}
+      </p>
+    );
+  }
+
+  const shouldTruncate = text.length > maxLength;
+  const displayText = isExpanded || !shouldTruncate ? text : `${text.slice(0, maxLength)}...`;
+
+  return (
+    <div className={className}>
+      <p className="text-gray-600 text-[11px] sm:text-sm mb-1">
+        {displayText}
+      </p>
+      {shouldTruncate && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-primary hover:text-primary-dark text-[10px] sm:text-xs font-medium flex items-center gap-0.5 transition-colors"
+          aria-label={isExpanded ? "Show less" : "Read more"}
+        >
+          {isExpanded ? (
+            <>
+              Show less <ChevronUp className="h-3 w-3" />
+            </>
+          ) : (
+            <>
+              Read more <ChevronDown className="h-3 w-3" />
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+};
 
 const Merchants = () => {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
@@ -376,9 +425,9 @@ const Merchants = () => {
           {merchants.map((merchant) => (
             <Card 
               key={merchant._id} 
-              className="hover:scale-[1.02] transition-transform duration-200 cursor-pointer border-0 shadow-md overflow-hidden hover:shadow-lg"
+              className="hover:scale-[1.02] transition-transform duration-200 cursor-pointer border-0 shadow-md overflow-hidden hover:shadow-lg flex flex-col h-full"
             >
-              <CardContent className="p-0">
+              <CardContent className="p-0 flex flex-col h-full">
                 <div className="relative">
                   <img
                     src={merchant.logo || 'https://via.placeholder.com/300x200/f3f4f6/9ca3af?text=No+Logo'}
@@ -401,7 +450,9 @@ const Merchants = () => {
                     </div>
                   )}
                 </div>
-                <div className="p-2 sm:p-3">
+                
+                {/* Content area that grows to fill available space */}
+                <div className="p-2 sm:p-3 flex flex-col flex-grow">
                   <div className="flex items-center gap-1 mb-1 sm:mb-2 flex-wrap">
                     <span className="text-[9px] sm:text-xs px-1 py-0.5 bg-primary/10 text-primary rounded-full whitespace-nowrap">
                       {merchant.businessType || 'Uncategorized'}
@@ -412,12 +463,19 @@ const Merchants = () => {
                       </span>
                     )}
                   </div>
+                  
                   <h3 className="font-semibold text-[13px] sm:text-base text-gray-900 mb-1 line-clamp-1">
                     {merchant.businessName || 'Unnamed Business'}
                   </h3>
-                  <p className="text-gray-600 text-[11px] sm:text-sm mb-2 sm:mb-3 line-clamp-2 min-h-[2.5rem]">
-                    {merchant.description || 'No description available.'}
-                  </p>
+                  
+                  {/* Updated Description with Read More - Fixed height container */}
+                  <div className="flex-grow mb-2">
+                    <TruncatedDescription 
+                      text={merchant.description || 'No description available.'}
+                      maxLength={80}
+                    />
+                  </div>
+                  
                   <div className="flex items-center gap-1 mb-2">
                     <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400 flex-shrink-0" />
                     <span className="text-[9px] sm:text-xs text-gray-500 line-clamp-1">
@@ -425,24 +483,31 @@ const Merchants = () => {
                     </span>
                   </div>
                   
-                  <div className="block sm:hidden">
-                    <Link
-                      to={`/business/${merchant._id}`}
-                      className="text-orange-500 text-[11px] underline hover:no-underline block text-center"
-                      aria-label={`View profile for ${merchant.businessName}`}
-                    >
-                      View Profile
-                    </Link>
-                  </div>
-                  <div className="hidden sm:flex sm:justify-end">
-                    <Link to={`/business/${merchant._id}`} className="w-full">
-                      <Button 
-                        className="bg-primary hover:bg-primary-dark text-white text-xs h-8 px-3 w-full"
-                        aria-label={`View profile for ${merchant.businessName}`}
-                      >
-                        View Profile
-                      </Button>
-                    </Link>
+                  {/* Button container - always at the bottom */}
+                  <div className="mt-auto">
+                    {/* Mobile - Button */}
+                    <div className="block sm:hidden">
+                      <Link to={`/business/${merchant._id}`} className="block">
+                        <Button 
+                          className="bg-orange-600 hover:bg-orange-700 text-white text-[11px] h-7 w-full"
+                          aria-label={`Visit shop for ${merchant.businessName}`}
+                        >
+                          Visit Shop
+                        </Button>
+                      </Link>
+                    </div>
+                    
+                    {/* Desktop - Button */}
+                    <div className="hidden sm:block">
+                      <Link to={`/business/${merchant._id}`} className="block">
+                        <Button 
+                          className="bg-primary hover:bg-primary-dark text-white text-xs h-8 w-full"
+                          aria-label={`Visit shop for ${merchant.businessName}`}
+                        >
+                          Visit Shop
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </CardContent>

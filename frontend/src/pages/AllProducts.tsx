@@ -4,11 +4,14 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, MapPin, Star, Heart, Filter, Search, ChevronDown, Loader2, X } from 'lucide-react';
+import { Check, MapPin, Star, Heart, Filter, Search, ChevronDown, Loader2, X, Grid3X3, List } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { productsAPI } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
 interface Product {
   _id?: string;
@@ -33,7 +36,7 @@ interface Product {
   location?: string;
 }
 
-const ProductCard = ({ product }: { product: Product }) => {
+const ProductCard = ({ product, viewMode }: { product: Product; viewMode: 'grid' | 'list' }) => {
   const navigate = useNavigate();
   
   const formatPrice = (price: number) => {
@@ -63,6 +66,116 @@ const ProductCard = ({ product }: { product: Product }) => {
   const locationDisplay = product.merchant?.address || product.location || 'Location not specified';
   const reviewCount = product.reviewCount || product.reviews || 0;
 
+  if (viewMode === 'list') {
+    return (
+      <Card 
+        className="cursor-pointer border-0 shadow-sm hover:shadow-md overflow-hidden group transition-all duration-200 bg-white"
+        onClick={handleCardClick}
+      >
+        <CardContent className="p-0 h-full">
+          <div className="flex">
+            {/* Image Section */}
+            <div className="relative w-48 flex-shrink-0">
+              <img
+                src={displayImage}
+                alt={product.name}
+                className="w-full h-48 object-cover"
+              />
+              {product.featured && (
+                <div className="absolute top-2 left-2 bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs font-medium">
+                  Featured
+                </div>
+              )}
+            </div>
+            
+            {/* Content Section */}
+            <div className="p-6 flex-grow flex flex-col">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-grow">
+                  {/* Merchant & Verified Badge */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm text-gray-600">
+                      {merchantName}
+                    </span>
+                    {isVerified && (
+                      <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                        <Check className="h-3 w-3 mr-1" />
+                        Verified
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Product Name */}
+                  <h3 className="font-semibold text-lg text-gray-900 mb-2">
+                    {product.name}
+                  </h3>
+                  
+                  {/* Location */}
+                  <div className="text-sm text-gray-600 flex items-center gap-1 mb-3">
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <span>{locationDisplay}</span>
+                  </div>
+                  
+                  {/* Rating */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center">
+                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                      <span className="text-sm font-medium ml-1">{product.rating || 0}</span>
+                    </div>
+                    <span className="text-sm text-gray-500">({reviewCount} reviews)</span>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col items-end gap-3">
+                  {/* Price */}
+                  <div className="text-right">
+                    <span className="text-xl font-bold text-primary">
+                      {formatPrice(product.price)}
+                    </span>
+                    {product.originalPrice && product.originalPrice > product.price && (
+                      <div className="text-sm text-gray-500 line-through">
+                        {formatPrice(product.originalPrice)}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className="p-2 h-9 w-9"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        alert(`Added ${product.name} to wishlist!`);
+                      }}
+                    >
+                      <Heart className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="sm"
+                      className="px-4"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const productId = product._id || product.id;
+                        if (productId) {
+                          navigate(`/product/${productId}`);
+                        }
+                      }}
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Grid view (original layout)
   return (
     <Card 
       className="cursor-pointer border-0 shadow-sm hover:shadow-md overflow-hidden group transition-all duration-200 bg-white"
@@ -171,14 +284,19 @@ const AllProducts = () => {
   const [totalProducts, setTotalProducts] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState('featured');
   const { toast } = useToast();
+
+  const productsPerPage = 12;
 
   const loadProducts = async (page: number = 1, append: boolean = false) => {
     setIsLoadingProducts(true);
     try {
       const params: Record<string, string | number> = {
         page: page,
-        limit: 12,
+        limit: productsPerPage,
+        sort: sortBy,
       };
 
       if (searchTerm.trim()) {
@@ -204,7 +322,7 @@ const AllProducts = () => {
       }
       
       setTotalProducts(paginationData.total);
-      setHasMore(productsData.length > 0 && productsData.length === 12);
+      setHasMore(productsData.length > 0 && productsData.length === productsPerPage);
     } catch (error) {
       console.error('Failed to fetch products:', error);
       toast({
@@ -223,12 +341,12 @@ const AllProducts = () => {
 
   useEffect(() => {
     loadProducts(1, false);
-  }, [searchTerm, priceRange]);
+  }, [searchTerm, priceRange, sortBy]);
 
-  const handleLoadMore = () => {
-    const nextPage = currentPage + 1;
-    setCurrentPage(nextPage);
-    loadProducts(nextPage, true);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    loadProducts(page, false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -255,149 +373,183 @@ const AllProducts = () => {
     setPriceRange([priceRange[0], 200000]);
   };
 
+  // Calculate pagination
+  const totalPages = Math.ceil(totalProducts / productsPerPage);
+  const visiblePages = 5;
+  const startPage = Math.max(1, currentPage - Math.floor(visiblePages / 2));
+  const endPage = Math.min(totalPages, startPage + visiblePages - 1);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
       <main className="pt-20 pb-8">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
           {/* Header Section */}
-          <div className="text-center mb-6">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3">
               All Products
             </h1>
-            <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-2xl mx-auto px-2">
-              Discover products from verified merchants
-            </p>
           </div>
 
           {/* Enhanced Search and Filters Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-            {/* Search Bar */}
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Search products..."
-                className="pl-10 pr-4 text-sm h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleSearch}
-                size="sm"
-                className="flex items-center gap-2 flex-1 h-10 bg-primary hover:bg-primary/90"
-              >
-                <Search className="h-4 w-4" />
-                <span>Search</span>
-              </Button>
-              
-              <Button 
-                variant={showFilters ? "secondary" : "outline"}
-                size="sm"
-                className="flex items-center gap-2 h-10 min-w-[100px] border-gray-300"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <Filter className="h-4 w-4" />
-                <span>Filters</span>
-                <ChevronDown 
-                  className={`h-4 w-4 transition-transform duration-200 ${
-                    showFilters ? 'rotate-180' : ''
-                  }`} 
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Search Bar */}
+              <div className="relative flex-grow max-w-2xl">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Input
+                  type="text"
+                  placeholder="Search products by name, category, or merchant..."
+                  className="pl-12 pr-4 text-base h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
                 />
-              </Button>
+                {searchTerm && (
+                  <X 
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 cursor-pointer hover:text-gray-600"
+                    onClick={clearSearch}
+                  />
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button 
+                  onClick={handleSearch}
+                  size="lg"
+                  className="flex items-center gap-2 px-6 bg-primary hover:bg-primary/90"
+                >
+                  <Search className="h-5 w-5" />
+                  <span className="text-base">Search</span>
+                </Button>
+                
+                <Button 
+                  variant={showFilters ? "secondary" : "outline"}
+                  size="lg"
+                  className="flex items-center gap-2 px-6 border-gray-300"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter className="h-5 w-5" />
+                  <span>Filters</span>
+                  <ChevronDown 
+                    className={`h-5 w-5 transition-transform duration-200 ${
+                      showFilters ? 'rotate-180' : ''
+                    }`} 
+                  />
+                </Button>
+              </div>
             </div>
 
             {/* Enhanced Filters Panel */}
             {showFilters && (
-              <div className="mt-4 pt-4 border-t border-gray-200 animate-in fade-in duration-200">
+              <div className="mt-6 pt-6 border-t border-gray-200 animate-in fade-in duration-200">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    Filters
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2 text-lg">
+                    <Filter className="h-5 w-5" />
+                    Filter Products
                   </h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {(searchTerm || priceRange[0] > 0 || priceRange[1] < 200000) && (
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={clearFilters}
-                        className="text-xs h-8 text-gray-600 hover:text-gray-900"
+                        className="text-sm h-9 text-gray-600 hover:text-gray-900"
                       >
-                        Clear all
+                        Clear all filters
                       </Button>
                     )}
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowFilters(false)}
-                      className="h-8 w-8 p-0"
+                      className="h-9 w-9 p-0"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-5 w-5" />
                     </Button>
                   </div>
                 </div>
 
-                {/* Price Range Filter */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">Price Range</span>
-                    <span className="text-xs text-primary font-medium">
-                      KES {priceRange[0].toLocaleString()} - KES {priceRange[1].toLocaleString()}
-                    </span>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Price Range Filter */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-base font-medium text-gray-700">Price Range (KES)</span>
+                      <span className="text-sm text-primary font-medium">
+                        {priceRange[0].toLocaleString()} - {priceRange[1].toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <Slider
+                      defaultValue={[0, 200000]}
+                      max={200000}
+                      step={1000}
+                      value={priceRange}
+                      onValueChange={setPriceRange}
+                      className="my-4"
+                    />
+                    
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>0</span>
+                      <span>50,000</span>
+                      <span>100,000</span>
+                      <span>150,000</span>
+                      <span>200,000</span>
+                    </div>
                   </div>
-                  
-                  <Slider
-                    defaultValue={[0, 200000]}
-                    max={200000}
-                    step={1000}
-                    value={priceRange}
-                    onValueChange={setPriceRange}
-                    className="my-2"
-                  />
-                  
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>KES 0</span>
-                    <span>KES 200,000</span>
+
+                  {/* Sort Options */}
+                  <div className="space-y-4">
+                    <label className="text-base font-medium text-gray-700">Sort By</label>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="featured">Featured</SelectItem>
+                        <SelectItem value="price-low">Price: Low to High</SelectItem>
+                        <SelectItem value="price-high">Price: High to Low</SelectItem>
+                        <SelectItem value="rating">Highest Rated</SelectItem>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
                 {/* Active Filters Badges */}
                 {(searchTerm || priceRange[0] > 0 || priceRange[1] < 200000) && (
-                  <div className="mt-4 pt-3 border-t border-gray-100">
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Active Filters:</h4>
                     <div className="flex flex-wrap gap-2">
                       {searchTerm && (
-                        <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
+                        <Badge variant="secondary" className="bg-primary/10 text-primary px-3 py-1.5 text-sm">
                           Search: "{searchTerm}"
                           <X 
-                            className="h-3 w-3 cursor-pointer" 
+                            className="h-3 w-3 ml-1.5 cursor-pointer" 
                             onClick={clearSearch}
                           />
-                        </div>
+                        </Badge>
                       )}
                       {priceRange[0] > 0 && (
-                        <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
+                        <Badge variant="secondary" className="bg-primary/10 text-primary px-3 py-1.5 text-sm">
                           Min: KES {priceRange[0].toLocaleString()}
                           <X 
-                            className="h-3 w-3 cursor-pointer" 
+                            className="h-3 w-3 ml-1.5 cursor-pointer" 
                             onClick={clearMinPrice}
                           />
-                        </div>
+                        </Badge>
                       )}
                       {priceRange[1] < 200000 && (
-                        <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
+                        <Badge variant="secondary" className="bg-primary/10 text-primary px-3 py-1.5 text-sm">
                           Max: KES {priceRange[1].toLocaleString()}
                           <X 
-                            className="h-3 w-3 cursor-pointer" 
+                            className="h-3 w-3 ml-1.5 cursor-pointer" 
                             onClick={clearMaxPrice}
                           />
-                        </div>
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -406,61 +558,124 @@ const AllProducts = () => {
             )}
           </div>
 
-          {/* Products Count */}
-          <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 mb-4 p-2">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Products
-              {totalProducts > 0 && (
-                <span className="text-sm font-normal text-gray-600 ml-2">
-                  ({totalProducts.toLocaleString()})
-                </span>
+          {/* Products Header with Count and Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                Products
+                {totalProducts > 0 && (
+                  <span className="text-lg font-semibold text-primary ml-2">
+                    ({totalProducts.toLocaleString()} {totalProducts === 1 ? 'item' : 'items'})
+                  </span>
+                )}
+              </h2>
+              
+              {isLoadingProducts && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  Loading...
+                </div>
               )}
-            </h2>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {/* View Mode Toggle */}
+              <div className="flex border border-gray-300 rounded-lg p-1">
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="h-8 w-8 p-0"
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="h-8 w-8 p-0"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Items per page selector */}
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>View:</span>
+                <span className="font-medium">{productsPerPage} per page</span>
+              </div>
+            </div>
           </div>
 
-          {/* Products Grid */}
+          {/* Products Grid/List */}
           {isLoadingProducts && products.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin mr-2 text-primary" />
-              <span className="text-sm text-gray-600">Loading products...</span>
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin mr-3 text-primary" />
+              <span className="text-lg text-gray-600">Loading products...</span>
             </div>
           ) : products.length > 0 ? (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 mb-6">
+              <div className={
+                viewMode === 'grid' 
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"
+                  : "space-y-6 mb-8"
+              }>
                 {products.map((product, index) => (
-                  <ProductCard key={product._id || product.id || index} product={product} />
+                  <ProductCard 
+                    key={product._id || product.id || index} 
+                    product={product} 
+                    viewMode={viewMode}
+                  />
                 ))}
               </div>
               
-              {hasMore && (
-                <div className="text-center">
-                  <Button 
-                    onClick={handleLoadMore}
-                    disabled={isLoadingProducts}
-                    size="lg"
-                    className="px-8 py-3 text-sm font-medium min-w-[140px]"
-                    variant="outline"
-                  >
-                    {isLoadingProducts ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Loading...
-                      </>
-                    ) : (
-                      'Load More'
-                    )}
-                  </Button>
+              {/* Enhanced Pagination */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6 border-t border-gray-200">
+                  <div className="text-sm text-gray-600">
+                    Showing {(currentPage - 1) * productsPerPage + 1} to {Math.min(currentPage * productsPerPage, totalProducts)} of {totalProducts.toLocaleString()} products
+                  </div>
+                  
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      
+                      {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(page)}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
               )}
             </>
           ) : (
-            <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+            <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100">
               <div className="max-w-md mx-auto px-4">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Search className="h-8 w-8 text-gray-400" />
+                <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Search className="h-10 w-10 text-gray-400" />
                 </div>
-                <h3 className="text-base font-medium text-gray-900 mb-2">No products found</h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">No products found</h3>
+                <p className="text-base text-gray-600 mb-6">
                   {searchTerm || priceRange[0] > 0 || priceRange[1] < 200000 
                     ? "Try adjusting your search criteria or filters to find more products."
                     : "No products are currently available. Please check back later."
@@ -469,8 +684,8 @@ const AllProducts = () => {
                 {(searchTerm || priceRange[0] > 0 || priceRange[1] < 200000) && (
                   <Button 
                     onClick={clearFilters}
-                    size="sm"
-                    className="px-4"
+                    size="lg"
+                    className="px-8"
                   >
                     Clear all filters
                   </Button>
