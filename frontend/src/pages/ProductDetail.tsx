@@ -419,10 +419,7 @@ const ProductDetail: React.FC = () => {
                 <Shield className="h-5 w-5 text-orange-600 mb-1" />
                 <span className="text-xs font-medium text-orange-700">Secure</span>
               </div>
-              <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100">
-                <Truck className="h-5 w-5 text-orange-600 mb-1" />
-                <span className="text-xs font-medium text-orange-700">Free Delivery</span>
-              </div>
+              
               <div className="flex flex-col items-center text-center p-3 bg-orange-50 rounded-xl border border-orange-100">
                 <Clock className="h-5 w-5 text-orange-600 mb-1" />
                 <span className="text-xs font-medium text-orange-700">24/7 Support</span>

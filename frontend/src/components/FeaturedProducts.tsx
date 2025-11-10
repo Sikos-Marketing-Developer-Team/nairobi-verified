@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Star, MapPin, CheckCircle, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,12 +32,7 @@ const FeaturedProducts = () => {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleCards, setVisibleCards] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [currentTranslate, setCurrentTranslate] = useState(0);
   const navigate = useNavigate();
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
@@ -61,17 +56,15 @@ const FeaturedProducts = () => {
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
-        setVisibleCards(4);
+        setVisibleCards(4); // lg screens - 4 cards
       } else if (window.innerWidth >= 768) {
-        setVisibleCards(2);
+        setVisibleCards(2); // md screens - 2 cards
       } else {
-        setVisibleCards(1);
+        setVisibleCards(1); // mobile - 1 card
       }
-      // Reset translate on resize
-      setCurrentTranslate(0);
     };
 
-    handleResize();
+    handleResize(); // Set initial value
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -84,106 +77,20 @@ const FeaturedProducts = () => {
     }).format(price);
   };
 
-  const nextSlide = useCallback(() => {
-    setCurrentIndex((prevIndex) => {
-      const newIndex = prevIndex + 1 >= products.length - (visibleCards - 1) ? 0 : prevIndex + 1;
-      updateSliderPosition(newIndex);
-      return newIndex;
-    });
-  }, [products.length, visibleCards]);
-
-  const prevSlide = useCallback(() => {
-    setCurrentIndex((prevIndex) => {
-      const newIndex = prevIndex - 1 < 0 ? Math.max(0, products.length - visibleCards) : prevIndex - 1;
-      updateSliderPosition(newIndex);
-      return newIndex;
-    });
-  }, [products.length, visibleCards]);
-
-  const updateSliderPosition = (index: number) => {
-    if (containerRef.current) {
-      const cardWidth = 100 / visibleCards;
-      const translateX = -index * cardWidth;
-      setCurrentTranslate(translateX);
-    }
+  const nextSlide = () => {
+    setCurrentIndex((prevIndex) => 
+      prevIndex + 1 >= products.length - (visibleCards - 1) ? 0 : prevIndex + 1
+    );
   };
 
-  // Touch event handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsDragging(true);
-    setStartX(e.touches[0].clientX);
+  const prevSlide = () => {
+    setCurrentIndex((prevIndex) => 
+      prevIndex - 1 < 0 ? Math.max(0, products.length - visibleCards) : prevIndex - 1
+    );
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    
-    const currentX = e.touches[0].clientX;
-    const diff = startX - currentX;
-    const cardWidth = 100 / visibleCards;
-    
-    // Calculate new translate position with resistance
-    const newTranslate = currentTranslate - (diff / (containerRef.current?.offsetWidth || 1)) * 100;
-    setCurrentTranslate(newTranslate);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    
-    const endX = e.changedTouches[0].clientX;
-    const diff = startX - endX;
-    const threshold = 50; // Minimum swipe distance in pixels
-
-    if (Math.abs(diff) > threshold) {
-      if (diff > 0) {
-        // Swiped left - next slide
-        nextSlide();
-      } else {
-        // Swiped right - previous slide
-        prevSlide();
-      }
-    } else {
-      // Not enough swipe distance, return to current position
-      updateSliderPosition(currentIndex);
-    }
-    
-    setIsDragging(false);
-  };
-
-  // Mouse event handlers for desktop
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setStartX(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    
-    const currentX = e.clientX;
-    const diff = startX - currentX;
-    const cardWidth = 100 / visibleCards;
-    
-    const newTranslate = currentTranslate - (diff / (containerRef.current?.offsetWidth || 1)) * 100;
-    setCurrentTranslate(newTranslate);
-  };
-
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    
-    const endX = e.clientX;
-    const diff = startX - endX;
-    const threshold = 50;
-
-    if (Math.abs(diff) > threshold) {
-      if (diff > 0) {
-        nextSlide();
-      } else {
-        prevSlide();
-      }
-    } else {
-      updateSliderPosition(currentIndex);
-    }
-    
-    setIsDragging(false);
+  const handleProductClick = (productId: string) => {
+    navigate(`/product/${productId}`);
   };
 
   const ProductCard = ({ product }: { product: Product }) => {
@@ -192,21 +99,24 @@ const FeaturedProducts = () => {
     const locationDisplay = product.merchant?.address || product.location || 'Nairobi';
     const displayImage = product.primaryImage || product.images?.[0] || '/placeholder-product.jpg';
 
-    const handleClick = () => {
-      navigate(`/product/${product._id}`);
+    const handleCardClick = (e: React.MouseEvent) => {
+      // Prevent navigation when clicking the button
+      if ((e.target as HTMLElement).closest('button')) {
+        return;
+      }
+      handleProductClick(product._id);
     };
 
     return (
       <Card 
-        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer mx-2 select-none"
-        onClick={handleClick}
+        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer mx-2 flex flex-col h-full"
+        onClick={handleCardClick}
       >
-        <div className="relative h-40 sm:h-48 bg-gray-100">
+        <div className="relative h-40 sm:h-48 bg-gray-100 flex-shrink-0">
           <img
             src={displayImage}
             alt={product.name}
             className="w-full h-full object-cover"
-            draggable="false"
           />
           {product.originalPrice && (
             <Badge className="absolute top-2 right-2 bg-red-500 text-xs">
@@ -215,8 +125,8 @@ const FeaturedProducts = () => {
           )}
         </div>
         
-        <div className="p-3 sm:p-4">
-          <h3 className="font-semibold text-base sm:text-lg mb-2 line-clamp-2 sm:line-clamp-1">{product.name}</h3>
+        <div className="p-3 sm:p-4 flex flex-col flex-grow">
+          <h3 className="font-semibold text-base sm:text-lg mb-2 line-clamp-2">{product.name}</h3>
           
           <div className="flex items-center gap-2 mb-2">
             <div className="flex items-center">
@@ -233,22 +143,33 @@ const FeaturedProducts = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
+          <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
             <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
             <span className="truncate">{locationDisplay}</span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-lg sm:text-xl font-bold text-orange-600">
-                {formatPrice(product.price)}
-              </div>
-              {product.originalPrice && (
-                <div className="text-xs sm:text-sm text-gray-500 line-through">
-                  {formatPrice(product.originalPrice)}
+          <div className="mt-auto space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg sm:text-xl font-bold text-orange-600">
+                  {formatPrice(product.price)}
                 </div>
-              )}
+                {product.originalPrice && (
+                  <div className="text-xs sm:text-sm text-gray-500 line-through">
+                    {formatPrice(product.originalPrice)}
+                  </div>
+                )}
+              </div>
             </div>
+            
+            {/* View Product Button */}
+            <Button 
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm py-2"
+              onClick={() => handleProductClick(product._id)}
+              size="sm"
+            >
+              View Product
+            </Button>
           </div>
         </div>
       </Card>
@@ -281,6 +202,8 @@ const FeaturedProducts = () => {
     );
   }
 
+  const cardWidth = 100 / visibleCards;
+
   return (
     <section className="py-8 sm:py-12 bg-white">
       <div className="container mx-auto px-4 sm:px-6">
@@ -296,38 +219,16 @@ const FeaturedProducts = () => {
         </div>
 
         <div className="relative">
-          <div 
-            ref={containerRef}
-            className="overflow-hidden select-none touch-pan-y"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={() => {
-              if (isDragging) {
-                updateSliderPosition(currentIndex);
-                setIsDragging(false);
-              }
-            }}
-            style={{ 
-              cursor: isDragging ? 'grabbing' : 'grab',
-            }}
-          >
+          <div className="overflow-hidden">
             <div 
-              ref={sliderRef}
               className="flex transition-transform duration-300 ease-in-out"
-              style={{ 
-                transform: `translateX(${currentTranslate}%)`,
-                transition: isDragging ? 'none' : 'transform 0.3s ease-in-out'
-              }}
+              style={{ transform: `translateX(-${currentIndex * cardWidth}%)` }}
             >
               {products.map((product) => (
                 <div 
                   key={product._id} 
                   className="flex-shrink-0"
-                  style={{ width: `${100 / visibleCards}%` }}
+                  style={{ width: `${cardWidth}%` }}
                 >
                   <ProductCard product={product} />
                 </div>
@@ -358,21 +259,17 @@ const FeaturedProducts = () => {
           )}
         </div>
 
-        {/* Dots indicator */}
+        {/* Mobile dots indicator */}
         {products.length > visibleCards && (
-          <div className="flex justify-center mt-6">
+          <div className="flex justify-center mt-6 sm:hidden">
             <div className="flex space-x-2">
               {Array.from({ length: Math.ceil(products.length / visibleCards) }).map((_, index) => (
                 <button
                   key={index}
-                  className={`w-2 h-2 rounded-full transition-colors ${
+                  className={`w-2 h-2 rounded-full ${
                     index === currentIndex ? 'bg-orange-600' : 'bg-gray-300'
                   }`}
-                  onClick={() => {
-                    setCurrentIndex(index);
-                    updateSliderPosition(index);
-                  }}
-                  aria-label={`Go to slide ${index + 1}`}
+                  onClick={() => setCurrentIndex(index)}
                 />
               ))}
             </div>

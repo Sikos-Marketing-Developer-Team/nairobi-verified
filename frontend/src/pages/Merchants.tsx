@@ -425,22 +425,26 @@ const Merchants = () => {
                     </span>
                   </div>
                   
+                  {/* Mobile - Button */}
                   <div className="block sm:hidden">
-                    <Link
-                      to={`/business/${merchant._id}`}
-                      className="text-orange-500 text-[11px] underline hover:no-underline block text-center"
-                      aria-label={`View profile for ${merchant.businessName}`}
-                    >
-                      View Profile
+                    <Link to={`/business/${merchant._id}`} className="block">
+                      <Button 
+                        className="bg-orange-600 hover:bg-orange-700 text-white text-[11px] h-7 px-2 w-full"
+                        aria-label={`Visit shop for ${merchant.businessName}`}
+                      >
+                        Visit Shop
+                      </Button>
                     </Link>
                   </div>
+                  
+                  {/* Desktop - Button */}
                   <div className="hidden sm:flex sm:justify-end">
                     <Link to={`/business/${merchant._id}`} className="w-full">
                       <Button 
                         className="bg-primary hover:bg-primary-dark text-white text-xs h-8 px-3 w-full"
-                        aria-label={`View profile for ${merchant.businessName}`}
+                        aria-label={`Visit shop for ${merchant.businessName}`}
                       >
-                        View Profile
+                        Visit Shop
                       </Button>
                     </Link>
                   </div>
