@@ -192,9 +192,16 @@ const getProductById = async (req, res) => {
     // Increment view count
     await Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
 
+    // Add inStock field based on stockQuantity and isActive status
+    const productWithStock = {
+      ...product,
+      inStock: product.isActive && product.stockQuantity > (product.soldQuantity || 0),
+      availableQuantity: Math.max(0, product.stockQuantity - (product.soldQuantity || 0))
+    };
+
     res.json({
       success: true,
-      data: product,
+      data: productWithStock,
     });
   } catch (error) {
     handleError(res, error, 'Failed to fetch product');
