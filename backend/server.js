@@ -112,7 +112,8 @@ app.use(cors({
     'https://nairobi-verified-admin.onrender.com',
     'https://www.nairobiverified.co.ke',
     'https://nairobiverified.co.ke',
-    'https://nairobi-verified-1-rmgv.onrender.com'
+    'https://nairobi-verified-1-rmgv.onrender.com',
+    'https://nairobi-verified-admin-s1cf.onrender.com'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
