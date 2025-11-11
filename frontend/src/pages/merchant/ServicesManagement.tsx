@@ -290,20 +290,97 @@ const ServicesManagement = () => {
 
     try {
       setUploading(true);
+      console.log('📦 Submitting service:', formData);
+
+      let uploadedImageUrls: string[] = [];
+      let uploadedVideoUrls: string[] = [];
+
+      // Upload new images if any
+      if (serviceImages.length > 0) {
+        console.log('🔄 Uploading service images...');
+        const imageFormData = new FormData();
+        serviceImages.forEach(file => {
+          imageFormData.append("images", file);
+        });
+
+        const imageUploadResponse = await axios.post("/api/uploads/services", imageFormData, {
+          withCredentials: true,
+          headers: { 
+            "Content-Type": "multipart/form-data",
+            "Accept": "application/json"
+          },
+          timeout: 60000,
+        });
+
+        console.log('✅ Image upload response:', imageUploadResponse.data);
+        
+        if (imageUploadResponse.data.files) {
+          uploadedImageUrls = imageUploadResponse.data.files.map((file: { url: string }) => file.url);
+        } else if (imageUploadResponse.data.data) {
+          uploadedImageUrls = imageUploadResponse.data.data;
+        }
+        
+        console.log('✅ Images uploaded:', uploadedImageUrls);
+      }
+
+      // Upload new videos if any
+      if (serviceVideos.length > 0) {
+        console.log('🔄 Uploading service videos...');
+        const videoFormData = new FormData();
+        serviceVideos.forEach(file => {
+          videoFormData.append("videos", file);
+        });
+
+        const videoUploadResponse = await axios.post("/api/uploads/services/videos", videoFormData, {
+          withCredentials: true,
+          headers: { 
+            "Content-Type": "multipart/form-data",
+            "Accept": "application/json"
+          },
+          timeout: 120000, // 2 minutes for videos
+        });
+
+        console.log('✅ Video upload response:', videoUploadResponse.data);
+        
+        if (videoUploadResponse.data.files) {
+          uploadedVideoUrls = videoUploadResponse.data.files.map((file: { url: string }) => file.url);
+        } else if (videoUploadResponse.data.data) {
+          uploadedVideoUrls = videoUploadResponse.data.data;
+        }
+        
+        console.log('✅ Videos uploaded:', uploadedVideoUrls);
+      }
 
       if (editingService) {
-        // Update existing service
+        // Update existing service - merge existing and new media
+        const existingImages = previewImages.filter(img => img.startsWith('http'));
+        const existingVideos = previewVideos.filter(vid => vid.startsWith('http'));
+        
+        const updateData = {
+          ...formData,
+          images: [...existingImages, ...uploadedImageUrls],
+          videos: [...existingVideos, ...uploadedVideoUrls]
+        };
+
+        console.log('🔄 Updating service:', editingService._id);
         await axios.put(
           `${API_BASE_URL}/merchants/dashboard/services/${editingService._id}`,
-          formData,
+          updateData,
           { withCredentials: true }
         );
         setSuccess("Service updated successfully");
       } else {
         // Create new service
+        const serviceData = {
+          ...formData,
+          images: uploadedImageUrls,
+          videos: uploadedVideoUrls
+        };
+
+        console.log('🔄 Creating new service with data:', serviceData);
         await axios.post(
           `${API_BASE_URL}/merchants/dashboard/services`,
-          formData,
+          serviceData,
           { withCredentials: true }
         );
         setSuccess("Service created successfully");
@@ -313,6 +390,7 @@ const ServicesManagement = () => {
       handleCloseServiceModal();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
+      console.error('❌ Service submission error:', err);
       setError(err.response?.data?.error || err.response?.data?.message || "Failed to save service");
     } finally {
       setUploading(false);
@@ -584,6 +662,129 @@ const ServicesManagement = () => {
                 placeholder="e.g., 1 hour, 2 days, 1 week"
                 disabled={uploading}
               />
+            </div>
+
+            {/* Image Upload */}
+            <div>
+              <Label>Service Images (Max 5) - Optional</Label>
+              <p className="text-xs text-gray-500 mb-2">Upload before/after photos or service examples</p>
+              
+              {/* Preview Grid */}
+              {previewImages.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {previewImages.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      <img
+                        src={img}
+                        alt={`Preview ${idx + 1}`}
+                        className="w-full h-24 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (editingService && img.startsWith("http")) {
+                            handleDeleteExistingImage(img, editingService._id);
+                          } else {
+                            handleRemoveNewImage(idx);
+                          }
+                        }}
+                        disabled={deletingMedia === img}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload Button */}
+              {previewImages.length < 5 && (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="hidden"
+                    id="service-images"
+                    disabled={uploading}
+                  />
+                  <Label
+                    htmlFor="service-images"
+                    className="flex items-center justify-center border-2 border-dashed rounded-lg p-4 cursor-pointer hover:bg-gray-50"
+                  >
+                    <ImageIcon className="h-5 w-5 mr-2" />
+                    Upload Images ({previewImages.length}/5)
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    JPEG, PNG (Max 5MB each)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Video Upload */}
+            <div>
+              <Label>Service Videos (Max 3) - Optional</Label>
+              <p className="text-xs text-gray-500 mb-2">Upload demo videos or service walkthroughs</p>
+              
+              {/* Preview Grid */}
+              {previewVideos.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  {previewVideos.map((vid, idx) => (
+                    <div key={idx} className="relative group">
+                      <video
+                        src={vid}
+                        className="w-full h-24 object-cover rounded bg-black"
+                        controls={false}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded">
+                        <Video className="h-8 w-8 text-white" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (editingService && vid.startsWith("http")) {
+                            handleDeleteExistingVideo(vid, editingService._id);
+                          } else {
+                            handleRemoveNewVideo(idx);
+                          }
+                        }}
+                        disabled={deletingMedia === vid}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload Button */}
+              {previewVideos.length < 3 && (
+                <div>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    multiple
+                    onChange={handleVideoSelect}
+                    className="hidden"
+                    id="service-videos"
+                    disabled={uploading}
+                  />
+                  <Label
+                    htmlFor="service-videos"
+                    className="flex items-center justify-center border-2 border-dashed rounded-lg p-4 cursor-pointer hover:bg-gray-50"
+                  >
+                    <Video className="h-5 w-5 mr-2" />
+                    Upload Videos ({previewVideos.length}/3)
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    MP4, MOV, WebM (Max 50MB each)
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Active Status */}
