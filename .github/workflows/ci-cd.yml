@@ -319,22 +319,3 @@ jobs:
           echo "════════════════════════════════════════"
           echo "✅ All smoke tests completed!"
           echo "════════════════════════════════════════"
-```
-
-## Key Changes:
-
-1. **Added `defaults.run.working-directory: ./backend`** to each job that needs it
-2. **Added `cache-dependency-path: './backend/package-lock.json'`** to all setup-node steps
-
-## Where to Place the Workflow File:
-
-The workflow file should be at the **repository root**, not in the backend folder:
-```
-nairobi-verified/                    ← Repository root
-  ├── .github/
-  │   └── workflows/
-  │       └── ci-cd.yml              ← Workflow goes here
-  └── backend/                       ← Your code is here
-      ├── package.json
-      ├── package-lock.json
-      └── server.js
