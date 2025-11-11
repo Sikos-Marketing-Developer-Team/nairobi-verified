@@ -313,63 +313,27 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       console.log('🔄 Creating new product with data:', productData);
       
-      try {
-        const response = await axios.post(
-          "/api/merchants/dashboard/products", 
-          productData,
-          {
-            withCredentials: true,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            timeout: 30000, // 30 second timeout
-            validateStatus: (status) => status < 500 // Don't reject on 4xx errors
-          }
-        );
-        
-        console.log('✅ Full response:', response);
-        console.log('✅ Response status:', response.status);
-        console.log('✅ Response data:', response.data);
-        console.log('✅ Response headers:', response.headers);
-        
-        // Check if response has data
-        if (!response || !response.data) {
-          console.error('❌ Empty response received');
-          console.error('❌ Response object:', response);
-          throw new Error("Server returned empty response. Please check your network connection and try again.");
+      const response = await axios.post(
+        "/api/merchants/dashboard/products", 
+        productData,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          timeout: 30000
         }
-
-        // Handle error responses
-        if (response.status >= 400) {
-          console.error('❌ Error status received:', response.status);
-          throw new Error(response.data?.error || response.data?.message || `Server error: ${response.status}`);
-        }
-
-        if (!response.data.success) {
-          console.error('❌ Response indicates failure:', response.data);
-          throw new Error(response.data.error || response.data.message || "Product creation failed");
-        }
-
-        const newProduct = response.data.data;
-        
-        if (!newProduct || (!newProduct._id && !newProduct.id)) {
-          console.error('❌ Invalid response structure:', response.data);
-          throw new Error("Product created but no product ID returned from server");
-        }
-
-        console.log('✅ Product created successfully:', newProduct._id || newProduct.id);
-        setSuccess("Product created successfully");
-      } catch (axiosError: any) {
-        // Handle axios-specific errors
-        if (axiosError.code === 'ECONNABORTED') {
-          throw new Error("Request timeout. Please check your internet connection and try again.");
-        }
-        if (axiosError.code === 'ERR_NETWORK') {
-          throw new Error("Network error. Please check your internet connection.");
-        }
-        throw axiosError;
+      );
+      
+      console.log('✅ Product creation response:', response.data);
+      
+      if (!response.data || !response.data.success) {
+        throw new Error(response.data?.error || "Failed to create product");
       }
+
+      console.log('✅ Product created successfully');
+      setSuccess("Product created successfully");
     }
 
     await fetchProducts();
