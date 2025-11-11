@@ -15,7 +15,6 @@ import {
   Menu,
   X,
   Bell,
-  Search,
   User,
   ChevronDown
 } from 'lucide-react';
@@ -176,7 +175,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </button>
           
           <div className="flex-1 px-4 flex justify-between">
-            <div className="flex-1 flex">
+            {/* <div className="flex-1 flex">
               <div className="w-full flex md:ml-0">
                 <div className="relative w-full text-gray-400 focus-within:text-gray-600">
                   <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
@@ -189,7 +188,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
             
             <div className="ml-4 flex items-center md:ml-6">
               {/* Notifications */}
