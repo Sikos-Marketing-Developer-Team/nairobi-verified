@@ -140,7 +140,7 @@ const MerchantDetail = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeTab, setActiveTab] = useState('about');
+  const [activeTab, setActiveTab] = useState('services');
 
   // Check for mobile viewport
   useEffect(() => {
@@ -962,7 +962,7 @@ const MerchantDetail = () => {
               </div>
             </div>
 
-            <Tabs defaultValue="about" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs defaultValue="services" value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-4 h-12 lg:h-10">
                 <TabsTrigger value="services" className="text-xs lg:text-sm">
                   Products
