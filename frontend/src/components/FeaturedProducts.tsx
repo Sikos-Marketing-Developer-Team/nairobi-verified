@@ -68,12 +68,17 @@ const FeaturedProducts = () => {
       navigate(`/product/${product._id}`);
     };
 
+    const handleButtonClick = (e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevent card navigation when button is clicked
+      navigate(`/product/${product._id}`);
+    };
+
     return (
       <Card 
-        className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border-0 shadow-md hover:scale-[1.02]"
+        className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border-0 shadow-md hover:scale-[1.02] flex flex-col h-full"
         onClick={handleClick}
       >
-        <div className="relative h-48 bg-gray-100">
+        <div className="relative h-48 bg-gray-100 flex-shrink-0">
           <img
             src={displayImage}
             alt={product.name}
@@ -89,7 +94,7 @@ const FeaturedProducts = () => {
           )}
         </div>
 
-        <div className="p-4">
+        <div className="p-4 flex flex-col flex-grow">
           {/* Merchant Info */}
           <div className="flex items-center gap-1 mb-2">
             <span className="text-xs text-gray-600 truncate">{merchantName}</span>
@@ -99,7 +104,7 @@ const FeaturedProducts = () => {
           </div>
 
           {/* Product Name */}
-          <h3 className="font-semibold text-sm mb-2 line-clamp-2 text-gray-900 min-h-[2.5rem]">
+          <h3 className="font-semibold text-sm mb-2 line-clamp-2 text-gray-900 flex-grow">
             {product.name}
           </h3>
 
@@ -119,7 +124,7 @@ const FeaturedProducts = () => {
           </div>
 
           {/* Price */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex flex-col">
               <span className="text-lg font-bold text-orange-600">
                 {formatPrice(product.price)}
@@ -131,6 +136,14 @@ const FeaturedProducts = () => {
               )}
             </div>
           </div>
+
+          {/* Orange View Button */}
+          <Button 
+            onClick={handleButtonClick}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 transition-colors duration-200 mt-auto"
+          >
+            View
+          </Button>
         </div>
       </Card>
     );

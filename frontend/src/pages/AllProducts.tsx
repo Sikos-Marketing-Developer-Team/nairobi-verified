@@ -255,58 +255,65 @@ const AllProducts = () => {
     setPriceRange([priceRange[0], 200000]);
   };
 
+  // Check if any filters are active
+  const hasActiveFilters = searchTerm || priceRange[0] > 0 || priceRange[1] < 200000;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
       <main className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-          {/* Header Section */}
-          <div className="text-center mb-6">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-              All Products
-            </h1>
-            <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-2xl mx-auto px-2">
-              Discover products from verified merchants
-            </p>
-          </div>
+          {/* Enhanced Search and Filters Section - HORIZONTAL LAYOUT */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 mt-16">
+            <div className="flex flex-col sm:flex-row gap-3 ">
+              {/* Search Input - Takes available space */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  className="pl-10 pr-10 text-sm h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors w-full"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                />
+                {searchTerm && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
 
-          {/* Enhanced Search and Filters Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-            {/* Search Bar */}
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Search products..."
-                className="pl-10 pr-4 text-sm h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
+              {/* Search Button */}
               <Button 
                 onClick={handleSearch}
                 size="sm"
-                className="flex items-center gap-2 flex-1 h-10 bg-primary hover:bg-primary/90"
+                className="h-11 bg-primary hover:bg-primary/90 min-w-[100px]"
+                disabled={isLoadingProducts}
               >
-                <Search className="h-4 w-4" />
-                <span>Search</span>
+                {isLoadingProducts ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                <span className="ml-2">{isLoadingProducts ? 'Searching...' : 'Search'}</span>
               </Button>
-              
+
+              {/* Filters Button */}
               <Button 
                 variant={showFilters ? "secondary" : "outline"}
                 size="sm"
-                className="flex items-center gap-2 h-10 min-w-[100px] border-gray-300"
+                className="h-11 min-w-[100px] border-gray-300"
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter className="h-4 w-4" />
-                <span>Filters</span>
+                <span className="ml-2">Filters</span>
                 <ChevronDown 
-                  className={`h-4 w-4 transition-transform duration-200 ${
+                  className={`h-4 w-4 ml-1 transition-transform duration-200 ${
                     showFilters ? 'rotate-180' : ''
                   }`} 
                 />
@@ -323,12 +330,12 @@ const AllProducts = () => {
                     Filters
                   </h3>
                   <div className="flex items-center gap-2">
-                    {(searchTerm || priceRange[0] > 0 || priceRange[1] < 200000) && (
+                    {hasActiveFilters && (
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={clearFilters}
-                        className="text-xs h-8 text-gray-600 hover:text-gray-900"
+                        className="text-xs h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                       >
                         Clear all
                       </Button>
@@ -337,7 +344,7 @@ const AllProducts = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowFilters(false)}
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 p-0 hover:bg-gray-100"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -369,14 +376,14 @@ const AllProducts = () => {
                 </div>
 
                 {/* Active Filters Badges */}
-                {(searchTerm || priceRange[0] > 0 || priceRange[1] < 200000) && (
+                {hasActiveFilters && (
                   <div className="mt-4 pt-3 border-t border-gray-100">
                     <div className="flex flex-wrap gap-2">
                       {searchTerm && (
                         <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
                           Search: "{searchTerm}"
                           <X 
-                            className="h-3 w-3 cursor-pointer" 
+                            className="h-3 w-3 cursor-pointer hover:text-primary/80" 
                             onClick={clearSearch}
                           />
                         </div>
@@ -385,7 +392,7 @@ const AllProducts = () => {
                         <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
                           Min: KES {priceRange[0].toLocaleString()}
                           <X 
-                            className="h-3 w-3 cursor-pointer" 
+                            className="h-3 w-3 cursor-pointer hover:text-primary/80" 
                             onClick={clearMinPrice}
                           />
                         </div>
@@ -394,7 +401,7 @@ const AllProducts = () => {
                         <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
                           Max: KES {priceRange[1].toLocaleString()}
                           <X 
-                            className="h-3 w-3 cursor-pointer" 
+                            className="h-3 w-3 cursor-pointer hover:text-primary/80" 
                             onClick={clearMaxPrice}
                           />
                         </div>
@@ -406,16 +413,38 @@ const AllProducts = () => {
             )}
           </div>
 
-          {/* Products Count */}
+          {/* Products Count and Active Filters Summary */}
           <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 mb-4 p-2">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Products
-              {totalProducts > 0 && (
-                <span className="text-sm font-normal text-gray-600 ml-2">
-                  ({totalProducts.toLocaleString()})
-                </span>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Products
+                {totalProducts > 0 && (
+                  <span className="text-sm font-normal text-gray-600 ml-2">
+                    ({totalProducts.toLocaleString()})
+                  </span>
+                )}
+              </h2>
+              
+              {/* Active Filters Summary */}
+              {hasActiveFilters && (
+                <div className="hidden sm:flex items-center gap-1 text-xs text-gray-600">
+                  <span>•</span>
+                  <span>Filtered results</span>
+                </div>
               )}
-            </h2>
+            </div>
+            
+            {/* Clear Filters Button - Mobile */}
+            {hasActiveFilters && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={clearFilters}
+                className="text-xs h-8 text-gray-600 hover:text-gray-900 sm:hidden"
+              >
+                Clear all filters
+              </Button>
+            )}
           </div>
 
           {/* Products Grid */}
@@ -461,12 +490,12 @@ const AllProducts = () => {
                 </div>
                 <h3 className="text-base font-medium text-gray-900 mb-2">No products found</h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  {searchTerm || priceRange[0] > 0 || priceRange[1] < 200000 
+                  {hasActiveFilters 
                     ? "Try adjusting your search criteria or filters to find more products."
                     : "No products are currently available. Please check back later."
                   }
                 </p>
-                {(searchTerm || priceRange[0] > 0 || priceRange[1] < 200000) && (
+                {hasActiveFilters && (
                   <Button 
                     onClick={clearFilters}
                     size="sm"

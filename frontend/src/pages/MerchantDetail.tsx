@@ -140,7 +140,7 @@ const MerchantDetail = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeTab, setActiveTab] = useState('services');
+  const [activeTab, setActiveTab] = useState('about');
 
   // Check for mobile viewport
   useEffect(() => {
@@ -427,6 +427,114 @@ const MerchantDetail = () => {
     url && url.trim() !== ''
   );
 
+  // Utility function to format phone numbers for WhatsApp
+  const formatPhoneNumberForWhatsApp = (phone: string) => {
+    if (!phone) return '';
+    
+    // Remove all non-digit characters
+    const cleaned = phone.replace(/\D/g, '');
+    
+    // If empty after cleaning, return empty
+    if (!cleaned) return '';
+    
+    // If the number starts with 0, replace with country code for Kenya (254)
+    if (cleaned.startsWith('0') && cleaned.length === 10) {
+      return `254${cleaned.substring(1)}`;
+    }
+    
+    // If the number starts with 7 or 1 and is 9 digits, assume it's Kenyan without 0
+    if ((cleaned.startsWith('7') || cleaned.startsWith('1')) && cleaned.length === 9) {
+      return `254${cleaned}`;
+    }
+    
+    // If it's already 12 digits with 254, return as is
+    if (cleaned.startsWith('254') && cleaned.length === 12) {
+      return cleaned;
+    }
+    
+    // For other formats, return as is
+    return cleaned;
+  };
+
+  // Utility function to format phone numbers for tel: links
+  const formatPhoneNumberForCall = (phone: string) => {
+    if (!phone) return '';
+    
+    // Remove all non-digit characters
+    let cleaned = phone.replace(/\D/g, '');
+    
+    // If empty after cleaning, return empty
+    if (!cleaned) return '';
+    
+    // Convert to international format for tel: links
+    if (cleaned.startsWith('0') && cleaned.length === 10) {
+      cleaned = `+254${cleaned.substring(1)}`;
+    } else if ((cleaned.startsWith('7') || cleaned.startsWith('1')) && cleaned.length === 9) {
+      cleaned = `+254${cleaned}`;
+    } else if (cleaned.startsWith('254') && cleaned.length === 12) {
+      cleaned = `+${cleaned}`;
+    } else {
+      cleaned = `+${cleaned}`;
+    }
+    
+    return cleaned;
+  };
+
+  // WhatsApp product inquiry handler - FIXED
+  const handleProductWhatsAppInquiry = (product: Product) => {
+    const whatsappNumber = merchant?.whatsappNumber || merchant?.whatsapp || merchant?.phone;
+    
+    if (!whatsappNumber) {
+      toast({
+        title: 'WhatsApp Not Available',
+        description: 'This merchant has not provided a contact number',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const formattedNumber = formatPhoneNumberForWhatsApp(whatsappNumber);
+    const message = `Hello ${merchant.businessName}! I'm interested in your product: ${product.name} - KES ${product.price?.toLocaleString()}. ${product.description ? `Description: ${product.description}` : ''}`;
+    const whatsappUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  // General WhatsApp message handler - FIXED
+  const handleGeneralWhatsApp = () => {
+    const whatsappNumber = merchant?.whatsappNumber || merchant?.whatsapp || merchant?.phone;
+    
+    if (!whatsappNumber) {
+      toast({
+        title: 'WhatsApp Not Available',
+        description: 'This merchant has not provided a contact number',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const formattedNumber = formatPhoneNumberForWhatsApp(whatsappNumber);
+    const message = `Hello ${merchant.businessName}! I found your business on YourPlatform and I'm interested in your services.`;
+    const whatsappUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  // Phone call handler - FIXED
+  const handlePhoneCall = (phoneNumber?: string) => {
+    const numberToCall = phoneNumber || merchant?.phone;
+    
+    if (!numberToCall) {
+      toast({
+        title: 'Phone Number Not Available',
+        description: 'This merchant has not provided a phone number',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const formattedNumber = formatPhoneNumberForCall(numberToCall);
+    window.location.href = `tel:${formattedNumber}`;
+  };
+
   if (loading || isPageLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -554,10 +662,10 @@ const MerchantDetail = () => {
         }}
       />
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6 w-full">
         {/* Hero Section - Mobile Optimized */}
-        <header className="bg-white rounded-xl lg:rounded-lg shadow-lg overflow-hidden mb-4 lg:mb-6">
-          <Carousel className="relative h-48 sm:h-56 md:h-64 lg:h-80">
+        <header className="bg-white rounded-xl lg:rounded-lg shadow-lg overflow-hidden mb-4 lg:mb-6 w-full">
+          <Carousel className="relative h-48 sm:h-56 md:h-64 lg:h-80 w-full">
             <CarouselContent>
               <CarouselItem>
                 <img
@@ -582,11 +690,11 @@ const MerchantDetail = () => {
             <CarouselNext className="hidden sm:flex" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-3 lg:bottom-6 left-3 lg:left-6 right-3 lg:right-6">
-              <div className="flex items-end gap-3 lg:gap-6">
+              <div className="flex items-end gap-3 lg:gap-6 w-full">
                 <img
                   src={merchant.logo}
                   alt={`${merchant.businessName} logo`}
-                  className="w-16 h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 rounded-lg border-2 lg:border-4 border-white shadow-lg object-cover"
+                  className="w-16 h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 rounded-lg border-2 lg:border-4 border-white shadow-lg object-cover flex-shrink-0"
                   loading="eager"
                 />
                 <div className="text-white flex-1 min-w-0">
@@ -610,7 +718,7 @@ const MerchantDetail = () => {
                   </div>
                 </div>
                 {/* Mobile Action Buttons */}
-                <div className="flex gap-1 lg:gap-2">
+                <div className="flex gap-1 lg:gap-2 flex-shrink-0">
                   <Button 
                     size="sm"
                     variant="outline" 
@@ -632,6 +740,17 @@ const MerchantDetail = () => {
                     </span>
                   </Button>
                   
+                  {/* Share Link Button */}
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900 h-8 lg:h-10 px-2 lg:px-4"
+                    onClick={handleCopyLink}
+                  >
+                    <Share2 className="h-3 w-3 lg:h-4 lg:w-4" />
+                    <span className="hidden sm:inline ml-1 lg:ml-2">Share</span>
+                  </Button>
+                  
                   {/* Mobile Menu Sheet */}
                   <Sheet>
                     <SheetTrigger asChild>
@@ -643,13 +762,13 @@ const MerchantDetail = () => {
                         <Menu className="h-3 w-3 lg:h-4 lg:w-4" />
                       </Button>
                     </SheetTrigger>
-                    <SheetContent side="bottom" className="h-[80vh]">
-                      <ScrollArea className="h-full">
-                        <div className="space-y-6 p-4">
+                    <SheetContent side="bottom" className="h-[80vh] w-full">
+                      <ScrollArea className="h-full w-full">
+                        <div className="space-y-6 p-4 w-full">
                           {/* Quick Actions */}
-                          <div>
+                          <div className="w-full">
                             <h3 className="font-semibold text-lg mb-4">Quick Actions</h3>
-                            <div className="space-y-3">
+                            <div className="space-y-3 w-full">
                               <Button 
                                 className="w-full bg-primary hover:bg-primary-dark"
                                 onClick={handleContactMerchant}
@@ -681,6 +800,15 @@ const MerchantDetail = () => {
                                 <Map className="h-4 w-4 mr-2" />
                                 View on Google
                               </Button>
+                              {/* Add Share to mobile menu as well */}
+                              <Button 
+                                variant="outline" 
+                                className="w-full"
+                                onClick={handleCopyLink}
+                              >
+                                <Share2 className="h-4 w-4 mr-2" />
+                                Share Profile
+                              </Button>
                               <Button 
                                 variant="outline" 
                                 className="w-full text-red-500 hover:bg-red-50"
@@ -693,19 +821,19 @@ const MerchantDetail = () => {
                           </div>
 
                           {/* Contact Information */}
-                          <div>
+                          <div className="w-full">
                             <h3 className="font-semibold text-lg mb-4">Contact Information</h3>
-                            <div className="space-y-4">
+                            <div className="space-y-4 w-full">
                               <div className="flex items-center gap-3">
                                 <Phone className="h-5 w-5 text-gray-400" />
                                 <div>
                                   <p className="text-sm text-gray-500">Phone</p>
-                                  <a 
-                                    href={`tel:${merchant.phone}`} 
-                                    className="font-medium text-primary hover:text-primary-dark"
+                                  <button 
+                                    onClick={() => handlePhoneCall()}
+                                    className="font-medium text-primary hover:text-primary-dark text-left"
                                   >
                                     {merchant.phone}
-                                  </a>
+                                  </button>
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">
@@ -720,17 +848,17 @@ const MerchantDetail = () => {
                                   </a>
                                 </div>
                               </div>
-                              {merchant.whatsappNumber && (
+                              {(merchant.whatsappNumber || merchant.whatsapp || merchant.phone) && (
                                 <div className="flex items-center gap-3">
                                   <Send className="h-5 w-5 text-gray-400" />
                                   <div>
                                     <p className="text-sm text-gray-500">WhatsApp</p>
-                                    <a 
-                                      href={`https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
-                                      className="font-medium text-primary hover:text-primary-dark"
+                                    <button
+                                      onClick={handleGeneralWhatsApp}
+                                      className="font-medium text-primary hover:text-primary-dark text-left"
                                     >
                                       Message on WhatsApp
-                                    </a>
+                                    </button>
                                   </div>
                                 </div>
                               )}
@@ -738,9 +866,9 @@ const MerchantDetail = () => {
                           </div>
 
                           {/* Business Hours */}
-                          <div>
+                          <div className="w-full">
                             <h3 className="font-semibold text-lg mb-4">Business Hours</h3>
-                            <div className="space-y-2">
+                            <div className="space-y-2 w-full">
                               {Object.entries(businessHoursFormatted).map(([day, hoursStr]) => (
                                 <div 
                                   key={day} 
@@ -764,11 +892,11 @@ const MerchantDetail = () => {
           </Carousel>
         </header>
 
-        <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="grid lg:grid-cols-3 gap-4 lg:gap-6 w-full">
           {/* Sidebar - Hidden on mobile, shown in sheet */}
-          <aside className="hidden lg:block space-y-6">
+          <aside className="hidden lg:block space-y-6 w-full">
             {/* Trust Indicators */}
-            <Card>
+            <Card className="w-full">
               <CardHeader>
                 <h3 className="text-xl font-bold text-gray-900">Why Choose {merchant.businessName}</h3>
               </CardHeader>
@@ -793,7 +921,7 @@ const MerchantDetail = () => {
             </Card>
 
             {/* Contact Information */}
-            <Card>
+            <Card className="w-full">
               <CardHeader>
                 <h3 className="text-xl font-bold text-gray-900">Contact Information</h3>
               </CardHeader>
@@ -803,12 +931,12 @@ const MerchantDetail = () => {
                     <Phone className="h-5 w-5 text-gray-400" />
                     <div>
                       <p className="text-sm text-gray-500">Phone</p>
-                      <a 
-                        href={`tel:${merchant.phone}`} 
-                        className="font-medium text-primary hover:text-primary-dark"
+                      <button 
+                        onClick={() => handlePhoneCall()}
+                        className="font-medium text-primary hover:text-primary-dark text-left"
                       >
                         {merchant.phone}
-                      </a>
+                      </button>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -823,17 +951,17 @@ const MerchantDetail = () => {
                       </a>
                     </div>
                   </div>
-                  {merchant.whatsappNumber && (
+                  {(merchant.whatsappNumber || merchant.whatsapp || merchant.phone) && (
                     <div className="flex items-center gap-3">
                       <Send className="h-5 w-5 text-gray-400" />
                       <div>
                         <p className="text-sm text-gray-500">WhatsApp</p>
-                        <a 
-                          href={`https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
-                          className="font-medium text-primary hover:text-primary-dark"
+                        <button
+                          onClick={handleGeneralWhatsApp}
+                          className="font-medium text-primary hover:text-primary-dark text-left"
                         >
                           Message on WhatsApp
-                        </a>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -868,7 +996,7 @@ const MerchantDetail = () => {
             </Card>
 
             {/* Business Hours */}
-            <Card>
+            <Card className="w-full">
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-gray-400" />
@@ -898,7 +1026,7 @@ const MerchantDetail = () => {
             </Card>
 
             {/* Quick Actions */}
-            <nav className="space-y-3">
+            <nav className="space-y-3 w-full">
               <Button 
                 className="w-full bg-primary hover:bg-primary-dark"
                 onClick={handleContactMerchant}
@@ -930,6 +1058,15 @@ const MerchantDetail = () => {
                 <Map className="h-4 w-4 mr-2" />
                 View on Google
               </Button>
+              {/* Add Share button to desktop sidebar */}
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handleCopyLink}
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Profile
+              </Button>
               <Button 
                 variant="outline" 
                 className="w-full text-red-500 hover:bg-red-50"
@@ -942,10 +1079,10 @@ const MerchantDetail = () => {
           </aside>
 
           {/* Main Content */}
-          <section className="lg:col-span-2 space-y-4 lg:space-y-6">
+          <section className="lg:col-span-2 space-y-4 lg:space-y-6 w-full">
             {/* Mobile Quick Stats Bar */}
-            <div className="lg:hidden bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between text-sm">
+            <div className="lg:hidden bg-white rounded-xl p-4 shadow-sm w-full">
+              <div className="flex items-center justify-between text-sm w-full">
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 text-yellow-400 fill-current" />
                   <span className="font-semibold">{merchant.rating}</span>
@@ -962,7 +1099,7 @@ const MerchantDetail = () => {
               </div>
             </div>
 
-            <Tabs defaultValue="services" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs defaultValue="about" value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-4 h-12 lg:h-10">
                 <TabsTrigger value="services" className="text-xs lg:text-sm">
                   Products
@@ -978,25 +1115,25 @@ const MerchantDetail = () => {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Services Tab */}
-              <TabsContent value="services" className="space-y-4 lg:space-y-6">
+              {/* Services Tab - Enhanced Mobile Responsiveness */}
+              <TabsContent value="services" className="space-y-4 lg:space-y-6 w-full">
                 {/* Products Section */}
-                <Card>
+                <Card className="w-full">
                   <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
                     <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Products</h2>
                   </CardHeader>
-                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
+                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6 w-full">
                     {productsLoading ? (
-                      <div className="flex justify-center py-8">
+                      <div className="flex justify-center py-8 w-full">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                       </div>
                     ) : products.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 w-full">
                         {products.map((product) => (
-                          <div key={product._id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow group">
+                          <div key={product._id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow group bg-white w-full">
                             {/* Product Image - Clickable */}
-                            <Link to={`/product/${product._id}`}>
-                              <div className="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer">
+                            <Link to={`/product/${product._id}`} className="w-full">
+                              <div className="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer w-full">
                                 <img
                                   src={product.primaryImage || product.images?.[0] || '/placeholder-product.jpg'}
                                   alt={product.name}
@@ -1012,8 +1149,8 @@ const MerchantDetail = () => {
                             </Link>
                             
                             {/* Product Details */}
-                            <div className="p-3 lg:p-4">
-                              <Link to={`/product/${product._id}`}>
+                            <div className="p-3 lg:p-4 w-full">
+                              <Link to={`/product/${product._id}`} className="w-full">
                                 <h3 className="font-semibold text-base lg:text-lg mb-1 line-clamp-2 hover:text-primary transition-colors cursor-pointer">
                                   {product.name}
                                 </h3>
@@ -1032,67 +1169,73 @@ const MerchantDetail = () => {
                                 )}
                               </div>
 
-                              {/* Category */}
+                              {/* Category & Stock */}
                               <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                                 <span className="bg-gray-100 px-2 py-1 rounded">{product.category}</span>
+                                {product.stockQuantity > 0 ? (
+                                  <span className="text-green-600">In Stock</span>
+                                ) : (
+                                  <span className="text-red-600">Out of Stock</span>
+                                )}
                               </div>
 
-                              {/* Contact Buttons */}
-                              <div className="flex gap-2">
-                                {merchant.whatsappNumber && (
-                                  <Button
-                                    size="sm"
-                                    className="flex-1 bg-green-600 hover:bg-green-700 text-xs"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      window.open(
-                                        `https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hi! I'm interested in ${product.name}`)}`,
-                                        '_blank'
-                                      );
-                                    }}
-                                  >
-                                    WhatsApp
-                                  </Button>
-                                )}
-                                {merchant.phone && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1 text-xs"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      window.location.href = `tel:${merchant.phone}`;
-                                    }}
-                                  >
-                                    Call
-                                  </Button>
-                                )}
+                              {/* Contact Buttons - FIXED */}
+                              <div className="flex gap-2 w-full">
+                                <Button
+                                  size="sm"
+                                  className="flex-1 bg-green-600 hover:bg-green-700 text-xs min-h-[2.5rem]"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleProductWhatsAppInquiry(product);
+                                  }}
+                                >
+                                  <Send className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                                  WhatsApp
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 text-xs min-h-[2.5rem]"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePhoneCall(merchant.phone);
+                                  }}
+                                >
+                                  <Phone className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                                  Call
+                                </Button>
                               </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-gray-600 text-center py-8">No products listed yet.</p>
+                      <div className="text-center py-8 lg:py-12 w-full">
+                        <div className="text-gray-400 mb-4">
+                          <Image className="h-12 w-12 lg:h-16 lg:w-16 mx-auto" />
+                        </div>
+                        <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-2">No Products Available</h3>
+                        <p className="text-gray-600 text-sm lg:text-base">This merchant hasn't listed any products yet.</p>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Services Section */}
                 {merchant.services && merchant.services.length > 0 && (
-                  <Card>
+                  <Card className="w-full">
                     <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
                       <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Services & Pricing</h2>
                     </CardHeader>
-                    <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
-                      <ul className="space-y-4">
+                    <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6 w-full">
+                      <ul className="space-y-4 w-full">
                         {merchant.services.map((service, index: number) => (
-                          <li key={index} className="flex justify-between items-start border-b pb-4 last:border-b-0">
+                          <li key={index} className="flex flex-col sm:flex-row sm:justify-between sm:items-start border-b pb-4 last:border-b-0 gap-2 sm:gap-0 w-full">
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900">{service.name}</p>
-                              <p className="text-sm text-gray-600 mt-1">{service.description}</p>
+                              <p className="font-medium text-gray-900 text-sm lg:text-base">{service.name}</p>
+                              <p className="text-xs lg:text-sm text-gray-600 mt-1">{service.description}</p>
                             </div>
-                            <p className="font-semibold text-primary ml-4 whitespace-nowrap">
+                            <p className="font-semibold text-primary text-sm lg:text-base whitespace-nowrap sm:ml-4">
                               {service.price || 'Contact for pricing'}
                             </p>
                           </li>
@@ -1103,20 +1246,20 @@ const MerchantDetail = () => {
                 )}
               </TabsContent>
 
-              {/* About Tab */}
+              {/* About Tab - Enhanced Mobile Responsiveness */}
               <TabsContent value="about">
-                <Card>
+                <Card className="w-full">
                   <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
                     <h2 className="text-xl lg:text-2xl font-bold text-gray-900">About {merchant.businessName}</h2>
                   </CardHeader>
-                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
+                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6 w-full">
                     <p className="text-gray-600 leading-relaxed text-sm lg:text-base">{merchant.description}</p>
                     
                     {/* Social Links in About Section */}
                     {availableSocialLinks.length > 0 && (
-                      <div className="mt-6 pt-6 border-t">
+                      <div className="mt-6 pt-6 border-t w-full">
                         <h4 className="font-semibold text-gray-900 mb-3 text-base lg:text-lg">Connect with {merchant.businessName}</h4>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 w-full">
                           {availableSocialLinks.map(([platform, url]) => {
                             const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
                             const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
@@ -1138,7 +1281,7 @@ const MerchantDetail = () => {
                       </div>
                     )}
                     
-                    <div className="mt-6 flex items-center gap-4 flex-wrap">
+                    <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 flex-wrap w-full">
                       <div className="flex items-center">
                         <Star className="h-5 w-5 text-yellow-400 fill-current" />
                         <span className="text-lg font-semibold ml-1">{merchant.rating}</span>
@@ -1154,24 +1297,24 @@ const MerchantDetail = () => {
                 </Card>
               </TabsContent>
 
-              {/* Gallery Tab */}
+              {/* Gallery Tab - Enhanced Mobile Responsiveness */}
               <TabsContent value="gallery">
-                <Card>
+                <Card className="w-full">
                   <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
                     <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Photo Gallery</h2>
                     <p className="text-gray-600 mt-2 text-sm lg:text-base">
                       {merchant.gallery?.length || 0} photos showcasing {merchant.businessName}'s work and premises
                     </p>
                   </CardHeader>
-                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
+                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6 w-full">
                     {merchant.gallery && merchant.gallery.length > 0 ? (
-                      <div className="space-y-4 lg:space-y-6">
+                      <div className="space-y-4 lg:space-y-6 w-full">
                         {/* Grid View */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 lg:gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 lg:gap-4 w-full">
                           {merchant.gallery.map((image: string, index: number) => (
                             <div
                               key={index}
-                              className="aspect-square rounded-lg overflow-hidden cursor-pointer group relative"
+                              className="aspect-square rounded-lg overflow-hidden cursor-pointer group relative w-full"
                               onClick={() => handleImageClick(index)}
                             >
                               <img
@@ -1186,7 +1329,7 @@ const MerchantDetail = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-8 lg:py-12">
+                      <div className="text-center py-8 lg:py-12 w-full">
                         <Image className="h-12 w-12 lg:h-16 lg:w-16 text-gray-400 mx-auto mb-3 lg:mb-4" />
                         <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-2">No Photos Available</h3>
                         <p className="text-gray-600 text-sm lg:text-base">This merchant hasn't uploaded any photos yet.</p>
@@ -1196,33 +1339,33 @@ const MerchantDetail = () => {
                 </Card>
               </TabsContent>
 
-              {/* Reviews Tab */}
+              {/* Reviews Tab - Enhanced Mobile Responsiveness */}
               <TabsContent value="reviews">
-                <Card>
+                <Card className="w-full">
                   <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
                     <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Customer Reviews</h2>
                   </CardHeader>
-                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
+                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6 w-full">
                     <ReviewsSection merchantId={merchant._id} reviews={reviews} />
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
 
-            {/* Location & Map */}
-            <Card>
+            {/* Location & Map - Enhanced Mobile Responsiveness */}
+            <Card className="w-full">
               <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
                 <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Location</h2>
               </CardHeader>
-              <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6">
+              <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6 w-full">
                 <div className="flex items-start gap-3 mb-4">
                   <MapPin className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{merchant.address}</p>
-                    <p className="text-gray-600 truncate">{merchant.location}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 text-sm lg:text-base break-words">{merchant.address}</p>
+                    <p className="text-gray-600 text-sm lg:text-base break-words">{merchant.location}</p>
                   </div>
                 </div>
-                <div className="rounded-lg h-48 lg:h-64 overflow-hidden">
+                <div className="rounded-lg h-48 lg:h-64 overflow-hidden w-full">
                   <iframe 
                     title={`Location of ${merchant.businessName} in ${merchant.location}`}
                     width="100%" 
@@ -1233,12 +1376,14 @@ const MerchantDetail = () => {
                     marginWidth={0} 
                     src={`https://maps.google.com/maps?q=${encodeURIComponent(merchant.address)},${encodeURIComponent(merchant.location)}&z=16&output=embed`}
                     loading="lazy"
+                    className="w-full h-full"
                   ></iframe>
                 </div>
                 <Button 
                   className="w-full mt-4 bg-primary hover:bg-primary-dark"
                   onClick={handleGetDirections}
                 >
+                  <MapPin className="h-4 w-4 mr-2" />
                   Get Directions
                 </Button>
               </CardContent>
@@ -1249,8 +1394,8 @@ const MerchantDetail = () => {
 
       {/* Image Modal */}
       {selectedImageIndex !== null && merchant?.gallery && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-2 lg:p-4">
-          <div className="relative max-w-4xl max-h-full w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-2 lg:p-4 w-full">
+          <div className="relative max-w-4xl max-h-full w-full mx-4">
             {/* Close Button */}
             <button
               onClick={handleCloseModal}
@@ -1297,8 +1442,8 @@ const MerchantDetail = () => {
 
       {/* Enhanced Contact Modal */}
       {showContactModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 lg:p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-4 lg:p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 lg:p-4 w-full">
+          <div className="bg-white rounded-lg max-w-md w-full mx-4 p-4 lg:p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Contact {merchant.businessName}</h3>
               <Button
@@ -1309,36 +1454,36 @@ const MerchantDetail = () => {
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="space-y-4">
-              {merchant.whatsappNumber && (
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+            <div className="space-y-4 w-full">
+              {(merchant.whatsappNumber || merchant.whatsapp || merchant.phone) && (
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg w-full">
                   <Send className="h-5 w-5 text-primary" />
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium">WhatsApp</p>
-                    <a 
-                      href={`https://wa.me/${merchant.whatsappNumber}?text=${encodeURIComponent(`Hello ${merchant.businessName}, I'm interested in your services!`)}`}
-                      className="text-primary hover:underline"
+                    <button
+                      onClick={handleGeneralWhatsApp}
+                      className="text-primary hover:underline text-left"
                     >
                       Message on WhatsApp
-                    </a>
+                    </button>
                   </div>
                 </div>
               )}
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg w-full">
                 <Phone className="h-5 w-5 text-primary" />
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">Phone</p>
-                  <a 
-                    href={`tel:${merchant.phone}`}
-                    className="text-primary hover:underline"
+                  <button
+                    onClick={() => handlePhoneCall()}
+                    className="text-primary hover:underline text-left"
                   >
                     {merchant.phone}
-                  </a>
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg w-full">
                 <Mail className="h-5 w-5 text-primary" />
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">Email</p>
                   <a 
                     href={`mailto:${merchant.email}`}
@@ -1351,9 +1496,9 @@ const MerchantDetail = () => {
               
               {/* Social Links in Contact Modal */}
               {availableSocialLinks.length > 0 && (
-                <div className="pt-4 border-t">
+                <div className="pt-4 border-t w-full">
                   <p className="font-medium mb-3">Connect on Social Media</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 w-full">
                     {availableSocialLinks.map(([platform, url]) => {
                       const IconComponent = socialIcons[platform as keyof typeof socialIcons] || ExternalLink;
                       const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
@@ -1364,7 +1509,7 @@ const MerchantDetail = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleSocialMediaClick(url as string, platform)}
-                          className="justify-start text-xs"
+                          className="justify-start text-xs w-full"
                         >
                           <IconComponent className="h-3 w-3 lg:h-4 lg:w-4 mr-2" />
                           <span className="capitalize">{platformName}</span>
@@ -1469,8 +1614,8 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 w-full">
+      <div className="bg-white rounded-lg max-w-md w-full mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Write a Review for {merchant.businessName}</h3>
           <Button
@@ -1603,8 +1748,8 @@ const ReportModal = ({ merchant, onClose, onReportSubmitted }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 w-full">
+      <div className="bg-white rounded-lg max-w-md w-full mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Report Issue with {merchant.businessName}</h3>
           <Button
