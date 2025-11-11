@@ -414,122 +414,256 @@ const handleSubmit = async (e: React.FormEvent) => {
   if (loading && products.length === 0) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600"></div>
+          <p className="text-gray-600">Loading your products...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Product Management</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your products and services
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/merchant/dashboard")}>
-            Back to Dashboard
-          </Button>
-          <Button onClick={() => handleOpenProductModal()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Product
-          </Button>
-        </div>
-      </div>
-
-      {/* Alert Messages */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {success && (
-        <Alert className="border-green-500 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-500" />
-          <AlertDescription className="text-green-700">{success}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Products Grid */}
-      {products.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Package className="h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No products yet</h3>
-            <p className="text-gray-600 mb-4">Start by adding your first product</p>
-            <Button onClick={() => handleOpenProductModal()}>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+        {/* Modern Header with Gradient */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 md:p-8 text-white shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <Button 
+              variant="ghost" 
+              className="text-white hover:bg-white/20"
+              onClick={() => navigate("/merchant/dashboard")}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
+            <Button 
+              onClick={() => handleOpenProductModal()}
+              className="bg-white text-blue-600 hover:bg-blue-50"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map(product => (
-            <Card key={product._id} className="overflow-hidden">
-              {/* Product Image */}
-              <div className="relative h-48 bg-gray-200">
-                {product.images.length > 0 ? (
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="h-12 w-12 text-gray-400" />
-                  </div>
-                )}
-                
-                {/* Badges */}
-                <div className="absolute top-2 right-2 flex gap-2">
-                  {product.featured && (
-                    <Badge className="bg-yellow-500">Featured</Badge>
-                  )}
-                  {!product.available && (
-                    <Badge variant="secondary">Unavailable</Badge>
-                  )}
-                </div>
+          </div>
+          
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-2">
+              <Sparkles className="h-8 w-8" />
+              Product Management
+            </h1>
+            <p className="text-blue-100 text-lg">
+              Manage your products and grow your business
+            </p>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="flex items-center gap-2 mb-1">
+                <Package className="h-4 w-4" />
+                <p className="text-xs uppercase tracking-wide text-blue-100">Total</p>
+              </div>
+              <p className="text-2xl font-bold">{productStats.total}</p>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle className="h-4 w-4" />
+                <p className="text-xs uppercase tracking-wide text-blue-100">Available</p>
+              </div>
+              <p className="text-2xl font-bold">{productStats.available}</p>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="flex items-center gap-2 mb-1">
+                <EyeOff className="h-4 w-4" />
+                <p className="text-xs uppercase tracking-wide text-blue-100">Hidden</p>
+              </div>
+              <p className="text-2xl font-bold">{productStats.unavailable}</p>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="flex items-center gap-2 mb-1">
+                <Star className="h-4 w-4" />
+                <p className="text-xs uppercase tracking-wide text-blue-100">Featured</p>
+              </div>
+              <p className="text-2xl font-bold">{productStats.featured}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Alert Messages */}
+        {error && (
+          <Alert variant="destructive" className="shadow-lg border-red-200">
+            <AlertCircle className="h-5 w-5" />
+            <AlertDescription className="font-medium">{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {success && (
+          <Alert className="border-green-500 bg-green-50 shadow-lg">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <AlertDescription className="text-green-800 font-medium">{success}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Search and Filter Bar */}
+        <Card className="shadow-lg border-0">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-3">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 border-gray-200 focus:border-blue-500"
+                />
               </div>
 
-              {/* Product Info */}
-              <CardHeader>
-                <CardTitle className="line-clamp-1">{product.name}</CardTitle>
-                <CardDescription className="line-clamp-2">
-                  {product.description}
-                </CardDescription>
-              </CardHeader>
+              {/* Category Filter */}
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-full md:w-48 border-gray-200">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {CATEGORIES.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Category:</span>
-                    <Badge variant="outline">{product.category}</Badge>
-                  </div>
+              {/* Status Filter */}
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full md:w-48 border-gray-200">
+                  <Tag className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="unavailable">Unavailable</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* View Toggle */}
+              <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="flex-1 md:flex-none"
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="flex-1 md:flex-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Products Display */}
+        {filteredProducts.length === 0 ? (
+          <Card className="shadow-lg border-0">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-full p-6 mb-4">
+                <Package className="h-16 w-16 text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2 text-gray-800">
+                {products.length === 0 ? "No products yet" : "No matching products"}
+              </h3>
+              <p className="text-gray-600 mb-6 text-center max-w-md">
+                {products.length === 0 
+                  ? "Start building your catalog by adding your first product" 
+                  : "Try adjusting your search or filters"}
+              </p>
+              {products.length === 0 && (
+                <Button onClick={() => handleOpenProductModal()} size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600">
+                  <Plus className="h-5 w-5 mr-2" />
+                  Add Your First Product
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : viewMode === 'grid' ? (
+          // Grid View
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map(product => (
+              <Card key={product._id} className="group hover:shadow-2xl transition-all duration-300 border-0 overflow-hidden">
+                {/* Product Image with Overlay */}
+                <div className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                  {product.images.length > 0 ? (
+                    <img
+                      src={product.images[0]}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon className="h-16 w-16 text-gray-400" />
+                    </div>
+                  )}
                   
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Price:</span>
-                    <span className="font-semibold">
-                      {product.price > 0 ? `KES ${product.price.toLocaleString()}` : "Contact for price"}
-                    </span>
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  
+                  {/* Badges */}
+                  <div className="absolute top-3 right-3 flex flex-col gap-2">
+                    {product.featured && (
+                      <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 border-0 shadow-lg">
+                        <Star className="h-3 w-3 mr-1 fill-white" />
+                        Featured
+                      </Badge>
+                    )}
+                    <Badge className={product.available ? "bg-green-500 border-0" : "bg-gray-500 border-0"}>
+                      {product.available ? "Available" : "Unavailable"}
+                    </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Images:</span>
-                    <span>{product.images.length}/5</span>
+                  {/* Image Count */}
+                  <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-white text-sm flex items-center gap-1">
+                    <ImageIcon className="h-3 w-3" />
+                    {product.images.length}/5
+                  </div>
+                </div>
+
+                {/* Product Info */}
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="line-clamp-2 text-lg">{product.name}</CardTitle>
+                  </div>
+                  <CardDescription className="line-clamp-2 text-sm">
+                    {product.description}
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  {/* Category & Price */}
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline" className="text-xs">
+                      {product.category}
+                    </Badge>
+                    <div className="flex items-center gap-1 text-blue-600 font-bold">
+                      <DollarSign className="h-4 w-4" />
+                      {product.price > 0 ? `${product.price.toLocaleString()}` : "Contact"}
+                    </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1"
+                      className="flex-1 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-600"
                       onClick={() => handleOpenProductModal(product)}
                     >
                       <Edit className="h-4 w-4 mr-1" />
@@ -537,8 +671,9 @@ const handleSubmit = async (e: React.FormEvent) => {
                     </Button>
                     
                     <Button
-                      variant={product.available ? "secondary" : "default"}
+                      variant={product.available ? "outline" : "default"}
                       size="sm"
+                      className={product.available ? "" : "bg-green-600 hover:bg-green-700"}
                       onClick={() => handleToggleAvailability(product._id, product.available)}
                     >
                       {product.available ? (
@@ -549,19 +684,103 @@ const handleSubmit = async (e: React.FormEvent) => {
                     </Button>
                     
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
+                      className="text-red-600 hover:bg-red-50 hover:border-red-600"
                       onClick={() => handleDeleteProduct(product._id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          // List View
+          <div className="space-y-3">
+            {filteredProducts.map(product => (
+              <Card key={product._id} className="hover:shadow-lg transition-shadow border-0">
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
+                    {/* Thumbnail */}
+                    <div className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg overflow-hidden">
+                      {product.images.length > 0 ? (
+                        <img
+                          src={product.images[0]}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="h-8 w-8 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1 line-clamp-1">{product.name}</h3>
+                          <p className="text-sm text-gray-600 line-clamp-2 mb-2">{product.description}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                            {product.featured && (
+                              <Badge className="bg-yellow-500 text-xs">
+                                <Star className="h-3 w-3 mr-1 fill-white" />
+                                Featured
+                              </Badge>
+                            )}
+                            <Badge className={product.available ? "bg-green-500 text-xs" : "bg-gray-500 text-xs"}>
+                              {product.available ? "Available" : "Unavailable"}
+                            </Badge>
+                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                              <ImageIcon className="h-3 w-3" />
+                              {product.images.length}/5
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Price & Actions */}
+                        <div className="flex flex-col items-end gap-3">
+                          <div className="text-xl font-bold text-blue-600">
+                            {product.price > 0 ? `KES ${product.price.toLocaleString()}` : "Contact"}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenProductModal(product)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant={product.available ? "outline" : "default"}
+                              size="sm"
+                              className={product.available ? "" : "bg-green-600 hover:bg-green-700"}
+                              onClick={() => handleToggleAvailability(product._id, product.available)}
+                            >
+                              {product.available ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:bg-red-50"
+                              onClick={() => handleDeleteProduct(product._id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
       {/* Product Form Modal */}
       <Dialog open={showProductModal} onOpenChange={handleCloseProductModal}>
@@ -749,6 +968,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           </form>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };
