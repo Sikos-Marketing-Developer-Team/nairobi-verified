@@ -151,7 +151,8 @@ const CategorySection = () => {
                 >
                   <Card className="hover-scale cursor-pointer border-0 shadow-md sm:shadow-lg h-full">
                     <CardContent className="p-0 flex flex-col h-full">
-                      <div className="relative h-24 sm:h-28 md:h-36 lg:h-48 overflow-hidden rounded-t-lg flex-grow">
+                      {/* Increased height for mobile - from h-24 to h-32 on mobile */}
+                      <div className="relative h-36 sm:h-28 md:h-36 lg:h-48 overflow-hidden rounded-t-lg flex-grow">
                         <img
                           src={category.image}
                           alt={category.name}
@@ -163,7 +164,8 @@ const CategorySection = () => {
                           <p className="text-[10px] sm:text-xs opacity-90">{category.count}</p>
                         </div>
                       </div>
-                      <div className="p-1 sm:p-2 md:p-3 lg:p-4">
+                      {/* Increased padding for mobile - from p-1 to p-2 on mobile */}
+                      <div className="p-2 sm:p-2 md:p-3 lg:p-4">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] sm:text-xs text-gray-500">Verified merchants</span>
                           <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-3 md:h-3 bg-green-500 rounded-full"></div>
