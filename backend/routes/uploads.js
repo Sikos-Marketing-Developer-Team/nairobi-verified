@@ -194,6 +194,10 @@ router.post('/documents', protect, uploadDocs.fields([
 // Product routes
 router.post('/products', protect, uploadProductImages.array('images', 5), uploadProductImage);
 
+// Service routes - images and videos
+router.post('/services', protect, uploadProductImages.array('images', 5), uploadProductImage);
+router.post('/services/videos', protect, uploadProductImages.array('videos', 3), uploadProductImage);
+
 // Merchant image routes
 router.post('/merchants', protect, uploadMerchantImages.array('images', 10), uploadMerchantImage);
 
