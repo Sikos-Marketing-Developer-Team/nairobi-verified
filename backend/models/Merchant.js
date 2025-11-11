@@ -140,7 +140,9 @@ const MerchantSchema = new mongoose.Schema({
     price: { type: String, trim: true }, // Stored as string to allow "Contact for pricing" or "KES 1,000"
     duration: { type: String, trim: true }, // e.g., "1 hour", "2 days"
     active: { type: Boolean, default: true },
-    order: { type: Number, default: 0 }
+    order: { type: Number, default: 0 },
+    images: { type: [String], default: [] }, // Array of image URLs
+    videos: { type: [String], default: [] }  // Array of video URLs
   }],
   documents: { type: DocumentsSchema, default: {} },
   verified: { type: Boolean, default: false, index: true },
