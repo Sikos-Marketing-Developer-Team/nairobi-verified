@@ -253,8 +253,8 @@ const Merchants = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-16 pb-5">
-        {/* Search and Filter Section */}
-        <div className="mb-6 mt-16 sm:mt-12 pt-8">
+        {/* Search and Filter Section - Reduced top padding on mobile */}
+        <div className="mb-6 mt-8 sm:mt-12 pt-4 sm:pt-8">
           <div className="flex flex-col gap-3">
             <div className="flex flex-row items-center gap-2">
               <div className="relative flex-1">
@@ -425,15 +425,22 @@ const Merchants = () => {
                     </span>
                   </div>
                   
+                  {/* Mobile View Shop Button - Orange Button */}
                   <div className="block sm:hidden">
                     <Link
                       to={`/business/${merchant._id}`}
-                      className="text-orange-500 text-[11px] underline hover:no-underline block text-center"
+                      className="block w-full"
                       aria-label={`View profile for ${merchant.businessName}`}
                     >
-                      View Shop
+                      <Button 
+                        className="bg-orange-500 hover:bg-orange-600 text-white text-[11px] h-7 w-full"
+                      >
+                        View Shop
+                      </Button>
                     </Link>
                   </div>
+                  
+                  {/* Desktop View Shop Button */}
                   <div className="hidden sm:flex sm:justify-end">
                     <Link to={`/business/${merchant._id}`} className="w-full">
                       <Button 

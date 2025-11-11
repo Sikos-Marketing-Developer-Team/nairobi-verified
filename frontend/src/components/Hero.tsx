@@ -197,14 +197,16 @@ const Hero = () => {
 
                 {/* Quick Actions */}
                 <div className="flex gap-2 sm:grid sm:grid-cols-2 sm:gap-3 mt-4 sm:mt-6">
-                  <button className="flex-1 sm:flex-none py-2 sm:py-3 px-3 sm:px-4 bg-[#FDEDD5] hover:bg-[#FEF9EA] text-gray rounded-[5px] transition-colors duration-200 text-sm font-medium border border-[#F97316]/20">
-                    Browse All Merchants
-                  </button>
-                  <Link to="/auth/register/merchant" className="flex-1 sm:flex-none">
-                    <Button variant="outline" size="lg" className="w-full sm:w-auto border-primary text-primary hover:bg-primary hover:text-white rounded-[5px] text-sm sm:text-base">
-                      Register Your Business
-                    </Button>
-                  </Link>
+                 <Link to="/merchants" className="flex-1 sm:flex-none">
+  <button className="w-full py-2 sm:py-3 px-3 sm:px-4 bg-[#FDEDD5] hover:bg-[#FEF9EA] text-gray rounded-[5px] transition-colors duration-200 text-sm font-medium border border-[#F97316]/20">
+    Browse All Merchants
+  </button>
+</Link>
+<Link to="/auth/register/merchant" className="flex-1 sm:flex-none">
+  <Button variant="outline" size="lg" className="w-full sm:w-auto border-primary text-primary hover:bg-primary hover:text-white rounded-[5px] text-sm sm:text-base">
+    Register Your Business
+  </Button>
+</Link>
                 </div>
               </div>
 

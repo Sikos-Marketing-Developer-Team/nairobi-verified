@@ -4,7 +4,8 @@ import {
   Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, 
   Image, MessageSquare, AlertCircle, Loader2, X, Send, 
   Facebook, Instagram, Globe, Map, Twitter, Film, Copy, Share2,
-  Youtube, Linkedin, ChevronLeft, ChevronRight, Menu
+  Youtube, Linkedin, ChevronLeft, ChevronRight, Menu,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -312,6 +313,27 @@ const MerchantDetail = () => {
   const handleContactMerchant = () => {
     setShowContactModal(true);
   };
+
+  // Add this function with the other handler functions in the MerchantDetail component
+
+// WhatsApp service inquiry handler
+const handleServiceWhatsAppInquiry = (service: Service) => {
+  const whatsappNumber = merchant?.whatsappNumber || merchant?.whatsapp || merchant?.phone;
+  
+  if (!whatsappNumber) {
+    toast({
+      title: 'WhatsApp Not Available',
+      description: 'This merchant has not provided a contact number',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  const formattedNumber = formatPhoneNumberForWhatsApp(whatsappNumber);
+  const message = `Hello ${merchant.businessName}! I'm interested in your service: ${service.name}${service.price ? ` - ${service.price}` : ''}. ${service.description ? `Description: ${service.description}` : ''}`;
+  const whatsappUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
+  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+};
 
   // Directions handler
   const handleGetDirections = () => {
@@ -1116,135 +1138,172 @@ const MerchantDetail = () => {
               </TabsList>
 
               {/* Services Tab - Enhanced Mobile Responsiveness */}
-              <TabsContent value="services" className="space-y-4 lg:space-y-6 w-full">
-                {/* Products Section */}
-                <Card className="w-full">
-                  <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
-                    <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Products</h2>
-                  </CardHeader>
-                  <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6 w-full">
-                    {productsLoading ? (
-                      <div className="flex justify-center py-8 w-full">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      </div>
-                    ) : products.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 w-full">
-                        {products.map((product) => (
-                          <div key={product._id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow group bg-white w-full">
-                            {/* Product Image - Clickable */}
-                            <Link to={`/product/${product._id}`} className="w-full">
-                              <div className="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer w-full">
-                                <img
-                                  src={product.primaryImage || product.images?.[0] || '/placeholder-product.jpg'}
-                                  alt={product.name}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                  loading="lazy"
-                                />
-                                {product.featured && (
-                                  <div className="absolute top-2 right-2 bg-yellow-400 text-white px-2 py-1 rounded-full text-xs font-bold">
-                                    Featured
-                                  </div>
-                                )}
-                              </div>
-                            </Link>
-                            
-                            {/* Product Details */}
-                            <div className="p-3 lg:p-4 w-full">
-                              <Link to={`/product/${product._id}`} className="w-full">
-                                <h3 className="font-semibold text-base lg:text-lg mb-1 line-clamp-2 hover:text-primary transition-colors cursor-pointer">
-                                  {product.name}
-                                </h3>
-                              </Link>
-                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
-                              
-                              {/* Price */}
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="text-lg lg:text-xl font-bold text-green-600">
-                                  KES {product.price?.toLocaleString()}
-                                </span>
-                                {product.originalPrice && product.originalPrice > product.price && (
-                                  <span className="text-sm text-gray-400 line-through">
-                                    KES {product.originalPrice?.toLocaleString()}
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Category & Stock */}
-                              <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                                <span className="bg-gray-100 px-2 py-1 rounded">{product.category}</span>
-                                {product.stockQuantity > 0 ? (
-                                  <span className="text-green-600">In Stock</span>
-                                ) : (
-                                  <span className="text-red-600">Out of Stock</span>
-                                )}
-                              </div>
-
-                              {/* Contact Buttons - FIXED */}
-                              <div className="flex gap-2 w-full">
-                                <Button
-                                  size="sm"
-                                  className="flex-1 bg-green-600 hover:bg-green-700 text-xs min-h-[2.5rem]"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleProductWhatsAppInquiry(product);
-                                  }}
-                                >
-                                  <Send className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
-                                  WhatsApp
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1 text-xs min-h-[2.5rem]"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePhoneCall(merchant.phone);
-                                  }}
-                                >
-                                  <Phone className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
-                                  Call
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 lg:py-12 w-full">
-                        <div className="text-gray-400 mb-4">
-                          <Image className="h-12 w-12 lg:h-16 lg:w-16 mx-auto" />
-                        </div>
-                        <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-2">No Products Available</h3>
-                        <p className="text-gray-600 text-sm lg:text-base">This merchant hasn't listed any products yet.</p>
-                      </div>
+    
+<TabsContent value="services" className="space-y-4 lg:space-y-6 w-full">
+  {/* Products Section */}
+  <Card className="w-full">
+    <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
+      <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Products</h2>
+    </CardHeader>
+    <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6 w-full">
+      {productsLoading ? (
+        <div className="flex justify-center py-8 w-full">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : products.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 w-full">
+          {products.map((product) => (
+            <div key={product._id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow group bg-white w-full flex flex-col h-full">
+              {/* Product Image - Clickable */}
+              <Link to={`/product/${product._id}`} className="w-full">
+                <div className="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer w-full">
+                  <img
+                    src={product.primaryImage || product.images?.[0] || '/placeholder-product.jpg'}
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                  {product.featured && (
+                    <div className="absolute top-2 right-2 bg-yellow-400 text-white px-2 py-1 rounded-full text-xs font-bold">
+                      Featured
+                    </div>
+                  )}
+                </div>
+              </Link>
+              
+              {/* Product Details */}
+              <div className="p-3 lg:p-4 w-full flex flex-col flex-grow">
+                <Link to={`/product/${product._id}`} className="w-full">
+                  <h3 className="font-semibold text-base lg:text-lg mb-1 line-clamp-2 hover:text-primary transition-colors cursor-pointer">
+                    {product.name}
+                  </h3>
+                </Link>
+                <p className="text-sm text-gray-600 mb-2 line-clamp-2 flex-grow">{product.description}</p>
+                
+                {/* Price and View Link */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg lg:text-xl font-bold text-green-600">
+                      KES {product.price?.toLocaleString()}
+                    </span>
+                    {product.originalPrice && product.originalPrice > product.price && (
+                      <span className="text-sm text-gray-400 line-through">
+                        KES {product.originalPrice?.toLocaleString()}
+                      </span>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                  <Link 
+                    to={`/product/${product._id}`}
+                    className="text-orange-500 hover:text-green-600 underline text-sm font-medium transition-colors"
+                  >
+                    <span className="text-orange-600 hover:text-green-600">
+                      <Eye className="h-4 w-4 inline-block ml-1" /> View 
+                    </span>
+                  </Link>
+                </div>
 
-                {/* Services Section */}
-                {merchant.services && merchant.services.length > 0 && (
-                  <Card className="w-full">
-                    <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
-                      <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Services & Pricing</h2>
-                    </CardHeader>
-                    <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6 w-full">
-                      <ul className="space-y-4 w-full">
-                        {merchant.services.map((service, index: number) => (
-                          <li key={index} className="flex flex-col sm:flex-row sm:justify-between sm:items-start border-b pb-4 last:border-b-0 gap-2 sm:gap-0 w-full">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 text-sm lg:text-base">{service.name}</p>
-                              <p className="text-xs lg:text-sm text-gray-600 mt-1">{service.description}</p>
-                            </div>
-                            <p className="font-semibold text-primary text-sm lg:text-base whitespace-nowrap sm:ml-4">
-                              {service.price || 'Contact for pricing'}
-                            </p>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
+                {/* Category & Stock */}
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                  <span className="bg-gray-100 px-2 py-1 rounded">{product.category}</span>
+                  {product.stockQuantity > 0 ? (
+                    <span className="text-green-600">In Stock</span>
+                  ) : (
+                    <span className="text-red-600">Out of Stock</span>
+                  )}
+                </div>
+
+                {/* Contact Buttons */}
+                <div className="flex gap-2 w-full mt-auto">
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-xs min-h-[2.5rem]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleProductWhatsAppInquiry(product);
+                    }}
+                  >
+                    <Send className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                    WhatsApp
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-xs min-h-[2.5rem]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePhoneCall(merchant.phone);
+                    }}
+                  >
+                    <Phone className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                    Call
+                  </Button>
+                  
+                  
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 lg:py-12 w-full">
+          <div className="text-gray-400 mb-4">
+            <Image className="h-12 w-12 lg:h-16 lg:w-16 mx-auto" />
+          </div>
+          <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-2">No Products Available</h3>
+          <p className="text-gray-600 text-sm lg:text-base">This merchant hasn't listed any products yet.</p>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+
+  {/* Services Section */}
+  {merchant.services && merchant.services.length > 0 && (
+    <Card className="w-full">
+      <CardHeader className="px-4 lg:px-6 py-4 lg:py-6">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Services & Pricing</h2>
+      </CardHeader>
+      <CardContent className="px-4 lg:px-6 pb-4 lg:pb-6 w-full">
+        <ul className="space-y-6 w-full">
+          {merchant.services.map((service, index: number) => (
+            <li key={index} className="border-b pb-6 last:border-b-0 w-full">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0 w-full mb-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 text-sm lg:text-base">{service.name}</p>
+                  <p className="text-xs lg:text-sm text-gray-600 mt-1">{service.description}</p>
+                </div>
+                <p className="font-semibold text-primary text-sm lg:text-base whitespace-nowrap sm:ml-4">
+                  {service.price || 'Contact for pricing'}
+                </p>
+              </div>
+              
+              {/* CTA Buttons for Call and WhatsApp */}
+              <div className="flex gap-2 w-full mt-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 text-xs min-h-[2.5rem]"
+                  onClick={() => handlePhoneCall(merchant.phone)}
+                >
+                  <Phone className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                  Call Now
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-xs min-h-[2.5rem]"
+                  onClick={() => handleServiceWhatsAppInquiry(service)}
+                >
+                  <Send className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                  WhatsApp
+                </Button>
+                
+              </div>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  )}
+</TabsContent>
 
               {/* About Tab - Enhanced Mobile Responsiveness */}
               <TabsContent value="about">

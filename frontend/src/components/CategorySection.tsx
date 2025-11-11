@@ -46,9 +46,79 @@ const categories = [
     count: '400+ Products',
     image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&h=200&fit=crop',
     color: 'bg-indigo-100'
+  },
+  // NEW CATEGORIES
+  {
+    id: '60d0fe4f5311236168a10107',
+    name: 'Transport & Mobility',
+    count: '50+ Services',
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=300&h=200&fit=crop',
+    color: 'bg-orange-100'
+  },
+  {
+    id: '60d0fe4f5311236168a10108',
+    name: 'Printing & Stationery',
+    count: '200+ Products',
+    image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=200&fit=crop',
+    color: 'bg-teal-100'
+  },
+  {
+    id: '60d0fe4f5311236168a10109',
+    name: 'Fashion & Tailoring',
+    count: '150+ Services',
+    image: 'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=300&h=200&fit=crop',
+    color: 'bg-rose-100'
+  },
+  {
+    id: '60d0fe4f5311236168a10110',
+    name: 'Events & Decorations',
+    count: '100+ Services',
+    image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=300&h=200&fit=crop',
+    color: 'bg-fuchsia-100'
+  },
+  {
+    id: '60d0fe4f5311236168a10111',
+    name: 'Household & Kitchen',
+    count: '350+ Products',
+    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop',
+    color: 'bg-amber-100'
+  },
+  {
+    id: '60d0fe4f5311236168a10112',
+    name: 'Medical & Wellness',
+    count: '120+ Products',
+    image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=300&h=200&fit=crop',
+    color: 'bg-red-100'
+  },
+  {
+    id: '60d0fe4f5311236168a10113',
+    name: 'Beauty & Personal Care',
+    count: '300+ Products',
+    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&h=200&fit=crop',
+    color: 'bg-violet-100'
+  },
+  {
+    id: '60d0fe4f5311236168a10114',
+    name: 'Business Services',
+    count: '80+ Services',
+    image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=300&h=200&fit=crop',
+    color: 'bg-cyan-100'
+  },
+  {
+    id: '60d0fe4f5311236168a10115',
+    name: 'Automotive',
+    count: '180+ Products',
+    image: 'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=300&h=200&fit=crop',
+    color: 'bg-gray-100'
+  },
+  {
+    id: '60d0fe4f5311236168a10116',
+    name: 'Food & Beverages',
+    count: '400+ Products',
+    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&h=200&fit=crop',
+    color: 'bg-lime-100'
   }
 ];
-
 const CategorySection = () => {
   const scrollContainerRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
