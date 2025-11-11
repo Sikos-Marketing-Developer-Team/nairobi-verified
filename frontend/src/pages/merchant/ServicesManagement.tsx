@@ -104,6 +104,8 @@ const ServicesManagement = () => {
         duration: service.duration || "",
         active: service.active
       });
+      setPreviewImages(service.images || []);
+      setPreviewVideos(service.videos || []);
     } else {
       setEditingService(null);
       setFormData({
@@ -113,7 +115,11 @@ const ServicesManagement = () => {
         duration: "",
         active: true
       });
+      setPreviewImages([]);
+      setPreviewVideos([]);
     }
+    setServiceImages([]);
+    setServiceVideos([]);
     setIsModalOpen(true);
   };
 
@@ -127,6 +133,149 @@ const ServicesManagement = () => {
       duration: "",
       active: true
     });
+    setServiceImages([]);
+    setServiceVideos([]);
+    setPreviewImages([]);
+    setPreviewVideos([]);
+    setError("");
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith("image/")) {
+        setError("Please select only image files");
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Each image must be less than 5MB");
+        return false;
+      }
+      return true;
+    });
+
+    const currentTotal = previewImages.length + serviceImages.length;
+    const remaining = 5 - currentTotal;
+    
+    if (validFiles.length > remaining) {
+      setError(`You can only upload ${remaining} more image(s). Maximum 5 images per service.`);
+      return;
+    }
+
+    setServiceImages([...serviceImages, ...validFiles]);
+
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImages(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith("video/")) {
+        setError("Please select only video files");
+        return false;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        setError("Each video must be less than 50MB");
+        return false;
+      }
+      return true;
+    });
+
+    const currentTotal = previewVideos.length + serviceVideos.length;
+    const remaining = 3 - currentTotal;
+    
+    if (validFiles.length > remaining) {
+      setError(`You can only upload ${remaining} more video(s). Maximum 3 videos per service.`);
+      return;
+    }
+
+    setServiceVideos([...serviceVideos, ...validFiles]);
+
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewVideos(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveNewImage = (index: number) => {
+    setServiceImages(prev => prev.filter((_, i) => i !== index));
+    setPreviewImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveNewVideo = (index: number) => {
+    setServiceVideos(prev => prev.filter((_, i) => i !== index));
+    setPreviewVideos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteExistingImage = async (imageUrl: string, serviceId: string) => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+  
+    try {
+      setDeletingMedia(imageUrl);
+      const service = services.find(s => s._id === serviceId);
+      if (!service) throw new Error("Service not found");
+
+      const updatedImages = (service.images || []).filter(img => img !== imageUrl);
+      
+      await axios.put(`${API_BASE_URL}/merchants/dashboard/services/${serviceId}`, {
+        ...service,
+        images: updatedImages
+      }, { withCredentials: true });
+      
+      setSuccess("Image deleted successfully");
+      await fetchServices();
+      
+      if (editingService && editingService._id === serviceId) {
+        setPreviewImages(prev => prev.filter(img => img !== imageUrl));
+      }
+      
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to delete image");
+    } finally {
+      setDeletingMedia(null);
+    }
+  };
+
+  const handleDeleteExistingVideo = async (videoUrl: string, serviceId: string) => {
+    if (!confirm("Are you sure you want to delete this video?")) return;
+  
+    try {
+      setDeletingMedia(videoUrl);
+      const service = services.find(s => s._id === serviceId);
+      if (!service) throw new Error("Service not found");
+
+      const updatedVideos = (service.videos || []).filter(vid => vid !== videoUrl);
+      
+      await axios.put(`${API_BASE_URL}/merchants/dashboard/services/${serviceId}`, {
+        ...service,
+        videos: updatedVideos
+      }, { withCredentials: true });
+      
+      setSuccess("Video deleted successfully");
+      await fetchServices();
+      
+      if (editingService && editingService._id === serviceId) {
+        setPreviewVideos(prev => prev.filter(vid => vid !== videoUrl));
+      }
+      
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to delete video");
+    } finally {
+      setDeletingMedia(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
