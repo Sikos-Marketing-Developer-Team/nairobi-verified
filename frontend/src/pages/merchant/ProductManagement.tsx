@@ -34,7 +34,16 @@ import {
   AlertCircle,
   CheckCircle,
   Package,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Search,
+  Filter,
+  Grid3x3,
+  List,
+  Star,
+  DollarSign,
+  Tag,
+  ArrowLeft,
+  Sparkles
 } from "lucide-react";
 
 import { Product, ProductFormData  } from "@/interfaces/productmanagement";
@@ -46,6 +55,12 @@ const ProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  
+  // View and filter states
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   
   // Modal states
   const [showProductModal, setShowProductModal] = useState(false);
@@ -70,6 +85,25 @@ const ProductManagement = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Filter products
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = filterCategory === "all" || product.category === filterCategory;
+    const matchesStatus = filterStatus === "all" || 
+                         (filterStatus === "available" && product.available) ||
+                         (filterStatus === "unavailable" && !product.available);
+    
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  const productStats = {
+    total: products.length,
+    available: products.filter(p => p.available).length,
+    unavailable: products.filter(p => !p.available).length,
+    featured: products.filter(p => p.featured).length
+  };
 
   const fetchProducts = async () => {
     try {
