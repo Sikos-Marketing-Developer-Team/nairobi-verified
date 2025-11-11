@@ -431,7 +431,7 @@ const Merchants = () => {
                       className="text-orange-500 text-[11px] underline hover:no-underline block text-center"
                       aria-label={`View profile for ${merchant.businessName}`}
                     >
-                      View Profile
+                      View Shop
                     </Link>
                   </div>
                   <div className="hidden sm:flex sm:justify-end">
@@ -440,7 +440,7 @@ const Merchants = () => {
                         className="bg-primary hover:bg-primary-dark text-white text-xs h-8 px-3 w-full"
                         aria-label={`View profile for ${merchant.businessName}`}
                       >
-                        View Profile
+                        View Shop
                       </Button>
                     </Link>
                   </div>
