@@ -27,7 +27,13 @@ import {
   DollarSign,
   Clock,
   MoveUp,
-  MoveDown
+  MoveDown,
+  Upload,
+  X,
+  Image as ImageIcon,
+  Video,
+  ArrowLeft,
+  Sparkles
 } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -40,6 +46,8 @@ interface Service {
   duration?: string;
   active: boolean;
   order: number;
+  images?: string[];
+  videos?: string[];
 }
 
 const ServicesManagement = () => {
@@ -60,6 +68,13 @@ const ServicesManagement = () => {
     duration: "",
     active: true
   });
+
+  // Image and video upload state
+  const [serviceImages, setServiceImages] = useState<File[]>([]);
+  const [serviceVideos, setServiceVideos] = useState<File[]>([]);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [previewVideos, setPreviewVideos] = useState<string[]>([]);
+  const [deletingMedia, setDeletingMedia] = useState<string | null>(null);
 
   useEffect(() => {
     fetchServices();

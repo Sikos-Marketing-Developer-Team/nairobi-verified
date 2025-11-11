@@ -108,9 +108,14 @@ const ProductManagement = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("/api/merchants/dashboard/products");
+      console.log('🔄 Fetching products...');
+      const response = await axios.get("/api/merchants/dashboard/products", {
+        withCredentials: true
+      });
+      console.log('✅ Products fetched:', response.data);
       setProducts(response.data.data || []);
     } catch (err: any) {
+      console.error('❌ Failed to fetch products:', err);
       setError(err.response?.data?.message || "Failed to load products");
     } finally {
       setLoading(false);
