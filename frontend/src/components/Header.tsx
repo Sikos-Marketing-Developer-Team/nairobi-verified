@@ -422,21 +422,21 @@ const Navbar = () => {
 
   // Render market research section for mobile
   const renderMobileMarketResearch = () => (
-    <div className="border-t border-gray-200 pt-4 mt-4">
-      <span className="font-bold block mb-3 text-gray-900 text-lg">Market Research</span>
-      <div className="space-y-2">
+    <div className="border-t border-gray-200 pt-3 mt-3">
+      <span className="font-bold block mb-2 text-gray-900 text-base">Market Research</span>
+      <div className="space-y-1">
         {marketResearchLinks.map((link) => {
           const IconComponent = link.icon;
           return (
             <button
               key={link.path}
               onClick={() => handleMarketResearchClick(link.path)}
-              className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-orange-500 hover:bg-orange-50 transition-colors flex items-center gap-3"
+              className="w-full text-left p-2 rounded-lg border border-gray-200 hover:border-orange-500 hover:bg-orange-50 transition-colors flex items-center gap-2"
               title={link.label}
             >
-              <IconComponent className="w-5 h-5 text-orange-600 flex-shrink-0" />
+              <IconComponent className="w-4 h-4 text-orange-600 flex-shrink-0" />
               <div className="flex-1">
-                <div className="font-medium text-gray-900">{link.label}</div>
+                <div className="font-medium text-gray-900 text-sm">{link.label}</div>
                 <div className="text-xs text-gray-500">{link.description}</div>
               </div>
             </button>
@@ -449,13 +449,13 @@ const Navbar = () => {
   return (
     <nav 
       ref={navbarRef}
-      className={`fixed w-full top-0 z-50 transition-all duration-300 max-h-[150px] text-[15px] bg-white ${
+      className={`fixed w-full top-0 z-50 transition-all duration-300 text-[15px] bg-white ${
         scrolled ? 'shadow-lg bg-opacity-95 backdrop-blur-sm' : 'shadow-md'
       } ${showMerchantNav ? 'merchant-nav border-b border-gray-200' : 'user-nav'}`}
       aria-label="Main navigation"
     >
-      {/* Top Row - Logo, Search, Icons */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3 max-h-[90px]">
+      {/* Single Row - Logo, Icons, and Hamburger Menu */}
+      <div className="flex items-center justify-between px-4 sm:px-6 py-3">
         {/* Logo */}
         <Link 
           to={showMerchantNav ? "/merchant/dashboard" : "/"} 
@@ -474,43 +474,6 @@ const Navbar = () => {
           )}
         </Link>
 
-        {/* Search Bar (Desktop) - Only show for users */}
-        {!showMerchantNav && (
-          <div className="hidden md:flex items-center bg-white rounded-[16px] px-4 py-2 w-1/2 max-w-lg shadow-sm hover:shadow-md transition-shadow relative border border-orange-500"
-            style={{ minWidth: "300px" }}
-          >
-            <Search className="text-gray-500 w-4 h-4" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search items, products, shops ... (Ctrl+K)"
-              className="ml-2 flex-grow outline-none text-gray-800 placeholder-gray-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              aria-label="Search"
-              title="Search products and vendors"
-            />
-            <button 
-              type="button"
-              onClick={handleSearch}
-              className="bg-orange-600 text-white px-4 py-1 rounded-[16px] hover:bg-orange-700 transition-colors"
-              aria-label="Submit search"
-              title="Search"
-            >
-              Search
-            </button>
-            {isSearchFocused && (
-              <div className="absolute right-4 top-4 items-center text-xs text-gray-500 hidden md:flex">
-                <Keyboard className="mr-1 w-3 h-3" />
-                <span>Esc to cancel</span>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Show placeholder when in merchant mode */}
         {showMerchantNav && (
           <div className="hidden md:flex items-center justify-center flex-1 mx-8">
@@ -518,13 +481,13 @@ const Navbar = () => {
           </div>
         )}
     
-        {/* User Options */}
+        {/* User Options & Hamburger Menu */}
         <div className="flex items-center space-x-2 sm:space-x-4">
           {isAuthenticated ? (
             <>
-              {/* User Dropdown */}
-              <div className="relative group">
-                <button className="hidden sm:flex items-center space-x-2 text-gray-700 hover:text-orange-600 transition-colors p-2 rounded-[14px] hover:bg-orange-50">
+              {/* User Dropdown - Hidden on mobile */}
+              <div className="hidden sm:flex relative group">
+                <button className="flex items-center space-x-2 text-gray-700 hover:text-orange-600 transition-colors p-2 rounded-[14px] hover:bg-orange-50">
                   <div className={`p-1 rounded-full ${showMerchantNav ? 'bg-gray-100' : 'bg-orange-50'} text-gray-700`}>
                     <User className="h-4 w-4" />
                   </div>
@@ -598,7 +561,7 @@ const Navbar = () => {
           {isAuthenticated && !showMerchantNav && isRegularUser && (
             <Link 
               to="/favorites" 
-              className="hover:scale-110 transition-transform duration-200 text-gray-700 text-xl bg-orange-50 p-2 rounded-[16px] relative"
+              className="hidden sm:flex hover:scale-110 transition-transform duration-200 text-gray-700 text-xl bg-orange-50 p-2 rounded-[16px] relative"
               title="My Favorite Shops"
             >
               <Heart className="w-5 h-5" />
@@ -612,17 +575,30 @@ const Navbar = () => {
           {!showMerchantNav && isRegularUser && (
             <Link 
               to="/cart" 
-              className="hover:scale-110 transition-transform duration-200 text-gray-700 text-xl bg-orange-50 p-2 rounded-[16px] relative"
+              className="hidden sm:flex hover:scale-110 transition-transform duration-200 text-gray-700 text-xl bg-orange-50 p-2 rounded-[16px] relative"
               title="Shopping Cart"
             >
               <ShoppingCart className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 bg-orange-600 text-xs text-white font-bold rounded-[16px] w-5 h-5 flex items-center justify-center">0</span>
             </Link>
           )}
+
+          {/* Hamburger Menu - Only visible on mobile */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className={`md:hidden text-gray-800 focus:outline-none text-xl p-2 rounded-[16px] ${
+              showMerchantNav ? 'bg-gray-100 text-gray-700' : 'bg-orange-50'
+            }`}
+            aria-expanded={isMenuOpen}
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+            title={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          >
+            {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
 
-      {/* Desktop Navigation Links */}
+      {/* Desktop Navigation Links - Hidden on mobile */}
       <div className={`hidden md:flex items-center justify-between px-6 py-2 border-t text-base ${
         showMerchantNav ? 'border-gray-200 bg-white text-gray-800' : 'border-gray-200 text-gray-800 bg-white'
       }`}>
@@ -697,56 +673,23 @@ const Navbar = () => {
         </ul>
       </div>
 
-      {/* Mobile Menu Toggle & Search */}
-      <div className={`flex md:hidden justify-between items-center px-4 py-2 border-t text-gray-800 ${
-        showMerchantNav ? 'border-gray-200 bg-white' : 'border-gray-200 bg-white'
-      }`}>
-        <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className={`text-gray-800 focus:outline-none text-xl p-2 rounded-[16px] ${
-            showMerchantNav ? 'bg-gray-100 text-gray-700' : 'bg-orange-50'
-          }`}
-          aria-expanded={isMenuOpen}
-          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-          title={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-        >
-          {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-        
-        {/* Mobile Search - Only show for users */}
-        {!showMerchantNav && (
-          <div className="flex-grow mx-2">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full py-2 px-4 pl-10 rounded-[16px] text-gray-800 bg-white border border-orange-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                aria-label="Search"
-                title="Search products and vendors"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-            </div>
-          </div>
-        )}
-
-        {/* Merchant placeholder on mobile */}
-        {showMerchantNav && (
-          <div className="flex-grow mx-2 text-center">
-            <span className="text-gray-700 text-sm font-medium">Business Portal</span>
-          </div>
-        )}
-      </div>
-
       {/* Mobile Menu */}
       <div 
-        className={`px-6 py-4 bg-white md:hidden space-y-4 text-gray-800 font-medium shadow-lg transition-all duration-300 ${
+        className={`px-4 py-3 bg-white md:hidden space-y-3 text-gray-800 font-medium shadow-lg transition-all duration-300 ${
           isMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
         }`}
         aria-hidden={!isMenuOpen}
       >
+        {/* User Info for Mobile */}
+        {isAuthenticated && (
+          <div className="border-b border-gray-200 pb-2 mb-1">
+            <div className="flex items-center gap-2 text-gray-700">
+              <User className="w-4 h-4" />
+              <span className="font-semibold text-sm">Hello, {getUserDisplayName()}</span>
+            </div>
+          </div>
+        )}
+
         {renderMobileNavItems()}
         
         {/* Market Research Section for Mobile - Only for merchants */}
@@ -763,7 +706,7 @@ const Navbar = () => {
             }
             setIsMenuOpen(false);
           }}
-          className="w-full text-left hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-orange-600"
+          className="w-full text-left hover:text-orange-600 transition-colors py-1 flex items-center gap-1 text-orange-600 text-sm"
           title={showMerchantNav ? "Contact Support" : "Contact Us"}
         >
           <Phone className="w-4 h-4 text-orange-600" /> 
@@ -774,7 +717,7 @@ const Navbar = () => {
         {isAuthenticated && (
           <button 
             onClick={handleDashboardNavigation}
-            className="w-full text-left hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
+            className="w-full text-left hover:text-orange-600 transition-colors py-1 flex items-center gap-1 text-gray-800 text-sm"
             title="My Dashboard"
           >
             <LayoutDashboard className="w-4 h-4" /> 
@@ -787,7 +730,7 @@ const Navbar = () => {
           <Link 
             to={showMerchantNav ? "/merchant/profile/edit" : "/profile"}
             onClick={() => setIsMenuOpen(false)}
-            className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
+            className="hover:text-orange-600 transition-colors py-1 flex items-center gap-1 text-gray-800 text-sm"
             title="My Profile"
           >
             <User className="w-4 h-4" /> 
@@ -800,7 +743,7 @@ const Navbar = () => {
           <Link 
             to="/favorites" 
             onClick={() => setIsMenuOpen(false)}
-            className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
+            className="hover:text-orange-600 transition-colors py-1 flex items-center gap-1 text-gray-800 text-sm"
             title="My Wishlist"
           >
             <Heart className="w-4 h-4" /> My Wishlist
@@ -812,7 +755,7 @@ const Navbar = () => {
           <Link 
             to="/cart" 
             onClick={() => setIsMenuOpen(false)}
-            className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
+            className="hover:text-orange-600 transition-colors py-1 flex items-center gap-1 text-gray-800 text-sm"
             title="Shopping Cart"
           >
             <ShoppingCart className="w-4 h-4" /> Shopping Cart
@@ -827,7 +770,7 @@ const Navbar = () => {
               window.open(fullUrl, '_blank');
               setIsMenuOpen(false);
             }}
-            className="block w-full bg-orange-600 text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-orange-700 transition-colors"
+            className="block w-full bg-orange-600 text-white px-3 py-2 rounded-[14px] text-center font-semibold hover:bg-orange-700 transition-colors text-sm mt-2"
             title="Open Shopping Site in New Tab"
           >
             Shop Products
@@ -836,37 +779,32 @@ const Navbar = () => {
           <Link 
             to="/auth/register/merchant" 
             onClick={() => setIsMenuOpen(false)}
-            className="block bg-orange-600 text-white px-4 py-2 rounded-[16px] text-center font-semibold hover:bg-orange-700 transition-colors"
+            className="block bg-orange-600 text-white px-3 py-2 rounded-[14px] text-center font-semibold hover:bg-orange-700 transition-colors text-sm mt-2"
             title="Become a Seller on Nairobi Verified"
           >
             Sell on Nairobi Verified
           </Link>
         ) : null}
         
+        {/* Auth Section for Mobile */}
         <div className="pt-2 border-t border-gray-200 mt-2">
           <ul className="space-y-1">
             {isAuthenticated ? (
-              <>
-                <li className="flex items-center gap-2 text-gray-700 py-1.5">
-                  <User className="w-4 h-4" />
-                  <span className="text-sm">Hello, {getUserDisplayName()}</span>
-                </li>
-                <li>
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full text-left hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
-                    title="Logout from Nairobi Verified"
-                  >
-                    <LogOut className="w-4 h-4" /> Logout
-                  </button>
-                </li>
-              </>
+              <li>
+                <button 
+                  onClick={handleLogout}
+                  className="w-full text-left hover:text-orange-600 transition-colors py-1 flex items-center gap-1 text-gray-800 text-sm"
+                  title="Logout from Nairobi Verified"
+                >
+                  <LogOut className="w-4 h-4" /> Logout
+                </button>
+              </li>
             ) : (
               <li>
                 <Link 
                   to="/auth" 
                   onClick={() => setIsMenuOpen(false)}
-                  className="hover:text-orange-600 transition-colors py-1.5 flex items-center gap-1 text-gray-800"
+                  className="hover:text-orange-600 transition-colors py-1 flex items-center gap-1 text-gray-800 text-sm"
                   title="Sign In to Nairobi Verified"
                 >
                   <LogIn className="w-4 h-4" /> Sign In

@@ -51,27 +51,111 @@ const BUSINESS_TYPES = [
 ];
 
 const PRODUCT_CATEGORIES = [
+  // EXISTING CATEGORIES
   'Electronics',
-  'Fashion',
+  'Fashion & Clothing',
   'Home & Garden',
-  'Sports',
-  'Books',
-  'Beauty',
+  'Sports & Fitness',
+  'Books & Media',
+  'Health & Beauty',
   'Automotive',
-  'Food & Beverages'
+  'Food & Beverages',
+  
+  // NEW CATEGORIES - ORGANIZED
+  'Transport & Mobility',
+  'Printing & Stationery',
+  'Fashion & Tailoring',
+  'Events & Decorations',
+  'Household & Kitchen',
+  'Medical & Wellness',
+  'Beauty & Personal Care',
+  'Business Services'
 ];
 
 const SUBCATEGORIES: Record<string, string[]> = {
+  // EXISTING SUBCATEGORIES
   'Electronics': ['Phones & Tablets', 'Computers', 'Audio', 'Cameras', 'Gaming', 'Accessories', 'Other'],
-  'Fashion': ['Men', 'Women', 'Kids', 'Shoes', 'Accessories', 'Jewelry', 'Other'],
+  'Fashion & Clothing': ['Men', 'Women', 'Kids', 'Shoes', 'Accessories', 'Jewelry', 'Other'],
   'Home & Garden': ['Furniture', 'Decor', 'Kitchen', 'Garden', 'Tools', 'Bedding', 'Other'],
-  'Sports': ['Fitness', 'Outdoor', 'Team Sports', 'Water Sports', 'Cycling', 'Equipment', 'Other'],
-  'Books': ['Fiction', 'Non-Fiction', 'Educational', 'Children', 'Comics', 'Magazines', 'Other'],
-  'Beauty': ['Skincare', 'Makeup', 'Haircare', 'Fragrance', 'Personal Care', 'Tools', 'Other'],
+  'Sports & Fitness': ['Fitness', 'Outdoor', 'Team Sports', 'Water Sports', 'Cycling', 'Equipment', 'Other'],
+  'Books & Media': ['Fiction', 'Non-Fiction', 'Educational', 'Children', 'Comics', 'Magazines', 'Other'],
+  'Health & Beauty': ['Skincare', 'Makeup', 'Haircare', 'Fragrance', 'Personal Care', 'Tools', 'Other'],
   'Automotive': ['Parts', 'Accessories', 'Tools', 'Care', 'Electronics', 'Tires', 'Other'],
-  'Food & Beverages': ['Fresh', 'Packaged', 'Beverages', 'Snacks', 'Frozen', 'Organic', 'Other']
+  'Food & Beverages': ['Fresh', 'Packaged', 'Beverages', 'Snacks', 'Frozen', 'Organic', 'Other'],
+  
+  // NEW SUBCATEGORIES - ORGANIZED
+  'Transport & Mobility': [
+    'Bike Hire & Rental',
+    'Motorcycle Accessories',
+    'Safety Gear',
+    'Bike Maintenance',
+    'Scooters',
+    'Other Mobility Services'
+  ],
+  
+  'Printing & Stationery': [
+    'Printing Materials',
+    'Office Stationery',
+    'Educational Books',
+    'Art Supplies',
+    'Packaging Materials',
+    'Business Cards & Printing'
+  ],
+  
+  'Fashion & Tailoring': [
+    'Tailoring Services',
+    'African Wear',
+    'Fabric & Materials',
+    'Sewing Accessories',
+    'Custom Clothing',
+    'Traditional Attire'
+  ],
+  
+  'Events & Decorations': [
+    'Party Decorations',
+    'Event Planning',
+    'Balloons & Supplies',
+    'Catering Equipment',
+    'Venue Decor',
+    'Wedding Supplies'
+  ],
+  
+  'Household & Kitchen': [
+    'Household Items',
+    'Kitchenware',
+    'Baking Supplies',
+    'Cleaning Products',
+    'Storage Solutions',
+    'Home Organization'
+  ],
+  
+  'Medical & Wellness': [
+    'Medical Supplies',
+    'Therapy Services',
+    'Wellness Products',
+    'First Aid',
+    'Healthcare Equipment',
+    'Pharmaceuticals'
+  ],
+  
+  'Beauty & Personal Care': [
+    'Nail Care & Polishes',
+    'Hair Products',
+    'Skin Treatments',
+    'Cosmetics',
+    'Personal Grooming',
+    'Beauty Services'
+  ],
+  
+  'Business Services': [
+    'Packaging Services',
+    'Printing Services',
+    'Business Consulting',
+    'Professional Services',
+    'Office Supplies',
+    'Corporate Gifts'
+  ]
 };
-
 const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalProps) => {
   const [formData, setFormData] = useState<MerchantFormData>({
     businessName: '',
@@ -527,7 +611,7 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
 
           {/* Address */}
           <div>
-            <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1 items-center">
               <MapPin className="h-4 w-4 mr-1" />
               Physical Address <span className="text-red-500">*</span>
             </label>
@@ -579,7 +663,7 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
 
           {/* Website */}
           <div>
-            <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+            <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1 items-center">
               <Globe className="h-4 w-4 mr-1" />
               Website
             </label>
@@ -602,7 +686,7 @@ const AddMerchantModal = ({ isOpen, onClose, onAddMerchant }: AddMerchantModalPr
 
           {/* Year Established */}
           <div>
-            <label htmlFor="yearEstablished" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+            <label htmlFor="yearEstablished" className="block text-sm font-medium text-gray-700 mb-1 items-center">
               <Calendar className="h-4 w-4 mr-1" />
               Year Established
             </label>
