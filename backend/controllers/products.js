@@ -467,5 +467,6 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getCategories,
+  getValidCategories,
   getSearchSuggestions
 };
