@@ -371,7 +371,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 };
   const handleToggleAvailability = async (productId: string, currentStatus: boolean) => {
     try {
-      await axios.patch(`/api/merchants/dashboard/products/${productId}/availability`, {
+      await api.patch(`/merchants/dashboard/products/${productId}/availability`, {
         available: !currentStatus
       });
       
@@ -389,7 +389,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
 
     try {
-      await axios.delete(`/api/merchants/dashboard/products/${productId}`);
+      await api.delete(`/merchants/dashboard/products/${productId}`);
       setSuccess("Product deleted successfully");
       await fetchProducts();
       setTimeout(() => setSuccess(""), 3000);
