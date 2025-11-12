@@ -398,6 +398,22 @@ const getCategories = async (req, res) => {
   }
 };
 
+// Get valid category enum values from schema
+const getValidCategories = async (req, res) => {
+  try {
+    // Get the enum values directly from the Product schema
+    const categoryEnum = Product.schema.path('category').enumValues;
+
+    res.json({
+      success: true,
+      data: categoryEnum,
+      message: 'These are the valid category values for creating/updating products'
+    });
+  } catch (error) {
+    handleError(res, error, 'Failed to fetch valid categories');
+  }
+};
+
 // Get search suggestions
 const getSearchSuggestions = async (req, res) => {
   try {
@@ -451,5 +467,6 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getCategories,
+  getValidCategories,
   getSearchSuggestions
 };
