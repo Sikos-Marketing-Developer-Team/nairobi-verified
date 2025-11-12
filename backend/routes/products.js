@@ -9,6 +9,7 @@ const {
   updateProduct,
   deleteProduct,
   getCategories,
+  getValidCategories,
 } = require('../controllers/products');
 
 // Import the correct auth middleware
@@ -18,6 +19,7 @@ const { protect } = require('../middleware/auth');
 router.get('/', getProducts);
 router.get('/featured', getFeaturedProducts);
 router.get('/categories', getCategories);
+router.get('/categories/valid', getValidCategories); // New endpoint for valid enum values
 router.get('/search', getProducts); // Explicit search route (optional)
 router.get('/:id', getProductById);
 router.get('/merchant/:merchantId', getProductsByMerchant);
