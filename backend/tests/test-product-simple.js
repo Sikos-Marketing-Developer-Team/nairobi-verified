@@ -1,27 +1,33 @@
-// Simple test without Jest - just uses Node.js assert
 const request = require('supertest');
 const mongoose = require('mongoose');
-const assert = require('assert');
-
-// Load environment
-require('dotenv').config();
-
-const app = require('../server');
 const Merchant = require('../models/Merchant');
 const Product = require('../models/Product');
 
+let app;
 let agent;
 let merchantId;
 
 async function setup() {
   console.log('\n🔧 Setting up test...\n');
   
-  // Wait for DB connection
+  // Set environment first
+  process.env.NODE_ENV = 'test';
+  process.env.SKIP_SESSION = 'false';
+  
+  // Connect to DB
   if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(
+      process.env.MONGODB_URI,
+      {
+        serverSelectionTimeoutMS: 5000
+      }
+    );
   }
   
   console.log('✅ Connected to database');
+  
+  // Import app after DB connection
+  app = require('../server');
   
   // Create agent
   agent = request.agent(app);
@@ -57,15 +63,17 @@ async function setup() {
     });
   
   console.log('Login Status:', loginRes.status);
-  console.log('Login Body:', loginRes.body);
+  
+  if (loginRes.status !== 200) {
+    throw new Error('Login failed');
+  }
   
   const cookies = loginRes.headers['set-cookie'];
   const sessionCookie = cookies?.find(c => c.includes('nairobi_verified_session'));
   
-  console.log('Session Cookie Set:', !!sessionCookie);
-  
-  assert.strictEqual(loginRes.status, 200, 'Login should succeed');
-  assert.ok(sessionCookie, 'Session cookie should be set');
+  if (!sessionCookie) {
+    throw new Error('Session cookie not set');
+  }
   
   console.log('✅ Login successful\n');
 }
@@ -74,8 +82,11 @@ async function testAuthCheck() {
   console.log('TEST 1: Auth Check');
   const res = await agent.get('/api/auth/me');
   console.log('Status:', res.status);
-  console.log('Body:', res.body);
-  assert.strictEqual(res.status, 200, 'Auth check should succeed');
+  
+  if (res.status !== 200) {
+    throw new Error('Auth check failed');
+  }
+  
   console.log('✅ PASSED\n');
 }
 
@@ -83,8 +94,11 @@ async function testDashboardOverview() {
   console.log('TEST 2: Dashboard Overview');
   const res = await agent.get('/api/merchants/dashboard/overview');
   console.log('Status:', res.status);
-  console.log('Body:', JSON.stringify(res.body, null, 2).substring(0, 200));
-  assert.strictEqual(res.status, 200, 'Dashboard should work');
+  
+  if (res.status !== 200) {
+    throw new Error('Dashboard overview failed');
+  }
+  
   console.log('✅ PASSED\n');
 }
 
@@ -92,13 +106,16 @@ async function testGetProducts() {
   console.log('TEST 3: Get Products');
   const res = await agent.get('/api/merchants/dashboard/products');
   console.log('Status:', res.status);
-  console.log('Body:', res.body);
-  assert.strictEqual(res.status, 200, 'Get products should work');
+  
+  if (res.status !== 200) {
+    throw new Error('Get products failed');
+  }
+  
   console.log('✅ PASSED\n');
 }
 
 async function testCreateProduct() {
-  console.log('TEST 4: Create Product (THE CRITICAL ONE)');
+  console.log('TEST 4: Create Product');
   
   const productData = {
     name: 'Test Product',
@@ -111,8 +128,6 @@ async function testCreateProduct() {
     subcategory: 'Mobile'
   };
   
-  console.log('Sending:', productData);
-  
   const res = await agent
     .post('/api/merchants/dashboard/products')
     .set('Accept', 'application/json')
@@ -120,19 +135,19 @@ async function testCreateProduct() {
     .send(productData);
   
   console.log('Status:', res.status);
-  console.log('Headers:', res.headers);
   console.log('Body:', res.body);
-  console.log('Text:', res.text);
-  console.log('Response type:', typeof res.body);
-  console.log('Response is empty?:', !res.text || res.text === '');
   
-  // Critical assertions
-  assert.ok(res.text, 'Response should not be empty');
-  assert.strictEqual(res.status, 201, 'Status should be 201');
-  assert.ok(res.body, 'Response body should exist');
-  assert.strictEqual(res.body.success, true, 'Success should be true');
-  assert.ok(res.body.data, 'Data should exist');
-  assert.ok(res.body.data._id, 'Product ID should exist');
+  if (res.status !== 201) {
+    throw new Error(`Expected 201, got ${res.status}`);
+  }
+  
+  if (!res.body.success) {
+    throw new Error('Success should be true');
+  }
+  
+  if (!res.body.data || !res.body.data._id) {
+    throw new Error('Product ID should exist');
+  }
   
   console.log('✅ PASSED - Product created:', res.body.data._id, '\n');
 }
@@ -145,25 +160,28 @@ async function cleanup() {
   console.log('✅ Cleanup complete\n');
 }
 
-async function runTests() {
-  try {
+describe('Simple Product Tests', () => {
+  beforeAll(async () => {
     await setup();
-    await testAuthCheck();
-    await testDashboardOverview();
-    await testGetProducts();
-    await testCreateProduct();
-    
-    console.log('✅✅✅ ALL TESTS PASSED ✅✅✅\n');
-    process.exit(0);
-  } catch (error) {
-    console.error('\n❌❌❌ TEST FAILED ❌❌❌');
-    console.error('Error:', error.message);
-    console.error('Stack:', error.stack);
-    process.exit(1);
-  } finally {
-    await cleanup();
-  }
-}
+  });
 
-// Run tests
-runTests();
+  afterAll(async () => {
+    await cleanup();
+  });
+
+  test('Auth Check', async () => {
+    await testAuthCheck();
+  });
+
+  test('Dashboard Overview', async () => {
+    await testDashboardOverview();
+  });
+
+  test('Get Products', async () => {
+    await testGetProducts();
+  });
+
+  test('Create Product', async () => {
+    await testCreateProduct();
+  });
+});
