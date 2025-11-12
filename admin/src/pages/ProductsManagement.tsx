@@ -8,7 +8,6 @@ import {
   Plus,
   Download,
   Star,
-  DollarSign,
   XCircle,
   Filter
 } from 'lucide-react';
@@ -398,7 +397,6 @@ const ProductsManagement: React.FC = () => {
               
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
-                  <DollarSign className="h-3 w-3 text-gray-400" />
                   <span className="text-sm font-medium text-gray-900 ml-1">{formatPrice(product.price)}</span>
                 </div>
                 <div className="flex items-center">
