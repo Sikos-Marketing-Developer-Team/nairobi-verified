@@ -31,8 +31,10 @@ if (process.env.NODE_ENV === 'development' && process.env.MOCK_DB === 'true') {
   connectDB();
 }
 
-// Passport config
-require('./config/passport');
+// Passport config - skip in test environment
+if (process.env.NODE_ENV !== 'test') {
+  require('./config/passport');
+}
 
 // Initialize express app
 const app = express();
