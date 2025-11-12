@@ -154,11 +154,11 @@ const Dashboard = () => {
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
+    // Use explicit KSH label to ensure Kenyan Shilling is shown in dashboard
+    const formatted = new Intl.NumberFormat('en-KE', {
       minimumFractionDigits: 0
     }).format(price);
+    return `KSH ${formatted}`;
   };
 
   const getStatusColor = (status: string) => {
