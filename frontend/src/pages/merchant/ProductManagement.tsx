@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -109,9 +109,7 @@ const ProductManagement = () => {
     try {
       setLoading(true);
       console.log('🔄 Fetching products...');
-      const response = await axios.get("/api/merchants/dashboard/products", {
-        withCredentials: true
-      });
+      const response = await api.get("/merchants/dashboard/products");
       console.log('✅ Products fetched:', response.data);
       setProducts(response.data.data || []);
     } catch (err: any) {
@@ -248,7 +246,7 @@ const ProductManagement = () => {
     const updatedImages = product.images.filter(img => img !== imageUrl);
     
     // Update the product with the new images array
-    await axios.put(`/api/merchants/dashboard/products/${productId}`, {
+    await api.put(`/merchants/dashboard/products/${productId}`, {
       ...formData,
       images: updatedImages
     });
@@ -299,8 +297,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         imageFormData.append("images", file);
       });
 
-      const uploadResponse = await axios.post("/api/uploads/products", imageFormData, {
-        withCredentials: true,
+      const uploadResponse = await api.post("/uploads/products", imageFormData, {
         headers: { 
           "Content-Type": "multipart/form-data",
           "Accept": "application/json"
@@ -329,16 +326,9 @@ const handleSubmit = async (e: React.FormEvent) => {
       };
 
       console.log('🔄 Updating product:', editingProduct._id);
-      const updateResponse = await axios.put(
-        `/api/merchants/dashboard/products/${editingProduct._id}`, 
-        updateData,
-        {
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        }
+      const updateResponse = await api.put(
+        `/merchants/dashboard/products/${editingProduct._id}`, 
+        updateData
       );
       console.log('✅ Product updated:', updateResponse.data);
 
@@ -352,17 +342,9 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       console.log('🔄 Creating new product with data:', productData);
       
-      const response = await axios.post(
-        "/api/merchants/dashboard/products", 
-        productData,
-        {
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          timeout: 30000
-        }
+      const response = await api.post(
+        "/merchants/dashboard/products", 
+        productData
       );
       
       console.log('✅ Product creation response:', response.data);
@@ -389,7 +371,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 };
   const handleToggleAvailability = async (productId: string, currentStatus: boolean) => {
     try {
-      await axios.patch(`/api/merchants/dashboard/products/${productId}/availability`, {
+      await api.patch(`/merchants/dashboard/products/${productId}/availability`, {
         available: !currentStatus
       });
       
@@ -407,7 +389,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
 
     try {
-      await axios.delete(`/api/merchants/dashboard/products/${productId}`);
+      await api.delete(`/merchants/dashboard/products/${productId}`);
       setSuccess("Product deleted successfully");
       await fetchProducts();
       setTimeout(() => setSuccess(""), 3000);
