@@ -39,7 +39,25 @@ interface Product {
   stockQuantity?: number;
 }
 
-const categories = ['All', 'Electronics', 'Fashion', 'Beauty', 'Home & Garden', 'Books & Media', 'Sports & Fitness'];
+const categories = [
+  'All', 
+  'Electronics', 
+  'Fashion & Clothing', 
+  'Health & Beauty', 
+  'Home & Garden', 
+  'Books & Media', 
+  'Sports & Fitness',
+  'Transport & Mobility',
+  'Printing & Stationery',
+  'Fashion & Tailoring',
+  'Events & Decorations',
+  'Household & Kitchen',
+  'Medical & Wellness',
+  'Beauty & Personal Care',
+  'Business Services',
+  'Automotive',
+  'Food & Beverages'
+];
 
 const Products = () => {
   const navigate = useNavigate();
