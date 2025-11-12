@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Flame, Star, MapPin, Check, ShoppingCart, Eye, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Flame, Star, MapPin, Check, ShoppingCart, Eye, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { flashSalesAPI } from '@/lib/api';
@@ -45,10 +45,8 @@ const FlashSales = () => {
   const [flashSales, setFlashSales] = useState<FlashSale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentIndices, setCurrentIndices] = useState<{[key: string]: number}>({});
   const [isMobile, setIsMobile] = useState(false);
   const [visibleCards, setVisibleCards] = useState(4);
-  const carouselRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
 
   useEffect(() => {
     fetchFlashSales();
@@ -91,12 +89,7 @@ const FlashSales = () => {
         sale.products && sale.products.length > 0
       );
       setFlashSales(flashSalesWithProducts);
-      // Initialize current indices for each flash sale
-      const indices: {[key: string]: number} = {};
-      flashSalesWithProducts.forEach((sale: FlashSale) => {
-        indices[sale._id] = 0;
-      });
-      setCurrentIndices(indices);
+      // nothing extra to initialize for grid view
     } else {
       throw new Error(response.data.message || 'Failed to fetch flash sales');
     }
@@ -116,40 +109,7 @@ const FlashSales = () => {
     }).format(price);
   };
 
-  // Navigation functions for the carousel
-  const nextSlide = (flashSaleId: string) => {
-    const flashSale = flashSales.find(sale => sale._id === flashSaleId);
-    if (!flashSale) return;
-    
-    if (currentIndices[flashSaleId] < flashSale.products.length - visibleCards) {
-      setCurrentIndices(prev => ({
-        ...prev,
-        [flashSaleId]: prev[flashSaleId] + 1
-      }));
-    }
-  };
-
-  const prevSlide = (flashSaleId: string) => {
-    if (currentIndices[flashSaleId] > 0) {
-      setCurrentIndices(prev => ({
-        ...prev,
-        [flashSaleId]: prev[flashSaleId] - 1
-      }));
-    }
-  };
-
-  // Calculate the transform value for the carousel
-  const getTransformValue = (flashSaleId: string) => {
-    const carousel = carouselRefs.current[flashSaleId];
-    if (carousel) {
-      const card = carousel.querySelector('.flex-shrink-0') as HTMLElement;
-      if (card) {
-        const cardWidth = card.offsetWidth + (isMobile ? 8 : 16); // card width + gap (smaller gap on mobile)
-        return `translateX(-${currentIndices[flashSaleId] * cardWidth}px)`;
-      }
-    }
-    return `translateX(-${currentIndices[flashSaleId] * (100 / visibleCards)}%)`;
-  };
+  // Carousel navigation removed — using responsive grid/scroll layout instead
 
   const CountdownTimer = ({ timeRemaining }: { timeRemaining: FlashSale['timeRemaining'] }) => {
     const [time, setTime] = useState(timeRemaining);
