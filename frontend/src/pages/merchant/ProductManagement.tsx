@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -109,9 +109,7 @@ const ProductManagement = () => {
     try {
       setLoading(true);
       console.log('🔄 Fetching products...');
-      const response = await axios.get("/api/merchants/dashboard/products", {
-        withCredentials: true
-      });
+      const response = await api.get("/merchants/dashboard/products");
       console.log('✅ Products fetched:', response.data);
       setProducts(response.data.data || []);
     } catch (err: any) {
@@ -209,163 +207,171 @@ const ProductManagement = () => {
     setPreviewImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  // const handleDeleteExistingImage = async (imageUrl: string, productId: string) => {
+  //   if (!confirm("Are you sure you want to delete this image?")) return;
+
+  //   try {
+  //     setDeletingImage(imageUrl);
+  //     await axios.delete(`/api/merchants/dashboard/products/${productId}/images`, {
+  //       data: { imageUrl }
+  //     });
+      
+  //     setSuccess("Image deleted successfully");
+  //     await fetchProducts();
+      
+  //     // Update preview if modal is open
+  //     if (editingProduct && editingProduct._id === productId) {
+  //       setPreviewImages(prev => prev.filter(img => img !== imageUrl));
+  //     }
+      
+  //     setTimeout(() => setSuccess(""), 3000);
+  //   } catch (err: any) {
+  //     setError(err.response?.data?.message || "Failed to delete image");
+  //   } finally {
+  //     setDeletingImage(null);
+  //   }
+  // };
+
   const handleDeleteExistingImage = async (imageUrl: string, productId: string) => {
-    if (!confirm("Are you sure you want to delete this image?")) return;
+  if (!confirm("Are you sure you want to delete this image?")) return;
 
-    try {
-      setDeletingImage(imageUrl);
-      
-      // Get the current product
-      const product = products.find(p => p._id === productId);
-      if (!product) throw new Error("Product not found");
+  try {
+    setDeletingImage(imageUrl);
+    
+    // Get the current product
+    const product = products.find(p => p._id === productId);
+    if (!product) throw new Error("Product not found");
 
-      // Remove the image from the product's images array
-      const updatedImages = product.images.filter(img => img !== imageUrl);
-      
-      // Update the product with the new images array
-      await axios.put(`/api/merchants/dashboard/products/${productId}`, {
-        ...formData,
-        images: updatedImages
+    // Remove the image from the product's images array
+    const updatedImages = product.images.filter(img => img !== imageUrl);
+    
+    // Update the product with the new images array
+    await api.put(`/merchants/dashboard/products/${productId}`, {
+      ...formData,
+      images: updatedImages
+    });
+    
+    setSuccess("Image deleted successfully");
+    await fetchProducts();
+    
+    // Update preview if modal is open
+    if (editingProduct && editingProduct._id === productId) {
+      setPreviewImages(prev => prev.filter(img => img !== imageUrl));
+    }
+    
+    setTimeout(() => setSuccess(""), 3000);
+  } catch (err: any) {
+    setError(err.response?.data?.message || "Failed to delete image");
+  } finally {
+    setDeletingImage(null);
+  }
+};
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  setSuccess("");
+
+  // Validation
+  if (!formData.name || !formData.category || !formData.description) {
+    setError("Please fill in all required fields");
+    return;
+  }
+
+  if (formData.price < 0) {
+    setError("Price must be a positive number");
+    return;
+  }
+
+  try {
+    setUploading(true);
+    console.log('📦 Submitting product:', formData);
+
+    let uploadedImageUrls: string[] = [];
+
+    // Upload images first if there are new ones
+    if (productImages.length > 0) {
+      console.log('🔄 Uploading product images...');
+      const imageFormData = new FormData();
+      productImages.forEach(file => {
+        imageFormData.append("images", file);
       });
+
+      const uploadResponse = await api.post("/uploads/products", imageFormData, {
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          "Accept": "application/json"
+        },
+        timeout: 60000, // 60 second timeout for file uploads
+      });
+
+      console.log('✅ Upload response:', uploadResponse.data);
       
-      setSuccess("Image deleted successfully");
-      await fetchProducts();
-      
-      // Update preview if modal is open
-      if (editingProduct && editingProduct._id === productId) {
-        setPreviewImages(prev => prev.filter(img => img !== imageUrl));
+      // Handle different response structures
+      if (uploadResponse.data.files) {
+        uploadedImageUrls = uploadResponse.data.files.map((file: any) => file.url);
+      } else if (uploadResponse.data.data) {
+        uploadedImageUrls = uploadResponse.data.data;
       }
       
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to delete image");
-    } finally {
-      setDeletingImage(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    // Validation
-    if (!formData.name || !formData.category || !formData.description) {
-      setError("Please fill in all required fields");
-      return;
+      console.log('✅ Images uploaded:', uploadedImageUrls);
     }
 
-    if (formData.price < 0) {
-      setError("Price must be a positive number");
-      return;
-    }
+    if (editingProduct) {
+      // Update existing product
+      const existingImages = previewImages.filter(img => img.startsWith('http'));
+      const updateData = {
+        ...formData,
+        images: [...existingImages, ...uploadedImageUrls]
+      };
 
-    try {
-      setUploading(true);
-      console.log('📦 Submitting product:', formData);
+      console.log('🔄 Updating product:', editingProduct._id);
+      const updateResponse = await api.put(
+        `/merchants/dashboard/products/${editingProduct._id}`, 
+        updateData
+      );
+      console.log('✅ Product updated:', updateResponse.data);
 
-      let uploadedImageUrls: string[] = [];
+      setSuccess("Product updated successfully");
+    } else {
+      // Create new product
+      const productData = {
+        ...formData,
+        images: uploadedImageUrls
+      };
 
-      // Upload images first if there are new ones
-      if (productImages.length > 0) {
-        console.log('🔄 Uploading product images...');
-        const imageFormData = new FormData();
-        productImages.forEach(file => {
-          imageFormData.append("images", file);
-        });
-
-        const uploadResponse = await axios.post("/api/uploads/products", imageFormData, {
-          withCredentials: true,
-          headers: { 
-            "Content-Type": "multipart/form-data",
-            "Accept": "application/json"
-          },
-          timeout: 60000, // 60 second timeout for file uploads
-        });
-
-        console.log('✅ Upload response:', uploadResponse.data);
-        
-        // Handle different response structures
-        if (uploadResponse.data.files) {
-          uploadedImageUrls = uploadResponse.data.files.map((file: any) => file.url);
-        } else if (uploadResponse.data.data) {
-          uploadedImageUrls = uploadResponse.data.data;
-        }
-        
-        console.log('✅ Images uploaded:', uploadedImageUrls);
+      console.log('🔄 Creating new product with data:', productData);
+      
+      const response = await api.post(
+        "/merchants/dashboard/products", 
+        productData
+      );
+      
+      console.log('✅ Product creation response:', response.data);
+      
+      if (!response.data || !response.data.success) {
+        throw new Error(response.data?.error || "Failed to create product");
       }
 
-      if (editingProduct) {
-        // Update existing product
-        const existingImages = previewImages.filter(img => img.startsWith('http'));
-        const updateData = {
-          ...formData,
-          images: [...existingImages, ...uploadedImageUrls]
-        };
-
-        console.log('🔄 Updating product:', editingProduct._id);
-        const updateResponse = await axios.put(
-          `/api/merchants/dashboard/products/${editingProduct._id}`, 
-          updateData,
-          {
-            withCredentials: true,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          }
-        );
-        console.log('✅ Product updated:', updateResponse.data);
-
-        setSuccess("Product updated successfully");
-      } else {
-        // Create new product
-        const productData = {
-          ...formData,
-          images: uploadedImageUrls
-        };
-
-        console.log('🔄 Creating new product with data:', productData);
-        
-        const response = await axios.post(
-          "/api/merchants/dashboard/products", 
-          productData,
-          {
-            withCredentials: true,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            timeout: 30000
-          }
-        );
-        
-        console.log('✅ Product creation response:', response.data);
-        
-        if (!response.data || !response.data.success) {
-          throw new Error(response.data?.error || "Failed to create product");
-        }
-
-        console.log('✅ Product created successfully');
-        setSuccess("Product created successfully");
-      }
-
-      await fetchProducts();
-      handleCloseProductModal();
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: any) {
-      console.error('❌ Product submission error:', err);
-      console.error('❌ Error response:', err.response);
-      const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to save product";
-      setError(errorMessage);
-    } finally {
-      setUploading(false);
+      console.log('✅ Product created successfully');
+      setSuccess("Product created successfully");
     }
-  };
 
+    await fetchProducts();
+    handleCloseProductModal();
+    setTimeout(() => setSuccess(""), 3000);
+  } catch (err: any) {
+    console.error('❌ Product submission error:', err);
+    console.error('❌ Error response:', err.response);
+    const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to save product";
+    setError(errorMessage);
+  } finally {
+    setUploading(false);
+  }
+};
   const handleToggleAvailability = async (productId: string, currentStatus: boolean) => {
     try {
-      await axios.patch(`/api/merchants/dashboard/products/${productId}/availability`, {
+      await api.patch(`/merchants/dashboard/products/${productId}/availability`, {
         available: !currentStatus
       });
       
@@ -383,7 +389,7 @@ const ProductManagement = () => {
     }
 
     try {
-      await axios.delete(`/api/merchants/dashboard/products/${productId}`);
+      await api.delete(`/merchants/dashboard/products/${productId}`);
       setSuccess("Product deleted successfully");
       await fetchProducts();
       setTimeout(() => setSuccess(""), 3000);
@@ -529,17 +535,13 @@ const ProductManagement = () => {
                 </SelectContent>
               </Select>
 
-              {/* View Toggle - FIXED */}
+              {/* View Toggle */}
               <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
-                  className={`flex-1 md:flex-none ${
-                    viewMode === 'grid' 
-                      ? 'bg-white shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  className="flex-1 md:flex-none"
                 >
                   <Grid3x3 className="h-4 w-4" />
                 </Button>
@@ -547,11 +549,7 @@ const ProductManagement = () => {
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className={`flex-1 md:flex-none ${
-                    viewMode === 'list' 
-                      ? 'bg-white shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  className="flex-1 md:flex-none"
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -560,7 +558,7 @@ const ProductManagement = () => {
           </CardContent>
         </Card>
 
-        {/* Products Display - FIXED VIEW TOGGLE LOGIC */}
+        {/* Products Display */}
         {filteredProducts.length === 0 ? (
           <Card className="shadow-lg border-0">
             <CardContent className="flex flex-col items-center justify-center py-16">
@@ -686,14 +684,14 @@ const ProductManagement = () => {
             ))}
           </div>
         ) : (
-          // List View - COMPLETELY DIFFERENT LAYOUT
-          <div className="space-y-4">
+          // List View
+          <div className="space-y-3">
             {filteredProducts.map(product => (
               <Card key={product._id} className="hover:shadow-lg transition-shadow border-0">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
                     {/* Thumbnail */}
-                    <div className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-lg overflow-hidden">
+                    <div className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg overflow-hidden">
                       {product.images.length > 0 ? (
                         <img
                           src={product.images[0]}
@@ -701,26 +699,40 @@ const ProductManagement = () => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                        <div className="w-full h-full flex items-center justify-center">
                           <ImageIcon className="h-8 w-8 text-gray-400" />
                         </div>
                       )}
                     </div>
 
-                    {/* Product Details */}
+                    {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-semibold text-lg text-gray-900 mb-1">
-                            {product.name}
-                          </h3>
-                          <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                            {product.description}
-                          </p>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1 line-clamp-1">{product.name}</h3>
+                          <p className="text-sm text-gray-600 line-clamp-2 mb-2">{product.description}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                            {product.featured && (
+                              <Badge className="bg-yellow-500 text-xs">
+                                <Star className="h-3 w-3 mr-1 fill-white" />
+                                Featured
+                              </Badge>
+                            )}
+                            <Badge className={product.available ? "bg-green-500 text-xs" : "bg-gray-500 text-xs"}>
+                              {product.available ? "Available" : "Unavailable"}
+                            </Badge>
+                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                              <ImageIcon className="h-3 w-3" />
+                              {product.images.length}/5
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-xl font-bold text-blue-600 mb-2">
-                            {product.price > 0 ? `KES ${product.price.toLocaleString()}` : "Contact for Price"}
+
+                        {/* Price & Actions */}
+                        <div className="flex flex-col items-end gap-3">
+                          <div className="text-xl font-bold text-blue-600">
+                            {product.price > 0 ? `KES ${product.price.toLocaleString()}` : "Contact"}
                           </div>
                           <div className="flex gap-2">
                             <Button
@@ -749,25 +761,6 @@ const ProductManagement = () => {
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {product.category}
-                        </Badge>
-                        {product.featured && (
-                          <Badge className="bg-yellow-500 text-xs">
-                            <Star className="h-3 w-3 mr-1 fill-white" />
-                            Featured
-                          </Badge>
-                        )}
-                        <Badge className={product.available ? "bg-green-500 text-xs" : "bg-gray-500 text-xs"}>
-                          {product.available ? "Available" : "Unavailable"}
-                        </Badge>
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
-                          <ImageIcon className="h-3 w-3" />
-                          {product.images.length} images
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -776,192 +769,192 @@ const ProductManagement = () => {
           </div>
         )}
 
-        {/* Product Form Modal */}
-        <Dialog open={showProductModal} onOpenChange={handleCloseProductModal}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingProduct ? "Edit Product" : "Add New Product"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingProduct 
-                  ? "Update your product information" 
-                  : "Add a new product or service to your catalog"}
-              </DialogDescription>
-            </DialogHeader>
+      {/* Product Form Modal */}
+      <Dialog open={showProductModal} onOpenChange={handleCloseProductModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProduct ? "Edit Product" : "Add New Product"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingProduct 
+                ? "Update your product information" 
+                : "Add a new product or service to your catalog"}
+            </DialogDescription>
+          </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Product Name */}
-              <div>
-                <Label htmlFor="name">
-                  Product/Service Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Premium Hair Treatment"
-                  required
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Product Name */}
+            <div>
+              <Label htmlFor="name">
+                Product/Service Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Premium Hair Treatment"
+                required
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <Label htmlFor="category">
+                Category <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="description">
+                Description <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe your product or service..."
+                rows={4}
+                required
+              />
+            </div>
+
+            {/* Price */}
+            <div>
+              <Label htmlFor="price">Price (KES)</Label>
+              <Input
+                id="price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                placeholder="0 for contact pricing"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Leave as 0 if customers should contact you for pricing
+              </p>
+            </div>
+
+            {/* Availability and Featured */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="available"
+                  checked={formData.available}
+                  onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
+                  className="rounded"
                 />
-              </div>
-
-              {/* Category */}
-              <div>
-                <Label htmlFor="category">
-                  Category <span className="text-red-500">*</span>
+                <Label htmlFor="available" className="cursor-pointer">
+                  Available for purchase
                 </Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map(category => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
-              {/* Description */}
-              <div>
-                <Label htmlFor="description">
-                  Description <span className="text-red-500">*</span>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="featured"
+                  checked={formData.featured}
+                  onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="featured" className="cursor-pointer">
+                  Feature this product
                 </Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe your product or service..."
-                  rows={4}
-                  required
-                />
               </div>
+            </div>
 
-              {/* Price */}
-              <div>
-                <Label htmlFor="price">Price (KES)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                  placeholder="0 for contact pricing"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Leave as 0 if customers should contact you for pricing
-                </p>
-              </div>
-
-              {/* Availability and Featured */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="available"
-                    checked={formData.available}
-                    onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
-                    className="rounded"
-                  />
-                  <Label htmlFor="available" className="cursor-pointer">
-                    Available for purchase
-                  </Label>
+            {/* Image Upload */}
+            <div>
+              <Label>Product Images (Max 5)</Label>
+              
+              {/* Preview Grid */}
+              {previewImages.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {previewImages.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      <img
+                        src={img}
+                        alt={`Preview ${idx + 1}`}
+                        className="w-full h-24 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (editingProduct && img.startsWith("http")) {
+                            handleDeleteExistingImage(img, editingProduct._id);
+                          } else {
+                            handleRemoveNewImage(idx);
+                          }
+                        }}
+                        disabled={deletingImage === img}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
+              )}
 
-                <div className="flex items-center space-x-2">
+              {/* Upload Button */}
+              {previewImages.length < 5 && (
+                <div>
                   <input
-                    type="checkbox"
-                    id="featured"
-                    checked={formData.featured}
-                    onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
-                    className="rounded"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="hidden"
+                    id="product-images"
                   />
-                  <Label htmlFor="featured" className="cursor-pointer">
-                    Feature this product
+                  <Label
+                    htmlFor="product-images"
+                    className="flex items-center justify-center border-2 border-dashed rounded-lg p-4 cursor-pointer hover:bg-gray-50"
+                  >
+                    <Upload className="h-5 w-5 mr-2" />
+                    Upload Images ({previewImages.length}/5)
                   </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    JPEG, PNG (Max 5MB each)
+                  </p>
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* Image Upload */}
-              <div>
-                <Label>Product Images (Max 5)</Label>
-                
-                {/* Preview Grid */}
-                {previewImages.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    {previewImages.map((img, idx) => (
-                      <div key={idx} className="relative group">
-                        <img
-                          src={img}
-                          alt={`Preview ${idx + 1}`}
-                          className="w-full h-24 object-cover rounded"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (editingProduct && img.startsWith("http")) {
-                              handleDeleteExistingImage(img, editingProduct._id);
-                            } else {
-                              handleRemoveNewImage(idx);
-                            }
-                          }}
-                          disabled={deletingImage === img}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Upload Button */}
-                {previewImages.length < 5 && (
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageSelect}
-                      className="hidden"
-                      id="product-images"
-                    />
-                    <Label
-                      htmlFor="product-images"
-                      className="flex items-center justify-center border-2 border-dashed rounded-lg p-4 cursor-pointer hover:bg-gray-50"
-                    >
-                      <Upload className="h-5 w-5 mr-2" />
-                      Upload Images ({previewImages.length}/5)
-                    </Label>
-                    <p className="text-xs text-gray-500 mt-1">
-                      JPEG, PNG (Max 5MB each)
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCloseProductModal}
-                  disabled={uploading}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={uploading}>
-                  {uploading ? "Saving..." : editingProduct ? "Update Product" : "Create Product"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseProductModal}
+                disabled={uploading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={uploading}>
+                {uploading ? "Saving..." : editingProduct ? "Update Product" : "Create Product"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );

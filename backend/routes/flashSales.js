@@ -3,7 +3,9 @@ const { body } = require('express-validator');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 
-// Import flash sale controllers
+// IMPORT CACHE MIDDLEWARE
+const { cacheMiddleware, CACHE_DURATIONS, keyGenerators, invalidateCache } = require('../middleware/cache');
+
 const {
   getActiveFlashSales,
   getFlashSale,
@@ -15,7 +17,7 @@ const {
   toggleFlashSaleStatus,
 } = require('../controllers/flashSales');
 
-// Validation middleware for flash sale creation and updates
+// Validation middleware
 const flashSaleValidation = [
   body('title')
     .trim()
@@ -101,46 +103,73 @@ const updateFlashSaleValidation = [
     .withMessage('isActive must be a boolean value'),
 ];
 
-// IMPORTANT: Specific routes must come BEFORE parameterized routes
+// ==========================================
+// SPECIFIC ROUTES MUST COME FIRST
+// ==========================================
 
-// @desc    Get flash sale analytics
-// @route   GET /api/flash-sales/admin/analytics
-// @access  Private/Admin
+// Admin analytics (no caching - always fresh)
 router.get('/admin/analytics', protect, authorize('admin'), getFlashSalesAnalytics);
 
-// @desc    Get all flash sales (for admin)
-// @route   GET /api/flash-sales/admin/all
-// @access  Private/Admin
+// Admin - all flash sales (no caching - admin needs fresh data)
 router.get('/admin/all', protect, authorize('admin'), getAllFlashSales);
 
-// @desc    Get all active flash sales
-// @route   GET /api/flash-sales
-// @access  Public
-router.get('/', getActiveFlashSales);
+// ==========================================
+// CACHED PUBLIC ROUTES
+// Flash sales are time-sensitive - short cache
+// ==========================================
 
-// @desc    Create new flash sale
-// @route   POST /api/flash-sales
-// @access  Private/Admin
-router.post('/', protect, authorize('admin'), flashSaleValidation, createFlashSale);
+// Get all active flash sales
+// Cache key includes date so it refreshes daily
+router.get('/', 
+  cacheMiddleware(
+    CACHE_DURATIONS.FLASH_SALES,
+    keyGenerators.flashSaleList
+  ), 
+  getActiveFlashSales
+);
 
-// @desc    Get single flash sale
-// @route   GET /api/flash-sales/:id
-// @access  Public
-router.get('/:id', getFlashSale);
+// Get single flash sale
+// Cache by ID, short duration (2 minutes)
+router.get('/:id', 
+  cacheMiddleware(
+    CACHE_DURATIONS.FLASH_SALES,
+    (req) => `flashsale:${req.params.id}`
+  ),
+  getFlashSale
+);
 
-// @desc    Update flash sale
-// @route   PUT /api/flash-sales/:id
-// @access  Private/Admin
-router.put('/:id', protect, authorize('admin'), updateFlashSaleValidation, updateFlashSale);
+// ==========================================
+// ADMIN MODIFICATION ROUTES
+// ==========================================
 
-// @desc    Toggle flash sale status
-// @route   PATCH /api/flash-sales/:id/toggle
-// @access  Private/Admin
-router.patch('/:id/toggle', protect, authorize('admin'), toggleFlashSaleStatus);
+// Create flash sale
+router.post('/', protect, authorize('admin'), flashSaleValidation, async (req, res, next) => {
+  // Invalidate ALL flash sale caches
+  await invalidateCache('flashsale*');
+  next();
+}, createFlashSale);
 
-// @desc    Delete flash sale
-// @route   DELETE /api/flash-sales/:id
-// @access  Private/Admin
-router.delete('/:id', protect, authorize('admin'), deleteFlashSale);
+// Update flash sale
+router.put('/:id', protect, authorize('admin'), updateFlashSaleValidation, async (req, res, next) => {
+  // Invalidate specific flash sale and all lists
+  await invalidateCache(`flashsale:${req.params.id}*`);
+  await invalidateCache('flashsales:*');
+  next();
+}, updateFlashSale);
+
+// Toggle flash sale status
+router.patch('/:id/toggle', protect, authorize('admin'), async (req, res, next) => {
+  // Invalidate specific flash sale and all lists
+  await invalidateCache(`flashsale:${req.params.id}*`);
+  await invalidateCache('flashsales:*');
+  next();
+}, toggleFlashSaleStatus);
+
+// Delete flash sale
+router.delete('/:id', protect, authorize('admin'), async (req, res, next) => {
+  // Invalidate ALL flash sale caches
+  await invalidateCache('flashsale*');
+  next();
+}, deleteFlashSale);
 
 module.exports = router;

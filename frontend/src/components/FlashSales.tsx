@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Flame, Star, MapPin, Check, ShoppingCart, Eye, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Flame, Star, MapPin, Check, ShoppingCart, Eye, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { flashSalesAPI } from '@/lib/api';
@@ -45,10 +45,8 @@ const FlashSales = () => {
   const [flashSales, setFlashSales] = useState<FlashSale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentIndices, setCurrentIndices] = useState<{[key: string]: number}>({});
   const [isMobile, setIsMobile] = useState(false);
   const [visibleCards, setVisibleCards] = useState(4);
-  const carouselRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
 
   useEffect(() => {
     fetchFlashSales();
@@ -91,12 +89,7 @@ const FlashSales = () => {
         sale.products && sale.products.length > 0
       );
       setFlashSales(flashSalesWithProducts);
-      // Initialize current indices for each flash sale
-      const indices: {[key: string]: number} = {};
-      flashSalesWithProducts.forEach((sale: FlashSale) => {
-        indices[sale._id] = 0;
-      });
-      setCurrentIndices(indices);
+      // nothing extra to initialize for grid view
     } else {
       throw new Error(response.data.message || 'Failed to fetch flash sales');
     }
@@ -116,40 +109,7 @@ const FlashSales = () => {
     }).format(price);
   };
 
-  // Navigation functions for the carousel
-  const nextSlide = (flashSaleId: string) => {
-    const flashSale = flashSales.find(sale => sale._id === flashSaleId);
-    if (!flashSale) return;
-    
-    if (currentIndices[flashSaleId] < flashSale.products.length - visibleCards) {
-      setCurrentIndices(prev => ({
-        ...prev,
-        [flashSaleId]: prev[flashSaleId] + 1
-      }));
-    }
-  };
-
-  const prevSlide = (flashSaleId: string) => {
-    if (currentIndices[flashSaleId] > 0) {
-      setCurrentIndices(prev => ({
-        ...prev,
-        [flashSaleId]: prev[flashSaleId] - 1
-      }));
-    }
-  };
-
-  // Calculate the transform value for the carousel
-  const getTransformValue = (flashSaleId: string) => {
-    const carousel = carouselRefs.current[flashSaleId];
-    if (carousel) {
-      const card = carousel.querySelector('.flex-shrink-0') as HTMLElement;
-      if (card) {
-        const cardWidth = card.offsetWidth + (isMobile ? 8 : 16); // card width + gap (smaller gap on mobile)
-        return `translateX(-${currentIndices[flashSaleId] * cardWidth}px)`;
-      }
-    }
-    return `translateX(-${currentIndices[flashSaleId] * (100 / visibleCards)}%)`;
-  };
+  // Carousel navigation removed — using responsive grid/scroll layout instead
 
   const CountdownTimer = ({ timeRemaining }: { timeRemaining: FlashSale['timeRemaining'] }) => {
     const [time, setTime] = useState(timeRemaining);
@@ -411,16 +371,12 @@ const FlashSales = () => {
               </div>
             </div>
 
-            {/* Carousel for all screen sizes */}
+            {/* Grid layout for flash sale products (replaces carousel navigation) */}
             {flashSale.products && flashSale.products.length > 0 ? (
-              <div className="relative mb-6 sm:mb-8 overflow-hidden">
-                <div 
-                  ref={el => carouselRefs.current[flashSale._id] = el}
-                  className="flex transition-transform duration-300 ease-in-out gap-2 sm:gap-4"
-                  style={{ transform: getTransformValue(flashSale._id) }}
-                >
+              <div className="mb-6 sm:mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                   {flashSale.products.slice(0, 8).map((product) => (
-                    <div key={product.productId} className="flex-shrink-0" style={{ width: isMobile ? '140px' : 'calc(25% - 12px)' }}>
+                    <div key={product.productId}>
                       <ProductCard 
                         product={product} 
                         flashSaleId={flashSale._id}
@@ -428,32 +384,6 @@ const FlashSales = () => {
                       />
                     </div>
                   ))}
-                </div>
-                
-                {/* Navigation arrows */}
-                {currentIndices[flashSale._id] > 0 && (
-                  <Button
-                    onClick={() => prevSlide(flashSale._id)}
-                    className="absolute left-1 sm:left-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-6 w-6 sm:h-10 sm:w-10 rounded-full p-0 z-10"
-                  >
-                    <ChevronLeft className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
-                  </Button>
-                )}
-                
-                {currentIndices[flashSale._id] < flashSale.products.length - visibleCards && (
-                  <Button
-                    onClick={() => nextSlide(flashSale._id)}
-                    className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-6 w-6 sm:h-10 sm:w-10 rounded-full p-0 z-10"
-                  >
-                    <ChevronRight className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
-                  </Button>
-                )}
-
-                {/* Counter indicator */}
-                <div className="flex justify-center mt-4 sm:mt-6">
-                  <div className="bg-black/70 text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm">
-                    {currentIndices[flashSale._id] + 1} / {flashSale.products.length - visibleCards + 1}
-                  </div>
                 </div>
               </div>
             ) : (

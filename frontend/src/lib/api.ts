@@ -8,8 +8,16 @@ const getBaseURL = () => {
   if (import.meta.env.DEV) {
     return '/api'; // This will use the Vite proxy
   }
-  // Use environment variable in production
-  return import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
+  
+  // Production: MUST use full backend URL
+  // Priority: Environment variable > hardcoded production URL
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://nairobi-verified-backend-4c1b.onrender.com/api';
+  
+  console.log('🌐 API Base URL:', apiUrl);
+  console.log('🌐 Environment:', import.meta.env.DEV ? 'development' : 'production');
+  console.log('🌐 VITE_API_URL:', import.meta.env.VITE_API_URL);
+  
+  return apiUrl;
 };
 
 // Create axios instance with base URL

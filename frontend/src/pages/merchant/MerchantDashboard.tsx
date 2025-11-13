@@ -15,9 +15,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import api from '@/lib/api';
 
 interface DashboardData {
   merchant: {
@@ -127,11 +125,11 @@ const MerchantDashboard = () => {
       setLoading(true);
 
       const [overviewRes, analyticsRes, activityRes, notificationsRes, quickActionsRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/merchants/dashboard/overview`, { withCredentials: true }),
-        axios.get(`${API_BASE_URL}/merchants/dashboard/analytics?period=${timeRange}`, { withCredentials: true }),
-        axios.get(`${API_BASE_URL}/merchants/dashboard/activity?limit=10`, { withCredentials: true }),
-        axios.get(`${API_BASE_URL}/merchants/dashboard/notifications`, { withCredentials: true }),
-        axios.get(`${API_BASE_URL}/merchants/dashboard/quick-actions`, { withCredentials: true })
+        api.get('/merchants/dashboard/overview'),
+        api.get(`/merchants/dashboard/analytics?period=${timeRange}`),
+        api.get('/merchants/dashboard/activity?limit=10'),
+        api.get('/merchants/dashboard/notifications'),
+        api.get('/merchants/dashboard/quick-actions')
       ]);
 
       if (overviewRes.data.success) {
