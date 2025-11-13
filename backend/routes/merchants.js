@@ -23,31 +23,10 @@ const {
 const { protect, authorize, isMerchant } = require('../middleware/auth');
 const { protectAdmin } = require('../middleware/adminAuth');
 const { uploadImage, uploadDocs } = require('../middleware/upload');
-
 const { 
   merchantCreationLimiter, 
   bulkUploadLimiter 
 } = require('../middleware/rateLimiters');
-
-// 🚀 IMPORT CACHE MIDDLEWARE
-const { cacheMiddleware, CACHE_DURATIONS, keyGenerators, invalidateCache } = require('../middleware/cache');
-
-// Configure multer for handling multiple file uploads
-const storage = multer.memoryStorage();
-const upload = multer({ 
-  storage,
-  limits: { 
-    fileSize: 5 * 1024 * 1024,
-    files: 50
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-});
 
 const reviewRouter = require('./reviews');
 const router = express.Router();
@@ -61,11 +40,6 @@ router.post(
   '/admin/create', 
   protectAdmin,
   merchantCreationLimiter,
-  async (req, res, next) => {
-    // Invalidate merchant list caches after creation
-    await invalidateCache('merchants:list:*');
-    next();
-  },
   createMerchantByAdmin
 );
 
@@ -73,27 +47,14 @@ router.post(
   '/admin/create-with-products', 
   protectAdmin,
   merchantCreationLimiter,
-  upload.any(),
-  async (req, res, next) => {
-    // Invalidate both merchant and product caches
-    await invalidateCache('merchants:list:*');
-    await invalidateCache('products:list:*');
-    next();
-  },
+  multer().any(),
   createMerchantWithProducts
 );
 
 router.put(
   '/admin/:id/update-with-products',
   protectAdmin,
-  upload.any(),
-  async (req, res, next) => {
-    // Invalidate specific merchant and product caches
-    await invalidateCache(`merchant:${req.params.id}*`);
-    await invalidateCache('merchants:list:*');
-    await invalidateCache('products:list:*');
-    next();
-  },
+  multer().any(),
   updateMerchantWithProducts
 );
 
@@ -108,11 +69,6 @@ router.post(
   protect,
   authorize('admin'),
   bulkUploadLimiter,
-  async (req, res, next) => {
-    // Invalidate all merchant caches after bulk creation
-    await invalidateCache('merchants:list:*');
-    next();
-  },
   async (req, res) => {
     try {
       const { merchants } = req.body;
@@ -198,16 +154,10 @@ router.get('/profile/me', protect, isMerchant, (req, res) => {
   getMerchant(req, res);
 });
 
-router.put('/profile/me', protect, isMerchant, async (req, res, next) => {
+router.put('/profile/me', protect, isMerchant, (req, res, next) => {
   console.log('PUT /merchants/profile/me - Updating current merchant profile');
   console.log('Merchant:', req.merchant?.businessName, 'Merchant ID:', req.merchant?._id);
-  
-  // Invalidate merchant caches on update
-  const merchantId = req.merchant?._id || req.user?._id;
-  await invalidateCache(`merchant:${merchantId}*`);
-  await invalidateCache('merchants:list:*');
-  
-  req.params.id = merchantId;
+  req.params.id = req.merchant._id || req.user._id;
   next();
 }, updateMerchant);
 
@@ -219,13 +169,9 @@ router.get('/me', protect, isMerchant, (req, res) => {
   getMerchant(req, res);
 });
 
-router.put('/me', protect, isMerchant, async (req, res, next) => {
+router.put('/me', protect, isMerchant, (req, res, next) => {
   console.log('PUT /merchants/me - Updating current merchant profile');
   console.log('User:', req.user?.email, 'Merchant ID:', req.user?._id);
-  
-  // Invalidate merchant caches
-  await invalidateCache(`merchant:${req.user._id}*`);
-  await invalidateCache('merchants:list:*');
   
   req.params.id = req.user._id;
   next();
@@ -234,110 +180,65 @@ router.put('/me', protect, isMerchant, async (req, res, next) => {
 // ==========================================
 // PROFILE IMAGE UPLOAD ROUTES - BEFORE /:id
 // ==========================================
-router.put('/profile/me/logo', protect, isMerchant, uploadImage.single('logo'), async (req, res, next) => {
+router.put('/profile/me/logo', protect, isMerchant, uploadImage.single('logo'), (req, res, next) => {
   console.log('PUT /merchants/profile/me/logo - Uploading logo');
-  await invalidateCache(`merchant:${req.user._id}*`);
-  await invalidateCache('merchants:list:*');
   req.params.id = req.user._id;
   next();
 }, uploadLogo);
 
-router.put('/profile/me/banner', protect, isMerchant, uploadImage.single('banner'), async (req, res, next) => {
+router.put('/profile/me/banner', protect, isMerchant, uploadImage.single('banner'), (req, res, next) => {
   console.log('PUT /merchants/profile/me/banner - Uploading banner');
-  await invalidateCache(`merchant:${req.user._id}*`);
   req.params.id = req.user._id;
   next();
 }, uploadBanner);
 
-router.put('/profile/me/gallery', protect, isMerchant, uploadImage.array('gallery', 10), async (req, res, next) => {
+router.put('/profile/me/gallery', protect, isMerchant, uploadImage.array('gallery', 10), (req, res, next) => {
   console.log('PUT /merchants/profile/me/gallery - Uploading gallery images');
-  await invalidateCache(`merchant:${req.user._id}*`);
   req.params.id = req.user._id;
   next();
 }, uploadGallery);
 
-router.put('/me/logo', protect, isMerchant, uploadImage.single('logo'), async (req, res, next) => {
+router.put('/me/logo', protect, isMerchant, uploadImage.single('logo'), (req, res, next) => {
   console.log('PUT /merchants/me/logo - Uploading logo');
-  await invalidateCache(`merchant:${req.user._id}*`);
-  await invalidateCache('merchants:list:*');
   req.params.id = req.user._id;
   next();
 }, uploadLogo);
 
-router.put('/me/banner', protect, isMerchant, uploadImage.single('banner'), async (req, res, next) => {
+router.put('/me/banner', protect, isMerchant, uploadImage.single('banner'), (req, res, next) => {
   console.log('PUT /merchants/me/banner - Uploading banner');
-  await invalidateCache(`merchant:${req.user._id}*`);
   req.params.id = req.user._id;
   next();
 }, uploadBanner);
 
-router.put('/me/gallery', protect, isMerchant, uploadImage.array('gallery', 10), async (req, res, next) => {
+router.put('/me/gallery', protect, isMerchant, uploadImage.array('gallery', 10), (req, res, next) => {
   console.log('PUT /merchants/me/gallery - Uploading gallery images');
-  await invalidateCache(`merchant:${req.user._id}*`);
   req.params.id = req.user._id;
   next();
 }, uploadGallery);
 
 // ==========================================
-// CACHED PUBLIC ROUTES - GENERIC ROUTES WITH :id
-// THESE ARE THE MONEY-MAKERS
+// PUBLIC ROUTES
 // ==========================================
 
-// Get all merchants with intelligent caching
-// Cache key includes pagination, filters, search terms
-router.get('/', 
-  cacheMiddleware(
-    CACHE_DURATIONS.MERCHANT_LIST,
-    keyGenerators.merchantList
-  ), 
-  getMerchants
-);
+// Get all merchants
+router.get('/', getMerchants);
 
-// Get single merchant (cache for 30 minutes)
-// Individual merchants don't change often
-router.get('/:id', 
-  cacheMiddleware(
-    CACHE_DURATIONS.MERCHANT_DETAIL,
-    (req) => `merchant:${req.params.id}`
-  ),
-  getMerchant
-);
+// Get single merchant
+router.get('/:id', getMerchant);
 
 // ==========================================
 // PROTECTED UPDATE ROUTES
 // ==========================================
-router.put('/:id', protect, isMerchant, async (req, res, next) => {
-  // Invalidate caches on update
-  await invalidateCache(`merchant:${req.params.id}*`);
-  await invalidateCache('merchants:list:*');
-  next();
-}, updateMerchant);
+router.put('/:id', protect, isMerchant, updateMerchant);
 
-router.delete('/:id', protect, authorize('admin'), async (req, res, next) => {
-  // Invalidate all caches on delete
-  await invalidateCache(`merchant:${req.params.id}*`);
-  await invalidateCache('merchants:list:*');
-  next();
-}, deleteMerchant);
+router.delete('/:id', protect, authorize('admin'), deleteMerchant);
 
 // ==========================================
 // IMAGE UPLOAD ROUTES (ID-BASED)
 // ==========================================
-router.put('/:id/logo', protect, isMerchant, uploadImage.single('logo'), async (req, res, next) => {
-  await invalidateCache(`merchant:${req.params.id}*`);
-  await invalidateCache('merchants:list:*');
-  next();
-}, uploadLogo);
-
-router.put('/:id/banner', protect, isMerchant, uploadImage.single('banner'), async (req, res, next) => {
-  await invalidateCache(`merchant:${req.params.id}*`);
-  next();
-}, uploadBanner);
-
-router.put('/:id/gallery', protect, isMerchant, uploadImage.array('gallery', 10), async (req, res, next) => {
-  await invalidateCache(`merchant:${req.params.id}*`);
-  next();
-}, uploadGallery);
+router.put('/:id/logo', protect, isMerchant, uploadImage.single('logo'), uploadLogo);
+router.put('/:id/banner', protect, isMerchant, uploadImage.single('banner'), uploadBanner);
+router.put('/:id/gallery', protect, isMerchant, uploadImage.array('gallery', 10), uploadGallery);
 
 router.put('/:id/documents', protect, isMerchant, uploadDocs.fields([
   { name: 'businessRegistration', maxCount: 1 },
@@ -349,25 +250,10 @@ router.put('/:id/documents', protect, isMerchant, uploadDocs.fields([
 // ==========================================
 // ADMIN ACTIONS
 // ==========================================
-router.put('/:id/verify', protect, authorize('admin'), async (req, res, next) => {
-  // Invalidate merchant caches on verification
-  await invalidateCache(`merchant:${req.params.id}*`);
-  await invalidateCache('merchants:list:*');
-  next();
-}, verifyMerchant);
-
-router.put('/:id/featured', protect, authorize('admin'), async (req, res, next) => {
-  // Invalidate merchant caches on featured status change
-  await invalidateCache(`merchant:${req.params.id}*`);
-  await invalidateCache('merchants:list:*');
-  next();
-}, setFeatured);
+router.put('/:id/verify', protect, authorize('admin'), verifyMerchant);
+router.put('/:id/featured', protect, authorize('admin'), setFeatured);
 
 // Create merchant (public registration)
-router.post('/', async (req, res, next) => {
-  // Invalidate list caches after new merchant registration
-  await invalidateCache('merchants:list:*');
-  next();
-}, createMerchant);
+router.post('/', createMerchant);
 
 module.exports = router;
