@@ -226,17 +226,15 @@ MerchantSchema.pre('save', async function(next) {
       );
     }
 
-    // CRITICAL: Hash password only if modified (avoid rehashing on every save)
-    if (this.isModified('password')) {
-      // Validate password format before hashing
+    // ✅ FIX: Only hash password if it was DIRECTLY modified (not on every save)
+    if (this.isModified('password') && !this.password.startsWith('$2')) {
+      // Check if password is already hashed (bcrypt hashes start with $2a$, $2b$, etc.)
       if (!PASSWORD_VALIDATION.REGEX.test(this.password)) {
         const error = new Error(PASSWORD_VALIDATION.ERROR_MESSAGE);
         error.statusCode = 400;
         return next(error);
       }
 
-      // OPTIMIZED: Reduce bcrypt rounds from 10 to 8 for faster hashing
-      // Security note: 8 rounds is still secure (2^8 = 256 iterations)
       const salt = await bcrypt.genSalt(8);
       this.password = await bcrypt.hash(this.password, salt);
     }
