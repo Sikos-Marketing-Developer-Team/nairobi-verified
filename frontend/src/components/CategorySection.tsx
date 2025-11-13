@@ -63,13 +63,6 @@ const categories = [
     color: 'bg-teal-100'
   },
   {
-    id: '60d0fe4f5311236168a10109',
-    name: 'Fashion & Tailoring',
-    count: '150+ Services',
-    image: 'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=300&h=200&fit=crop',
-    color: 'bg-rose-100'
-  },
-  {
     id: '60d0fe4f5311236168a10110',
     name: 'Events & Decorations',
     count: '100+ Services',

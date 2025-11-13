@@ -60,11 +60,9 @@ const PRODUCT_CATEGORIES = [
   'Health & Beauty',
   'Automotive',
   'Food & Beverages',
-  
-  // NEW CATEGORIES - ORGANIZED
+  // NEW CATEGORIES 
   'Transport & Mobility',
   'Printing & Stationery',
-  'Fashion & Tailoring',
   'Events & Decorations',
   'Household & Kitchen',
   'Medical & Wellness',
@@ -75,7 +73,7 @@ const PRODUCT_CATEGORIES = [
 const SUBCATEGORIES: Record<string, string[]> = {
   // EXISTING SUBCATEGORIES
   'Electronics': ['Phones & Tablets', 'Computers', 'Audio', 'Cameras', 'Gaming', 'Accessories', 'Other'],
-  'Fashion & Clothing': ['Men', 'Women', 'Kids', 'Shoes', 'Accessories', 'Jewelry', 'Other'],
+  'Fashion & Clothing': ['Men', 'Women', 'Kids', 'Shoes', 'Accessories', 'Jewelry', 'African Wear', 'Other'],
   'Home & Garden': ['Furniture', 'Decor', 'Kitchen', 'Garden', 'Tools', 'Bedding', 'Other'],
   'Sports & Fitness': ['Fitness', 'Outdoor', 'Team Sports', 'Water Sports', 'Cycling', 'Equipment', 'Other'],
   'Books & Media': ['Fiction', 'Non-Fiction', 'Educational', 'Children', 'Comics', 'Magazines', 'Other'],
@@ -100,15 +98,6 @@ const SUBCATEGORIES: Record<string, string[]> = {
     'Art Supplies',
     'Packaging Materials',
     'Business Cards & Printing'
-  ],
-  
-  'Fashion & Tailoring': [
-    'Tailoring Services',
-    'African Wear',
-    'Fabric & Materials',
-    'Sewing Accessories',
-    'Custom Clothing',
-    'Traditional Attire'
   ],
   
   'Events & Decorations': [

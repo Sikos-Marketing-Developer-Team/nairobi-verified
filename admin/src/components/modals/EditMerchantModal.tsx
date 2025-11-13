@@ -58,25 +58,99 @@ const BUSINESS_TYPES = [
 ];
 
 const PRODUCT_CATEGORIES = [
-  'Electronics',
-  'Fashion',
-  'Home & Garden',
-  'Sports',
-  'Books',
-  'Beauty',
+  'Electronics', 
+  'Fashion & Clothing', 
+  'Health & Beauty', 
+  'Home & Garden', 
+  'Books & Media', 
+  'Sports & Fitness',
+  'Transport & Mobility',
+  'Printing & Stationery',
+  'Events & Decorations',
+  'Household & Kitchen',
+  'Medical & Wellness',
+  'Beauty & Personal Care',
+  'Business Services',
   'Automotive',
   'Food & Beverages'
 ];
 
+
+
 const SUBCATEGORIES: Record<string, string[]> = {
+  // EXISTING SUBCATEGORIES
   'Electronics': ['Phones & Tablets', 'Computers', 'Audio', 'Cameras', 'Gaming', 'Accessories', 'Other'],
-  'Fashion': ['Men', 'Women', 'Kids', 'Shoes', 'Accessories', 'Jewelry', 'Other'],
+  'Fashion & Clothing': ['Men', 'Women', 'Kids', 'Shoes', 'Accessories', 'Jewelry', 'Other'],
   'Home & Garden': ['Furniture', 'Decor', 'Kitchen', 'Garden', 'Tools', 'Bedding', 'Other'],
-  'Sports': ['Fitness', 'Outdoor', 'Team Sports', 'Water Sports', 'Cycling', 'Equipment', 'Other'],
-  'Books': ['Fiction', 'Non-Fiction', 'Educational', 'Children', 'Comics', 'Magazines', 'Other'],
-  'Beauty': ['Skincare', 'Makeup', 'Haircare', 'Fragrance', 'Personal Care', 'Tools', 'Other'],
+  'Sports & Fitness': ['Fitness', 'Outdoor', 'Team Sports', 'Water Sports', 'Cycling', 'Equipment', 'Other'],
+  'Books & Media': ['Fiction', 'Non-Fiction', 'Educational', 'Children', 'Comics', 'Magazines', 'Other'],
+  'Health & Beauty': ['Skincare', 'Makeup', 'Haircare', 'Fragrance', 'Personal Care', 'Tools', 'Other'],
   'Automotive': ['Parts', 'Accessories', 'Tools', 'Care', 'Electronics', 'Tires', 'Other'],
-  'Food & Beverages': ['Fresh', 'Packaged', 'Beverages', 'Snacks', 'Frozen', 'Organic', 'Other']
+  'Food & Beverages': ['Fresh', 'Packaged', 'Beverages', 'Snacks', 'Frozen', 'Organic', 'Other'],
+  
+  // NEW SUBCATEGORIES - ORGANIZED
+  'Transport & Mobility': [
+    'Bike Hire & Rental',
+    'Motorcycle Accessories',
+    'Safety Gear',
+    'Bike Maintenance',
+    'Scooters',
+    'Other Mobility Services'
+  ],
+  
+  'Printing & Stationery': [
+    'Printing Materials',
+    'Office Stationery',
+    'Educational Books',
+    'Art Supplies',
+    'Packaging Materials',
+    'Business Cards & Printing'
+  ],
+    
+  'Events & Decorations': [
+    'Party Decorations',
+    'Event Planning',
+    'Balloons & Supplies',
+    'Catering Equipment',
+    'Venue Decor',
+    'Wedding Supplies'
+  ],
+  
+  'Household & Kitchen': [
+    'Household Items',
+    'Kitchenware',
+    'Baking Supplies',
+    'Cleaning Products',
+    'Storage Solutions',
+    'Home Organization'
+  ],
+  
+  'Medical & Wellness': [
+    'Medical Supplies',
+    'Therapy Services',
+    'Wellness Products',
+    'First Aid',
+    'Healthcare Equipment',
+    'Pharmaceuticals'
+  ],
+  
+  'Beauty & Personal Care': [
+    'Nail Care & Polishes',
+    'Hair Products',
+    'Skin Treatments',
+    'Cosmetics',
+    'Personal Grooming',
+    'Beauty Services'
+  ],
+  
+  'Business Services': [
+    'Packaging Services',
+    'Printing Services',
+    'Business Consulting',
+    'Professional Services',
+    'Office Supplies',
+    'Corporate Gifts'
+  ]
 };
 
 const EditMerchantModal = ({ isOpen, merchant, onClose, onUpdateMerchant }: EditMerchantModalProps) => {

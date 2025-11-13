@@ -133,17 +133,30 @@ const Hero = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <div className="relative">
                     <select
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full py-3 px-4 pr-8 sm:pr-10 border-2 border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 text-gray-700 bg-white/60 backdrop-blur-lg appearance-none cursor-pointer transition-all duration-300"
-                    >
-                      <option value="all">All Categories</option>
-                      <option value="electronics">Electronics</option>
-                      <option value="fashion">Fashion & Clothing</option>
-                      <option value="home">Home & Living</option>
-                      <option value="beauty">Beauty & Health</option>
-                      <option value="food">Food & Beverages</option>
-                    </select>
+  value={selectedCategory}
+  onChange={(e) => setSelectedCategory(e.target.value)}
+  className="w-full py-3 px-4 pr-8 sm:pr-10 border-2 border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 text-gray-700 bg-white/60 backdrop-blur-lg appearance-none cursor-pointer transition-all duration-300"
+>
+  <option value="all">All Categories</option>
+  <option value="electronics">Electronics</option>
+  <option value="fashion">Fashion & Clothing</option>
+  <option value="home">Home & Living</option>
+  <option value="beauty">Beauty & Health</option>
+  <option value="food">Food & Beverages</option>
+  <option value="health-beauty">Health & Beauty</option>
+  <option value="home-garden">Home & Garden</option>
+  <option value="books-media">Books & Media</option>
+  <option value="sports-fitness">Sports & Fitness</option>
+  <option value="transport-mobility">Transport & Mobility</option>
+  <option value="printing-stationery">Printing & Stationery</option>
+  <option value="events-decorations">Events & Decorations</option>
+  <option value="household-kitchen">Household & Kitchen</option>
+  <option value="medical-wellness">Medical & Wellness</option>
+  <option value="beauty-personal-care">Beauty & Personal Care</option>
+  <option value="business-services">Business Services</option>
+  <option value="automotive">Automotive</option>
+  <option value="food-beverages">Food & Beverages</option>
+</select>
                     <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 pointer-events-none" />
                   </div>
                   <div className="relative">
