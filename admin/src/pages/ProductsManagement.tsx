@@ -8,7 +8,6 @@ import {
   Plus,
   Download,
   Star,
-  DollarSign,
   XCircle,
   Filter
 } from 'lucide-react';
@@ -159,8 +158,27 @@ const ProductsManagement: React.FC = () => {
     });
   };
 
-  const categories = ['All Categories', 'Grocery', 'Food', 'Electronics', 'Fashion', 'Health'];
-
+  
+const categories  = [
+  // EXISTING CATEGORIES
+  'Electronics',
+  'Fashion & Clothing',
+  'Home & Garden',
+  'Sports & Fitness',
+  'Books & Media',
+  'Health & Beauty',
+  'Automotive',
+  'Food & Beverages',
+  
+  // NEW CATEGORIES - ORGANIZED
+  'Transport & Mobility',
+  'Printing & Stationery',
+  'Events & Decorations',
+  'Household & Kitchen',
+  'Medical & Wellness',
+  'Beauty & Personal Care',
+  'Business Services'
+];
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -398,7 +416,6 @@ const ProductsManagement: React.FC = () => {
               
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
-                  <DollarSign className="h-3 w-3 text-gray-400" />
                   <span className="text-sm font-medium text-gray-900 ml-1">{formatPrice(product.price)}</span>
                 </div>
                 <div className="flex items-center">
@@ -661,18 +678,24 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ onClose, onProductAdd
     }));
   };
 
-  const categories = [
-    'Electronics',
-    'Fashion',
-    'Home & Garden',
-    'Sports & Outdoors',
-    'Health & Beauty',
-    'Books & Media',
-    'Food & Beverages',
-    'Automotive',
-    'Baby & Kids',
-    'Other'
-  ];
+ const categories = [
+  'All', 
+  'Electronics', 
+  'Fashion & Clothing', 
+  'Health & Beauty', 
+  'Home & Garden', 
+  'Books & Media', 
+  'Sports & Fitness',
+  'Transport & Mobility',
+  'Printing & Stationery',
+  'Events & Decorations',
+  'Household & Kitchen',
+  'Medical & Wellness',
+  'Beauty & Personal Care',
+  'Business Services',
+  'Automotive',
+  'Food & Beverages'
+];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
