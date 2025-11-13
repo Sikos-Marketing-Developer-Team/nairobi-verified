@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { productsAPI } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
+import { useDebounce } from '@/hooks';
 
 interface Product {
   _id?: string;
@@ -54,10 +55,7 @@ const ProductCard = ({ product }: { product: Product }) => {
     }
   };
 
-  // Get the display image
   const displayImage = product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop';
-  
-  // Get merchant name and verification status
   const merchantName = product.merchant?.businessName || product.merchantName || 'Unknown Merchant';
   const isVerified = product.merchant?.verified || false;
   const locationDisplay = product.merchant?.address || product.location || 'Location not specified';
@@ -69,7 +67,6 @@ const ProductCard = ({ product }: { product: Product }) => {
       onClick={handleCardClick}
     >
       <CardContent className="p-0 h-full flex flex-col">
-        {/* Image Section */}
         <div className="relative">
           <img
             src={displayImage}
@@ -94,9 +91,7 @@ const ProductCard = ({ product }: { product: Product }) => {
           </Button>
         </div>
         
-        {/* Content Section */}
         <div className="p-2 sm:p-3 flex-grow flex flex-col">
-          {/* Merchant & Verified Badge */}
           <div className="flex items-center gap-1 mb-1">
             <span className="text-[10px] sm:text-xs text-gray-600 line-clamp-1 flex-grow">
               {merchantName}
@@ -109,18 +104,15 @@ const ProductCard = ({ product }: { product: Product }) => {
             )}
           </div>
           
-          {/* Product Name */}
           <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 text-xs sm:text-sm leading-tight min-h-[2rem]">
             {product.name}
           </h3>
           
-          {/* Location */}
           <div className="text-[10px] sm:text-xs text-gray-600 flex items-center gap-1 mb-2">
             <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
             <span className="line-clamp-1">{locationDisplay}</span>
           </div>
           
-          {/* Rating */}
           <div className="flex items-center gap-1 mb-2">
             <div className="flex items-center">
               <Star className="h-3 w-3 text-yellow-400 fill-current" />
@@ -129,7 +121,6 @@ const ProductCard = ({ product }: { product: Product }) => {
             <span className="text-[10px] sm:text-xs text-gray-500">({reviewCount})</span>
           </div>
           
-          {/* Price */}
           <div className="flex items-center gap-1 mb-3 mt-auto">
             <span className="text-sm sm:text-base font-bold text-primary">
               {formatPrice(product.price)}
@@ -141,7 +132,6 @@ const ProductCard = ({ product }: { product: Product }) => {
             )}
           </div>
           
-          {/* View Button */}
           <Button 
             size="sm"
             className="w-full text-xs py-1 h-7"
@@ -172,24 +162,48 @@ const AllProducts = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const { toast } = useToast();
+  
+  // Debounce search term (wait 500ms after user stops typing)
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  
+  // Debounce price range (wait 300ms after user stops sliding)
+  const debouncedPriceRange = useDebounce(priceRange, 300);
+  
+  // AbortController ref to cancel previous requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const loadProducts = async (page: number = 1, append: boolean = false) => {
-    setIsLoadingProducts(true);
+    // Cancel previous request if it exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+
+    // Only show loading if search term is meaningful (3+ characters) or initial load
+    const showLoading = !debouncedSearchTerm || debouncedSearchTerm.length >= 3 || page === 1;
+    
+    if (showLoading) {
+      setIsLoadingProducts(true);
+    }
+
     try {
       const params: Record<string, string | number> = {
         page: page,
         limit: 12,
       };
 
-      if (searchTerm.trim()) {
-        params.search = searchTerm.trim();
+      // Only include search if it has 3 or more characters
+      if (debouncedSearchTerm.trim() && debouncedSearchTerm.trim().length >= 3) {
+        params.search = debouncedSearchTerm.trim();
       }
 
-      if (priceRange[0] > 0) {
-        params.minPrice = priceRange[0];
+      if (debouncedPriceRange[0] > 0) {
+        params.minPrice = debouncedPriceRange[0];
       }
-      if (priceRange[1] < 200000) {
-        params.maxPrice = priceRange[1];
+      if (debouncedPriceRange[1] < 200000) {
+        params.maxPrice = debouncedPriceRange[1];
       }
 
       const response = await productsAPI.getProducts(params);
@@ -205,7 +219,12 @@ const AllProducts = () => {
       
       setTotalProducts(paginationData.total);
       setHasMore(productsData.length > 0 && productsData.length === 12);
-    } catch (error) {
+    } catch (error: any) {
+      // Don't show error if request was aborted (user is still typing)
+      if (error.name === 'AbortError' || error.message === 'canceled') {
+        return;
+      }
+      
       console.error('Failed to fetch products:', error);
       toast({
         title: "Error",
@@ -217,13 +236,25 @@ const AllProducts = () => {
       }
       setTotalProducts(0);
     } finally {
-      setIsLoadingProducts(false);
+      if (showLoading) {
+        setIsLoadingProducts(false);
+      }
     }
   };
 
+  // Load products when debounced values change
   useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
     loadProducts(1, false);
-  }, [searchTerm, priceRange]);
+    
+    // Cleanup function to abort request on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [debouncedSearchTerm, debouncedPriceRange]);
 
   const handleLoadMore = () => {
     const nextPage = currentPage + 1;
@@ -233,8 +264,15 @@ const AllProducts = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setCurrentPage(1);
-    loadProducts(1, false);
+    // Search is already handled by debounced value
+    // This is just for the search button click
+    if (searchTerm.trim().length > 0 && searchTerm.trim().length < 3) {
+      toast({
+        title: "Search too short",
+        description: "Please enter at least 3 characters to search.",
+        variant: "default",
+      });
+    }
   };
 
   const clearFilters = () => {
@@ -255,8 +293,10 @@ const AllProducts = () => {
     setPriceRange([priceRange[0], 200000]);
   };
 
-  // Check if any filters are active
   const hasActiveFilters = searchTerm || priceRange[0] > 0 || priceRange[1] < 200000;
+
+  // Show "minimum characters" hint when search is too short
+  const showSearchHint = searchTerm.length > 0 && searchTerm.length < 3;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -264,15 +304,13 @@ const AllProducts = () => {
       
       <main className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-          {/* Enhanced Search and Filters Section - HORIZONTAL LAYOUT */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 mt-16">
-            <div className="flex flex-col sm:flex-row gap-3 ">
-              {/* Search Input - Takes available space */}
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   type="text"
-                  placeholder="Search products..."
+                  placeholder="Search products... (min 3 characters)"
                   className="pl-10 pr-10 text-sm h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors w-full"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -286,14 +324,18 @@ const AllProducts = () => {
                     <X className="h-4 w-4" />
                   </button>
                 )}
+                {showSearchHint && (
+                  <div className="absolute top-full left-0 right-0 mt-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                    Enter at least 3 characters to search
+                  </div>
+                )}
               </div>
 
-              {/* Search Button */}
               <Button 
                 onClick={handleSearch}
                 size="sm"
                 className="h-11 bg-primary hover:bg-primary/90 min-w-[100px]"
-                disabled={isLoadingProducts}
+                disabled={isLoadingProducts || showSearchHint}
               >
                 {isLoadingProducts ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -303,7 +345,6 @@ const AllProducts = () => {
                 <span className="ml-2">{isLoadingProducts ? 'Searching...' : 'Search'}</span>
               </Button>
 
-              {/* Filters Button */}
               <Button 
                 variant={showFilters ? "secondary" : "outline"}
                 size="sm"
@@ -320,10 +361,8 @@ const AllProducts = () => {
               </Button>
             </div>
 
-            {/* Enhanced Filters Panel */}
             {showFilters && (
               <div className="mt-4 pt-4 border-t border-gray-200 animate-in fade-in duration-200">
-                {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     <Filter className="h-4 w-4" />
@@ -351,7 +390,6 @@ const AllProducts = () => {
                   </div>
                 </div>
 
-                {/* Price Range Filter */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-gray-700">Price Range</span>
@@ -375,11 +413,10 @@ const AllProducts = () => {
                   </div>
                 </div>
 
-                {/* Active Filters Badges */}
                 {hasActiveFilters && (
                   <div className="mt-4 pt-3 border-t border-gray-100">
                     <div className="flex flex-wrap gap-2">
-                      {searchTerm && (
+                      {searchTerm && searchTerm.length >= 3 && (
                         <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
                           Search: "{searchTerm}"
                           <X 
@@ -413,7 +450,6 @@ const AllProducts = () => {
             )}
           </div>
 
-          {/* Products Count and Active Filters Summary */}
           <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 mb-4 p-2">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-gray-900">
@@ -425,7 +461,6 @@ const AllProducts = () => {
                 )}
               </h2>
               
-              {/* Active Filters Summary */}
               {hasActiveFilters && (
                 <div className="hidden sm:flex items-center gap-1 text-xs text-gray-600">
                   <span>•</span>
@@ -434,7 +469,6 @@ const AllProducts = () => {
               )}
             </div>
             
-            {/* Clear Filters Button - Mobile */}
             {hasActiveFilters && (
               <Button 
                 variant="ghost" 
@@ -447,7 +481,6 @@ const AllProducts = () => {
             )}
           </div>
 
-          {/* Products Grid */}
           {isLoadingProducts && products.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin mr-2 text-primary" />
