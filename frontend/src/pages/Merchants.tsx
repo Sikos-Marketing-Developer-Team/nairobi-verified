@@ -376,9 +376,9 @@ const Merchants = () => {
           {merchants.map((merchant) => (
             <Card 
               key={merchant._id} 
-              className="hover:scale-[1.02] transition-transform duration-200 cursor-pointer border-0 shadow-md overflow-hidden hover:shadow-lg"
+              className="hover:scale-[1.02] transition-transform duration-200 cursor-pointer border-0 shadow-md overflow-hidden hover:shadow-lg flex flex-col h-full"
             >
-              <CardContent className="p-0">
+              <CardContent className="p-0 flex flex-col h-full">
                 <div className="relative">
                   <img
                     src={merchant.logo || 'https://via.placeholder.com/300x200/f3f4f6/9ca3af?text=No+Logo'}
@@ -401,7 +401,7 @@ const Merchants = () => {
                     </div>
                   )}
                 </div>
-                <div className="p-2 sm:p-3">
+                <div className="p-2 sm:p-3 flex flex-col flex-1">
                   <div className="flex items-center gap-1 mb-1 sm:mb-2 flex-wrap">
                     <span className="text-[9px] sm:text-xs px-1 py-0.5 bg-primary/10 text-primary rounded-full whitespace-nowrap">
                       {merchant.businessType || 'Uncategorized'}
@@ -415,9 +415,14 @@ const Merchants = () => {
                   <h3 className="font-semibold text-[13px] sm:text-base text-gray-900 mb-1 line-clamp-1">
                     {merchant.businessName || 'Unnamed Business'}
                   </h3>
-                  <p className="text-gray-600 text-[11px] sm:text-sm mb-2 sm:mb-3 line-clamp-2 min-h-[2.5rem]">
-                    {merchant.description || 'No description available.'}
-                  </p>
+                  
+                  {/* Fixed Description Section */}
+                  <div className="flex-1 min-h-[2.5rem] mb-2 sm:mb-3">
+                    <p className="text-gray-600 text-[11px] sm:text-sm line-clamp-2 leading-tight">
+                      {merchant.description || 'No description available.'}
+                    </p>
+                  </div>
+                  
                   <div className="flex items-center gap-1 mb-2">
                     <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400 flex-shrink-0" />
                     <span className="text-[9px] sm:text-xs text-gray-500 line-clamp-1">
@@ -426,7 +431,7 @@ const Merchants = () => {
                   </div>
                   
                   {/* Mobile View Shop Button - Orange Button */}
-                  <div className="block sm:hidden">
+                  <div className="block sm:hidden mt-auto">
                     <Link
                       to={`/business/${merchant._id}`}
                       className="block w-full"
@@ -441,7 +446,7 @@ const Merchants = () => {
                   </div>
                   
                   {/* Desktop View Shop Button */}
-                  <div className="hidden sm:flex sm:justify-end">
+                  <div className="hidden sm:flex sm:justify-end mt-auto">
                     <Link to={`/business/${merchant._id}`} className="w-full">
                       <Button 
                         className="bg-primary hover:bg-primary-dark text-white text-xs h-8 px-3 w-full"
