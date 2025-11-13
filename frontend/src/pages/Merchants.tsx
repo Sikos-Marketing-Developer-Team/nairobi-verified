@@ -21,7 +21,23 @@ import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const categories = ['All', 'Electronics', 'Fashion', 'Photography', 'Sports', 'Business Services'];
+const categories = [
+  'Electronics',
+  'Fashion & Clothing', 
+  'Health & Beauty',
+  'Home & Garden',
+  'Books & Media',
+  'Sports & Fitness',
+  'Transport & Mobility',
+  'Printing & Stationery',
+  'Events & Decorations',
+  'Household & Kitchen',
+  'Medical & Wellness',
+  'Beauty & Personal Care',
+  'Business Services',
+  'Automotive',
+  'Food & Beverages'
+];
 const ITEMS_PER_PAGE = 24;
 
 type ViewMode = 'grid' | 'list';

@@ -1,10 +1,18 @@
 export const CATEGORIES = [
-  "Beauty & Cosmetics",
-  "Fashion & Apparel",
-  "Food & Beverages",
-  "Health & Wellness",
-  "Home & Garden",
-  "Electronics",
-  "Services",
-  "Other"
+  'Electronics', 
+  'Fashion & Clothing', 
+  'Health & Beauty', 
+  'Home & Garden', 
+  'Books & Media', 
+  'Sports & Fitness',
+  'Transport & Mobility',
+  'Printing & Stationery',
+  'Events & Decorations',
+  'Household & Kitchen',
+  'Medical & Wellness',
+  'Beauty & Personal Care',
+  'Business Services',
+  'Automotive',
+  'Food & Beverages',
+  'Other'
 ];

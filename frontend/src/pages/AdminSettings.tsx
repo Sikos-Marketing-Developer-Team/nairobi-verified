@@ -18,7 +18,7 @@ const AdminSettings = () => {
     requirePhysicalAddress: true,
     allowMerchantSelfEdit: true,
     mapDefaultZoom: '15',
-    categories: 'Electronics\nFashion\nHealth & Beauty\nFood & Beverage\nServices\nAutomotive'
+    categories: 'Electronics\nFashion & Clothing\nHealth & Beauty\nHome & Garden\nBooks & Media\nSports & Fitness\nTransport & Mobility\nPrinting & Stationery\nEvents & Decorations\nHousehold & Kitchen\nMedical & Wellness\nBeauty & Personal Care\nBusiness Services\nAutomotive\nFood & Beverages'
   });
 
   const [activeTab, setActiveTab] = useState('general');

@@ -40,7 +40,6 @@ import {
   Grid3x3,
   List,
   Star,
-  DollarSign,
   Tag,
   ArrowLeft,
   Sparkles
@@ -640,7 +639,6 @@ const handleSubmit = async (e: React.FormEvent) => {
                       {product.category}
                     </Badge>
                     <div className="flex items-center gap-1 text-blue-600 font-bold">
-                      <DollarSign className="h-4 w-4" />
                       {product.price > 0 ? `${product.price.toLocaleString()}` : "Contact"}
                     </div>
                   </div>

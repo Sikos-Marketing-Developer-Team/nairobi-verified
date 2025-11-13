@@ -49,7 +49,6 @@ const categories = [
   'Sports & Fitness',
   'Transport & Mobility',
   'Printing & Stationery',
-  'Fashion & Tailoring',
   'Events & Decorations',
   'Household & Kitchen',
   'Medical & Wellness',
