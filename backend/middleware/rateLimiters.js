@@ -183,11 +183,21 @@ const bulkUploadLimiter = rateLimit({
   }
 });
 
+
+const productSearchRateLimit = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 20, // 20 requests per minute
+  message: 'Too many search requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = { 
   strictAuthLimiter, 
   merchantRegisterLimiter,
   authLimiter,
   merchantCreationLimiter,
   bulkUploadLimiter,
+  productSearchRateLimit,
   failedLoginLimiter: failedLoginLimiter()
 };
