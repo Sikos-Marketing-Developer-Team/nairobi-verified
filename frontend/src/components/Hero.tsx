@@ -139,7 +139,7 @@ const Hero = () => {
 >
   <option value="all">All Categories</option>
   <option value="electronics">Electronics</option>
-  <option value="fashion">Fashion & Clothing</option>
+  <option value="fashion">Fashion & Apparel</option>
   <option value="home">Home & Living</option>
   <option value="beauty">Beauty & Health</option>
   <option value="food">Food & Beverages</option>

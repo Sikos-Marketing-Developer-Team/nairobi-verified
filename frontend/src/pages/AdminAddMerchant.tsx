@@ -40,7 +40,7 @@ const AdminAddMerchant = () => {
   });
 
   const categories = [
-    'Electronics', 'Fashion & Clothing', 'Healthcare', 'Food & Beverages',
+    'Electronics', 'Fashion & Apparel', 'Healthcare', 'Food & Beverages',
     'Beauty & Personal Care', 'Books & Stationery', 'Home & Garden',
     'Sports & Recreation', 'Automotive', 'Services', 'Other'
   ];

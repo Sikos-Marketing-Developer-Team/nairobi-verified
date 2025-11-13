@@ -241,7 +241,7 @@ const Navbar = () => {
           section: 'Popular Categories',
           items: [
             { path: '/products?category=electronics', label: 'Electronics' },
-            { path: '/products?category=fashion', label: 'Fashion & Clothing' },
+            { path: '/products?category=fashion', label: 'Fashion & Apparel' },
             { path: '/products?category=beauty', label: 'Health & Beauty' },
             { path: '/products?category=food', label: 'Food & Beverages' },
             { path: '/products?category=home', label: 'Home & Garden' },

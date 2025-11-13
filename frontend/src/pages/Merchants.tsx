@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const categories = [
   'Electronics',
-  'Fashion & Clothing', 
+  'Fashion & Apparel', 
   'Health & Beauty',
   'Home & Garden',
   'Books & Media',

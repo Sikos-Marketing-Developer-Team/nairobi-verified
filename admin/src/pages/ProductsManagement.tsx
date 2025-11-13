@@ -162,7 +162,7 @@ const ProductsManagement: React.FC = () => {
 const categories  = [
   // EXISTING CATEGORIES
   'Electronics',
-  'Fashion & Clothing',
+  'Fashion & Apparel',
   'Home & Garden',
   'Sports & Fitness',
   'Books & Media',
@@ -681,7 +681,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ onClose, onProductAdd
  const categories = [
   'All', 
   'Electronics', 
-  'Fashion & Clothing', 
+  'Fashion & Apparel', 
   'Health & Beauty', 
   'Home & Garden', 
   'Books & Media', 
