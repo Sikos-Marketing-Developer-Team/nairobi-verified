@@ -1,16 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Grid, List, Star, MapPin, Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Search, Filter, Grid, List, Star, MapPin, Check, ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
-import { useDebounce } from '@/hooks';
 import { ProductGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { productsAPI } from '@/lib/api';
+import { useToast } from '@/components/ui/use-toast';
+import { useDebounce } from '@/hooks/useDebounce';
 
 // Define the Product interface
 interface Product {
@@ -59,8 +60,129 @@ const categories = [
   'Food & Beverages'
 ];
 
+const ProductCard = React.memo(({ product, isMobile = false }: { product: Product; isMobile?: boolean }) => {
+  const navigate = useNavigate();
+  
+  if (!product) return null;
+  
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+      minimumFractionDigits: 0
+    }).format(price);
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    const productId = product._id || product.id;
+    if (productId) {
+      navigate(`/product/${productId}`);
+    }
+  };
+  
+  // Get the display image
+  const displayImage = product.primaryImage || product.image || (product.images && product.images[0]) || '/placeholder-image.jpg';
+  
+  // Get merchant name and verification status
+  const merchantName = typeof product.merchant === 'object' && product.merchant?.businessName 
+    ? product.merchant.businessName 
+    : product.merchantName || 'Unknown Merchant';
+  
+  const isVerified = typeof product.merchant === 'object' 
+    ? product.merchant?.verified 
+    : product.verified || false;
+  
+  // Get location
+  const locationDisplay = typeof product.merchant === 'object' && product.merchant?.address
+    ? product.merchant.address
+    : product.location || 'Location not specified';
+  
+  return (
+    <Card 
+      className={`hover-scale cursor-pointer border-0 shadow-lg overflow-hidden flex-shrink-0 ${isMobile ? 'w-[160px]' : 'w-full'}`}
+      onClick={handleClick}
+    >
+      <CardContent className="p-0">
+        <div className="relative">
+          <img
+            src={displayImage}
+            alt={product.name || 'Product image'}
+            className={`w-full ${isMobile ? 'h-32' : 'h-48'} object-cover`}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+            }}
+          />
+        </div>
+        
+        <div className={`${isMobile ? 'p-2' : 'p-4'}`}>
+          <div className="flex items-center gap-1 mb-1">
+            <span className={`text-gray-600 truncate ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+              {merchantName}
+            </span>
+            {isVerified && (
+              <div className={`verified-badge flex items-center gap-1 bg-green-100 text-green-700 px-1 py-0.5 rounded-full flex-shrink-0 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                <Check className={`${isMobile ? 'h-2 w-2' : 'h-3 w-3'}`} />
+                Verified
+              </div>
+            )}
+          </div>
+          
+          <h3 className={`font-semibold text-gray-900 mb-1 line-clamp-2 ${isMobile ? 'text-xs' : 'text-base'}`}>
+            {product.name || 'Unnamed Product'}
+          </h3>
+          
+          <div className={`flex items-center gap-1 mb-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+            <MapPin className={`text-gray-400 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+            <span className="truncate">{locationDisplay}</span>
+          </div>
+          
+          <div className="flex items-center gap-1 mb-2">
+            <div className="flex items-center">
+              <Star className={`text-yellow-400 fill-current ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+              <span className={`font-medium ml-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+                {product.rating || 0}
+              </span>
+            </div>
+            <span className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+              ({product.reviewCount || product.reviews || 0})
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1 mb-2">
+            <span className={`font-bold text-primary ${isMobile ? 'text-sm' : 'text-xl'}`}>
+              {formatPrice(product.price || 0)}
+            </span>
+            {product.originalPrice && product.originalPrice > product.price && (
+              <span className={`text-gray-500 line-through ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+                {formatPrice(product.originalPrice)}
+              </span>
+            )}
+          </div>
+          
+          <Button 
+            className={`w-full bg-primary hover:bg-primary-dark text-white ${isMobile ? 'text-xs py-1 h-7' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              const productId = product._id || product.id;
+              if (productId) {
+                navigate(`/product/${productId}`);
+              }
+            }}
+          >
+            View Product
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
 const Products = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -69,125 +191,113 @@ const Products = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleCards, setVisibleCards] = useState(4);
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
   const pageLoading = usePageLoading(600);
-  
-  // Debounce search term (wait 500ms after user stops typing)
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  
-  // AbortController ref to cancel previous requests
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-    setProducts([]);
-  }, [debouncedSearchTerm, selectedCategory]);
+  // Debounce search term (wait 500ms after user stops typing)
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // Fetch products when page or debounced filters change
-  useEffect(() => {
-    const loadProducts = async () => {
-      // Cancel previous request if it exists
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      // Create new AbortController for this request
-      abortControllerRef.current = new AbortController();
-
-      // Only show loading if search term is meaningful (3+ characters) or initial load
-      const showLoading = !debouncedSearchTerm || debouncedSearchTerm.length >= 3 || currentPage === 1;
-      
-      if (showLoading) {
-        setLoading(true);
-      }
-      
-      try {
-        setError(null);
-        
-        let response;
-        
-        // Only search if term has 3+ characters
-        if (debouncedSearchTerm.trim() && debouncedSearchTerm.trim().length >= 3) {
-          response = await productsAPI.searchProducts(debouncedSearchTerm, {
-            category: selectedCategory !== 'All' ? selectedCategory : undefined,
-            page: currentPage,
-            limit: 24
-          });
-        } else if (!debouncedSearchTerm.trim()) {
-          // No search term - fetch normally
-          const params: Record<string, string | number> = {
-            page: currentPage,
-            limit: 24
-          };
-          if (selectedCategory !== 'All') {
-            params.category = selectedCategory;
-          }
-          response = await productsAPI.getProducts(params);
-        } else {
-          // Search term too short - don't fetch
-          if (currentPage === 1) {
-            setProducts([]);
-            setTotalProducts(0);
-          }
-          setLoading(false);
-          return;
-        }
-        
-        let productsData: Product[] = [];
-        let total = 0;
-        
-        if (response && response.data) {
-          if (response.data.data && Array.isArray(response.data.data)) {
-            productsData = response.data.data;
-            total = response.data.pagination?.total || 0;
-          } else if (Array.isArray(response.data)) {
-            productsData = response.data;
-            total = response.data.length;
-          } else if (response.data.products && Array.isArray(response.data.products)) {
-            productsData = response.data.products;
-            total = response.data.pagination?.total || 0;
-          } else if (typeof response.data === 'object' && response.data._id) {
-            productsData = [response.data];
-            total = 1;
-          }
-        }
-        
-        console.log('Fetched products:', productsData, 'Total:', total);
-        
-        // Append new products to existing ones or replace if page 1
-        setProducts(prev => {
-          const newProducts = currentPage === 1 ? productsData : [...prev, ...productsData];
-          setHasMore(newProducts.length < total);
-          return newProducts;
-        });
-        setTotalProducts(total);
-      } catch (err: any) {
-        // Don't show error if request was aborted (user is still typing)
-        if (err.name === 'AbortError' || err.message === 'canceled') {
-          return;
-        }
-        
-        console.error('Error fetching products:', err);
-        setError('Failed to load products. Please try again.');
-        if (currentPage === 1) {
-          setProducts([]);
-        }
-      } finally {
-        if (showLoading) {
-          setLoading(false);
-        }
-      }
-    };
-
-    if (!pageLoading) {
-      loadProducts();
+  const loadProducts = async (page: number = 1, append: boolean = false) => {
+    // Cancel previous request if it exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+
+    // Only show loading state for pagination (page > 1)
+    if (page > 1) {
+      setIsLoadingProducts(true);
+    } else {
+      // Show subtle searching indicator for filters/search
+      setIsSearching(true);
+    }
+
+    try {
+      setError(null);
+      
+      let response;
+      
+      if (debouncedSearchTerm.trim()) {
+        response = await productsAPI.searchProducts(debouncedSearchTerm, {
+          category: selectedCategory !== 'All' ? selectedCategory : undefined,
+          page: page,
+          limit: 24
+        });
+      } else {
+        const params: Record<string, string | number> = {
+          page: page,
+          limit: 24
+        };
+        if (selectedCategory !== 'All') {
+          params.category = selectedCategory;
+        }
+        response = await productsAPI.getProducts(params);
+      }
+      
+      let productsData: Product[] = [];
+      let total = 0;
+      
+      if (response && response.data) {
+        if (response.data.data && Array.isArray(response.data.data)) {
+          productsData = response.data.data;
+          total = response.data.pagination?.total || 0;
+        } else if (Array.isArray(response.data)) {
+          productsData = response.data;
+          total = response.data.length;
+        } else if (response.data.products && Array.isArray(response.data.products)) {
+          productsData = response.data.products;
+          total = response.data.pagination?.total || 0;
+        } else if (typeof response.data === 'object' && response.data._id) {
+          productsData = [response.data];
+          total = 1;
+        }
+      }
+      
+      console.log('Fetched products:', productsData, 'Total:', total);
+      
+      if (append) {
+        setProducts(prev => [...prev, ...productsData]);
+      } else {
+        setProducts(productsData);
+      }
+      
+      setTotalProducts(total);
+      setHasMore(productsData.length > 0 && productsData.length === 24);
+    } catch (err: any) {
+      // Don't show error if request was aborted (user is still typing)
+      if (err.name === 'AbortError' || err.message === 'canceled') {
+        return;
+      }
+      
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again.');
+      if (!append) {
+        setProducts([]);
+      }
+      setTotalProducts(0);
+    } finally {
+      if (page > 1) {
+        setIsLoadingProducts(false);
+      } else {
+        setIsSearching(false);
+      }
+    }
+  };
+
+  // Load products when debounced values change
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+    loadProducts(1, false);
     
     // Cleanup function to abort request on unmount
     return () => {
@@ -195,7 +305,7 @@ const Products = () => {
         abortControllerRef.current.abort();
       }
     };
-  }, [currentPage, debouncedSearchTerm, selectedCategory, pageLoading]);
+  }, [debouncedSearchTerm, selectedCategory]);
 
   useEffect(() => {
     // Check screen size and update visible cards count
@@ -230,7 +340,7 @@ const Products = () => {
 
   // Navigation functions for the carousel
   const nextSlide = () => {
-    if (currentIndex < filteredProducts.length - visibleCards) {
+    if (currentIndex < products.length - visibleCards) {
       setCurrentIndex(prev => prev + 1);
     }
   };
@@ -253,130 +363,26 @@ const Products = () => {
     return `translateX(-${currentIndex * (100 / visibleCards)}%)`;
   };
 
-  // Safely filter products - ensure products is always treated as an array
-  const filteredProducts = Array.isArray(products) 
-    ? products.filter(product => {
-        if (!product || typeof product !== 'object') return false;
-        
-        // Use debounced search term for filtering
-        const matchesSearch = product.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ?? false;
-        const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-      })
-    : [];
+  const handleLoadMore = () => {
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    loadProducts(nextPage, true);
+  };
 
   const clearSearch = () => {
     setSearchTerm('');
   };
 
-  // Show "minimum characters" hint when search is too short
-  const showSearchHint = searchTerm.length > 0 && searchTerm.length < 3;
-
-  const ProductCard = ({ product, isMobile = false }: { product: Product; isMobile?: boolean }) => {
-    if (!product) return null;
-    
-    // Get the display image
-    const displayImage = product.primaryImage || product.image || (product.images && product.images[0]) || '/placeholder-image.jpg';
-    
-    // Get merchant name and verification status
-    const merchantName = typeof product.merchant === 'object' && product.merchant?.businessName 
-      ? product.merchant.businessName 
-      : product.merchantName || 'Unknown Merchant';
-    
-    const isVerified = typeof product.merchant === 'object' 
-      ? product.merchant?.verified 
-      : product.verified || false;
-    
-    // Get location
-    const locationDisplay = typeof product.merchant === 'object' && product.merchant?.address
-      ? product.merchant.address
-      : product.location || 'Location not specified';
-    
-    // Check if product is in stock
-    const inStock = product.isActive !== false && (product.stockQuantity === undefined || product.stockQuantity > 0);
-    
-    const handleClick = () => {
-      const productId = product._id || product.id;
-      if (productId) {
-        navigate(`/product/${productId}`);
-      }
-    };
-    
-    return (
-      <Card 
-        className={`hover-scale cursor-pointer border-0 shadow-lg overflow-hidden flex-shrink-0 ${isMobile ? 'w-[160px]' : 'w-full'}`}
-        onClick={handleClick}
-      >
-        <CardContent className="p-0">
-          <div className="relative">
-            <img
-              src={displayImage}
-              alt={product.name || 'Product image'}
-              className={`w-full ${isMobile ? 'h-32' : 'h-48'} object-cover`}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
-              }}
-            />
-          </div>
-          
-          <div className={`${isMobile ? 'p-2' : 'p-4'}`}>
-            <div className="flex items-center gap-1 mb-1">
-              <span className={`text-gray-600 truncate ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
-                {merchantName}
-              </span>
-              {isVerified && (
-                <div className={`verified-badge flex items-center gap-1 bg-green-100 text-green-700 px-1 py-0.5 rounded-full flex-shrink-0 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                  <Check className={`${isMobile ? 'h-2 w-2' : 'h-3 w-3'}`} />
-                  Verified
-                </div>
-              )}
-            </div>
-            
-            <h3 className={`font-semibold text-gray-900 mb-1 line-clamp-2 ${isMobile ? 'text-xs' : 'text-base'}`}>
-              {product.name || 'Unnamed Product'}
-            </h3>
-            
-            <div className={`flex items-center gap-1 mb-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
-              <MapPin className={`text-gray-400 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              <span className="truncate">{locationDisplay}</span>
-            </div>
-            
-            <div className="flex items-center gap-1 mb-2">
-              <div className="flex items-center">
-                <Star className={`text-yellow-400 fill-current ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                <span className={`font-medium ml-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
-                  {product.rating || 0}
-                </span>
-              </div>
-              <span className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
-                ({product.reviewCount || product.reviews || 0})
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-1 mb-2">
-              <span className={`font-bold text-primary ${isMobile ? 'text-sm' : 'text-xl'}`}>
-                {formatPrice(product.price || 0)}
-              </span>
-              {product.originalPrice && product.originalPrice > product.price && (
-                <span className={`text-gray-500 line-through ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
-                  {formatPrice(product.originalPrice)}
-                </span>
-              )}
-            </div>
-            
-            <Button 
-              className={`w-full bg-primary hover:bg-primary-dark text-white ${isMobile ? 'text-xs py-1 h-7' : ''}`}
-            >
-              View Product
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('All');
+    setCurrentPage(1);
   };
 
-  // Show loading skeleton
-  if (pageLoading || loading) {
+  const hasActiveFilters = searchTerm || selectedCategory !== 'All';
+
+  // Show loading skeleton only on initial page load
+  if (pageLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -452,7 +458,7 @@ const Products = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
                   type="text"
-                  placeholder="Search products... (min 3 characters)"
+                  placeholder="Search products..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-10 py-2 md:py-3"
@@ -465,9 +471,9 @@ const Products = () => {
                     <X className="h-4 w-4" />
                   </button>
                 )}
-                {showSearchHint && (
-                  <div className="absolute top-full left-0 right-0 mt-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1 z-10">
-                    Enter at least 3 characters to search
+                {isSearching && (
+                  <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   </div>
                 )}
               </div>
@@ -507,18 +513,32 @@ const Products = () => {
           
           {/* Category Filters - Improved Mobile Design */}
           <div className={`mt-4 md:mt-6 ${showFilters ? 'block' : 'hidden lg:block'}`}>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? 'default' : 'outline'}
+            <div className="flex flex-wrap gap-2 items-center justify-between">
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category)}
+                    className="text-xs md:text-sm py-1 px-2 md:px-3"
+                    disabled={isSearching}
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
+              
+              {hasActiveFilters && (
+                <Button 
+                  variant="ghost" 
                   size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                  className="text-xs md:text-sm py-1 px-2 md:px-3"
+                  onClick={clearFilters}
+                  className="text-xs h-8 text-gray-600 hover:text-gray-900"
                 >
-                  {category}
+                  Clear all
                 </Button>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -526,31 +546,50 @@ const Products = () => {
         {/* Results Count */}
         <div className="mb-6 flex items-center justify-between">
           <p className="text-gray-600">
-            Showing {filteredProducts.length} of {totalProducts} products
+            Showing {products.length} of {totalProducts} products
             {selectedCategory !== 'All' && ` in ${selectedCategory}`}
           </p>
-          {totalProducts > filteredProducts.length && (
-            <Button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={loading}
-              variant="outline"
-              className="text-sm"
-            >
-              {loading ? 'Loading...' : `Load More (${totalProducts - filteredProducts.length} remaining)`}
-            </Button>
+          {hasActiveFilters && (
+            <div className="flex flex-wrap gap-2">
+              {searchTerm && (
+                <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
+                  Search: "{searchTerm}"
+                  <X 
+                    className="h-3 w-3 cursor-pointer hover:text-primary/80" 
+                    onClick={clearSearch}
+                  />
+                </div>
+              )}
+              {selectedCategory !== 'All' && (
+                <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
+                  Category: {selectedCategory}
+                  <X 
+                    className="h-3 w-3 cursor-pointer hover:text-primary/80" 
+                    onClick={() => setSelectedCategory('All')}
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Carousel for all screen sizes */}
-        {filteredProducts.length > 0 ? (
+        {/* Loading indicator for pagination */}
+        {isLoadingProducts && currentPage > 1 && (
+          <div className="flex justify-center mb-6">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        )}
+
+        {/* Products Display */}
+        {products.length > 0 ? (
           <>
-            <div className="relative mb-8 overflow-hidden">
+            <div className="relative mb-8 overflow-hidden" style={{ opacity: isSearching ? 0.6 : 1, transition: 'opacity 0.2s' }}>
               <div 
                 ref={carouselRef}
                 className="flex transition-transform duration-300 ease-in-out gap-4"
                 style={{ transform: getTransformValue() }}
               >
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <div key={product._id || product.id} className="flex-shrink-0" style={{ width: isMobile ? '160px' : 'calc(25% - 12px)' }}>
                     <ProductCard 
                       product={product} 
@@ -561,7 +600,7 @@ const Products = () => {
               </div>
               
               {/* Navigation arrows - Show only when there are more products */}
-              {filteredProducts.length > visibleCards && (
+              {products.length > visibleCards && (
                 <>
                   {currentIndex > 0 && (
                     <Button
@@ -572,7 +611,7 @@ const Products = () => {
                     </Button>
                   )}
                   
-                  {currentIndex < filteredProducts.length - visibleCards && (
+                  {currentIndex < products.length - visibleCards && (
                     <Button
                       onClick={nextSlide}
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
@@ -584,54 +623,54 @@ const Products = () => {
               )}
 
               {/* Counter indicator */}
-              {filteredProducts.length > visibleCards && (
+              {products.length > visibleCards && (
                 <div className="flex justify-center mt-6">
                   <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm">
-                    {currentIndex + 1} / {filteredProducts.length - visibleCards + 1}
+                    {currentIndex + 1} / {products.length - visibleCards + 1}
                   </div>
                 </div>
               )}
             </div>
             
             {/* Load More Button */}
-            {hasMore && !loading && (
+            {hasMore && !isLoadingProducts && (
               <div className="flex justify-center mt-8">
                 <Button
-                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  onClick={handleLoadMore}
                   size="lg"
                   className="bg-primary hover:bg-primary-dark"
                 >
-                  Load More Products ({totalProducts - filteredProducts.length} remaining)
+                  Load More Products ({totalProducts - products.length} remaining)
                 </Button>
-              </div>
-            )}
-            
-            {loading && currentPage > 1 && (
-              <div className="flex justify-center mt-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             )}
           </>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
-              {showSearchHint 
-                ? "Enter at least 3 characters to search for products."
-                : "No products found matching your criteria."
-              }
-            </p>
-            {!showSearchHint && (
-              <Button 
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedCategory('All');
-                }}
-                className="mt-4 bg-primary hover:bg-primary-dark"
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
+          !isSearching && (
+            <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+              <div className="max-w-md mx-auto px-4">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Search className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-base font-medium text-gray-900 mb-2">No products found</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {hasActiveFilters 
+                    ? "Try adjusting your search criteria or filters to find more products."
+                    : "No products are currently available. Please check back later."
+                  }
+                </p>
+                {hasActiveFilters && (
+                  <Button 
+                    onClick={clearFilters}
+                    size="sm"
+                    className="px-4"
+                  >
+                    Clear all filters
+                  </Button>
+                )}
+              </div>
+            </div>
+          )
         )}
       </div>
       

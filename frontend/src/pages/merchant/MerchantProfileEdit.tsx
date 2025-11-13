@@ -46,6 +46,7 @@ const MerchantProfileEdit = () => {
     facebook: '',
     instagram: '',
     twitter: '',
+    tiktok: '', // Added TikTok field
     linkedin: '',
   });
 
@@ -83,7 +84,13 @@ const MerchantProfileEdit = () => {
           yearEstablished: profile.yearEstablished || '',
         });
         setBusinessHours(profile.businessHours || {});
-        setSocialLinks(profile.socialLinks || {});
+        setSocialLinks({
+          facebook: profile.socialLinks?.facebook || '',
+          instagram: profile.socialLinks?.instagram || '',
+          twitter: profile.socialLinks?.twitter || '',
+          tiktok: profile.socialLinks?.tiktok || '', // Initialize TikTok field
+          linkedin: profile.socialLinks?.linkedin || '',
+        });
         setLogo(profile.logo || '');
         setBanner(profile.bannerImage || '');
       }
@@ -552,6 +559,16 @@ const MerchantProfileEdit = () => {
                   />
                 </div>
                 <div>
+                  <Label htmlFor="tiktok">TikTok</Label>
+                  <Input
+                    id="tiktok"
+                    name="tiktok"
+                    value={socialLinks.tiktok}
+                    onChange={handleSocialLinkChange}
+                    placeholder="https://tiktok.com/@username or @username"
+                  />
+                </div>
+                <div>
                   <Label htmlFor="linkedin">LinkedIn</Label>
                   <Input
                     id="linkedin"
@@ -561,6 +578,12 @@ const MerchantProfileEdit = () => {
                     placeholder="https://linkedin.com/..."
                   />
                 </div>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Tip:</strong> For TikTok, you can enter your full URL (https://tiktok.com/@username) 
+                  or just your username (@username or username)
+                </p>
               </div>
             </CardContent>
           </Card>
