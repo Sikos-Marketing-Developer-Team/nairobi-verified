@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { usePageLoading } from '@/hooks/use-loading';
+import { useDebounce } from '@/hooks';
 import { ProductGridSkeleton, PageSkeleton } from '@/components/ui/loading-skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { productsAPI } from '@/lib/api';
@@ -75,29 +76,51 @@ const Products = () => {
   const [hasMore, setHasMore] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
   const pageLoading = usePageLoading(600);
+  
+  // Debounce search term (wait 500ms after user stops typing)
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  
+  // AbortController ref to cancel previous requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Fetch products when filters change
+  // Reset to page 1 when filters change
   useEffect(() => {
-    setCurrentPage(1); // Reset to page 1 when filters change
-    setProducts([]); // Clear existing products
-  }, [searchTerm, selectedCategory]);
+    setCurrentPage(1);
+    setProducts([]);
+  }, [debouncedSearchTerm, selectedCategory]);
 
-  // Fetch products when page or filters change
+  // Fetch products when page or debounced filters change
   useEffect(() => {
     const loadProducts = async () => {
-      try {
+      // Cancel previous request if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new AbortController for this request
+      abortControllerRef.current = new AbortController();
+
+      // Only show loading if search term is meaningful (3+ characters) or initial load
+      const showLoading = !debouncedSearchTerm || debouncedSearchTerm.length >= 3 || currentPage === 1;
+      
+      if (showLoading) {
         setLoading(true);
+      }
+      
+      try {
         setError(null);
         
         let response;
         
-        if (searchTerm.trim()) {
-          response = await productsAPI.searchProducts(searchTerm, {
+        // Only search if term has 3+ characters
+        if (debouncedSearchTerm.trim() && debouncedSearchTerm.trim().length >= 3) {
+          response = await productsAPI.searchProducts(debouncedSearchTerm, {
             category: selectedCategory !== 'All' ? selectedCategory : undefined,
             page: currentPage,
             limit: 24
           });
-        } else {
+        } else if (!debouncedSearchTerm.trim()) {
+          // No search term - fetch normally
           const params: Record<string, string | number> = {
             page: currentPage,
             limit: 24
@@ -106,6 +129,14 @@ const Products = () => {
             params.category = selectedCategory;
           }
           response = await productsAPI.getProducts(params);
+        } else {
+          // Search term too short - don't fetch
+          if (currentPage === 1) {
+            setProducts([]);
+            setTotalProducts(0);
+          }
+          setLoading(false);
+          return;
         }
         
         let productsData: Product[] = [];
@@ -136,23 +167,35 @@ const Products = () => {
           return newProducts;
         });
         setTotalProducts(total);
-      } catch (err) {
+      } catch (err: any) {
+        // Don't show error if request was aborted (user is still typing)
+        if (err.name === 'AbortError' || err.message === 'canceled') {
+          return;
+        }
+        
         console.error('Error fetching products:', err);
         setError('Failed to load products. Please try again.');
         if (currentPage === 1) {
           setProducts([]);
         }
       } finally {
-        setLoading(false);
+        if (showLoading) {
+          setLoading(false);
+        }
       }
     };
 
     if (!pageLoading) {
       loadProducts();
     }
-  }, [currentPage, searchTerm, selectedCategory, pageLoading]);
-
-
+    
+    // Cleanup function to abort request on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [currentPage, debouncedSearchTerm, selectedCategory, pageLoading]);
 
   useEffect(() => {
     // Check screen size and update visible cards count
@@ -215,11 +258,19 @@ const Products = () => {
     ? products.filter(product => {
         if (!product || typeof product !== 'object') return false;
         
-        const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
+        // Use debounced search term for filtering
+        const matchesSearch = product.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ?? false;
         const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
         return matchesSearch && matchesCategory;
       })
     : [];
+
+  const clearSearch = () => {
+    setSearchTerm('');
+  };
+
+  // Show "minimum characters" hint when search is too short
+  const showSearchHint = searchTerm.length > 0 && searchTerm.length < 3;
 
   const ProductCard = ({ product, isMobile = false }: { product: Product; isMobile?: boolean }) => {
     if (!product) return null;
@@ -401,11 +452,24 @@ const Products = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
                   type="text"
-                  placeholder="Search products..."
+                  placeholder="Search products... (min 3 characters)"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 md:py-3"
+                  className="pl-10 pr-10 py-2 md:py-3"
                 />
+                {searchTerm && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                {showSearchHint && (
+                  <div className="absolute top-full left-0 right-0 mt-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1 z-10">
+                    Enter at least 3 characters to search
+                  </div>
+                )}
               </div>
             </div>
             
@@ -550,16 +614,23 @@ const Products = () => {
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
-            <Button 
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('All');
-              }}
-              className="mt-4 bg-primary hover:bg-primary-dark"
-            >
-              Clear Filters
-            </Button>
+            <p className="text-gray-500 text-lg">
+              {showSearchHint 
+                ? "Enter at least 3 characters to search for products."
+                : "No products found matching your criteria."
+              }
+            </p>
+            {!showSearchHint && (
+              <Button 
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory('All');
+                }}
+                className="mt-4 bg-primary hover:bg-primary-dark"
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
         )}
       </div>
