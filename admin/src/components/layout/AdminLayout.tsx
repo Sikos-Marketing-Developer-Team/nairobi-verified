@@ -174,64 +174,51 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <Menu className="h-6 w-6" />
           </button>
           
-          <div className="flex-1 px-4 flex justify-between">
-            {/* <div className="flex-1 flex">
-              <div className="w-full flex md:ml-0">
-                <div className="relative w-full text-gray-400 focus-within:text-gray-600">
-                  <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5" />
-                  </div>
-                  <input
-                    className="block w-full h-full pl-8 pr-3 py-2 border-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-0 focus:border-transparent sm:text-sm"
-                    placeholder="Search..."
-                    type="search"
-                  />
-                </div>
-              </div>
-            </div> */}
-            
-            <div className="ml-4 flex items-center md:ml-6">
-              {/* Notifications */}
-              <button
-                type="button"
-                className="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-              >
-                <span className="sr-only">View notifications</span>
-                <Bell className="h-6 w-6" />
-              </button>
-
-              {/* User menu */}
-              <div className="ml-3 relative">
-                <div>
-                  <button
-                    type="button"
-                    className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  >
-                    <span className="sr-only">Open user menu</span>
-                    <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                      <User className="h-5 w-5 text-green-600" />
-                    </div>
-                    <span className="ml-3 text-gray-700 text-sm font-medium">
-                      {user?.firstName} {user?.lastName}
-                    </span>
-                    <ChevronDown className="ml-2 h-4 w-4 text-gray-400" />
-                  </button>
-                </div>
-                
-                {userMenuOpen && (
-                  <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <button
-                      onClick={handleLogout}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+        <div className="flex-1 px-4 flex justify-between items-center">
+  {/* Left side - Bell icon */}
+  <div className="flex items-center">
+    <button
+      type="button"
+      className="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+    >
+      <span className="sr-only">View notifications</span>
+      <Bell className="h-6 w-6" />
+    </button>
+  </div>
+  
+  {/* Right side - User menu */}
+  <div className="flex items-center">
+    <div className="relative">
+      <div>
+        <button
+          type="button"
+          className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          onClick={() => setUserMenuOpen(!userMenuOpen)}
+        >
+          <span className="sr-only">Open user menu</span>
+          <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+            <User className="h-5 w-5 text-green-600" />
           </div>
+          <span className="ml-3 text-gray-700 text-sm font-medium">
+            {user?.firstName} {user?.lastName}
+          </span>
+          <ChevronDown className="ml-2 h-4 w-4 text-gray-400" />
+        </button>
+      </div>
+      
+      {userMenuOpen && (
+        <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+          <button
+            onClick={handleLogout}
+            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
         </div>
 
         {/* Main content area */}

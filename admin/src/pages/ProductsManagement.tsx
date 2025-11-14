@@ -655,7 +655,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ onClose, onProductAdd
         isActive: formData.isActive,
         inStock: true
       };
-
+     
       const response = await adminAPI.createProduct(productData);
       
       if (response.data.success) {
@@ -709,6 +709,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ onClose, onProductAdd
             <XCircle className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
+        
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
