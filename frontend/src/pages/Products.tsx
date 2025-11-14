@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Grid, List, Star, MapPin, Check, ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react';
+import { Search, Filter, Grid, List, Star, MapPin, Check, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,6 +39,7 @@ interface Product {
   inStock?: boolean;
   isActive?: boolean;
   stockQuantity?: number;
+  description?: string;
 }
 
 const categories = [
@@ -60,7 +61,7 @@ const categories = [
   'Food & Beverages'
 ];
 
-const ProductCard = React.memo(({ product, isMobile = false }: { product: Product; isMobile?: boolean }) => {
+const ProductCard = React.memo(({ product, viewMode }: { product: Product; viewMode: 'grid' | 'list' }) => {
   const navigate = useNavigate();
   
   if (!product) return null;
@@ -100,70 +101,176 @@ const ProductCard = React.memo(({ product, isMobile = false }: { product: Produc
     ? product.merchant.address
     : product.location || 'Location not specified';
   
+  // List view layout - Mobile responsive
+  if (viewMode === 'list') {
+    return (
+      <Card 
+        className="cursor-pointer border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
+        onClick={handleClick}
+      >
+        <CardContent className="p-0">
+          <div className="flex flex-col sm:flex-row">
+            {/* Image container - full width on mobile, fixed width on desktop */}
+            <div className="relative w-full sm:w-64 h-48 sm:h-72 flex-shrink-0">
+              <img
+                src={displayImage}
+                alt={product.name || 'Product image'}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+                }}
+              />
+            </div>
+            
+            {/* Content area - adjusts for mobile */}
+            <div className="flex-1 p-4 sm:p-6 flex flex-col min-w-0">
+              <div className="flex items-center gap-2 mb-2 sm:mb-3 flex-shrink-0">
+                <span className="text-gray-600 text-xs sm:text-sm font-medium truncate">
+                  {merchantName}
+                </span>
+                {isVerified && (
+                  <div className="verified-badge flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full flex-shrink-0 text-xs font-medium">
+                    <Check className="h-3 w-3" />
+                    <span className="hidden sm:inline">Verified</span>
+                  </div>
+                )}
+              </div>
+              
+              <h3 className="font-bold text-gray-900 mb-2 sm:mb-3 text-lg sm:text-xl line-clamp-2 leading-tight flex-shrink-0">
+                {product.name || 'Unnamed Product'}
+              </h3>
+              
+              {/* Description - hidden on mobile, visible on tablet+ */}
+              {product.description && (
+                <p className="hidden sm:block text-gray-600 text-sm sm:text-base line-clamp-3 leading-relaxed mb-2 sm:mb-3">
+                  {product.description}
+                </p>
+              )}
+              
+              <div className="flex items-center gap-2 mb-2 sm:mb-3 text-xs sm:text-sm text-gray-600 flex-shrink-0">
+                <MapPin className="text-gray-400 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">{locationDisplay}</span>
+              </div>
+              
+              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-shrink-0">
+                <div className="flex items-center">
+                  <Star className="text-yellow-400 fill-current h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="font-semibold ml-1 sm:ml-1.5 text-sm sm:text-base text-gray-900">
+                    {product.rating || 0}
+                  </span>
+                </div>
+                <span className="text-gray-500 text-xs sm:text-sm">
+                  ({product.reviewCount || product.reviews || 0} reviews)
+                </span>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mt-auto pt-3 sm:pt-4 border-t border-gray-100 flex-shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="font-bold text-primary text-xl sm:text-2xl">
+                    {formatPrice(product.price || 0)}
+                  </span>
+                  {product.originalPrice && product.originalPrice > product.price && (
+                    <span className="text-gray-500 line-through text-sm sm:text-base">
+                      {formatPrice(product.originalPrice)}
+                    </span>
+                  )}
+                </div>
+                
+                <Button 
+                  className="bg-primary hover:bg-primary-dark text-white px-4 sm:px-6 py-2 sm:py-2.5 w-full sm:w-auto flex-shrink-0 text-sm sm:text-base"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const productId = product._id || product.id;
+                    if (productId) {
+                      navigate(`/product/${productId}`);
+                    }
+                  }}
+                >
+                  View Product
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Grid view layout - already mobile responsive
   return (
     <Card 
-      className={`hover-scale cursor-pointer border-0 shadow-lg overflow-hidden flex-shrink-0 ${isMobile ? 'w-[160px]' : 'w-full'}`}
+      className="hover-scale cursor-pointer border-0 shadow-lg overflow-hidden h-full flex flex-col"
       onClick={handleClick}
     >
-      <CardContent className="p-0">
-        <div className="relative">
+      <CardContent className="p-0 flex flex-col h-full">
+        {/* Fixed size image container for grid view */}
+        <div className="relative h-48 w-full flex-shrink-0">
           <img
             src={displayImage}
             alt={product.name || 'Product image'}
-            className={`w-full ${isMobile ? 'h-32' : 'h-48'} object-cover`}
+            className="w-full h-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
             }}
           />
         </div>
         
-        <div className={`${isMobile ? 'p-2' : 'p-4'}`}>
-          <div className="flex items-center gap-1 mb-1">
-            <span className={`text-gray-600 truncate ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+        <div className="p-4 flex flex-col flex-1 min-h-0">
+          <div className="flex items-center gap-1 mb-1 flex-shrink-0">
+            <span className="text-gray-600 truncate text-sm">
               {merchantName}
             </span>
             {isVerified && (
-              <div className={`verified-badge flex items-center gap-1 bg-green-100 text-green-700 px-1 py-0.5 rounded-full flex-shrink-0 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                <Check className={`${isMobile ? 'h-2 w-2' : 'h-3 w-3'}`} />
+              <div className="verified-badge flex items-center gap-1 bg-green-100 text-green-700 px-1 py-0.5 rounded-full flex-shrink-0 text-xs">
+                <Check className="h-3 w-3" />
                 Verified
               </div>
             )}
           </div>
           
-          <h3 className={`font-semibold text-gray-900 mb-1 line-clamp-2 ${isMobile ? 'text-xs' : 'text-base'}`}>
+          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-base flex-shrink-0">
             {product.name || 'Unnamed Product'}
           </h3>
           
-          <div className={`flex items-center gap-1 mb-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
-            <MapPin className={`text-gray-400 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+          <div className="flex items-center gap-1 mb-1 text-sm flex-shrink-0">
+            <MapPin className="text-gray-400 h-4 w-4" />
             <span className="truncate">{locationDisplay}</span>
           </div>
           
-          <div className="flex items-center gap-1 mb-2">
+          <div className="flex items-center gap-1 mb-2 flex-shrink-0">
             <div className="flex items-center">
-              <Star className={`text-yellow-400 fill-current ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              <span className={`font-medium ml-1 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+              <Star className="text-yellow-400 fill-current h-4 w-4" />
+              <span className="font-medium ml-1 text-sm">
                 {product.rating || 0}
               </span>
             </div>
-            <span className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+            <span className="text-gray-500 text-sm">
               ({product.reviewCount || product.reviews || 0})
             </span>
           </div>
           
-          <div className="flex items-center gap-1 mb-2">
-            <span className={`font-bold text-primary ${isMobile ? 'text-sm' : 'text-xl'}`}>
+          {/* Flexible space for description if needed */}
+          <div className="flex-1 min-h-0 mb-3">
+            {product.description && (
+              <p className="text-gray-600 text-xs line-clamp-2 leading-relaxed">
+                {product.description}
+              </p>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-1 mb-3 flex-shrink-0">
+            <span className="font-bold text-primary text-xl">
               {formatPrice(product.price || 0)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className={`text-gray-500 line-through ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+              <span className="text-gray-500 line-through text-sm">
                 {formatPrice(product.originalPrice)}
               </span>
             )}
           </div>
           
           <Button 
-            className={`w-full bg-primary hover:bg-primary-dark text-white ${isMobile ? 'text-xs py-1 h-7' : ''}`}
+            className="w-full bg-primary hover:bg-primary-dark text-white flex-shrink-0"
             onClick={(e) => {
               e.stopPropagation();
               const productId = product._id || product.id;
@@ -187,9 +294,6 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [visibleCards, setVisibleCards] = useState(4);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -197,9 +301,9 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const carouselRef = useRef<HTMLDivElement>(null);
   const pageLoading = usePageLoading(600);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   // Debounce search term (wait 500ms after user stops typing)
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -307,67 +411,30 @@ const Products = () => {
     };
   }, [debouncedSearchTerm, selectedCategory]);
 
+  // Infinite scroll observer
   useEffect(() => {
-    // Check screen size and update visible cards count
-    const checkScreenSize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      
-      if (window.innerWidth >= 1280) {
-        setVisibleCards(4); // xl screens
-      } else if (window.innerWidth >= 1024) {
-        setVisibleCards(3); // lg screens
-      } else if (window.innerWidth >= 768) {
-        setVisibleCards(2); // md screens
-      } else {
-        setVisibleCards(1); // mobile screens
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingProducts && !isSearching) {
+          const nextPage = currentPage + 1;
+          setCurrentPage(nextPage);
+          loadProducts(nextPage, true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
       }
     };
-    
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0
-    }).format(price);
-  };
-
-  // Navigation functions for the carousel
-  const nextSlide = () => {
-    if (currentIndex < products.length - visibleCards) {
-      setCurrentIndex(prev => prev + 1);
-    }
-  };
-
-  const prevSlide = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
-    }
-  };
-
-  // Calculate the transform value for the carousel
-  const getTransformValue = () => {
-    if (carouselRef.current) {
-      const card = carouselRef.current.querySelector('.flex-shrink-0') as HTMLElement;
-      if (card) {
-        const cardWidth = card.offsetWidth + 16; // card width + gap
-        return `translateX(-${currentIndex * cardWidth}px)`;
-      }
-    }
-    return `translateX(-${currentIndex * (100 / visibleCards)}%)`;
-  };
-
-  const handleLoadMore = () => {
-    const nextPage = currentPage + 1;
-    setCurrentPage(nextPage);
-    loadProducts(nextPage, true);
-  };
+  }, [hasMore, isLoadingProducts, isSearching, currentPage]);
 
   const clearSearch = () => {
     setSearchTerm('');
@@ -390,29 +457,28 @@ const Products = () => {
         <PageSkeleton>
           <div className="space-y-8">
             {/* Search and Filters Header Skeleton */}
-            <div className="bg-white rounded-lg shadow-sm p-6 ">
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
               <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-                <div className="flex-1 max-w-2xl">
-                  <Skeleton className="h-12 w-full" />
+                <div className="flex-1 max-w-2xl w-full">
+                  <Skeleton className="h-10 sm:h-12 w-full" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-10 w-24" />
-                  <Skeleton className="h-10 w-24" />
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Skeleton className="h-10 flex-1 sm:flex-none sm:w-24" />
                   <Skeleton className="h-10 w-10" />
                   <Skeleton className="h-10 w-10" />
                 </div>
               </div>
               
               {/* Categories Skeleton */}
-              <div className="flex flex-wrap gap-2 mt-6">
+              <div className="flex flex-wrap gap-2 mt-4 sm:mt-6">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 w-20" />
+                  <Skeleton key={i} className="h-8 sm:h-10 w-16 sm:w-20" />
                 ))}
               </div>
             </div>
 
             {/* Results Header Skeleton */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <Skeleton className="h-6 w-48" />
               <Skeleton className="h-6 w-32" />
             </div>
@@ -432,9 +498,9 @@ const Products = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-7xl mx-auto mt-20 px-4 pt-16 sm:px-6 sm:mt-15 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto mt-16 sm:mt-20 px-4 pt-12 sm:pt-16 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
-            <p className="text-red-500 text-lg mb-4">{error}</p>
+            <p className="text-red-500 text-base sm:text-lg mb-4">{error}</p>
             <Button onClick={() => window.location.reload()} className="bg-primary hover:bg-primary-dark">
               Try Again
             </Button>
@@ -449,19 +515,19 @@ const Products = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="max-w-7xl mx-auto mt-20 px-4 pt-16 sm:px-6 sm:mt-15 lg:px-8 py-8">
-        {/* Search and Filters Header - Improved Mobile Design */}
+      <div className="max-w-7xl mx-auto mt-16 sm:mt-20 px-4 pt-12 sm:pt-16 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Search and Filters Header */}
         <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-6 md:mb-8">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 items-stretch lg:items-center justify-between">
             <div className="flex-1 max-w-2xl w-full">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
                 <Input
                   type="text"
                   placeholder="Search products..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-10 py-2 md:py-3"
+                  className="pl-9 sm:pl-10 pr-10 py-2 sm:py-3 text-sm sm:text-base"
                 />
                 {searchTerm && (
                   <button
@@ -479,23 +545,24 @@ const Products = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full lg:w-auto">
               <Button
                 variant="outline"
                 onClick={() => setShowFilters(!showFilters)}
-                className="lg:hidden flex-1 md:flex-none"
+                className="lg:hidden flex-1 text-sm h-10"
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
                 {showFilters && <X className="h-4 w-4 ml-2" />}
               </Button>
               
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-2">
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
                   className="h-10 w-10 p-0"
+                  title="Grid view"
                 >
                   <Grid className="h-4 w-4" />
                 </Button>
@@ -504,6 +571,7 @@ const Products = () => {
                   size="sm"
                   onClick={() => setViewMode('list')}
                   className="h-10 w-10 p-0"
+                  title="List view"
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -511,9 +579,9 @@ const Products = () => {
             </div>
           </div>
           
-          {/* Category Filters - Improved Mobile Design */}
+          {/* Category Filters */}
           <div className={`mt-4 md:mt-6 ${showFilters ? 'block' : 'hidden lg:block'}`}>
-            <div className="flex flex-wrap gap-2 items-center justify-between">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-stretch sm:items-center justify-between">
               <div className="flex flex-wrap gap-2">
                 {categories.map((category) => (
                   <Button
@@ -521,7 +589,7 @@ const Products = () => {
                     variant={selectedCategory === category ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setSelectedCategory(category)}
-                    className="text-xs md:text-sm py-1 px-2 md:px-3"
+                    className="text-xs md:text-sm py-1 px-2 md:px-3 h-8 sm:h-9"
                     disabled={isSearching}
                   >
                     {category}
@@ -534,7 +602,7 @@ const Products = () => {
                   variant="ghost" 
                   size="sm"
                   onClick={clearFilters}
-                  className="text-xs h-8 text-gray-600 hover:text-gray-900"
+                  className="text-xs h-8 text-gray-600 hover:text-gray-900 w-full sm:w-auto mt-2 sm:mt-0"
                 >
                   Clear all
                 </Button>
@@ -544,8 +612,8 @@ const Products = () => {
         </div>
 
         {/* Results Count */}
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-gray-600">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <p className="text-gray-600 text-sm sm:text-base">
             Showing {products.length} of {totalProducts} products
             {selectedCategory !== 'All' && ` in ${selectedCategory}`}
           </p>
@@ -573,87 +641,69 @@ const Products = () => {
           )}
         </div>
 
-        {/* Loading indicator for pagination */}
-        {isLoadingProducts && currentPage > 1 && (
-          <div className="flex justify-center mb-6">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        )}
-
         {/* Products Display */}
         {products.length > 0 ? (
           <>
-            <div className="relative mb-8 overflow-hidden" style={{ opacity: isSearching ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+            {/* Grid View */}
+            {viewMode === 'grid' && (
               <div 
-                ref={carouselRef}
-                className="flex transition-transform duration-300 ease-in-out gap-4"
-                style={{ transform: getTransformValue() }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8"
+                style={{ opacity: isSearching ? 0.6 : 1, transition: 'opacity 0.2s' }}
               >
                 {products.map((product) => (
-                  <div key={product._id || product.id} className="flex-shrink-0" style={{ width: isMobile ? '160px' : 'calc(25% - 12px)' }}>
-                    <ProductCard 
-                      product={product} 
-                      isMobile={isMobile}
-                    />
-                  </div>
+                  <ProductCard 
+                    key={product._id || product.id} 
+                    product={product}
+                    viewMode="grid"
+                  />
                 ))}
               </div>
-              
-              {/* Navigation arrows - Show only when there are more products */}
-              {products.length > visibleCards && (
-                <>
-                  {currentIndex > 0 && (
-                    <Button
-                      onClick={prevSlide}
-                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
-                    >
-                      <ChevronLeft className="h-6 w-6 text-white" />
-                    </Button>
-                  )}
-                  
-                  {currentIndex < products.length - visibleCards && (
-                    <Button
-                      onClick={nextSlide}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 shadow-md h-10 w-10 rounded-full p-0 z-10"
-                    >
-                      <ChevronRight className="h-6 w-6 text-white" />
-                    </Button>
-                  )}
-                </>
-              )}
+            )}
 
-              {/* Counter indicator */}
-              {products.length > visibleCards && (
-                <div className="flex justify-center mt-6">
-                  <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm">
-                    {currentIndex + 1} / {products.length - visibleCards + 1}
+            {/* List View */}
+            {viewMode === 'list' && (
+              <div 
+                className="space-y-4 sm:space-y-6 mb-6 sm:mb-8"
+                style={{ opacity: isSearching ? 0.6 : 1, transition: 'opacity 0.2s' }}
+              >
+                {products.map((product) => (
+                  <ProductCard 
+                    key={product._id || product.id} 
+                    product={product}
+                    viewMode="list"
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Infinite scroll trigger */}
+            {hasMore && (
+              <div ref={observerTarget} className="flex justify-center py-6 sm:py-8">
+                {isLoadingProducts && (
+                  <div className="flex items-center gap-2 text-gray-600 text-sm sm:text-base">
+                    <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-primary" />
+                    <span>Loading more products...</span>
                   </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Load More Button */}
-            {hasMore && !isLoadingProducts && (
-              <div className="flex justify-center mt-8">
-                <Button
-                  onClick={handleLoadMore}
-                  size="lg"
-                  className="bg-primary hover:bg-primary-dark"
-                >
-                  Load More Products ({totalProducts - products.length} remaining)
-                </Button>
+                )}
+              </div>
+            )}
+
+            {/* End of results message */}
+            {!hasMore && products.length > 0 && (
+              <div className="text-center py-6 sm:py-8 text-gray-600 text-sm sm:text-base">
+                <p>You've reached the end of the results</p>
               </div>
             )}
           </>
         ) : (
           !isSearching && (
-            <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+            <div className="text-center py-8 sm:py-12 bg-white rounded-xl shadow-sm border border-gray-100">
               <div className="max-w-md mx-auto px-4">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Search className="h-8 w-8 text-gray-400" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Search className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
                 </div>
-                <h3 className="text-base font-medium text-gray-900 mb-2">No products found</h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-2">No products found</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                   {hasActiveFilters 
                     ? "Try adjusting your search criteria or filters to find more products."
                     : "No products are currently available. Please check back later."
@@ -663,7 +713,7 @@ const Products = () => {
                   <Button 
                     onClick={clearFilters}
                     size="sm"
-                    className="px-4"
+                    className="px-4 text-sm"
                   >
                     Clear all filters
                   </Button>
