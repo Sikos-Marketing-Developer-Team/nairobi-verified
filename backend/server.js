@@ -42,54 +42,6 @@ const app = express();
 // Trust proxy for accurate IP addresses
 app.set('trust proxy', 1);
 
-// OPTIMIZATION: Compression middleware
-// app.use(compression({
-//   filter: (req, res) => {
-//     // Don't compress API responses
-//     if (req.path.startsWith('/api/')) {
-//       return false;
-//     }
-//     if (req.headers['x-no-compression']) {
-//       return false;
-//     }
-//     return compression.filter(req, res);
-//   },
-//   level: 6
-// }));
-
-// Debug middleware to log IP information (helpful for troubleshooting rate limiting)
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    // Only log auth endpoints to reduce noise
-    if (req.path.startsWith('/api/auth')) {
-      console.log('\n--- Request IP Debug Info ---');
-      console.log('Path:', req.path);
-      console.log('Method:', req.method);
-      console.log('req.ip:', req.ip);
-      console.log('req.ips:', req.ips);
-      console.log('X-Forwarded-For:', req.headers['x-forwarded-for']);
-      console.log('X-Real-IP:', req.headers['x-real-ip']);
-      console.log('Remote Address:', req.connection?.remoteAddress);
-      console.log('----------------------------\n');
-    }
-    next();
-  });
-}
-
-// OPTIMIZATION: Request tracking for slow requests
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    const start = Date.now();
-    res.on('finish', () => {
-      const duration = Date.now() - start;
-      if (duration > 1000) {
-        console.log(`🐌 SLOW REQUEST: ${req.method} ${req.path} - ${duration}ms`);
-      }
-    });
-    next();
-  });
-}
-
 // Middleware
 app.use(cookieParser(process.env.JWT_SECRET));
 app.use(express.json({ limit: '10mb' }));
@@ -97,7 +49,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // OPTIMIZATION: Request timeout middleware
 app.use((req, res, next) => {
-  req.setTimeout(30000); // 30 second timeout
+  req.setTimeout(30000);
   res.setTimeout(30000);
   next();
 });
@@ -105,9 +57,9 @@ app.use((req, res, next) => {
 // Configure CORS with credentials support
 app.use(cors({
   origin: [
-    'http://localhost:3001', // Admin dashboard local
-    'http://localhost:8080', // Frontend local
-    'http://localhost:3000', // Fallback local
+    'http://localhost:3001',
+    'http://localhost:8080',
+    'http://localhost:3000',
     process.env.FRONTEND_URL || 'http://localhost:8080',
     process.env.ADMIN_URL || 'http://localhost:3001',
     'https://nairobi-verified-frontend.onrender.com',
@@ -125,105 +77,51 @@ app.use(cors({
 
 app.options('*', cors());
 
-// app.use((req, res, next) => {
-//   // Set headers to prevent Cloudflare from caching/modifying responses
-//   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-//   res.setHeader('Pragma', 'no-cache');
-//   res.setHeader('Expires', '0');
-//   res.setHeader('CDN-Cache-Control', 'no-store');
-//   res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
-//   res.setHeader('X-Content-Type-Options', 'nosniff');
-//   res.setHeader('X-No-Transform', '1');
-  
-//   // Prevent response body modification
-//   const originalJson = res.json;
-//   res.json = function(data) {
-//     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-//     res.setHeader('Content-Length', JSON.stringify(data).length.toString());
-//     return originalJson.call(this, data);
-//   };
-  
-//   next();
-// });
-
 // ==================== SESSION STORE CONFIGURATION ====================
 const MongoStore = require('connect-mongo');
-const RedisStore = require('connect-redis').default;
-const { connectRedis, getRedisClient } = require('./config/redis');
-
-let sessionStore;
-let redisClient;
-
-// Temporary in-memory store until Redis/Mongo is ready
 const MemoryStore = require('express-session').MemoryStore;
-sessionStore = new MemoryStore();
-
-// Initialize Redis first (non-blocking)
-(async () => {
-  try {
-    redisClient = await connectRedis();
-    
-    if (redisClient) {
-      // Use Redis for sessions
-      const redisStore = new RedisStore({
-        client: redisClient,
-        prefix: 'sess:', // Session key prefix
-        ttl: 7 * 24 * 60 * 60, // 7 days in seconds
-        disableTouch: false, // Enable session refresh on activity
-        disableTTL: false // Enable automatic expiration
-      });
-      
-      // Update the session store
-      sessionStore = redisStore;
-      sessionConfig.store = redisStore;
-      
-      console.log('✅ Using Redis for session storage');
-    } else {
-      throw new Error('Redis client not available');
-    }
-  } catch (error) {
-    // Fallback to MongoDB
-    console.warn('⚠️  Redis unavailable, falling back to MongoDB sessions');
-    const mongoStore = MongoStore.create({
-      mongoUrl: process.env.MONGODB_URI,
-      collectionName: 'sessions',
-      ttl: 7 * 24 * 60 * 60,
-      autoRemove: 'native',
-      touchAfter: 24 * 3600,
-      stringify: false,
-      crypto: {
-        secret: process.env.JWT_SECRET
-      },
-      writeOperationOptions: {
-        upsert: true,
-        retryWrites: false
-      }
-    });
-    
-    mongoStore.on('error', (error) => {
-      console.error('MongoDB Session store error:', error);
-    });
-    
-    mongoStore.on('connected', () => {
-      console.log('✅ MongoDB Session store connected');
-    });
-    
-    // Update the session store
-    sessionStore = mongoStore;
-    sessionConfig.store = mongoStore;
-  }
-})();
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Session configuration
+// Default to MongoDB session store
+let sessionStore;
+
+try {
+  sessionStore = MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    collectionName: 'sessions',
+    ttl: 7 * 24 * 60 * 60,
+    autoRemove: 'native',
+    touchAfter: 24 * 3600,
+    stringify: false,
+    crypto: {
+      secret: process.env.JWT_SECRET
+    },
+    writeOperationOptions: {
+      upsert: true,
+      retryWrites: false
+    }
+  });
+
+  sessionStore.on('connected', () => {
+    console.log('✅ MongoDB Session store connected');
+  });
+
+  sessionStore.on('error', (error) => {
+    console.error('MongoDB Session store error:', error);
+  });
+} catch (err) {
+  console.warn('⚠️ MongoDB session store unavailable, using in-memory store temporarily.');
+  sessionStore = new MemoryStore();
+}
+
 const sessionConfig = {
   name: 'nairobi_verified_session',
   genid: () => uuidv4(),
   secret: process.env.JWT_SECRET || 'your-session-secret',
   resave: false,
   saveUninitialized: false,
-  store: sessionStore, // Will be updated when Redis/Mongo is ready
+  store: sessionStore,
   rolling: false,
   cookie: {
     httpOnly: true,
@@ -254,11 +152,10 @@ if (process.env.SKIP_SESSION === 'true') {
 }
 // ==================== END SESSION CONFIGURATION ====================
 
-// OPTIMIZATION: Optimized logging
+// Logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 } else {
-  // Production: Only log errors and slow requests
   app.use(morgan('combined', {
     skip: (req, res) => res.statusCode < 400
   }));
@@ -267,7 +164,7 @@ if (process.env.NODE_ENV === 'development') {
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 
-// MONITORING: Endpoint to receive frontend Web Vitals
+// MONITORING: Frontend Web Vitals
 app.post('/api/metrics/frontend', (req, res) => {
   const { name, value, navigationType } = req.body;
   try {
@@ -291,7 +188,7 @@ app.get('/metrics', async (req, res) => {
   res.end(await client.register.metrics());
 });
 
-// OPTIMIZATION: Health check with database status
+// Health check
 app.get('/api/health', async (req, res) => {
   const mongoose = require('mongoose');
   const health = {
@@ -317,7 +214,7 @@ app.get('/api/health', async (req, res) => {
   res.status(statusCode).json(health);
 });
 
-// OPTIMIZATION: Performance monitoring endpoint (development only)
+// Development status endpoint
 if (process.env.NODE_ENV === 'development') {
   app.get('/api/status', (req, res) => {
     const mongoose = require('mongoose');
@@ -366,7 +263,7 @@ app.use('*', (req, res) => {
   });
 });
 
-// OPTIMIZATION: Improved error handler
+// Error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
 
@@ -404,39 +301,19 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`Health check: http://localhost:${PORT}/api/health`);
   console.log(`API status: http://localhost:${PORT}/api/status`);
   console.log(`Metrics endpoint: http://localhost:${PORT}/metrics`);
-  
-  // Display load testing mode status
-  if (process.env.SKIP_SESSION === 'true' || process.env.DISABLE_RATE_LIMIT === 'true') {
-    console.log('\n⚠️  ========== LOAD TESTING MODE ========== ⚠️');
-    if (process.env.SKIP_SESSION === 'true') {
-      console.log('   ✓ Sessions: DISABLED');
-    }
-    if (process.env.DISABLE_RATE_LIMIT === 'true') {
-      console.log('   ✓ Rate Limiting: DISABLED');
-    }
-    console.log('⚠️  ======================================= ⚠️\n');
-  }
 });
 
-// OPTIMIZATION: Graceful shutdown improvements
+// Graceful shutdown
 const gracefulShutdown = async () => {
   console.log('\n🛑 Received shutdown signal, closing gracefully...');
-  
+
   server.close(async () => {
     console.log('✅ HTTP server closed');
-    
+
     try {
-      // Close Redis connection if it exists
-      if (redisClient) {
-        await redisClient.quit();
-        console.log('✅ Redis connection closed');
-      }
-      
-      // Close database connection
       const { closeDB } = require('./config/db');
       await closeDB();
       console.log('✅ Database connection closed');
-      
       console.log('✅ Graceful shutdown complete');
       process.exit(0);
     } catch (error) {
@@ -445,7 +322,6 @@ const gracefulShutdown = async () => {
     }
   });
 
-  // Force shutdown after 30 seconds
   setTimeout(() => {
     console.error('⚠️  Forced shutdown after timeout');
     process.exit(1);
@@ -455,22 +331,20 @@ const gracefulShutdown = async () => {
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
-// OPTIMIZATION: Better unhandled rejection handler
+// Handle unhandled rejections
 process.on('unhandledRejection', (err) => {
   console.error(`❌ Unhandled Promise Rejection: ${err.message}`);
   console.error(err.stack);
-  
+
   if (process.env.NODE_ENV === 'production') {
     gracefulShutdown();
   }
 });
 
-// OPTIMIZATION: Better uncaught exception handler
+// Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   console.error(`❌ Uncaught Exception: ${err.message}`);
   console.error(err.stack);
-  
-  // Always exit on uncaught exception
   process.exit(1);
 });
 

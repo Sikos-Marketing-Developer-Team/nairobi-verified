@@ -53,7 +53,7 @@ const BUSINESS_TYPES = [
 const PRODUCT_CATEGORIES = [
   // EXISTING CATEGORIES
   'Electronics',
-  'Fashion & Clothing',
+  'Fashion & Apparel',
   'Home & Garden',
   'Sports & Fitness',
   'Books & Media',
@@ -73,7 +73,7 @@ const PRODUCT_CATEGORIES = [
 const SUBCATEGORIES: Record<string, string[]> = {
   // EXISTING SUBCATEGORIES
   'Electronics': ['Phones & Tablets', 'Computers', 'Audio', 'Cameras', 'Gaming', 'Accessories', 'Other'],
-  'Fashion & Clothing': ['Men', 'Women', 'Kids', 'Shoes', 'Accessories', 'Jewelry', 'African Wear', 'Other'],
+  'Fashion & Apparel': ['Men', 'Women', 'Kids', 'Shoes', 'Accessories', 'Jewelry', 'African Wear', 'Other'],
   'Home & Garden': ['Furniture', 'Decor', 'Kitchen', 'Garden', 'Tools', 'Bedding', 'Other'],
   'Sports & Fitness': ['Fitness', 'Outdoor', 'Team Sports', 'Water Sports', 'Cycling', 'Equipment', 'Other'],
   'Books & Media': ['Fiction', 'Non-Fiction', 'Educational', 'Children', 'Comics', 'Magazines', 'Other'],

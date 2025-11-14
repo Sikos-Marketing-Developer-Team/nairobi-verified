@@ -31,6 +31,11 @@ const productSchema = new mongoose.Schema({
       'Home & Garden',
       'Electronics',
       'Services',
+      'Books & Media',
+      'Sports & Fitness',
+      'Automotive',
+      'Transport & Mobility',
+      'Events & Decorations',
       'Other'
     ],
   },
