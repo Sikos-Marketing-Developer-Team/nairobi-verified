@@ -36,8 +36,8 @@ try {
   console.error('⚠️ Failed to configure Cloudinary on module load:', error.message);
 }
 
-// Create storage for different types of uploads
-const createCloudinaryStorage = (folder, allowedFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp']) => {
+// Create storage for different types of uploads - supports all image formats
+const createCloudinaryStorage = (folder, allowedFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico', 'heic', 'heif']) => {
   return new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
