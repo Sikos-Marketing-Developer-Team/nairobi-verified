@@ -51,23 +51,22 @@ const BUSINESS_TYPES = [
 ];
 
 const PRODUCT_CATEGORIES = [
-  // EXISTING CATEGORIES
   'Electronics',
   'Fashion & Apparel',
-  'Home & Garden',
-  'Sports & Fitness',
-  'Books & Media',
   'Health & Beauty',
-  'Automotive',
-  'Food & Beverages',
-  // NEW CATEGORIES 
+  'Home & Garden',
+  'Books & Media',
+  'Sports & Fitness',
   'Transport & Mobility',
   'Printing & Stationery',
   'Events & Decorations',
   'Household & Kitchen',
   'Medical & Wellness',
   'Beauty & Personal Care',
-  'Business Services'
+  'Business Services',
+  'Automotive',
+  'Food & Beverages',
+  'Other'
 ];
 
 const SUBCATEGORIES: Record<string, string[]> = {

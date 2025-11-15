@@ -58,11 +58,11 @@ const BUSINESS_TYPES = [
 ];
 
 const PRODUCT_CATEGORIES = [
-  'Electronics', 
-  'Fashion & Apparel', 
-  'Health & Wellness', 
-  'Home & Garden', 
-  'Books & Media', 
+  'Electronics',
+  'Fashion & Apparel',
+  'Health & Beauty',
+  'Home & Garden',
+  'Books & Media',
   'Sports & Fitness',
   'Transport & Mobility',
   'Printing & Stationery',
@@ -72,7 +72,8 @@ const PRODUCT_CATEGORIES = [
   'Beauty & Personal Care',
   'Business Services',
   'Automotive',
-  'Food & Beverages'
+  'Food & Beverages',
+  'Other'
 ];
 
 
