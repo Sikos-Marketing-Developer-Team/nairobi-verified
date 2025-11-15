@@ -55,13 +55,13 @@ const createCloudinaryStorage = (folder, allowedFormats = ['jpg', 'jpeg', 'png',
   });
 };
 
-// Create storage for documents (PDF, images)
+// Create storage for documents (all image formats and PDFs)
 const createDocumentStorage = (folder) => {
   return new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
       folder: `nairobi-verified/documents/${folder}`,
-      allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'],
+      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'pdf'],
       resource_type: 'auto', // Allows both images and raw files like PDFs
       public_id: (req, file) => {
         const timestamp = Date.now();
