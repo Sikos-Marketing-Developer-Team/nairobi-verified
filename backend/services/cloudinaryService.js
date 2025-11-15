@@ -228,9 +228,11 @@ module.exports = {
   productImageUploadRaw, // Raw multer instance with methods for merchantDashboard
   merchantImageUpload,
   documentUpload,
+  videoUpload, // New video upload support
   deleteFromCloudinary,
   uploadToCloudinary,
   getOptimizedImageUrl,
   createCloudinaryStorage,
-  createDocumentStorage
+  createDocumentStorage,
+  createVideoStorage // Export video storage creator
 };
