@@ -195,6 +195,31 @@ exports.addReview = async (req, res) => {
       });
     }
 
+    // Handle image uploads if present
+    const images = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        try {
+          const result = await uploadToCloudinary(file.path, {
+            folder: 'nairobi-verified/reviews',
+            resource_type: 'image'
+          });
+          images.push({
+            url: result.secure_url,
+            publicId: result.public_id
+          });
+        } catch (uploadError) {
+          console.error('Error uploading review image:', uploadError);
+          // Continue without the image rather than failing the whole review
+        }
+      }
+    }
+
+    // Add images to review data
+    if (images.length > 0) {
+      req.body.images = images;
+    }
+
     const review = await Review.create(req.body);
 
     // Populate the created review
