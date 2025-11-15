@@ -66,6 +66,7 @@ const ProductDetail = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   
   const galleryRef = useRef(null);
   const relatedProductsRef = useRef(null);
