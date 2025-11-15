@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, 
-  Image, MessageSquare, AlertCircle, Loader2, X, Send, 
+  Image as ImageIcon, MessageSquare, AlertCircle, Loader2, X, Send, 
   Facebook, Instagram, Globe, Map, Twitter, Film, Copy, Share2,
   Youtube, Linkedin, ChevronLeft, ChevronRight, Menu,
-  Eye
+  Eye, Upload, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
