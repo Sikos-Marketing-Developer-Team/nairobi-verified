@@ -1,6 +1,42 @@
 // src/lib/api.ts
 import axios from 'axios';
 
+// Type definitions
+interface UserData {
+  email?: string;
+  password?: string;
+  firstName?: string;
+  lastName?: string;
+  [key: string]: unknown;
+}
+
+interface MerchantData {
+  businessName?: string;
+  email?: string;
+  password?: string;
+  [key: string]: unknown;
+}
+
+interface ReviewData {
+  merchant?: string;
+  rating?: number;
+  content?: string;
+  images?: File[];
+  [key: string]: unknown;
+}
+
+interface ProductData {
+  name?: string;
+  description?: string;
+  price?: number;
+  category?: string;
+  [key: string]: unknown;
+}
+
+interface GenericData {
+  [key: string]: unknown;
+}
+
 // Determine base URL based on environment
 
 const getBaseURL = () => {
