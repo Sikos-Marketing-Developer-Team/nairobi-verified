@@ -1623,6 +1623,8 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
 }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
