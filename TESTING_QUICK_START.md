@@ -1,5 +1,26 @@
 # Test Suite - Quick Start Guide
 
+## 🔒 PRODUCTION DATABASE SAFETY FIRST
+
+**⚠️ CRITICAL: Your production database is 100% SAFE**
+
+The test suite has **5 layers of protection** that prevent any access to production:
+
+1. ✅ **Jest config blocks** non-test databases before tests start
+2. ✅ **Setup checks** require "test" in database name
+3. ✅ **Cleanup protection** only removes test data patterns
+4. ✅ **npm scripts hardcode** test database URI
+5. ✅ **CI/CD isolation** uses separate containers
+
+**Tests will FAIL immediately** if:
+- Database URI doesn't contain "test"
+- URI contains production indicators (prod, live, main)
+- Connected database name doesn't include "test"
+
+**See:** `PRODUCTION_DATABASE_SAFETY.md` and `DATABASE_SAFETY_QUICK_REF.md`
+
+---
+
 ## 🚀 Quick Start
 
 ### Install Dependencies
