@@ -1247,7 +1247,7 @@ const handleServiceWhatsAppInquiry = (service: Service) => {
       ) : (
         <div className="text-center py-8 lg:py-12 w-full">
           <div className="text-gray-400 mb-4">
-            <Image className="h-12 w-12 lg:h-16 lg:w-16 mx-auto" />
+            <ImageIcon className="h-12 w-12 lg:h-16 lg:w-16 mx-auto" />
           </div>
           <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-2">No Products Available</h3>
           <p className="text-gray-600 text-sm lg:text-base">This merchant hasn't listed any products yet.</p>
