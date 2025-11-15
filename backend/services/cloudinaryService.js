@@ -72,6 +72,23 @@ const createDocumentStorage = (folder) => {
   });
 };
 
+// Create storage for videos (all video formats)
+const createVideoStorage = (folder) => {
+  return new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: `nairobi-verified/videos/${folder}`,
+      resource_type: 'video',
+      allowed_formats: ['mp4', 'mov', 'avi', 'wmv', 'flv', 'mkv', 'webm', 'm4v', 'mpg', 'mpeg'],
+      public_id: (req, file) => {
+        const timestamp = Date.now();
+        const originalName = file.originalname.split('.')[0];
+        return `${originalName}-${timestamp}`;
+      }
+    },
+  });
+};
+
 // Multer configurations for different upload types
 const productImageUploadRaw = multer({
   storage: createCloudinaryStorage('products'),
