@@ -157,6 +157,27 @@ const documentUpload = multer({
   }
 });
 
+// Video upload configuration
+const videoUpload = multer({
+  storage: createVideoStorage('gallery'),
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit for videos
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept all common video formats
+    const allowedTypes = [
+      'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv',
+      'video/x-flv', 'video/x-matroska', 'video/webm', 'video/mpeg',
+      'video/3gpp', 'video/3gpp2'
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only video files (MP4, MOV, AVI, WMV, FLV, MKV, WebM, MPEG, 3GP) are allowed'), false);
+    }
+  }
+});
+
 // Helper functions
 const deleteFromCloudinary = async (publicId) => {
   ensureConfigured(); // Ensure Cloudinary is configured
