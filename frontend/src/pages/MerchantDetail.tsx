@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Star, MapPin, Check, Phone, Mail, Clock, Heart, ExternalLink, 
-  Image, MessageSquare, AlertCircle, Loader2, X, Send, 
+  Image as ImageIcon, MessageSquare, AlertCircle, Loader2, X, Send, 
   Facebook, Instagram, Globe, Map, Twitter, Film, Copy, Share2,
   Youtube, Linkedin, ChevronLeft, ChevronRight, Menu,
-  Eye
+  Eye, Upload, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -1247,7 +1247,7 @@ const handleServiceWhatsAppInquiry = (service: Service) => {
       ) : (
         <div className="text-center py-8 lg:py-12 w-full">
           <div className="text-gray-400 mb-4">
-            <Image className="h-12 w-12 lg:h-16 lg:w-16 mx-auto" />
+            <ImageIcon className="h-12 w-12 lg:h-16 lg:w-16 mx-auto" />
           </div>
           <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-2">No Products Available</h3>
           <p className="text-gray-600 text-sm lg:text-base">This merchant hasn't listed any products yet.</p>
@@ -1389,7 +1389,7 @@ const handleServiceWhatsAppInquiry = (service: Service) => {
                       </div>
                     ) : (
                       <div className="text-center py-8 lg:py-12 w-full">
-                        <Image className="h-12 w-12 lg:h-16 lg:w-16 text-gray-400 mx-auto mb-3 lg:mb-4" />
+                        <ImageIcon className="h-12 w-12 lg:h-16 lg:w-16 text-gray-400 mx-auto mb-3 lg:mb-4" />
                         <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-2">No Photos Available</h3>
                         <p className="text-gray-600 text-sm lg:text-base">This merchant hasn't uploaded any photos yet.</p>
                       </div>
@@ -1623,6 +1623,8 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
 }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -1633,6 +1635,34 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
     'Very Good',
     'Excellent',
   ];
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (images.length + files.length > 5) {
+      toast({
+        title: 'Too Many Images',
+        description: 'You can upload a maximum of 5 images',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setImages(prev => [...prev, ...files]);
+    
+    // Create image previews
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1648,11 +1678,19 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
 
     try {
       setIsSubmitting(true);
-      await reviewsAPI.createReview({
-        merchant: merchant._id,
-        rating,
-        content: comment.trim()
+      
+      // Create FormData to handle file uploads
+      const formData = new FormData();
+      formData.append('merchant', merchant._id);
+      formData.append('rating', rating.toString());
+      formData.append('content', comment.trim());
+      
+      // Append images if any
+      images.forEach((image) => {
+        formData.append('images', image);
       });
+      
+      await reviewsAPI.createReview(formData);
       
       toast({
         title: 'Review Submitted',
@@ -1722,6 +1760,47 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               rows={4}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Add Photos (Optional, up to 5)
+            </label>
+            <div className="space-y-3">
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {images.length < 5 && (
+                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                  <Upload className="h-6 w-6 text-gray-400 mb-1" />
+                  <span className="text-sm text-gray-600">Upload Images</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
           </div>
           
           <div className="flex space-x-3">

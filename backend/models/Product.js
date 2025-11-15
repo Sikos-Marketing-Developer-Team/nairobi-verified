@@ -23,21 +23,7 @@ const productSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: [
-      'Beauty & Cosmetics',
-      'Fashion & Apparel',
-      'Food & Beverages',
-      'Health & Wellness',
-      'Home & Garden',
-      'Electronics',
-      'Services',
-      'Books & Media',
-      'Sports & Fitness',
-      'Automotive',
-      'Transport & Mobility',
-      'Events & Decorations',
-      'Other'
-    ],
+    // Enum removed to allow flexibility - validation handled at application level
   },
   subcategory: {
     type: String,

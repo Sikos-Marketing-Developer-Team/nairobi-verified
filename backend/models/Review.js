@@ -37,6 +37,14 @@ const ReviewSchema = new mongoose.Schema({
     required: [true, 'Please add a review text'],
     trim: true
   },
+  images: [{
+    url: String,
+    publicId: String,
+    uploadedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   helpful: {
     type: Number,
     default: 0

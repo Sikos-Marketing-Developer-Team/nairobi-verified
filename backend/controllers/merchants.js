@@ -105,9 +105,10 @@ exports.getMerchants = async (req, res) => {
           productCount: { $size: '$products' },
           hasLogo: { $cond: [{ $and: [{ $ne: ['$logo', null] }, { $ne: ['$logo', ''] }] }, 1, 0] },
           hasBanner: { $cond: [{ $and: [{ $ne: ['$bannerImage', null] }, { $ne: ['$bannerImage', ''] }] }, 1, 0] },
-          // Priority score: verified=4, hasLogo=2, hasProducts=1
+          // Priority score: featured=8, verified=4, hasLogo=2, hasProducts=1
           priorityScore: {
             $add: [
+              { $cond: ['$featured', 8, 0] }, // Featured merchants get highest priority
               { $cond: ['$verified', 4, 0] },
               { $cond: [{ $and: [{ $ne: ['$logo', null] }, { $ne: ['$logo', ''] }] }, 2, 0] },
               { $cond: [{ $gt: [{ $size: '$products' }, 0] }, 1, 0] }
@@ -115,9 +116,10 @@ exports.getMerchants = async (req, res) => {
           }
         }
       },
-      // Sort by priority score (desc), then rating (desc), then creation date (desc)
+      // Sort by featured first, then priority score, verified status, product count, rating, and creation date
       {
         $sort: {
+          featured: -1, // Featured merchants always at the top
           priorityScore: -1,
           verified: -1,
           productCount: -1,

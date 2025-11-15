@@ -22,6 +22,10 @@ type Review = {
   createdAt: string;
   helpful: number;
   helpfulBy: string[];
+  images?: Array<{
+    url: string;
+    publicId: string;
+  }>;
   reply?: {
     author: string;
     content: string;
@@ -327,6 +331,21 @@ const ReviewsSection = ({ merchantId, reviews: initialReviews }: ReviewsSectionP
                           </div>
                           
                           <p className="text-gray-700 mb-3">{review.content}</p>
+                          
+                          {/* Review Images */}
+                          {review.images && review.images.length > 0 && (
+                            <div className="grid grid-cols-3 gap-2 mb-3">
+                              {review.images.map((image, index) => (
+                                <img
+                                  key={index}
+                                  src={image.url}
+                                  alt={`Review image ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                  onClick={() => window.open(image.url, '_blank')}
+                                />
+                              ))}
+                            </div>
+                          )}
                           
                           <div className="flex items-center gap-4">
                             <Button 

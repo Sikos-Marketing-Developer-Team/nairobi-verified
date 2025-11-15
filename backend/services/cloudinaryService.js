@@ -36,8 +36,8 @@ try {
   console.error('⚠️ Failed to configure Cloudinary on module load:', error.message);
 }
 
-// Create storage for different types of uploads
-const createCloudinaryStorage = (folder, allowedFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp']) => {
+// Create storage for different types of uploads - supports all image formats
+const createCloudinaryStorage = (folder, allowedFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico', 'heic', 'heif']) => {
   return new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
@@ -55,14 +55,31 @@ const createCloudinaryStorage = (folder, allowedFormats = ['jpg', 'jpeg', 'png',
   });
 };
 
-// Create storage for documents (PDF, images)
+// Create storage for documents (all image formats and PDFs)
 const createDocumentStorage = (folder) => {
   return new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
       folder: `nairobi-verified/documents/${folder}`,
-      allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'],
+      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'pdf'],
       resource_type: 'auto', // Allows both images and raw files like PDFs
+      public_id: (req, file) => {
+        const timestamp = Date.now();
+        const originalName = file.originalname.split('.')[0];
+        return `${originalName}-${timestamp}`;
+      }
+    },
+  });
+};
+
+// Create storage for videos (all video formats)
+const createVideoStorage = (folder) => {
+  return new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: `nairobi-verified/videos/${folder}`,
+      resource_type: 'video',
+      allowed_formats: ['mp4', 'mov', 'avi', 'wmv', 'flv', 'mkv', 'webm', 'm4v', 'mpg', 'mpeg'],
       public_id: (req, file) => {
         const timestamp = Date.now();
         const originalName = file.originalname.split('.')[0];
@@ -126,11 +143,37 @@ const documentUpload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit for documents
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    // Accept all common image formats and PDFs
+    const allowedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+      'image/svg+xml', 'image/bmp', 'image/tiff', 'image/x-icon',
+      'image/heic', 'image/heif', 'application/pdf'
+    ];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only JPEG, PNG, and PDF files are allowed'), false);
+      cb(new Error('Only image files (JPEG, PNG, GIF, WebP, SVG, BMP, TIFF, HEIC, HEIF) and PDF files are allowed'), false);
+    }
+  }
+});
+
+// Video upload configuration
+const videoUpload = multer({
+  storage: createVideoStorage('gallery'),
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit for videos
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept all common video formats
+    const allowedTypes = [
+      'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv',
+      'video/x-flv', 'video/x-matroska', 'video/webm', 'video/mpeg',
+      'video/3gpp', 'video/3gpp2'
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only video files (MP4, MOV, AVI, WMV, FLV, MKV, WebM, MPEG, 3GP) are allowed'), false);
     }
   }
 });
@@ -185,9 +228,11 @@ module.exports = {
   productImageUploadRaw, // Raw multer instance with methods for merchantDashboard
   merchantImageUpload,
   documentUpload,
+  videoUpload, // New video upload support
   deleteFromCloudinary,
   uploadToCloudinary,
   getOptimizedImageUrl,
   createCloudinaryStorage,
-  createDocumentStorage
+  createDocumentStorage,
+  createVideoStorage // Export video storage creator
 };

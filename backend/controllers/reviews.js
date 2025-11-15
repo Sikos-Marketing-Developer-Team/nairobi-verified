@@ -3,6 +3,7 @@ const Review = require('../models/Review');
 const Merchant = require('../models/Merchant');
 const mongoose = require('mongoose');
 const { HTTP_STATUS } = require('../config/constants');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../services/cloudinaryService');
 
 // Error handling utility
 const handleError = (res, error, message, statusCode = 500) => {
@@ -192,6 +193,31 @@ exports.addReview = async (req, res) => {
         success: false,
         error: 'You have already reviewed this merchant'
       });
+    }
+
+    // Handle image uploads if present
+    const images = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        try {
+          const result = await uploadToCloudinary(file.path, {
+            folder: 'nairobi-verified/reviews',
+            resource_type: 'image'
+          });
+          images.push({
+            url: result.secure_url,
+            publicId: result.public_id
+          });
+        } catch (uploadError) {
+          console.error('Error uploading review image:', uploadError);
+          // Continue without the image rather than failing the whole review
+        }
+      }
+    }
+
+    // Add images to review data
+    if (images.length > 0) {
+      req.body.images = images;
     }
 
     const review = await Review.create(req.body);

@@ -10,17 +10,18 @@ const {
   markHelpful
 } = require('../controllers/reviews');
 const { protect } = require('../middleware/auth');
+const { productImageUploadRaw } = require('../services/cloudinaryService');
 
 const router = express.Router({ mergeParams: true });
 
 // General reviews routes
 router.route('/')
   .get(getAllReviews)
-  .post(protect, addReview);
+  .post(protect, productImageUploadRaw.array('images', 5), addReview); // Support up to 5 images
 
 // Merchant-specific reviews route
 router.get('/merchant/:merchantId', getReviews);
-router.post('/merchant/:merchantId', protect, addReview);
+router.post('/merchant/:merchantId', protect, productImageUploadRaw.array('images', 5), addReview);
 
 // Individual review routes
 router.route('/:id')

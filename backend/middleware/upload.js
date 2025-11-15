@@ -4,7 +4,8 @@ const {
   productImageUpload, // Wrapped version with .any()
   productImageUploadRaw, // Raw multer instance with methods
   merchantImageUpload, 
-  documentUpload 
+  documentUpload,
+  videoUpload // Import video upload
 } = require('../services/cloudinaryService');
 
 // Legacy local storage (keeping for backward compatibility)
@@ -26,20 +27,24 @@ const documentStorage = multer.diskStorage({
   }
 });
 
-// Check file type
+// Check file type - Accept all common image and video formats
 const fileFilter = (req, file, cb) => {
-  const imageFileTypes = /jpeg|jpg|png|gif|webp/;
+  const imageFileTypes = /jpeg|jpg|png|gif|webp|svg|bmp|tiff|heic|heif/;
   const documentFileTypes = /pdf|doc|docx|txt/;
+  const videoFileTypes = /mp4|mov|avi|wmv|flv|mkv|webm|mpeg|mpg|m4v/;
   
   const extname = imageFileTypes.test(path.extname(file.originalname).toLowerCase()) || 
-                 documentFileTypes.test(path.extname(file.originalname).toLowerCase());
+                 documentFileTypes.test(path.extname(file.originalname).toLowerCase()) ||
+                 videoFileTypes.test(path.extname(file.originalname).toLowerCase());
   
-  const mimetype = imageFileTypes.test(file.mimetype) || documentFileTypes.test(file.mimetype);
+  const mimetype = imageFileTypes.test(file.mimetype) || 
+                   documentFileTypes.test(file.mimetype) ||
+                   file.mimetype.startsWith('video/');
   
   if (mimetype && extname) {
     return cb(null, true);
   } else {
-    cb(new Error('Error: Invalid file type!'));
+    cb(new Error('Error: Invalid file type! Only images, videos, and documents are allowed.'));
   }
 };
 
@@ -69,5 +74,6 @@ module.exports = {
   // New Cloudinary uploads
   uploadProductImages,
   uploadMerchantImages,
-  uploadDocs
+  uploadDocs,
+  uploadVideos: videoUpload // Export video upload
 };
