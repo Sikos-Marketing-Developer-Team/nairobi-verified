@@ -62,6 +62,47 @@ router.post('/merchants/:id/resend-welcome', checkPermission('merchants.write'),
 router.put('/merchants/bulk-status', checkPermission('merchants.approve'), bulkUpdateMerchantStatus);
 router.delete('/merchants/bulk-delete', protectAdmin, checkPermission('merchants.delete'), bulkDeleteMerchants);
 router.post('/merchants/bulk-verify', checkPermission('merchants.approve'), bulkVerifyMerchants);
+// Bulk featured status update
+router.post('/merchants/bulk-featured', checkPermission('merchants.write'), async (req, res) => {
+  try {
+    const Merchant = require('../models/Merchant');
+    const { merchantIds, featured } = req.body;
+    
+    if (!merchantIds || !Array.isArray(merchantIds) || merchantIds.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'merchantIds array is required' 
+      });
+    }
+
+    const result = await Merchant.updateMany(
+      { _id: { $in: merchantIds } },
+      { 
+        featured: !!featured,
+        featuredDate: featured ? Date.now() : null
+      }
+    );
+
+    console.log('✅ Bulk featured update:', { 
+      count: result.modifiedCount, 
+      featured,
+      admin: req.admin.email 
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      data: { modifiedCount: result.modifiedCount },
+      message: `${result.modifiedCount} merchants ${featured ? 'added to' : 'removed from'} featured list`
+    });
+  } catch (error) {
+    console.error('❌ bulkSetFeatured error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to bulk update featured status',
+      error: error.message 
+    });
+  }
+});
 // Parameterized routes come after bulk operations
 router.delete('/merchants/:merchantId', protectAdmin, checkPermission('merchants.delete'), deleteMerchant);
 router.put('/merchants/:id/featured', checkPermission('merchants.write'), async (req, res) => {
