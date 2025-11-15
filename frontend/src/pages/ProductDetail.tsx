@@ -936,7 +936,23 @@ const ProductDetail = () => {
 
         {/* Customer Reviews Section */}
         <section className="mt-8 md:mt-16" aria-label="Customer Reviews">
-          <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-gray-900">Customer Reviews</h2>
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Customer Reviews</h2>
+            <Button
+              onClick={() => {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                  toast.error('Please sign in to write a review');
+                  navigate('/login');
+                  return;
+                }
+                navigate(`/merchant/${product?.merchant._id}?writeReview=true`);
+              }}
+              className="bg-primary hover:bg-primary-dark text-white text-sm md:text-base"
+            >
+              Write a Review
+            </Button>
+          </div>
           {reviews.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {reviews.map((review) => (
@@ -954,7 +970,21 @@ const ProductDetail = () => {
           ) : (
             <div className="text-center py-8 md:py-12 bg-gray-50 rounded-lg">
               <Users className="h-8 md:h-12 w-8 md:w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600 text-sm md:text-base">No reviews yet. Be the first to review this product!</p>
+              <p className="text-gray-600 text-sm md:text-base mb-4">No reviews yet. Be the first to review this merchant!</p>
+              <Button
+                onClick={() => {
+                  const token = localStorage.getItem('token');
+                  if (!token) {
+                    toast.error('Please sign in to write a review');
+                    navigate('/login');
+                    return;
+                  }
+                  navigate(`/merchant/${product?.merchant._id}?writeReview=true`);
+                }}
+                className="bg-primary hover:bg-primary-dark text-white"
+              >
+                Write First Review
+              </Button>
             </div>
           )}
         </section>
