@@ -1,0 +1,76 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x, 20.x]
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: npm ci
+    
+    - name: Run tests with coverage
+      working-directory: ./backend
+      run: npm run test:ci
+      env:
+        NODE_ENV: test
+        MONGODB_URI: mongodb://localhost:27017/nairobi-verified-test
+        JWT_SECRET: test-jwt-secret-key-for-testing-only
+        SESSION_SECRET: test-session-secret-for-testing
+        SKIP_SESSION: false
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage/coverage-final.json
+        flags: backend
+        name: backend-coverage
+    
+    - name: Archive coverage reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: backend/coverage/
+        retention-days: 30
+    
+    - name: Check coverage thresholds
+      working-directory: ./backend
+      run: npm run test:coverage
+    
+    - name: Comment PR with coverage
+      if: github.event_name == 'pull_request'
+      uses: romeovs/lcov-reporter-action@v0.3.1
+      with:
+        lcov-file: ./backend/coverage/lcov.info
+        github-token: ${{ secrets.GITHUB_TOKEN }}
