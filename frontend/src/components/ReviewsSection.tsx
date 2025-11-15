@@ -22,6 +22,10 @@ type Review = {
   createdAt: string;
   helpful: number;
   helpfulBy: string[];
+  images?: Array<{
+    url: string;
+    publicId: string;
+  }>;
   reply?: {
     author: string;
     content: string;
