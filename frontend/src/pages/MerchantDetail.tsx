@@ -1636,6 +1636,34 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
     'Excellent',
   ];
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (images.length + files.length > 5) {
+      toast({
+        title: 'Too Many Images',
+        description: 'You can upload a maximum of 5 images',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setImages(prev => [...prev, ...files]);
+    
+    // Create image previews
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -1650,11 +1678,19 @@ const ReviewModal = ({ merchant, onClose, onReviewSubmitted }: {
 
     try {
       setIsSubmitting(true);
-      await reviewsAPI.createReview({
-        merchant: merchant._id,
-        rating,
-        content: comment.trim()
+      
+      // Create FormData to handle file uploads
+      const formData = new FormData();
+      formData.append('merchant', merchant._id);
+      formData.append('rating', rating.toString());
+      formData.append('content', comment.trim());
+      
+      // Append images if any
+      images.forEach((image) => {
+        formData.append('images', image);
       });
+      
+      await reviewsAPI.createReview(formData);
       
       toast({
         title: 'Review Submitted',
