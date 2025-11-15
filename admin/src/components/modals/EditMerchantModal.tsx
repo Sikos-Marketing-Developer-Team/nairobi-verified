@@ -85,7 +85,7 @@ const SUBCATEGORIES: Record<string, string[]> = {
   'Home & Garden': ['Furniture', 'Decor', 'Kitchen', 'Garden', 'Tools', 'Bedding', 'Other'],
   'Sports & Fitness': ['Fitness', 'Outdoor', 'Team Sports', 'Water Sports', 'Cycling', 'Equipment', 'Other'],
   'Books & Media': ['Fiction', 'Non-Fiction', 'Educational', 'Children', 'Comics', 'Magazines', 'Other'],
-  'Health & Wellness': ['Skincare', 'Makeup', 'Haircare', 'Fragrance', 'Personal Care', 'Tools', 'Other'],
+  'Health & Beauty': ['Skincare', 'Makeup', 'Haircare', 'Fragrance', 'Personal Care', 'Tools', 'Other'],
   'Automotive': ['Parts', 'Accessories', 'Tools', 'Care', 'Electronics', 'Tires', 'Other'],
   'Food & Beverages': ['Fresh', 'Packaged', 'Beverages', 'Snacks', 'Frozen', 'Organic', 'Other'],
   
