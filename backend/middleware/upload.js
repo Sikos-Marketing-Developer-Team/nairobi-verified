@@ -4,7 +4,8 @@ const {
   productImageUpload, // Wrapped version with .any()
   productImageUploadRaw, // Raw multer instance with methods
   merchantImageUpload, 
-  documentUpload 
+  documentUpload,
+  videoUpload // Import video upload
 } = require('../services/cloudinaryService');
 
 // Legacy local storage (keeping for backward compatibility)
