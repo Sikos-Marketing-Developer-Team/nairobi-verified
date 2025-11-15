@@ -1,5 +1,15 @@
 require('dotenv').config();
 
+// CRITICAL: Production database protection
+const mongoUri = process.env.MONGODB_URI || process.env.TEST_MONGODB_URI;
+if (mongoUri && !mongoUri.toLowerCase().includes('test')) {
+  console.error('\n❌ FATAL ERROR: Tests cannot run against non-test database!');
+  console.error(`Database URI: ${mongoUri}`);
+  console.error('Set MONGODB_URI or TEST_MONGODB_URI to a test database.');
+  console.error('Example: mongodb://localhost:27017/nairobi-verified-test\n');
+  process.exit(1);
+}
+
 module.exports = {
   testEnvironment: 'node',
   clearMocks: true,

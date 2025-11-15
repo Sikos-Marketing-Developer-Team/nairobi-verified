@@ -56,26 +56,76 @@ const testData = {
 
 // Database setup and teardown
 async function setupDatabase() {
+  // CRITICAL: Prevent tests from running against production database
+  const mongoUri = process.env.MONGODB_URI || process.env.TEST_MONGODB_URI;
+  
+  // Safety checks
+  if (!mongoUri) {
+    throw new Error('❌ MONGODB_URI or TEST_MONGODB_URI must be set for tests');
+  }
+  
+  // MUST contain 'test' in the database name or URI
+  if (!mongoUri.includes('test') && !mongoUri.includes('Test') && !mongoUri.includes('TEST')) {
+    throw new Error(
+      '❌ SAFETY CHECK FAILED: Test database URI must contain "test" in the name.\n' +
+      `Current URI: ${mongoUri}\n` +
+      'This prevents accidentally running tests against production database.\n' +
+      'Use a test database like: mongodb://localhost:27017/nairobi-verified-test'
+    );
+  }
+  
+  // Additional check for common production indicators
+  const productionIndicators = ['prod', 'production', 'live', 'main'];
+  const lowerUri = mongoUri.toLowerCase();
+  const hasProductionIndicator = productionIndicators.some(indicator => 
+    lowerUri.includes(indicator) && !lowerUri.includes('test')
+  );
+  
+  if (hasProductionIndicator) {
+    throw new Error(
+      '❌ SAFETY CHECK FAILED: Database URI appears to be production.\n' +
+      `URI contains production indicators but no "test" keyword.\n` +
+      'Tests will NOT run against production databases.'
+    );
+  }
+  
+  console.log('✅ Database safety checks passed');
+  console.log(`📊 Using test database: ${mongoUri.split('?')[0]}`);
+  
   if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(process.env.MONGODB_URI, {
+    await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000
     });
   }
 }
 
 async function cleanupDatabase() {
+  // Double-check we're on a test database before cleanup
+  const dbName = mongoose.connection.name;
+  if (!dbName.toLowerCase().includes('test')) {
+    throw new Error(
+      `❌ SAFETY CHECK: Refusing to cleanup non-test database: ${dbName}\n` +
+      'Tests must use a database with "test" in the name.'
+    );
+  }
+  
   const collections = mongoose.connection.collections;
   
+  // Only delete test data with specific markers
   for (const key in collections) {
     const collection = collections[key];
     await collection.deleteMany({
       $or: [
         { email: /test\./i },
         { email: /@example\.com$/i },
-        { businessName: /test/i }
+        { businessName: /test/i },
+        { name: /test/i },
+        { _testData: true } // Optional: can tag test data
       ]
     });
   }
+  
+  console.log('🧹 Test data cleanup completed');
 }
 
 async function closeDatabase() {
