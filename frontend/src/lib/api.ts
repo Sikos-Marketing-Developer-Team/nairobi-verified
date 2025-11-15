@@ -116,7 +116,10 @@ api.interceptors.response.use(
       console.error('Response headers:', response.headers);
       
       // Return a generic error structure
-      const error: any = new Error('Server returned empty response');
+      const error = new Error('Server returned empty response') as Error & {
+        response?: typeof response;
+        config?: typeof response.config;
+      };
       error.response = response;
       error.config = response.config;
       return Promise.reject(error);
@@ -137,8 +140,8 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  register: (userData: any) => api.post('/auth/register', userData),
-  registerMerchant: (merchantData: any) => api.post('/auth/register/merchant', merchantData),
+  register: (userData: UserData) => api.post('/auth/register', userData),
+  registerMerchant: (merchantData: MerchantData) => api.post('/auth/register/merchant', merchantData),
   login: (email: string, password: string) => api.post('/auth/login', { email, password }),
   loginMerchant: (email: string, password: string) => api.post('/auth/login/merchant', { email, password }),
   googleAuth: async (credential: string) => {
@@ -157,16 +160,16 @@ export const authAPI = {
   logout: () => api.get('/auth/logout'),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token: string, password: string) => api.post(`/auth/reset-password/${token}`, { password }),
-  updateProfile: (userData: any) => api.put('/users/me', userData)
+  updateProfile: (userData: UserData) => api.put('/users/me', userData)
 };
 
 // Users API
 export const usersAPI = {
   getUsers: () => api.get('/users'),
   getUser: (id: string) => api.get(`/users/${id}`),
-  updateUser: (id: string, userData: any) => api.put(`/users/${id}`, userData),
+  updateUser: (id: string, userData: UserData) => api.put(`/users/${id}`, userData),
   deleteUser: (id: string) => api.delete(`/users/${id}`),
-  updatePassword: (id: string, passwordData: any) => api.put(`/users/${id}/password`, passwordData)
+  updatePassword: (id: string, passwordData: GenericData) => api.put(`/users/${id}/password`, passwordData)
 };
 
 // Merchants API - CORRECTED with proper dashboard endpoints
@@ -180,13 +183,13 @@ export const merchantsAPI = {
     } 
   }),
   getMerchant: (id: string) => api.get(`/merchants/${id}`),
-  updateMerchant: (id: string, merchantData: any) => api.put(`/merchants/${id}`, merchantData),
+  updateMerchant: (id: string, merchantData: MerchantData) => api.put(`/merchants/${id}`, merchantData),
   deleteMerchant: (id: string) => api.delete(`/merchants/${id}`),
   verifyMerchant: (id: string) => api.put(`/merchants/${id}/verify`),
 
   // Current merchant endpoints
   getMyMerchant: () => api.get('/merchants/me'),
-  updateMyMerchant: (merchantData: any) => api.put('/merchants/me', merchantData),
+  updateMyMerchant: (merchantData: MerchantData) => api.put('/merchants/me', merchantData),
   
   // DASHBOARD ENDPOINTS - CORRECTED to match backend
   getDashboardOverview: () => api.get('/merchants/dashboard/overview'),
@@ -265,16 +268,16 @@ export const merchantsAPI = {
   deleteMyGalleryImage: (imageIndex: number) => api.delete(`/merchants/me/gallery/${imageIndex}`),
   
   // Business hours management
-  updateBusinessHours: (id: string, businessHours: any) => api.put(`/merchants/${id}/hours`, { businessHours }),
-  updateMyBusinessHours: (businessHours: any) => api.put('/merchants/me/hours', { businessHours }),
+  updateBusinessHours: (id: string, businessHours: GenericData) => api.put(`/merchants/${id}/hours`, { businessHours }),
+  updateMyBusinessHours: (businessHours: GenericData) => api.put('/merchants/me/hours', { businessHours }),
   
   // Social links management
-  updateSocialLinks: (id: string, socialLinks: any) => api.put(`/merchants/${id}/social`, { socialLinks }),
-  updateMySocialLinks: (socialLinks: any) => api.put('/merchants/me/social', { socialLinks }),
+  updateSocialLinks: (id: string, socialLinks: GenericData) => api.put(`/merchants/${id}/social`, { socialLinks }),
+  updateMySocialLinks: (socialLinks: GenericData) => api.put('/merchants/me/social', { socialLinks }),
   
   // SEO settings
-  updateSEOSettings: (id: string, seoSettings: any) => api.put(`/merchants/${id}/seo`, seoSettings),
-  updateMySEOSettings: (seoSettings: any) => api.put('/merchants/me/seo', seoSettings),
+  updateSEOSettings: (id: string, seoSettings: GenericData) => api.put(`/merchants/${id}/seo`, seoSettings),
+  updateMySEOSettings: (seoSettings: GenericData) => api.put('/merchants/me/seo', seoSettings),
 
   // Documents upload
   uploadDocuments: (id: string, documents: Record<string, File | File[]>) => {
@@ -299,11 +302,11 @@ export const reviewsAPI = {
   getReviews: (merchantId: string, params = {}) => api.get(`/reviews/merchant/${merchantId}`, { params }),
   getUserReviews: (params = {}) => api.get('/reviews/user', { params }),
   getReview: (id: string) => api.get(`/reviews/${id}`),
-  createReview: (reviewData: any) => api.post('/reviews', reviewData),
-  addReview: (merchantId: string, reviewData: any) => api.post(`/merchants/${merchantId}/reviews`, reviewData),
-  updateReview: (id: string, reviewData: any) => api.put(`/reviews/${id}`, reviewData),
+  createReview: (reviewData: ReviewData | FormData) => api.post('/reviews', reviewData),
+  addReview: (merchantId: string, reviewData: ReviewData | FormData) => api.post(`/merchants/${merchantId}/reviews`, reviewData),
+  updateReview: (id: string, reviewData: ReviewData) => api.put(`/reviews/${id}`, reviewData),
   deleteReview: (id: string) => api.delete(`/reviews/${id}`),
-  addReply: (id: string, replyData: any) => api.post(`/reviews/${id}/reply`, replyData),
+  addReply: (id: string, replyData: GenericData) => api.post(`/reviews/${id}/reply`, replyData),
   markHelpful: (id: string) => api.put(`/reviews/${id}/helpful`),
   
   // Merchant review management - UPDATED to use dashboard endpoints
@@ -333,15 +336,15 @@ export const ordersAPI = {
 // Addresses API
 export const addressesAPI = {
   getAddresses: () => api.get('/addresses'),
-  addAddress: (addressData: any) => api.post('/addresses', addressData),
-  updateAddress: (id: string, addressData: any) => api.put(`/addresses/${id}`, addressData),
+  addAddress: (addressData: GenericData) => api.post('/addresses', addressData),
+  updateAddress: (id: string, addressData: GenericData) => api.put(`/addresses/${id}`, addressData),
   deleteAddress: (id: string) => api.delete(`/addresses/${id}`),
 };
 
 // Settings API
 export const settingsAPI = {
   getSettings: () => api.get('/settings/me'),
-  updateSettings: (id: string, settingsData: any) => api.put(`/settings/${id}`, settingsData),
+  updateSettings: (id: string, settingsData: GenericData) => api.put(`/settings/${id}`, settingsData),
 };
 
 // Cart API
@@ -358,11 +361,11 @@ export const cartAPI = {
 // User API
 export const userAPI = {
   getCurrentUser: () => api.get('/auth/me'),
-  updateProfile: (userData: any) => api.put('/users/me', userData),
+  updateProfile: (userData: UserData) => api.put('/users/me', userData),
   changePassword: (currentPassword: string, newPassword: string) => api.post('/users/change-password', { currentPassword, newPassword }),
   getAddresses: () => api.get('/users/addresses'),
-  addAddress: (addressData: any) => api.post('/users/addresses', addressData),
-  updateAddress: (addressId: string, addressData: any) => api.put(`/users/addresses/${addressId}`, addressData),
+  addAddress: (addressData: GenericData) => api.post('/users/addresses', addressData),
+  updateAddress: (addressId: string, addressData: GenericData) => api.put(`/users/addresses/${addressId}`, addressData),
   deleteAddress: (addressId: string) => api.delete(`/users/addresses/${addressId}`),
   getWishlist: () => api.get('/users/wishlist'),
   addToWishlist: (productId: string) => api.post('/users/wishlist', { productId }),
@@ -378,36 +381,36 @@ export const productsAPI = {
   getProductsByMerchant: (merchantId: string, params = {}) => api.get(`/products/merchant/${merchantId}`, { params }),
   getCategories: () => api.get('/products/categories'),
   getSearchSuggestions: (query: string) => api.get('/products/suggestions', { params: { q: query } }),
-  createProduct: (productData: any) => api.post('/products', productData),
-  updateProduct: (id: string, productData: any) => api.put(`/products/${id}`, productData),
+  createProduct: (productData: ProductData) => api.post('/products', productData),
+  updateProduct: (id: string, productData: ProductData) => api.put(`/products/${id}`, productData),
   deleteProduct: (id: string) => api.delete(`/products/${id}`),
   
   // Merchant product management
   getMyProducts: (params = {}) => api.get('/merchants/me/products', { params }),
-  createMyProduct: (productData: any) => api.post('/merchants/me/products', productData),
-  updateMyProduct: (productId: string, productData: any) => api.put(`/merchants/me/products/${productId}`, productData),
+  createMyProduct: (productData: ProductData) => api.post('/merchants/me/products', productData),
+  updateMyProduct: (productId: string, productData: ProductData) => api.put(`/merchants/me/products/${productId}`, productData),
   deleteMyProduct: (productId: string) => api.delete(`/merchants/me/products/${productId}`),
   updateProductInventory: (productId: string, inventory: number) => api.put(`/merchants/me/products/${productId}/inventory`, { inventory }),
-  bulkUpdateProducts: (updates: Array<{ id: string; data: any }>) => api.put('/merchants/me/products/bulk', { updates }),
+  bulkUpdateProducts: (updates: Array<{ id: string; data: ProductData }>) => api.put('/merchants/me/products/bulk', { updates }),
 };
 
 // Admin API
 export const adminAPI = {
   getDashboardStats: () => api.get('/admin/dashboard/stats'),
-  getUsers: (params?: any) => api.get('/admin/users', { params }),
+  getUsers: (params?: GenericData) => api.get('/admin/users', { params }),
   getUser: (userId: string) => api.get(`/admin/users/${userId}`),
-  updateUser: (userId: string, userData: any) => api.put(`/admin/users/${userId}`, userData),
+  updateUser: (userId: string, userData: UserData) => api.put(`/admin/users/${userId}`, userData),
   deleteUser: (userId: string) => api.delete(`/admin/users/${userId}`),
-  getMerchants: (params?: any) => api.get('/admin/merchants', { params }),
+  getMerchants: (params?: GenericData) => api.get('/admin/merchants', { params }),
   getMerchant: (merchantId: string) => api.get(`/admin/merchants/${merchantId}`),
-  updateMerchant: (merchantId: string, merchantData: any) => api.put(`/admin/merchants/${merchantId}`, merchantData),
+  updateMerchant: (merchantId: string, merchantData: MerchantData) => api.put(`/admin/merchants/${merchantId}`, merchantData),
   deleteMerchant: (merchantId: string) => api.delete(`/admin/merchants/${merchantId}`),
   verifyMerchant: (merchantId: string) => api.post(`/admin/merchants/${merchantId}/verify`),
   rejectMerchant: (merchantId: string, reason: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason }),
   removeMockData: () => api.delete('/admin/mock-data'),
   removeMockDataByType: (dataType: string) => api.delete(`/admin/mock-data/${dataType}`),
   // Verification endpoints
-  getPendingVerifications: (params?: any) => api.get('/admin/merchants', { params: { ...params, documentStatus: 'pending_review' } }),
+  getPendingVerifications: (params?: GenericData) => api.get('/admin/merchants', { params: { ...params, documentStatus: 'pending_review' } }),
   approveMerchant: (merchantId: string, notes?: string) => api.post(`/admin/merchants/${merchantId}/verify`, { notes }),
   rejectMerchantVerification: (merchantId: string, reason: string, notes?: string) => api.post(`/admin/merchants/${merchantId}/reject`, { reason, notes }),
   
