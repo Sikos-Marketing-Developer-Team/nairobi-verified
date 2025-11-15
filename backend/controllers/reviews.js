@@ -3,6 +3,7 @@ const Review = require('../models/Review');
 const Merchant = require('../models/Merchant');
 const mongoose = require('mongoose');
 const { HTTP_STATUS } = require('../config/constants');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../services/cloudinaryService');
 
 // Error handling utility
 const handleError = (res, error, message, statusCode = 500) => {
